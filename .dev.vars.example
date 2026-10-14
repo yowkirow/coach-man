@@ -1,0 +1,20 @@
+# Copy to `.dev.vars` for local development. Never commit `.dev.vars`.
+# Staging/production values are set with `wrangler secret put <NAME> --env <env>`.
+
+# 32+ random characters, e.g. `node -e "console.log(crypto.randomBytes(32).toString('base64url'))"`
+BETTER_AUTH_SECRET=replace-me
+
+# Google Cloud Console > APIs & Services > Credentials > OAuth client (Web application)
+# Authorized redirect URI for local dev: http://localhost:5173/api/auth/callback/google
+GOOGLE_CLIENT_ID=replace-me.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=replace-me
+
+# Web Push (VAPID). Generate with `npm run vapid:generate`.
+VAPID_PUBLIC_KEY=
+VAPID_PRIVATE_KEY=
+VAPID_SUBJECT=mailto:coach@example.com
+
+# E2E / Playwright auth bypass. Only honoured when APP_ENV is not "production"
+# AND E2E_AUTH_BYPASS=1 AND the request header `x-e2e-bypass` equals E2E_BYPASS_SECRET.
+E2E_AUTH_BYPASS=1
+E2E_BYPASS_SECRET=replace-me-with-a-long-random-string

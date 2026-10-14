@@ -1,0 +1,245 @@
+import type { LessonDetailDto, NoteDto, RosterEntryDto, TodayDto } from "@shared/api-types";
+import type { AttendanceStatus } from "@shared/domain";
+import { CONSUMING_STATUSES } from "@shared/domain";
+import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
+import { MutationCache, QueryClient, type QueryKey } from "@tanstack/react-query";
+import { del, get, set } from "idb-keyval";
+import { ApiRequestError, api } from "./api";
+import { notify } from "./notify";
+
+export const CACHE_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
+export const CACHE_BUSTER = "coachman-cache-v1";
+
+export const keys = {
+  me: ["me"] as const,
+  today: ["today"] as const,
+  lesson: (id: string) => ["lesson", id] as const,
+  lessons: (from: string, to: string) => ["lessons", from, to] as const,
+  clients: (filters: Record<string, string | undefined> = {}) => ["clients", filters] as const,
+  client: (id: string) => ["client", id] as const,
+  progress: (clientId: string) => ["progress", clientId] as const,
+  statement: (clientId: string) => ["statement", clientId] as const,
+  ledger: (clientId: string) => ["ledger", clientId] as const,
+  groups: ["groups"] as const,
+  group: (id: string) => ["group", id] as const,
+  rates: ["rates"] as const,
+  packages: ["packages"] as const,
+  venues: ["venues"] as const,
+  skills: ["skills"] as const,
+  events: (scope: string) => ["events", scope] as const,
+  event: (id: string) => ["event", id] as const,
+  money: (month: string) => ["money", month] as const,
+  balances: ["balances"] as const,
+  notificationPrefs: ["notification-prefs"] as const,
+};
+
+/** Query families kept in IndexedDB so the app can open and read offline. */
+const PERSISTED = new Set([
+  "me",
+  "today",
+  "lesson",
+  "lessons",
+  "clients",
+  "client",
+  "progress",
+  "groups",
+  "group",
+  "rates",
+  "packages",
+  "venues",
+  "skills",
+]);
+
+export function shouldPersistQuery(key: QueryKey, status: string): boolean {
+  return status === "success" && typeof key[0] === "string" && PERSISTED.has(key[0]);
+}
+
+export const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30_000,
+      gcTime: CACHE_MAX_AGE,
+      retry: (count, err) =>
+        !(err instanceof ApiRequestError && err.status >= 400 && err.status < 500) && count < 2,
+    },
+    mutations: { retry: 0 },
+  },
+  mutationCache: new MutationCache({
+    onError: (err, _vars, _ctx, mutation) => {
+      if (mutation.meta?.silent) return;
+      if (err instanceof ApiRequestError && err.status === 409) {
+        notify({ tone: "danger", title: "Needs attention", body: err.message, duration: 8000 });
+        void queryClient.invalidateQueries();
+      }
+    },
+  }),
+});
+
+export const persister = createAsyncStoragePersister({
+  storage: {
+    getItem: async (key) => (await get<string>(key)) ?? null,
+    setItem: (key, value) => set(key, value),
+    removeItem: (key) => del(key),
+  },
+  key: "coachman-query-cache",
+  throttleTime: 1000,
+});
+
+// ---------------------------------------------------------------------------
+// Offline-capable mutations. Defaults are registered by key so mutations that were paused
+// offline and persisted to IndexedDB can resume after the app restarts.
+// ---------------------------------------------------------------------------
+
+export interface AttendanceVars {
+  lessonId: string;
+  attendanceId: string;
+  status: AttendanceStatus;
+  packageId?: string | "none";
+  complimentary?: boolean;
+  note?: string | null;
+  mutationId: string;
+}
+
+export interface NoteVars {
+  id: string;
+  clientId?: string | null;
+  lessonId?: string | null;
+  body: string;
+}
+
+export interface CompleteVars {
+  lessonId: string;
+  mutationId: string;
+}
+
+const isIn = (s: AttendanceStatus) => CONSUMING_STATUSES.includes(s);
+
+function patchRoster(entry: RosterEntryDto, vars: AttendanceVars): RosterEntryDto {
+  const funded = Boolean(entry.consumedPackageId || entry.chargeId);
+  const willUse = isIn(vars.status) && !vars.complimentary;
+  let remaining = entry.packageRemaining;
+  if (remaining !== null) {
+    if (!funded && willUse && entry.usablePackages.length > 0 && vars.packageId !== "none")
+      remaining -= 1;
+    if (entry.consumedPackageId && !willUse) remaining += 1;
+  }
+  return {
+    ...entry,
+    status: vars.status,
+    packageRemaining: remaining,
+    checkedInAt: willUse ? (entry.checkedInAt ?? Date.now()) : null,
+    note: vars.note === undefined ? entry.note : vars.note,
+    pending: true,
+  };
+}
+
+const countIn = (roster: RosterEntryDto[]) => roster.filter((r) => isIn(r.status)).length;
+
+function applyOptimisticAttendance(vars: AttendanceVars) {
+  queryClient.setQueryData<LessonDetailDto>(keys.lesson(vars.lessonId), (old) => {
+    if (!old) return old;
+    const roster = old.roster.map((r) =>
+      r.attendanceId === vars.attendanceId ? patchRoster(r, vars) : r,
+    );
+    return { ...old, roster, lesson: { ...old.lesson, checkedInCount: countIn(roster) } };
+  });
+  queryClient.setQueryData<TodayDto>(keys.today, (old) =>
+    old
+      ? {
+          ...old,
+          lessons: old.lessons.map((l) => {
+            if (l.id !== vars.lessonId) return l;
+            const roster = l.roster.map((r) =>
+              r.attendanceId === vars.attendanceId ? patchRoster(r, vars) : r,
+            );
+            return { ...l, roster, checkedInCount: countIn(roster) };
+          }),
+        }
+      : old,
+  );
+}
+
+export function storeLesson(detail: LessonDetailDto) {
+  queryClient.setQueryData(keys.lesson(detail.lesson.id), detail);
+  queryClient.setQueryData<TodayDto>(keys.today, (old) =>
+    old
+      ? {
+          ...old,
+          lessons: old.lessons.map((l) =>
+            l.id === detail.lesson.id ? { ...l, ...detail.lesson, roster: detail.roster } : l,
+          ),
+        }
+      : old,
+  );
+}
+
+queryClient.setMutationDefaults(["attendance"], {
+  mutationFn: (vars: AttendanceVars) =>
+    api.post<{ replay: boolean; lesson: LessonDetailDto }>(
+      `/attendance/${vars.attendanceId}`,
+      {
+        status: vars.status,
+        packageId: vars.packageId,
+        complimentary: vars.complimentary,
+        note: vars.note,
+        mutationId: vars.mutationId,
+      },
+      { idempotencyKey: vars.mutationId },
+    ),
+  onMutate: async (vars: AttendanceVars) => {
+    await queryClient.cancelQueries({ queryKey: keys.lesson(vars.lessonId) });
+    applyOptimisticAttendance(vars);
+  },
+  onSuccess: (data: { lesson: LessonDetailDto }) => storeLesson(data.lesson),
+  onError: (_err: unknown, vars: AttendanceVars) => {
+    void queryClient.invalidateQueries({ queryKey: keys.lesson(vars.lessonId) });
+    void queryClient.invalidateQueries({ queryKey: keys.today });
+  },
+  onSettled: () => {
+    void queryClient.invalidateQueries({ queryKey: ["clients"] });
+    void queryClient.invalidateQueries({ queryKey: ["client"] });
+  },
+});
+
+queryClient.setMutationDefaults(["notes", "create"], {
+  mutationFn: (vars: NoteVars) => api.post<NoteDto>("/notes", vars, { idempotencyKey: vars.id }),
+  onMutate: (vars: NoteVars) => {
+    const optimistic: NoteDto = {
+      id: vars.id,
+      clientId: vars.clientId ?? null,
+      lessonId: vars.lessonId ?? null,
+      body: vars.body,
+      pinned: false,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      pending: true,
+    };
+    if (vars.lessonId) {
+      queryClient.setQueryData<LessonDetailDto>(keys.lesson(vars.lessonId), (old) =>
+        old ? { ...old, notes: [...old.notes, optimistic] } : old,
+      );
+    }
+  },
+  onSettled: (_d: unknown, _e: unknown, vars: NoteVars) => {
+    if (vars.lessonId) void queryClient.invalidateQueries({ queryKey: keys.lesson(vars.lessonId) });
+    if (vars.clientId)
+      void queryClient.invalidateQueries({ queryKey: keys.progress(vars.clientId) });
+  },
+});
+
+queryClient.setMutationDefaults(["lessons", "complete"], {
+  mutationFn: (vars: CompleteVars) =>
+    api.post<LessonDetailDto>(
+      `/lessons/${vars.lessonId}/complete`,
+      {},
+      { idempotencyKey: vars.mutationId },
+    ),
+  onMutate: (vars: CompleteVars) => {
+    queryClient.setQueryData<LessonDetailDto>(keys.lesson(vars.lessonId), (old) =>
+      old
+        ? { ...old, lesson: { ...old.lesson, status: "completed", completedAt: Date.now() } }
+        : old,
+    );
+  },
+  onSuccess: (data: LessonDetailDto) => storeLesson(data),
+});

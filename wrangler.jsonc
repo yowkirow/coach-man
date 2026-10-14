@@ -1,0 +1,72 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // One Worker serves the SPA (static assets) and the Hono API under /api/*.
+  "name": "coachman",
+  "main": "src/worker/index.ts",
+  "compatibility_date": "2026-09-15",
+  // Better Auth needs AsyncLocalStorage.
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  "observability": { "enabled": true },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "coachman-dev",
+      // Local development uses Miniflare storage; replace with `wrangler d1 create` output for remote use.
+      "database_id": "00000000-0000-4000-8000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "r2_buckets": [{ "binding": "FILES", "bucket_name": "coachman-files-dev" }],
+  // Every 5 minutes: session reminders + per-coach daily digests. Daily 03:15 UTC: maintenance.
+  "triggers": { "crons": ["*/5 * * * *", "15 3 * * *"] },
+  "vars": {
+    "APP_ENV": "development",
+    "APP_URL": "http://localhost:5173",
+    "PASSKEY_RP_ID": "localhost",
+    "PASSKEY_RP_NAME": "CoachMan"
+  },
+  "env": {
+    "staging": {
+      "name": "coachman-staging",
+      "vars": {
+        "APP_ENV": "staging",
+        "APP_URL": "https://staging.coachman.example",
+        "PASSKEY_RP_ID": "staging.coachman.example",
+        "PASSKEY_RP_NAME": "CoachMan (staging)"
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "coachman-staging",
+          "database_id": "REPLACE_WITH_STAGING_D1_ID",
+          "migrations_dir": "migrations"
+        }
+      ],
+      "r2_buckets": [{ "binding": "FILES", "bucket_name": "coachman-files-staging" }],
+      "triggers": { "crons": ["*/5 * * * *", "15 3 * * *"] }
+    },
+    "production": {
+      "name": "coachman",
+      "vars": {
+        "APP_ENV": "production",
+        "APP_URL": "https://coachman.example",
+        "PASSKEY_RP_ID": "coachman.example",
+        "PASSKEY_RP_NAME": "CoachMan"
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "coachman",
+          "database_id": "REPLACE_WITH_PRODUCTION_D1_ID",
+          "migrations_dir": "migrations"
+        }
+      ],
+      "r2_buckets": [{ "binding": "FILES", "bucket_name": "coachman-files" }],
+      "triggers": { "crons": ["*/5 * * * *", "15 3 * * *"] }
+    }
+  }
+}

@@ -15,6 +15,8 @@ import type { AppBindings } from "../types";
 export const testRoutes = new Hono<AppBindings>()
   .use("*", async (c, next) => {
     if (!isBypassRequestAllowed(c.env, c.req.header(E2E_HEADER))) {
+      // Drain the body first: Miniflare's local proxy can fail a request answered unread.
+      await c.req.raw.arrayBuffer().catch(() => undefined);
       return c.json({ error: { code: "not_found", message: "No such endpoint." } }, 404);
     }
     await next();

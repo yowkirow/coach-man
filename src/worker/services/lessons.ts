@@ -27,6 +27,7 @@ import {
   client,
   clientPackage,
   event,
+  eventRegistration,
   groupMember,
   lesson,
   lessonSeries,
@@ -50,6 +51,9 @@ import { balancesDue, balancesFor } from "./money";
 
 /** How far ahead recurring series are materialized into concrete lessons. */
 export const MATERIALIZE_DAYS = 56;
+
+/** Most one-off sessions a single "repeats" request may add to an event. */
+export const MAX_EVENT_SESSIONS = 120;
 
 type LessonRow = typeof lesson.$inferSelect;
 
@@ -414,6 +418,24 @@ async function activeGroupMemberIds(
   return rows.map((r) => r.clientId);
 }
 
+/** Players whose registration for an event is confirmed (not waitlisted or cancelled). */
+async function registeredClientIds(
+  ctx: Pick<Ctx, "db" | "workspaceId">,
+  eventId: string,
+): Promise<string[]> {
+  const rows = await ctx.db
+    .select({ clientId: eventRegistration.clientId })
+    .from(eventRegistration)
+    .where(
+      and(
+        eq(eventRegistration.workspaceId, ctx.workspaceId),
+        eq(eventRegistration.eventId, eventId),
+        eq(eventRegistration.status, "registered"),
+      ),
+    );
+  return rows.map((r) => r.clientId);
+}
+
 function attendanceRows(
   ctx: Pick<Ctx, "workspaceId">,
   lessonId: string,
@@ -505,11 +527,12 @@ export async function createLessons(
     });
     if (!g) throw notFound("Group");
   }
+  let ev: typeof event.$inferSelect | undefined;
   if (input.eventId) {
-    const e = await db.query.event.findFirst({
+    ev = await db.query.event.findFirst({
       where: and(eq(event.id, input.eventId), eq(event.workspaceId, workspaceId)),
     });
-    if (!e) throw notFound("Event");
+    if (!ev) throw notFound("Event");
   }
   const clientIds = unique(input.clientIds);
   if (clientIds.length) {
@@ -524,6 +547,8 @@ export async function createLessons(
     if (input.recurrence.endsOn && compareDates(input.recurrence.endsOn, input.date) < 0) {
       throw badRequest("The repeat end date is before the first session.");
     }
+    // A series can't carry its event, so event sessions are added one by one instead.
+    if (ev) return createEventSessions(ctx, input, input.recurrence, ev, clientIds);
     const seriesId = input.id ?? uuidv7();
     const row: typeof lessonSeries.$inferInsert = {
       id: seriesId,
@@ -558,6 +583,14 @@ export async function createLessons(
     if (input.groupId && clientIds.length) {
       await bookClientsIntoLessons(ctx, ids, clientIds);
     }
+    // Series rows have no notes column, so the plan is kept on the first session.
+    const first = ids[0];
+    if (input.notes && first) {
+      await db
+        .update(lesson)
+        .set({ notes: input.notes })
+        .where(and(eq(lesson.id, first), eq(lesson.workspaceId, workspaceId)));
+    }
     return { lessonIds: ids, seriesId };
   }
 
@@ -565,6 +598,7 @@ export async function createLessons(
   const id = input.id ?? uuidv7(startsAt);
   const participants = unique([
     ...(input.groupId ? await activeGroupMemberIds(ctx, input.groupId) : []),
+    ...(ev ? await registeredClientIds(ctx, ev.id) : []),
     ...clientIds,
   ]);
   await runBatch(ctx, [
@@ -590,6 +624,84 @@ export async function createLessons(
     ),
   ]);
   return { lessonIds: [id], seriesId: null };
+}
+
+/**
+ * "Repeats" for an event: one-off sessions on the chosen weekdays from the first date through the
+ * event's last day (or an earlier end date), each booked with the event's registered players.
+ */
+async function createEventSessions(
+  ctx: Ctx,
+  input: LessonCreateInput,
+  recurrence: NonNullable<LessonCreateInput["recurrence"]>,
+  ev: typeof event.$inferSelect,
+  clientIds: readonly string[],
+): Promise<{ lessonIds: string[]; seriesId: null }> {
+  const { db, workspaceId, settings } = ctx;
+  const from = compareDates(input.date, ev.startsOn) < 0 ? ev.startsOn : input.date;
+  const until =
+    recurrence.endsOn && compareDates(recurrence.endsOn, ev.endsOn) < 0
+      ? recurrence.endsOn
+      : ev.endsOn;
+  const dates = occurrenceDates(
+    { weekdays: unique(recurrence.weekdays), startsOn: from, endsOn: until },
+    from,
+    until,
+  );
+  if (dates.length === 0) {
+    throw badRequest("None of the days you picked fall within the event's dates.", {
+      fields: { "recurrence.weekdays": "No sessions fall within the event's dates." },
+    });
+  }
+  if (dates.length > MAX_EVENT_SESSIONS) {
+    throw badRequest(
+      `That would add ${dates.length} sessions. Add at most ${MAX_EVENT_SESSIONS} at a time.`,
+      {
+        fields: {
+          "recurrence.endsOn": `Pick an earlier date: at most ${MAX_EVENT_SESSIONS} sessions at a time.`,
+        },
+      },
+    );
+  }
+  const participants = unique([
+    ...(input.groupId ? await activeGroupMemberIds(ctx, input.groupId) : []),
+    ...(await registeredClientIds(ctx, ev.id)),
+    ...clientIds,
+  ]);
+  const now = Date.now();
+  const rows = dates.map((d, i) => {
+    const startsAt = zonedToEpoch(d, input.startTime, settings.timezone);
+    return {
+      id: i === 0 && input.id ? input.id : uuidv7(startsAt),
+      workspaceId,
+      kind: input.kind,
+      title: input.title ?? null,
+      startsAt,
+      endsAt: startsAt + input.durationMinutes * 60_000,
+      venueId: input.venueId ?? null,
+      court: input.court ?? null,
+      groupId: input.groupId ?? null,
+      eventId: ev.id,
+      rateId: input.rateId ?? null,
+      priceMinor: input.priceMinor ?? null,
+      capacity: input.capacity ?? null,
+      // Like a new series, the plan belongs to the first session.
+      notes: i === 0 ? (input.notes ?? null) : null,
+      status: "scheduled" as const,
+      detached: false,
+      createdAt: now,
+      updatedAt: now,
+    } satisfies typeof lesson.$inferInsert;
+  });
+  const ids = rows.map((r) => r.id);
+  await runBatch(ctx, [
+    ...chunkRows(rows, 24).map((chunk) => db.insert(lesson).values(chunk)),
+    ...chunkRows(
+      ids.flatMap((lessonId) => attendanceRows(ctx, lessonId, participants)),
+      9,
+    ).map((chunk) => db.insert(attendance).values(chunk).onConflictDoNothing()),
+  ]);
+  return { lessonIds: ids, seriesId: null };
 }
 
 export async function bookClientsIntoLessons(

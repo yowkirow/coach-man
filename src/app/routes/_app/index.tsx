@@ -6,6 +6,7 @@ import {
   CalendarClock,
   CalendarPlus,
   CircleDollarSign,
+  Radio,
   Ticket,
 } from "lucide-react";
 import { BallMark } from "../../components/brand";
@@ -170,7 +171,7 @@ function TodayPanel({
       <TodayKpis data={data} />
       <section aria-labelledby="today-sessions" className="flex flex-col gap-2.5">
         <div className="flex items-center justify-between px-1 pt-1">
-          <h3 id="today-sessions" className="text-[0.9375rem] font-medium">
+          <h3 id="today-sessions" className="text-[1.125rem] font-light">
             Sessions
           </h3>
           <Link
@@ -442,17 +443,19 @@ function FeaturedCard({ lesson, now }: { lesson: TodayLesson; now: number }) {
   const phase = sessionPhase(lesson, now);
   const live = phase === "live";
   const where = whereOf(lesson);
+  const StatusIcon = live ? Radio : CalendarClock;
+  // Featured = selected, so it is lime like the selected card in the desktop panel.
   return (
     <section
-      aria-label="Next session"
-      className={`rounded-[28px] p-5 text-ink ${live ? "bg-lime [--avatar-ring:var(--color-lime)]" : "bg-card"}`}
+      aria-label={live ? "On court now" : "Next session"}
+      className="rounded-[28px] bg-lime p-5 text-ink [--avatar-ring:var(--color-lime)]"
     >
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <h2 className="text-[1.5rem] leading-tight font-light tracking-[-0.01em]">
             {lesson.title}
           </h2>
-          <p className={`num mt-1 text-[0.875rem] ${live ? "text-ink/70" : "text-ink-2"}`}>
+          <p className="num mt-1 text-[0.875rem] text-ink/70">
             {fmt.timeRange(lesson.startsAt, lesson.endsAt)}
             {where ? ` · ${where}` : ""}
           </p>
@@ -468,8 +471,11 @@ function FeaturedCard({ lesson, now }: { lesson: TodayLesson; now: number }) {
       </div>
       <div className="mt-4 flex flex-wrap items-center gap-2">
         {lesson.roster.length ? <AvatarStack people={lesson.roster} max={4} /> : null}
-        <Pill tone={live ? "white" : "lime"}>{phaseLabel(lesson, now, fmt)}</Pill>
-        <Pill tone={live ? "white" : "panel"}>
+        <Pill tone="white">
+          <StatusIcon aria-hidden className="size-3.5" />
+          {phaseLabel(lesson, now, fmt)}
+        </Pill>
+        <Pill tone="white">
           <span className="num">
             {lesson.checkedInCount}/{lesson.bookedCount}
           </span>

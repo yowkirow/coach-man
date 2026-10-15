@@ -1,9 +1,10 @@
-import { and, desc, eq, gte, lte } from "drizzle-orm";
+import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
 import { Hono } from "hono";
+import type { ChargeListItemDto } from "../../shared/api-types";
 import { uuidv7 } from "../../shared/ids";
 import { chargeSchema, paymentSchema, rangeQuerySchema, voidSchema } from "../../shared/schemas";
 import { todayIn } from "../../shared/time";
-import { charge, client, payment } from "../db/schema";
+import { charge, client, payment, paymentAllocation } from "../db/schema";
 import { auditEntry } from "../lib/audit";
 import { badRequest, notFound } from "../lib/errors";
 import { idempotent } from "../lib/idempotency";
@@ -112,6 +113,56 @@ export const moneyRoutes = new Hono<AppBindings>()
     ]);
     await rebuildAllocations(ctx, row.clientId);
     return c.json(await statementFor(ctx, row.clientId));
+  })
+
+  .get("/charges", v("query", rangeQuerySchema), async (c) => {
+    const ctx = ctxOf(c);
+    const { from, to } = c.req.valid("query");
+    const paid = ctx.db
+      .select({
+        chargeId: paymentAllocation.chargeId,
+        paid: sql<number>`sum(${paymentAllocation.amountMinor})`.as("paid"),
+      })
+      .from(paymentAllocation)
+      .where(eq(paymentAllocation.workspaceId, ctx.workspaceId))
+      .groupBy(paymentAllocation.chargeId)
+      .as("paid_by_charge");
+    const rows = await ctx.db
+      .select({
+        ch: charge,
+        paidMinor: sql<number>`coalesce(${paid.paid}, 0)`,
+        firstName: client.firstName,
+        lastName: client.lastName,
+      })
+      .from(charge)
+      .innerJoin(client, eq(client.id, charge.clientId))
+      .leftJoin(paid, eq(paid.chargeId, charge.id))
+      .where(
+        and(
+          eq(charge.workspaceId, ctx.workspaceId),
+          gte(charge.occurredOn, from),
+          lte(charge.occurredOn, to),
+        ),
+      )
+      .orderBy(desc(charge.occurredOn), desc(charge.createdAt));
+    return c.json(
+      rows.map(
+        (r): ChargeListItemDto => ({
+          id: r.ch.id,
+          kind: r.ch.kind,
+          description: r.ch.description,
+          amountMinor: r.ch.amountMinor,
+          paidMinor: Number(r.paidMinor),
+          occurredOn: r.ch.occurredOn,
+          voidedAt: r.ch.voidedAt,
+          clientPackageId: r.ch.clientPackageId,
+          attendanceId: r.ch.attendanceId,
+          registrationId: r.ch.registrationId,
+          clientId: r.ch.clientId,
+          clientName: `${r.firstName} ${r.lastName}`.trim(),
+        }),
+      ),
+    );
   })
 
   .post("/charges", v("json", chargeSchema), async (c) => {

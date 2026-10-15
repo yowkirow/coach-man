@@ -47,23 +47,33 @@ export async function provisionWorkspace(
   const firstName = user.name.trim().split(/\s+/)[0] || "Coach";
   const skills = skillRows(workspaceId, "pickleball");
 
-  await db.batch([
-    db.insert(organization).values({
-      id: workspaceId,
-      name: `${firstName}'s coaching`,
-      slug: `ws-${workspaceId}`,
-      createdAt: now,
-    }),
-    db.insert(member).values({
-      id: uuidv7(),
-      organizationId: workspaceId,
-      userId: user.id,
-      role: "owner",
-      createdAt: now,
-    }),
-    db.insert(workspaceSettings).values({ workspaceId, paymentMethods: DEFAULT_PAYMENT_METHODS }),
-    db.insert(notificationPref).values({ userId: user.id, workspaceId }),
-    ...chunkRows(skills, 9).map((rows) => db.insert(skill).values(rows)),
-  ]);
+  try {
+    await db.batch([
+      db.insert(organization).values({
+        id: workspaceId,
+        name: `${firstName}'s coaching`,
+        slug: `ws-${workspaceId}`,
+        createdAt: now,
+      }),
+      db.insert(member).values({
+        id: uuidv7(),
+        organizationId: workspaceId,
+        userId: user.id,
+        role: "owner",
+        createdAt: now,
+      }),
+      db.insert(workspaceSettings).values({ workspaceId, paymentMethods: DEFAULT_PAYMENT_METHODS }),
+      db.insert(notificationPref).values({ userId: user.id, workspaceId }),
+      ...chunkRows(skills, 9).map((rows) => db.insert(skill).values(rows)),
+    ]);
+  } catch (err) {
+    // Two requests can provision at once. The batch is atomic and notification_pref is keyed by
+    // user, so the loser rolls back entirely; adopt the winner's workspace instead of failing.
+    if (/UNIQUE constraint failed/i.test(String((err as Error)?.message ?? err))) {
+      const winner = await firstWorkspaceForUser(db, user.id);
+      if (winner) return winner;
+    }
+    throw err;
+  }
   return workspaceId;
 }

@@ -1,5 +1,5 @@
 import { Check, X } from "lucide-react";
-import type { ReactNode } from "react";
+import { type CSSProperties, type ReactNode, useLayoutEffect, useRef, useState } from "react";
 import { Tabs as RACTabs, Tab, TabList, TabPanel } from "react-aria-components";
 import { fileUrl } from "../../lib/api";
 import { initials } from "../../lib/format";
@@ -125,13 +125,13 @@ export function AvatarStack({
     <span className="flex items-center">
       {shown.map((p, i) => (
         // biome-ignore lint/suspicious/noArrayIndexKey: two players can share a name; the stack order is stable.
-        <span key={`${p.firstName}-${p.lastName}-${i}`} className={i ? "-ml-2.5" : ""}>
+        <span key={`${p.firstName}-${p.lastName}-${i}`} className={i ? "-ml-1.5" : ""}>
           <Avatar person={p} size="sm" ring />
         </span>
       ))}
       {extra > 0 ? (
         <span
-          className={`-ml-2.5 flex size-9 items-center justify-center rounded-full text-[0.75rem] font-semibold ring-2 ring-[var(--avatar-ring,var(--color-card))] ${dark ? "bg-night-3 text-night-ink" : "bg-panel text-ink"}`}
+          className={`-ml-1.5 flex size-9 items-center justify-center rounded-full text-[0.75rem] font-semibold ring-2 ring-[var(--avatar-ring,var(--color-card))] ${dark ? "bg-night-3 text-night-ink" : "bg-panel text-ink"}`}
         >
           +{extra}
         </span>
@@ -280,7 +280,7 @@ export function KpiTile({
       </span>
     </>
   );
-  const cls = "tile-glow flex h-[104px] flex-col rounded-[22px] bg-night-2 p-4 text-left";
+  const cls = "tile-glow flex h-[104px] w-full flex-col rounded-[22px] bg-night-2 p-4 text-left";
   if (onPress) {
     return (
       <button
@@ -308,43 +308,104 @@ export interface TabDef {
   content: ReactNode;
 }
 
-/** Pill tabs: the selected tab is a white pill (reference: "Deal #…" tab). */
+/** Measures an element's document offset so a panel can stretch to the viewport's bottom edge. */
+function useDocumentTop(enabled: boolean) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [top, setTop] = useState<number | null>(null);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!enabled || !el) return;
+    const measure = () => setTop(Math.round(el.getBoundingClientRect().top + window.scrollY));
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(document.body);
+    window.addEventListener("resize", measure);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, [enabled]);
+  return { ref, top };
+}
+
+/**
+ * Folder tabs, as in the reference: the selected tab takes the panel tone and fuses into a lighter
+ * panel (concave fillets at its feet). The panel holds the tab content and, optionally, an aside
+ * column of bento cards. `fill` stretches the panel to the bottom of the viewport on desktop,
+ * level with the black command panel.
+ */
 export function PillTabs({
   label,
   tabs,
   selected,
   onChange,
+  aside,
+  fill = false,
   className = "",
 }: {
   label: string;
   tabs: TabDef[];
   selected?: string;
   onChange?: (id: string) => void;
+  aside?: ReactNode;
+  fill?: boolean;
   className?: string;
 }) {
+  const panel = useDocumentTop(fill);
+  const panels = tabs.map((t) => (
+    <TabPanel
+      key={t.id}
+      id={t.id}
+      className="rounded-[22px] outline-none data-[focus-visible]:outline-2 data-[focus-visible]:outline-offset-2 data-[focus-visible]:outline-ink"
+    >
+      {t.content}
+    </TabPanel>
+  ));
   return (
     <RACTabs
       selectedKey={selected}
       onSelectionChange={(k) => onChange?.(String(k))}
-      className={className}
+      className={`flex flex-col ${className}`}
     >
-      <TabList aria-label={label} className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1">
+      <TabList
+        aria-label={label}
+        className="flex gap-5 overflow-x-auto pr-6 pl-10 [scrollbar-width:none] lg:pl-12"
+      >
         {tabs.map((t) => (
           <Tab
             key={t.id}
             id={t.id}
-            className="flex h-11 shrink-0 cursor-pointer items-center gap-2 rounded-full px-4 text-[0.9375rem] text-ink-2 outline-none transition-colors data-[hovered]:text-ink data-[selected]:bg-card data-[selected]:text-ink data-[selected]:shadow-lift data-[focus-visible]:outline-2 data-[focus-visible]:outline-ink"
+            className={
+              "relative flex h-12 shrink-0 cursor-pointer items-center gap-2 rounded-t-[20px] px-5 text-[0.9375rem] text-ink-2 outline-none transition-colors " +
+              "data-[hovered]:text-ink data-[selected]:bg-panel data-[selected]:text-ink " +
+              "data-[focus-visible]:outline-2 data-[focus-visible]:-outline-offset-4 data-[focus-visible]:outline-ink " +
+              "before:pointer-events-none before:absolute before:bottom-0 before:-left-5 before:hidden before:size-5 before:bg-[radial-gradient(circle_at_0_0,transparent_19.5px,var(--color-panel)_20px)] data-[selected]:before:block " +
+              "after:pointer-events-none after:absolute after:-right-5 after:bottom-0 after:hidden after:size-5 after:bg-[radial-gradient(circle_at_100%_0,transparent_19.5px,var(--color-panel)_20px)] data-[selected]:after:block"
+            }
           >
             {t.icon}
             {t.label}
           </Tab>
         ))}
       </TabList>
-      {tabs.map((t) => (
-        <TabPanel key={t.id} id={t.id} className="mt-4 outline-none">
-          {t.content}
-        </TabPanel>
-      ))}
+      <div
+        ref={panel.ref}
+        style={
+          fill && panel.top !== null
+            ? ({ "--fill-top": `${panel.top}px` } as CSSProperties)
+            : undefined
+        }
+        className={`rounded-[24px] bg-panel p-2.5 sm:p-3 lg:rounded-[28px] lg:p-4 ${fill ? "lg:min-h-[calc(100dvh-var(--fill-top)-12px)]" : ""}`}
+      >
+        {aside ? (
+          <div className="grid grid-cols-1 gap-3 lg:gap-4 xl:grid-cols-[minmax(0,1fr)_340px] xl:items-start">
+            <div className="min-w-0">{panels}</div>
+            <div className="flex flex-col gap-3 lg:gap-4">{aside}</div>
+          </div>
+        ) : (
+          panels
+        )}
+      </div>
     </RACTabs>
   );
 }

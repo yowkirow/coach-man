@@ -12,7 +12,9 @@ import { api, errorMessage, fieldErrors } from "../../lib/api";
 import { fullName, useFormat } from "../../lib/format";
 import { useMe } from "../../lib/hooks";
 import { notify } from "../../lib/notify";
+import { useOnline } from "../../lib/offline";
 import { keys } from "../../lib/query";
+import { OfflineNote } from "../settings/offline";
 
 export interface SelectedClient {
   id: string;
@@ -29,7 +31,9 @@ export function useInvalidateMoney() {
     void qc.invalidateQueries({ queryKey: ["money"] });
     void qc.invalidateQueries({ queryKey: keys.balances });
     void qc.invalidateQueries({ queryKey: ["payments"] });
+    void qc.invalidateQueries({ queryKey: ["charges"] });
     void qc.invalidateQueries({ queryKey: ["clients"] });
+    void qc.invalidateQueries({ queryKey: keys.packages });
     void qc.invalidateQueries({ queryKey: keys.today });
     if (clientId) {
       void qc.invalidateQueries({ queryKey: keys.client(clientId) });
@@ -56,7 +60,7 @@ export function ChosenClient({
         {hint ? <p className="truncate text-[0.8125rem] text-ink-2">{hint}</p> : null}
       </div>
       {onClear ? (
-        <Button variant="ghost" size="sm" onPress={onClear}>
+        <Button variant="ghost" size="md" onPress={onClear}>
           Change
         </Button>
       ) : null}
@@ -105,6 +109,7 @@ export function RecordPaymentSheet({
 }) {
   const fmt = useFormat();
   const me = useMe().data;
+  const online = useOnline();
   const invalidate = useInvalidateMoney();
   const firstMethod = me?.settings.paymentMethods[0] ?? "Cash";
   const [client, setClient] = useState<SelectedClient | null>(initialClient);
@@ -170,7 +175,7 @@ export function RecordPaymentSheet({
           </Button>
           <Button
             variant="dark"
-            isDisabled={!client || !amount}
+            isDisabled={!client || !amount || !online}
             isPending={save.isPending}
             onPress={() => save.mutate()}
           >
@@ -183,7 +188,7 @@ export function RecordPaymentSheet({
         className="flex flex-col gap-5"
         onSubmit={(e) => {
           e.preventDefault();
-          if (client && amount) save.mutate();
+          if (client && amount && online) save.mutate();
         }}
       >
         {client ? (
@@ -233,6 +238,7 @@ export function RecordPaymentSheet({
           />
         </div>
         {save.error ? <InlineError>{errorMessage(save.error)}</InlineError> : null}
+        <OfflineNote>You're offline. Reconnect to record this payment.</OfflineNote>
         <button type="submit" hidden />
       </form>
     </Sheet>

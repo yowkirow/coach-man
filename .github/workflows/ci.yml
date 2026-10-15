@@ -52,6 +52,7 @@ jobs:
             echo "E2E_BYPASS_SECRET=${E2E_BYPASS_SECRET}"
           } > .dev.vars
       - run: npm run db:migrate:local
+      - run: npm run build
       - run: npx playwright install --with-deps chromium
       - run: npx playwright test
       - uses: actions/upload-artifact@v4

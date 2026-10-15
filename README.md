@@ -109,6 +109,8 @@ Playwright reads these environment variables:
 
 Each test signs in as a brand-new coach with its own workspace, so tests run in parallel and don't touch real data. Passkey tests use Chromium's virtual authenticator, so the target origin must match `APP_URL`.
 
+For the fastest, most realistic local run, test the production build: `npm run build`, then `npx vite preview --port 5173` in one terminal and `npx playwright test` in another (it reuses whatever serves :5173). On machines with little free memory, add `--workers=1`: local workerd can drop requests under memory pressure.
+
 `npm run screenshots` captures desktop (1440) and phone (390) screenshots into `.impeccable/review/` using the same bypass.
 
 ## Deploying to Cloudflare

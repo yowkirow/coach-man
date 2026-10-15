@@ -136,33 +136,34 @@ export function SessionDetail({
         onDelete={() => setSheet("delete")}
       />
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
-        <PillTabs
-          label="Session sections"
-          selected={tab}
-          onChange={setTab}
-          tabs={[
-            {
-              id: "roster",
-              label: `Roster · ${l.checkedInCount}/${l.bookedCount}`,
-              content: <RosterPanel detail={detail} onAdd={() => setSheet("add")} />,
-            },
-            {
-              id: "notes",
-              label: detail.notes.length ? `Notes · ${detail.notes.length}` : "Notes",
-              content: <NotesPanel detail={detail} autoFocus={noteFocus} />,
-            },
-            { id: "details", label: "Details", content: <DetailsPanel detail={detail} /> },
-          ]}
-        />
-        <div className="flex flex-col gap-4 xl:pt-15">
-          <div className="hidden xl:block">
-            <CreditsBento detail={detail} />
-          </div>
-          <PlanBento detail={detail} cancelled={cancelled} onEditPlan={() => setSheet("plan")} />
-          {extraAside}
-        </div>
-      </div>
+      <PillTabs
+        label="Session sections"
+        selected={tab}
+        onChange={setTab}
+        fill
+        tabs={[
+          {
+            id: "roster",
+            label: `Roster · ${l.checkedInCount}/${l.bookedCount}`,
+            content: <RosterPanel detail={detail} onAdd={() => setSheet("add")} />,
+          },
+          {
+            id: "notes",
+            label: detail.notes.length ? `Notes · ${detail.notes.length}` : "Notes",
+            content: <NotesPanel detail={detail} autoFocus={noteFocus} />,
+          },
+          { id: "details", label: "Details", content: <DetailsPanel detail={detail} /> },
+        ]}
+        aside={
+          <>
+            <div className="hidden xl:block">
+              <CreditsBento detail={detail} />
+            </div>
+            <PlanBento detail={detail} cancelled={cancelled} onEditPlan={() => setSheet("plan")} />
+            {extraAside}
+          </>
+        }
+      />
 
       <AddPlayerSheet
         isOpen={sheet === "add"}

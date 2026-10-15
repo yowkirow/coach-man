@@ -144,7 +144,7 @@ export function ActionMenu({
   return (
     <MenuTrigger>
       {trigger ?? (
-        <IconButton label={label} size="sm" variant={dark ? "night" : "ghost"}>
+        <IconButton label={label} size="md" variant={dark ? "night" : "ghost"}>
           <MoreHorizontal aria-hidden className="size-5" />
         </IconButton>
       )}

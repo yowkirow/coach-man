@@ -24,15 +24,32 @@ export async function prefetchOfflinePack(force = false) {
   if (!onlineManager.isOnline()) return;
   if (!force && Date.now() - lastPack < 10 * 60_000) return;
   lastPack = Date.now();
+  const startedAt = Date.now();
   try {
     const pack = await api.get<OfflinePackDto>("/offline-pack");
-    for (const detail of pack.lessons) {
-      queryClient.setQueryData(keys.lesson(detail.lesson.id), detail);
-    }
-    queryClient.setQueryData(
-      keys.lessons(pack.from, pack.to),
-      pack.lessons.map((d) => d.lesson),
+    // The pack was built before any check-in made while it downloaded. Don't let it overwrite
+    // lessons with changes in flight or data that is already newer than the pack.
+    const busy = new Set(
+      queryClient
+        .getMutationCache()
+        .getAll()
+        .filter((m) => m.state.status === "pending" || m.state.isPaused)
+        .map((m) => (m.state.variables as { lessonId?: string } | undefined)?.lessonId),
     );
+    const isNewer = (key: readonly unknown[]) =>
+      (queryClient.getQueryState(key)?.dataUpdatedAt ?? 0) > startedAt;
+    for (const detail of pack.lessons) {
+      const key = keys.lesson(detail.lesson.id);
+      if (busy.has(detail.lesson.id) || isNewer(key)) continue;
+      queryClient.setQueryData(key, detail);
+    }
+    const listKey = keys.lessons(pack.from, pack.to);
+    if (!isNewer(listKey)) {
+      queryClient.setQueryData(
+        listKey,
+        pack.lessons.map((d) => d.lesson),
+      );
+    }
     await Promise.allSettled([
       queryClient.prefetchQuery({ queryKey: keys.today, queryFn: () => api.get("/today") }),
       queryClient.prefetchQuery({ queryKey: keys.clients({}), queryFn: () => api.get("/clients") }),

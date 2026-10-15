@@ -16,12 +16,14 @@ import { api, errorMessage, fieldErrors } from "../../lib/api";
 import { fullName, plural, useFormat } from "../../lib/format";
 import { useMe, usePackageTemplates } from "../../lib/hooks";
 import { notify } from "../../lib/notify";
+import { useOnline } from "../../lib/offline";
 import {
   ChosenClient,
   PaymentMethodField,
   type SelectedClient,
   useInvalidateMoney,
 } from "../money/record-payment-sheet";
+import { OfflineNote } from "../settings/offline";
 
 export function SellPackageSheet({
   isOpen,
@@ -38,6 +40,7 @@ export function SellPackageSheet({
 }) {
   const fmt = useFormat();
   const me = useMe().data;
+  const online = useOnline();
   const templates = usePackageTemplates();
   const invalidate = useInvalidateMoney();
   const active = useMemo(() => (templates.data ?? []).filter((t) => t.active), [templates.data]);
@@ -114,7 +117,7 @@ export function SellPackageSheet({
           </Button>
           <Button
             variant="dark"
-            isDisabled={!canSell}
+            isDisabled={!canSell || !online}
             isPending={sell.isPending}
             onPress={() => sell.mutate()}
           >
@@ -236,6 +239,7 @@ export function SellPackageSheet({
           </>
         ) : null}
         {sell.error ? <InlineError>{errorMessage(sell.error)}</InlineError> : null}
+        <OfflineNote>You're offline. Reconnect to sell this package.</OfflineNote>
         {client && template ? (
           <p className="text-[0.875rem] text-ink-2">
             {fullName(client)} gets {plural(template.credits, "credit")}

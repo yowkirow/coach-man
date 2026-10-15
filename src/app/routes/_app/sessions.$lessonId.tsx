@@ -56,7 +56,7 @@ function DayPanel({ day, selectedId, now }: { day: string; selectedId: string; n
       </div>
       <section aria-labelledby="day-sessions" className="flex flex-col gap-2.5">
         <div className="flex items-center justify-between px-1">
-          <h3 id="day-sessions" className="text-[0.9375rem] font-medium">
+          <h3 id="day-sessions" className="text-[1.125rem] font-light">
             Sessions that day
           </h3>
           <Link

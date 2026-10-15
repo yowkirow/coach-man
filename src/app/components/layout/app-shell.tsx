@@ -2,6 +2,7 @@ import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
   CalendarDays,
   CircleDollarSign,
+  Contact,
   Ellipsis,
   Home,
   Plus,
@@ -9,7 +10,6 @@ import {
   Tent,
   Ticket,
   UserPlus,
-  Users,
   UsersRound,
   WifiOff,
 } from "lucide-react";
@@ -25,7 +25,7 @@ import { Sheet } from "../ui/overlay";
 export const NAV = [
   { to: "/", label: "Today", icon: Home },
   { to: "/schedule", label: "Schedule", icon: CalendarDays },
-  { to: "/clients", label: "Clients", icon: Users },
+  { to: "/clients", label: "Clients", icon: Contact },
   { to: "/groups", label: "Groups", icon: UsersRound },
   { to: "/events", label: "Events", icon: Tent },
   { to: "/money", label: "Money", icon: CircleDollarSign },
@@ -52,6 +52,10 @@ export function useMediaQuery(query: string): boolean {
 }
 
 export const useIsDesktop = () => useMediaQuery("(min-width: 1024px)");
+
+/** Same breakpoint as useIsDesktop, for non-React code such as route loaders. */
+export const isDesktopViewport = () =>
+  typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches;
 
 const AsideSlot = createContext<HTMLElement | null>(null);
 

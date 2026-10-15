@@ -12,6 +12,7 @@ import { clientSchema, clientUpdateSchema } from "../../shared/schemas";
 import { localDate, todayIn } from "../../shared/time";
 import {
   attendance,
+  charge,
   client,
   clientPackage,
   creditLedger,
@@ -19,10 +20,11 @@ import {
   eventRegistration,
   groupMember,
   lesson,
+  payment,
   trainingGroup,
 } from "../db/schema";
 import { auditEntry } from "../lib/audit";
-import { badRequest, notFound } from "../lib/errors";
+import { badRequest, conflict, notFound } from "../lib/errors";
 import { unique } from "../lib/sql";
 import { v } from "../lib/validate";
 import { ctxOf } from "../middleware";
@@ -48,6 +50,14 @@ function listColumns(today: string) {
     lastSeenAt: sql<
       number | null
     >`(select max(l.starts_at) from attendance a join lesson l on l.id = a.lesson_id where a.client_id = "client"."id" and a.status in ('present', 'late'))`,
+    creditsActiveTotal: sql<number>`(select coalesce(sum(cp.credits_total), 0) from client_package cp where cp.workspace_id = "client"."workspace_id" and cp.client_id = "client"."id" and cp.status = 'active' and (cp.expires_on is null or cp.expires_on >= ${today}))`,
+    creditsUsedUpTotal: sql<number>`(select coalesce(sum(cp.credits_total), 0) from client_package cp where cp.workspace_id = "client"."workspace_id" and cp.client_id = "client"."id" and cp.status = 'exhausted' and (cp.expires_on is null or cp.expires_on >= ${today}))`,
+    nextExpiryOn: sql<
+      string | null
+    >`(select min(cp.expires_on) from client_package cp where cp.workspace_id = "client"."workspace_id" and cp.client_id = "client"."id" and cp.status = 'active' and cp.expires_on >= ${today})`,
+    nextSessionAt: sql<
+      number | null
+    >`(select min(l.starts_at) from attendance a join lesson l on l.id = a.lesson_id where a.workspace_id = "client"."workspace_id" and a.client_id = "client"."id" and l.ends_at > ${Date.now()} and l.status != 'cancelled' and a.status not in ('excused', 'late_cancel'))`,
   };
 }
 
@@ -58,6 +68,10 @@ function toListItem(
     credits: number;
     activePackages: number;
     lastSeenAt: number | null;
+    creditsActiveTotal: number;
+    creditsUsedUpTotal: number;
+    nextExpiryOn: string | null;
+    nextSessionAt: number | null;
   },
   balance: number,
   tz: string,
@@ -78,6 +92,12 @@ function toListItem(
     activePackages: Number(r.activePackages),
     balanceMinor: balance,
     lastSeenOn: r.lastSeenAt ? localDate(Number(r.lastSeenAt), tz) : null,
+    creditsTotal: Number(
+      Number(r.activePackages) > 0 ? r.creditsActiveTotal : r.creditsUsedUpTotal,
+    ),
+    nextExpiryOn: r.nextExpiryOn,
+    nextSessionAt: r.nextSessionAt === null ? null : Number(r.nextSessionAt),
+    joinedOn: r.c.joinedOn,
   };
 }
 
@@ -333,6 +353,41 @@ export const clientRoutes = new Hono<AppBindings>()
       where: and(eq(client.id, id), eq(client.workspaceId, ctx.workspaceId)),
     });
     if (!existing) throw notFound("Client");
+    // Deleting cascades to money and attendance; refuse so every credit and payment stays explainable.
+    const ws = ctx.workspaceId;
+    const [paid, charged, sold, attended] = await Promise.all([
+      ctx.db
+        .select({ id: payment.id })
+        .from(payment)
+        .where(and(eq(payment.workspaceId, ws), eq(payment.clientId, id)))
+        .limit(1),
+      ctx.db
+        .select({ id: charge.id })
+        .from(charge)
+        .where(and(eq(charge.workspaceId, ws), eq(charge.clientId, id)))
+        .limit(1),
+      ctx.db
+        .select({ id: clientPackage.id })
+        .from(clientPackage)
+        .where(and(eq(clientPackage.workspaceId, ws), eq(clientPackage.clientId, id)))
+        .limit(1),
+      ctx.db
+        .select({ id: attendance.id })
+        .from(attendance)
+        .where(
+          and(
+            eq(attendance.workspaceId, ws),
+            eq(attendance.clientId, id),
+            inArray(attendance.status, ["present", "late", "no_show", "late_cancel"]),
+          ),
+        )
+        .limit(1),
+    ]);
+    if (paid.length || charged.length || sold.length || attended.length) {
+      throw conflict(
+        `${existing.firstName} has payments, packages, or attendance on record, so they can't be deleted. Archive them instead to keep that history.`,
+      );
+    }
     if (existing.photoKey) await ctx.env.FILES.delete(existing.photoKey);
     await runBatch(ctx, [
       ctx.db.delete(client).where(and(eq(client.id, id), eq(client.workspaceId, ctx.workspaceId))),

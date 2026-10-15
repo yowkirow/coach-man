@@ -239,7 +239,12 @@ export function SelectField({
       <RACButton
         className={`${fieldClass} flex cursor-pointer items-center justify-between gap-2 text-left data-[pressed]:border-ink`}
       >
-        <SelectValue className="truncate data-[placeholder]:text-ink-2" />
+        {/* Show only the chosen option's text; the full option (description, check) is for the list. */}
+        <SelectValue className="min-w-0 truncate data-[placeholder]:text-ink-2">
+          {({ isPlaceholder, selectedText, defaultChildren }) =>
+            isPlaceholder ? defaultChildren : selectedText
+          }
+        </SelectValue>
         <ChevronDown aria-hidden className="size-4.5 shrink-0 text-ink-2" />
       </RACButton>
       <Help description={description} error={error} />

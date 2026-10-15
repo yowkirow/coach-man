@@ -78,6 +78,13 @@ export interface ClientListItemDto {
   activePackages: number;
   balanceMinor: number;
   lastSeenOn: string | null;
+  /** Credits bought on the current package(s): active ones, or used-up ones when none is active. */
+  creditsTotal?: number;
+  /** Nearest expiry among active packages that still have credits. */
+  nextExpiryOn?: string | null;
+  /** Start (epoch ms) of the next booked session that hasn't ended yet. */
+  nextSessionAt?: number | null;
+  joinedOn?: string | null;
 }
 
 export interface ClientDto extends ClientListItemDto {
@@ -333,6 +340,12 @@ export interface ChargeDto {
   clientPackageId: string | null;
   attendanceId: string | null;
   registrationId: string | null;
+}
+
+/** A charge with its client, for workspace-wide lists (GET /charges?from&to). */
+export interface ChargeListItemDto extends ChargeDto {
+  clientId: string;
+  clientName: string;
 }
 
 export interface PaymentDto {

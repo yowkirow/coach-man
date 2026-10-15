@@ -108,6 +108,9 @@ function SignIn() {
               </div>
             </div>
           </div>
+          <p className="mt-3 hidden text-[0.8125rem] text-night-ink-2 sm:block">
+            Example of a coach's Today panel, with made-up players and numbers.
+          </p>
         </>
       }
     >

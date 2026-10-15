@@ -94,7 +94,7 @@ export function SessionTile({
           </span>
         )}
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-[1rem] font-medium">{lesson.title}</span>
+          <span className="line-clamp-2 text-[1rem] leading-snug">{lesson.title}</span>
           <span
             className={`num block truncate text-[0.75rem] ${selected ? "text-ink/70" : "text-night-ink-2"}`}
           >
@@ -175,9 +175,7 @@ export function LessonRow({
         </span>
       </span>
       <span className="min-w-0 flex-1">
-        <span
-          className={`block truncate font-medium ${cancelled ? "text-ink-2 line-through" : ""}`}
-        >
+        <span className={`line-clamp-2 font-medium ${cancelled ? "text-ink-2 line-through" : ""}`}>
           {lesson.title}
         </span>
         <span className="block truncate text-[0.8125rem] text-ink-2">

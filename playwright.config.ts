@@ -21,7 +21,7 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
-  workers: process.env.CI ? 2 : 3,
+  workers: 2,
   timeout: 60_000,
   expect: { timeout: 10_000 },
   reporter: process.env.CI ? [["github"], ["html", { open: "never" }]] : "list",
@@ -42,12 +42,11 @@ export default defineConfig({
   webServer: process.env.E2E_BASE_URL
     ? undefined
     : {
-        // CI tests the production build running in workerd; locally a running dev server is reused.
-        command: process.env.CI
-          ? "npm run build && npx vite preview --port 5173 --strictPort"
-          : "npm run dev",
+        // CI tests the production build (built in a prior step) running in workerd; locally a
+        // running dev or preview server is reused.
+        command: process.env.CI ? "npx vite preview --port 5173 --strictPort" : "npm run dev",
         url: "http://localhost:5173/api/health",
         reuseExistingServer: !process.env.CI,
-        timeout: 300_000,
+        timeout: 600_000,
       },
 });

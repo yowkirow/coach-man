@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Lint, typecheck, unit tests, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx biome ci .
+      - run: npm run typecheck
+      - run: npm run test:unit
+      - run: npm run build
+
+  e2e:
+    name: Playwright (local Worker + D1)
+    runs-on: ubuntu-latest
+    needs: check
+    env:
+      # Ephemeral CI environment: the bypass only exists in this job's local Worker.
+      E2E_BYPASS_SECRET: ${{ secrets.E2E_BYPASS_SECRET || 'ci-only-bypass-secret-change-me' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Write local Worker vars
+        run: |
+          {
+            echo "BETTER_AUTH_SECRET=ci-$(openssl rand -hex 24)"
+            echo "GOOGLE_CLIENT_ID=ci.apps.googleusercontent.com"
+            echo "GOOGLE_CLIENT_SECRET=ci"
+            echo "E2E_AUTH_BYPASS=1"
+            echo "E2E_BYPASS_SECRET=${E2E_BYPASS_SECRET}"
+          } > .dev.vars
+      - run: npm run db:migrate:local
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report
+          retention-days: 7

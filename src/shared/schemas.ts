@@ -106,7 +106,12 @@ export const clientSchema = z.object({
   groupIds: z.array(id).max(50).optional(),
 });
 export type ClientInput = z.infer<typeof clientSchema>;
-export const clientUpdateSchema = clientSchema.partial().omit({ id: true });
+// Zod 4's .partial() still applies inner .default()s, so a PATCH without lastName would reset it
+// to "". Update schemas re-declare defaulted fields as plain optionals.
+export const clientUpdateSchema = clientSchema
+  .extend({ lastName: trimmed(60).optional() })
+  .partial()
+  .omit({ id: true });
 export type ClientUpdateInput = z.infer<typeof clientUpdateSchema>;
 
 export const clientImportSchema = z.object({
@@ -162,6 +167,10 @@ export const packageTemplateSchema = z.object({
   active: z.boolean().optional(),
 });
 export type PackageTemplateInput = z.infer<typeof packageTemplateSchema>;
+/** PATCH body: omitted session types stay as they are (see clientUpdateSchema). */
+export const packageTemplateUpdateSchema = packageTemplateSchema
+  .extend({ lessonKinds: z.array(z.enum(LESSON_KINDS)).max(LESSON_KINDS.length).optional() })
+  .partial();
 
 export const sellPackageSchema = z
   .object({

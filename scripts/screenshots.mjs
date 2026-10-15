@@ -1,6 +1,9 @@
 // Captures review screenshots of CoachMan at desktop (1440) and phone (390) sizes using the
-// Playwright test-auth bypass. Needs the dev server running and E2E bypass vars in .dev.vars.
-// Usage: node scripts/screenshots.mjs [outDir]   (env: E2E_BASE_URL, E2E_BYPASS_SECRET, PW_CHANNEL)
+// Playwright test-auth bypass. Needs the app running and E2E bypass vars in .dev.vars.
+// Usage: node scripts/screenshots.mjs [outDir]
+// Env: E2E_BASE_URL, E2E_BYPASS_SECRET, PW_CHANNEL (default msedge), SCREENSHOT_EMAIL,
+//      SHOT_PATHS="/schedule,/clients" (default: the full app tour), SHOT_VIEWPORTS="desktop,mobile",
+//      SHOT_SEED=1 (seed sample data into the account first if it has none)
 import { mkdir, readFile } from "node:fs/promises";
 import { chromium } from "@playwright/test";
 
@@ -15,8 +18,23 @@ async function bypassSecret() {
   return match[1];
 }
 
+const TOUR = [
+  "/sign-in",
+  "/",
+  "/session",
+  "/schedule",
+  "/clients",
+  "/client",
+  "/groups",
+  "/events",
+  "/money",
+  "/packages",
+  "/settings",
+  "/more",
+];
+
 const secret = await bypassSecret();
-const viewports = {
+const allViewports = {
   desktop: { viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 },
   mobile: {
     viewport: { width: 390, height: 844 },
@@ -25,6 +43,9 @@ const viewports = {
     hasTouch: true,
   },
 };
+const wanted = (process.env.SHOT_VIEWPORTS ?? "desktop,mobile").split(",");
+const viewports = Object.entries(allViewports).filter(([name]) => wanted.includes(name));
+const paths = process.env.SHOT_PATHS ? process.env.SHOT_PATHS.split(",") : TOUR;
 const email = process.env.SCREENSHOT_EMAIL ?? "smoke3@coachman.test";
 
 await mkdir(outDir, { recursive: true });
@@ -36,36 +57,60 @@ async function settle(page) {
   await page.waitForTimeout(600);
 }
 
-for (const [name, opts] of Object.entries(viewports)) {
-  // Signed out first.
-  const anon = await browser.newContext({ ...opts, colorScheme: "light", serviceWorkers: "block" });
-  const anonPage = await anon.newPage();
-  await anonPage.goto(`${base}/sign-in`);
-  await settle(anonPage);
-  await anonPage.screenshot({ path: `${outDir}/sign-in-${name}.png` });
-  await anon.close();
+const label = (path) => (path === "/" ? "today" : path.replace(/^\//, "").replace(/[/?=&]+/g, "-"));
 
+for (const [name, opts] of viewports) {
   const ctx = await browser.newContext({ ...opts, colorScheme: "light", serviceWorkers: "block" });
+  const page = await ctx.newPage();
+  page.setDefaultNavigationTimeout(120_000);
+
+  if (paths.includes("/sign-in")) {
+    await page.goto(`${base}/sign-in`);
+    await settle(page);
+    await page.screenshot({ path: `${outDir}/sign-in-${name}.png` });
+    console.log(`wrote ${outDir}/sign-in-${name}.png`);
+  }
+
   const res = await ctx.request.post(`${base}/api/test/sign-in`, {
     headers: { "x-e2e-bypass": secret, "content-type": "application/json" },
     data: { email, name: "Casey Coach" },
   });
   if (!res.ok()) throw new Error(`Bypass sign-in failed: ${res.status()} ${await res.text()}`);
-  const page = await ctx.newPage();
 
+  // SHOT_SEED=1: give a fresh account the sample clients, packages, and today's sessions once.
+  if (process.env.SHOT_SEED === "1") {
+    const me = await (await ctx.request.get(`${base}/api/v1/me`)).json();
+    if (!me.hasSampleData) {
+      const seeded = await ctx.request.post(`${base}/api/test/seed?tz=Asia%2FManila&currency=PHP`, {
+        headers: { "x-e2e-bypass": secret },
+      });
+      if (!seeded.ok())
+        throw new Error(`Seeding failed: ${seeded.status()} ${await seeded.text()}`);
+    }
+  }
+
+  // "/session" and "/client" stand for the first session today and the first client.
   const today = await (await ctx.request.get(`${base}/api/v1/today`)).json();
-  const first = today.lessons?.[0]?.id;
-  const shots = [
-    ["today", "/"],
-    ...(first ? [["session", `/sessions/${first}`]] : []),
-    ["more", "/more"],
-    ["onboarding-passkey", "/onboarding?step=passkey"],
-  ];
-  for (const [label, path] of shots) {
-    await page.goto(`${base}${path}`);
+  const clients = await (await ctx.request.get(`${base}/api/v1/clients`)).json();
+  const resolve = (path) =>
+    path === "/session"
+      ? today.lessons?.[0]
+        ? `/sessions/${today.lessons[0].id}`
+        : null
+      : path === "/client"
+        ? clients?.[0]
+          ? `/clients/${clients[0].id}`
+          : null
+        : path;
+
+  for (const path of paths.filter((p) => p !== "/sign-in")) {
+    const target = resolve(path);
+    if (!target) continue;
+    await page.goto(`${base}${target}`);
     await settle(page);
-    await page.screenshot({ path: `${outDir}/${label}-${name}.png`, fullPage: name === "mobile" });
-    console.log(`wrote ${outDir}/${label}-${name}.png`);
+    const file = `${outDir}/${label(path)}-${name}.png`;
+    await page.screenshot({ path: file, fullPage: name === "mobile" });
+    console.log(`wrote ${file}`);
   }
   await ctx.close();
 }

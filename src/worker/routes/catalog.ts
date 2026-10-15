@@ -2,7 +2,11 @@ import { and, asc, eq, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import type { PackageTemplateDto, RateDto } from "../../shared/api-types";
 import { uuidv7 } from "../../shared/ids";
-import { packageTemplateSchema, rateSchema } from "../../shared/schemas";
+import {
+  packageTemplateSchema,
+  packageTemplateUpdateSchema,
+  rateSchema,
+} from "../../shared/schemas";
 import { packageTemplate, rate } from "../db/schema";
 import { auditEntry } from "../lib/audit";
 import { notFound } from "../lib/errors";
@@ -102,7 +106,7 @@ export const catalogRoutes = new Hono<AppBindings>()
     return c.json(toPackageDto(row as typeof packageTemplate.$inferSelect, 0), 201);
   })
 
-  .patch("/packages/:id", v("json", packageTemplateSchema.partial()), async (c) => {
+  .patch("/packages/:id", v("json", packageTemplateUpdateSchema), async (c) => {
     const ctx = ctxOf(c);
     const { id: _ignored, ...input } = c.req.valid("json");
     const id = c.req.param("id");

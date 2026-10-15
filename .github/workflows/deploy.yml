@@ -1,0 +1,61 @@
+name: Deploy
+
+# main → staging automatically; production on demand (Actions → Deploy → Run workflow).
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Cloudflare environment
+        type: choice
+        options: [staging, production]
+        default: staging
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-${{ inputs.environment || 'staging' }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment || 'staging' }}
+    env:
+      TARGET: ${{ inputs.environment || 'staging' }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run test:unit
+      - name: Apply D1 migrations
+        run: npx wrangler d1 migrations apply DB --remote --env "$TARGET"
+      - name: Build and deploy
+        run: npm run "deploy:$TARGET"
+
+  smoke:
+    name: Smoke test staging
+    needs: deploy
+    if: ${{ (inputs.environment || 'staging') == 'staging' && vars.STAGING_URL != '' }}
+    runs-on: ubuntu-latest
+    env:
+      E2E_BASE_URL: ${{ vars.STAGING_URL }}
+      E2E_BYPASS_SECRET: ${{ secrets.STAGING_E2E_BYPASS_SECRET }}
+      CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+      CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test e2e/api.spec.ts --project=desktop

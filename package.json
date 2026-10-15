@@ -20,8 +20,12 @@
     "db:migrate:staging": "wrangler d1 migrations apply DB --remote --env staging",
     "db:migrate:production": "wrangler d1 migrations apply DB --remote --env production",
     "test": "vitest run",
+    "test:unit": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "vapid:generate": "node scripts/vapid.mjs",
+    "icons": "node scripts/generate-icons.mjs",
+    "screenshots": "node scripts/screenshots.mjs",
     "deploy:staging": "cross-env CLOUDFLARE_ENV=staging vite build && wrangler deploy",
     "deploy:production": "cross-env CLOUDFLARE_ENV=production vite build && wrangler deploy"
   },

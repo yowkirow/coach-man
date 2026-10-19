@@ -4,7 +4,7 @@ import { createRouter, RouterProvider } from "@tanstack/react-router";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { setUnauthorizedHandler } from "./lib/api";
-import { requestPersistentStorage } from "./lib/offline";
+import { onCacheRestored, requestPersistentStorage } from "./lib/offline";
 import {
   CACHE_BUSTER,
   CACHE_MAX_AGE,
@@ -50,9 +50,7 @@ createRoot(document.getElementById("root") as HTMLElement).render(
           shouldDehydrateMutation: (m) => m.state.isPaused,
         },
       }}
-      onSuccess={() => {
-        void queryClient.resumePausedMutations().then(() => queryClient.invalidateQueries());
-      }}
+      onSuccess={onCacheRestored}
     >
       <RouterProvider router={router} />
     </PersistQueryClientProvider>

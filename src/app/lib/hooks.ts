@@ -13,7 +13,8 @@ import type {
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { api } from "./api";
-import { keys } from "./query";
+import { claimCache } from "./offline";
+import { keys, queryClient } from "./query";
 
 /** Wall clock that re-renders on an interval (phases like "on court now" depend on it). */
 export function useNow(intervalMs = 30_000): number {
@@ -27,7 +28,13 @@ export function useNow(intervalMs = 30_000): number {
 
 export const meQuery = {
   queryKey: keys.me,
-  queryFn: () => api.get<MeDto>("/me"),
+  queryFn: async () => {
+    const me = await api.get<MeDto>("/me");
+    // A different coach behind the same cached app (session swapped underneath): start clean.
+    const cached = queryClient.getQueryData<MeDto>(keys.me);
+    if (cached && cached.user.id !== me.user.id) claimCache(me.user.id);
+    return me;
+  },
   staleTime: 60_000,
 };
 

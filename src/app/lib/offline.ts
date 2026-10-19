@@ -2,6 +2,7 @@ import type { OfflinePackDto } from "@shared/api-types";
 import { onlineManager, useMutationState } from "@tanstack/react-query";
 import { useEffect, useSyncExternalStore } from "react";
 import { api } from "./api";
+import { switchCacheOwner } from "./cache-owner";
 import { keys, queryClient } from "./query";
 
 export function useOnline(): boolean {
@@ -18,6 +19,44 @@ export function usePendingChanges(): number {
 }
 
 let lastPack = 0;
+
+let markRestored: () => void = () => undefined;
+const restored = new Promise<void>((resolve) => {
+  markRestored = resolve;
+});
+
+/** Called by the persistence provider once the IndexedDB cache has loaded. */
+export function onCacheRestored() {
+  markRestored();
+}
+
+/** Resolves once the persisted cache has loaded; never waits longer than `ms`. */
+export function whenCacheRestored(ms = 2000): Promise<void> {
+  return Promise.race([restored, new Promise<void>((resolve) => setTimeout(resolve, ms))]);
+}
+
+function deviceStorage() {
+  try {
+    return typeof localStorage === "undefined" ? null : localStorage;
+  } catch {
+    return null;
+  }
+}
+
+let resumed = false;
+
+/**
+ * Call once the signed-in coach is known and the cache has been restored. A different coach on
+ * this device starts clean; the same coach signing back in keeps their cache, and their queued
+ * offline changes resume.
+ */
+export function claimCache(userId: string) {
+  if (switchCacheOwner(userId, queryClient, deviceStorage())) lastPack = 0;
+  if (!resumed) {
+    resumed = true;
+    void queryClient.resumePausedMutations().then(() => queryClient.invalidateQueries());
+  }
+}
 
 /** Caches the next week of sessions and rosters so the court works without signal. */
 export async function prefetchOfflinePack(force = false) {

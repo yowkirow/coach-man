@@ -126,6 +126,8 @@ For the fastest, most realistic local run, test the production build: `npm run b
 | Secrets set | `BETTER_AUTH_SECRET`, `VAPID_*` | `BETTER_AUTH_SECRET`, `VAPID_*` |
 | Still needed | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` |
 
+GitHub deploys are wired up: the repository secrets `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` are set. The token is the Cloudflare user token "CoachMan GitHub deploy", scoped to this account: Workers Scripts, D1, and Workers R2 Storage edit, plus Account Settings and Workers Tail read and User Details read. Pushing to `main` deploys staging; the staging smoke test stays skipped until `STAGING_URL` and the bypass secrets are set.
+
 Both run on free `workers.dev` addresses. Passkeys are bound to `PASSKEY_RP_ID`, so moving to a custom domain later means updating `APP_URL` and `PASSKEY_RP_ID`, adding the new Google redirect URI, and coaches re-adding their passkeys (Google sign-in keeps working). The test bypass is off on both (`E2E_*` secrets aren't set, and production ignores them anyway).
 
 To rotate the app's own secrets (session signing key and Web Push keys) for an environment: `node scripts/set-app-secrets.mjs <staging|production> <contact email>`. Rotating `BETTER_AUTH_SECRET` signs everyone out; rotating the VAPID keys means devices turn reminders back on.

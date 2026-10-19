@@ -32,17 +32,19 @@
   "env": {
     "staging": {
       "name": "coachman-staging",
+      // Free workers.dev address for now; passkeys are bound to PASSKEY_RP_ID (see README).
+      "workers_dev": true,
       "vars": {
         "APP_ENV": "staging",
-        "APP_URL": "https://staging.coachman.example",
-        "PASSKEY_RP_ID": "staging.coachman.example",
+        "APP_URL": "https://coachman-staging.jerrosyap05.workers.dev",
+        "PASSKEY_RP_ID": "coachman-staging.jerrosyap05.workers.dev",
         "PASSKEY_RP_NAME": "CoachMan (staging)"
       },
       "d1_databases": [
         {
           "binding": "DB",
           "database_name": "coachman-staging",
-          "database_id": "REPLACE_WITH_STAGING_D1_ID",
+          "database_id": "0e903880-37c3-4045-a94f-2f9c0f68fa4e",
           "migrations_dir": "migrations"
         }
       ],
@@ -51,17 +53,18 @@
     },
     "production": {
       "name": "coachman",
+      "workers_dev": true,
       "vars": {
         "APP_ENV": "production",
-        "APP_URL": "https://coachman.example",
-        "PASSKEY_RP_ID": "coachman.example",
+        "APP_URL": "https://coachman.jerrosyap05.workers.dev",
+        "PASSKEY_RP_ID": "coachman.jerrosyap05.workers.dev",
         "PASSKEY_RP_NAME": "CoachMan"
       },
       "d1_databases": [
         {
           "binding": "DB",
           "database_name": "coachman",
-          "database_id": "REPLACE_WITH_PRODUCTION_D1_ID",
+          "database_id": "775e4f92-9942-4162-aaed-e7175f6ef3eb",
           "migrations_dir": "migrations"
         }
       ],

@@ -115,6 +115,23 @@ For the fastest, most realistic local run, test the production build: `npm run b
 
 ## Deploying to Cloudflare
 
+### Current deployment
+
+| | Production | Staging |
+| --- | --- | --- |
+| URL | https://coachman.jerrosyap05.workers.dev | https://coachman-staging.jerrosyap05.workers.dev |
+| Worker | `coachman` | `coachman-staging` |
+| D1 | `coachman` (APAC) | `coachman-staging` (APAC) |
+| R2 | `coachman-files` (APAC) | `coachman-files-staging` (APAC) |
+| Secrets set | `BETTER_AUTH_SECRET`, `VAPID_*` | `BETTER_AUTH_SECRET`, `VAPID_*` |
+| Still needed | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` |
+
+Both run on free `workers.dev` addresses. Passkeys are bound to `PASSKEY_RP_ID`, so moving to a custom domain later means updating `APP_URL` and `PASSKEY_RP_ID`, adding the new Google redirect URI, and coaches re-adding their passkeys (Google sign-in keeps working). The test bypass is off on both (`E2E_*` secrets aren't set, and production ignores them anyway).
+
+To rotate the app's own secrets (session signing key and Web Push keys) for an environment: `node scripts/set-app-secrets.mjs <staging|production> <contact email>`. Rotating `BETTER_AUTH_SECRET` signs everyone out; rotating the VAPID keys means devices turn reminders back on.
+
+### Setting up from scratch
+
 One-time setup:
 
 1. `npx wrangler login`

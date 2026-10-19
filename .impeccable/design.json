@@ -1,0 +1,806 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-19T09:54:38.901Z",
+  "title": "Design System: CoachMan",
+  "extensions": {
+    "colorMeta": {
+      "lime": {
+        "role": "primary",
+        "displayName": "Signal Lime",
+        "canonical": "#daee63",
+        "tonalRamp": [
+          "#0a0d00",
+          "#232800",
+          "#3f4700",
+          "#5e6900",
+          "#7e8c00",
+          "#9fb10b",
+          "#c3d648",
+          "#e8fc72"
+        ]
+      },
+      "lime-strong": {
+        "role": "primary",
+        "displayName": "Pressed Lime",
+        "canonical": "#cbe148",
+        "tonalRamp": [
+          "#0a0d00",
+          "#232900",
+          "#3f4700",
+          "#5d6900",
+          "#7d8c00",
+          "#9eb100",
+          "#c1d73b",
+          "#e6fd68"
+        ]
+      },
+      "lime-soft": {
+        "role": "primary",
+        "displayName": "Lime Wash",
+        "canonical": "#f2f8cf",
+        "tonalRamp": [
+          "#0b0d00",
+          "#252804",
+          "#414522",
+          "#606541",
+          "#818661",
+          "#a4a983",
+          "#c8cea6",
+          "#edf3ca"
+        ]
+      },
+      "lavender": {
+        "role": "secondary",
+        "displayName": "Bento Lavender",
+        "canonical": "#b3a8f5",
+        "tonalRamp": [
+          "#0e002b",
+          "#271555",
+          "#433477",
+          "#61559a",
+          "#8276bf",
+          "#a499e5",
+          "#c8c0ff",
+          "#eeecff"
+        ]
+      },
+      "lavender-soft": {
+        "role": "secondary",
+        "displayName": "Lavender Wash",
+        "canonical": "#ebe8fd",
+        "tonalRamp": [
+          "#0c0916",
+          "#252332",
+          "#423f50",
+          "#615f70",
+          "#828092",
+          "#a5a2b6",
+          "#c9c6db",
+          "#eeecff"
+        ]
+      },
+      "violet": {
+        "role": "tertiary",
+        "displayName": "Group Violet",
+        "canonical": "#c9befb",
+        "tonalRamp": [
+          "#0f002a",
+          "#281a4a",
+          "#44386b",
+          "#63588d",
+          "#8479b1",
+          "#a69bd6",
+          "#cabffc",
+          "#efecff"
+        ]
+      },
+      "coral": {
+        "role": "tertiary",
+        "displayName": "Owes Coral",
+        "canonical": "#f87171",
+        "tonalRamp": [
+          "#1f0002",
+          "#4d000a",
+          "#800018",
+          "#ac2933",
+          "#d35053",
+          "#fc7474",
+          "#ffb2ae",
+          "#ffe8e7"
+        ]
+      },
+      "coral-soft": {
+        "role": "tertiary",
+        "displayName": "Coral Wash",
+        "canonical": "#fde3e3",
+        "tonalRamp": [
+          "#150607",
+          "#321f20",
+          "#503c3c",
+          "#715b5b",
+          "#937c7c",
+          "#b69e9e",
+          "#dbc2c2",
+          "#ffe8e8"
+        ]
+      },
+      "sky": {
+        "role": "tertiary",
+        "displayName": "Info Sky",
+        "canonical": "#a9dceb",
+        "tonalRamp": [
+          "#000e13",
+          "#002a34",
+          "#174956",
+          "#396977",
+          "#5a8b99",
+          "#7daebd",
+          "#a0d3e2",
+          "#d4f5ff"
+        ]
+      },
+      "sky-soft": {
+        "role": "tertiary",
+        "displayName": "Sky Wash",
+        "canonical": "#e2f3f8",
+        "tonalRamp": [
+          "#030d10",
+          "#1a272b",
+          "#374549",
+          "#556468",
+          "#76858a",
+          "#98a8ad",
+          "#bccdd1",
+          "#e1f2f7"
+        ]
+      },
+      "amber": {
+        "role": "tertiary",
+        "displayName": "Expiry Amber",
+        "canonical": "#f8d477",
+        "tonalRamp": [
+          "#100a00",
+          "#302300",
+          "#533f00",
+          "#785d00",
+          "#9f7d12",
+          "#c3a142",
+          "#e9c568",
+          "#ffedc1"
+        ]
+      },
+      "amber-soft": {
+        "role": "tertiary",
+        "displayName": "Amber Wash",
+        "canonical": "#fcf1d2",
+        "tonalRamp": [
+          "#100a00",
+          "#2d240a",
+          "#4a4127",
+          "#6a6146",
+          "#8c8266",
+          "#afa587",
+          "#d3c9ab",
+          "#f9eecf"
+        ]
+      },
+      "mint": {
+        "role": "tertiary",
+        "displayName": "Paid Mint",
+        "canonical": "#bfe9d0",
+        "tonalRamp": [
+          "#000f06",
+          "#052d1b",
+          "#264b37",
+          "#456b56",
+          "#668d76",
+          "#88b099",
+          "#abd5bc",
+          "#d0fbe1"
+        ]
+      },
+      "sync": {
+        "role": "tertiary",
+        "displayName": "Sync Orange",
+        "canonical": "#fb923c",
+        "tonalRamp": [
+          "#160700",
+          "#3c1b00",
+          "#663200",
+          "#934b00",
+          "#c36600",
+          "#ee872e",
+          "#ffb784",
+          "#ffeadc"
+        ]
+      },
+      "danger-text": {
+        "role": "tertiary",
+        "displayName": "Alert Red",
+        "canonical": "#b42318",
+        "tonalRamp": [
+          "#1f0000",
+          "#4d0100",
+          "#800200",
+          "#b12015",
+          "#da4a3b",
+          "#ff7461",
+          "#ffb3a7",
+          "#ffe9e5"
+        ],
+        "note": "Not declared in the @theme block of src/app/styles.css; the build hard-codes it in ten files."
+      },
+      "night": {
+        "role": "neutral",
+        "displayName": "Command Black",
+        "canonical": "#0e0e0f",
+        "tonalRamp": [
+          "#0b0b0c",
+          "#252526",
+          "#424243",
+          "#616162",
+          "#828283",
+          "#a5a5a6",
+          "#c9c9ca",
+          "#eeeef0"
+        ]
+      },
+      "night-2": {
+        "role": "neutral",
+        "displayName": "Tile Charcoal",
+        "canonical": "#1c1c1e",
+        "tonalRamp": [
+          "#0b0b0d",
+          "#252527",
+          "#424244",
+          "#616163",
+          "#828284",
+          "#a5a5a7",
+          "#c9c9cb",
+          "#eeeef1"
+        ]
+      },
+      "night-3": {
+        "role": "neutral",
+        "displayName": "Raised Charcoal",
+        "canonical": "#29292c",
+        "tonalRamp": [
+          "#0b0b0d",
+          "#252528",
+          "#424245",
+          "#616164",
+          "#828285",
+          "#a4a4a8",
+          "#c9c9cd",
+          "#eeeef2"
+        ]
+      },
+      "night-4": {
+        "role": "neutral",
+        "displayName": "Dark Outline",
+        "canonical": "#38383c",
+        "tonalRamp": [
+          "#0b0b0e",
+          "#252528",
+          "#414146",
+          "#616165",
+          "#828286",
+          "#a4a4a9",
+          "#c8c8cd",
+          "#eeeef3"
+        ]
+      },
+      "night-line": {
+        "role": "neutral",
+        "displayName": "Panel Seam",
+        "canonical": "#2e2e32",
+        "tonalRamp": [
+          "#0b0b0e",
+          "#252528",
+          "#414146",
+          "#616165",
+          "#828286",
+          "#a4a4a9",
+          "#c8c8ce",
+          "#eeeef3"
+        ]
+      },
+      "night-ink": {
+        "role": "neutral",
+        "displayName": "Night White",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#a5a5a5",
+          "#c9c9c9",
+          "#eeeeee"
+        ]
+      },
+      "night-ink-2": {
+        "role": "neutral",
+        "displayName": "Night Mist",
+        "canonical": "#a3a3a9",
+        "tonalRamp": [
+          "#0b0b0f",
+          "#252429",
+          "#414146",
+          "#616166",
+          "#828287",
+          "#a4a4aa",
+          "#c8c8cf",
+          "#eeeef4"
+        ]
+      },
+      "canvas": {
+        "role": "neutral",
+        "displayName": "Courtside Gray",
+        "canonical": "#e5e5e7",
+        "tonalRamp": [
+          "#0b0b0c",
+          "#252526",
+          "#424243",
+          "#616163",
+          "#828284",
+          "#a5a5a7",
+          "#c9c9cb",
+          "#eeeef0"
+        ]
+      },
+      "panel": {
+        "role": "neutral",
+        "displayName": "Folder Gray",
+        "canonical": "#f3f3f4",
+        "tonalRamp": [
+          "#0b0b0c",
+          "#252526",
+          "#424243",
+          "#616162",
+          "#828283",
+          "#a5a5a6",
+          "#c9c9ca",
+          "#eeeeef"
+        ]
+      },
+      "card": {
+        "role": "neutral",
+        "displayName": "Card White",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#a5a5a5",
+          "#c9c9c9",
+          "#eeeeee"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "#111111",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#a5a5a5",
+          "#c9c9c9",
+          "#eeeeee"
+        ]
+      },
+      "ink-2": {
+        "role": "neutral",
+        "displayName": "Slate",
+        "canonical": "#5f6066",
+        "tonalRamp": [
+          "#0a0b0f",
+          "#24252a",
+          "#414247",
+          "#606167",
+          "#818288",
+          "#a3a4ab",
+          "#c7c9cf",
+          "#edeef5"
+        ]
+      },
+      "ink-3": {
+        "role": "neutral",
+        "displayName": "Pewter",
+        "canonical": "#8a8b91",
+        "tonalRamp": [
+          "#0a0b0f",
+          "#242529",
+          "#414247",
+          "#606166",
+          "#818288",
+          "#a3a5ab",
+          "#c8c9cf",
+          "#edeef5"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "canonical": "#e4e4e7",
+        "tonalRamp": [
+          "#0b0b0d",
+          "#252527",
+          "#424244",
+          "#616163",
+          "#828285",
+          "#a5a5a7",
+          "#c9c9cc",
+          "#eeeef1"
+        ]
+      },
+      "line-strong": {
+        "role": "neutral",
+        "displayName": "Outline Gray",
+        "canonical": "#cfcfd4",
+        "tonalRamp": [
+          "#0b0b0e",
+          "#252528",
+          "#414146",
+          "#616165",
+          "#828286",
+          "#a4a4a9",
+          "#c8c8cd",
+          "#eeeef3"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Hero figures (the Money page's received total, 48px on phones) and the sign-in statement."
+      },
+      "headline-lg": {
+        "displayName": "Record Title",
+        "purpose": "Session, client, group, and event titles from 1024px."
+      },
+      "headline-md": {
+        "displayName": "Page Title",
+        "purpose": "Page titles from 1024px."
+      },
+      "headline-sm": {
+        "displayName": "Phone Title",
+        "purpose": "Page and record titles below 1024px, including the phone header's \"Today\"."
+      },
+      "headline-panel": {
+        "displayName": "Panel Title",
+        "purpose": "The title at the top of the command panel."
+      },
+      "figure": {
+        "displayName": "KPI Figure",
+        "purpose": "KPI tile values, tabular."
+      },
+      "title-md": {
+        "displayName": "Bento Title",
+        "purpose": "Bento, hero-card, and empty-state titles; sheet titles step up to 24px."
+      },
+      "title-sm": {
+        "displayName": "Card Heading",
+        "purpose": "Card headings on the light canvas, with a regular-weight count beside them."
+      },
+      "title-dark": {
+        "displayName": "Panel Section Heading",
+        "purpose": "Section headings inside the command panel."
+      },
+      "body-lg": {
+        "displayName": "Tile Name",
+        "purpose": "List-tile names in the command panel (regular); roster names use 500."
+      },
+      "body-md": {
+        "displayName": "Body",
+        "purpose": "Default body text; descriptions cap at 52–65ch."
+      },
+      "body-sm": {
+        "displayName": "Meta",
+        "purpose": "Meta lines, help text, and secondary lines."
+      },
+      "label-lg": {
+        "displayName": "Button",
+        "purpose": "Default 44px buttons and figure pills."
+      },
+      "label-md": {
+        "displayName": "Small Button",
+        "purpose": "36px buttons, segmented options, attendance choices."
+      },
+      "label-sm": {
+        "displayName": "Field Label",
+        "purpose": "Labels above fields."
+      },
+      "label-xs": {
+        "displayName": "Pill",
+        "purpose": "Status pills."
+      }
+    },
+    "shadows": [
+      {
+        "name": "pop",
+        "value": "0 24px 48px -16px rgb(17 17 17 / 0.28), 0 8px 20px -10px rgb(17 17 17 / 0.14)",
+        "purpose": "Floating layers only: sheets and dialogs, popovers and menus, toasts, the phone tab bar, and the phone's quick-add circle."
+      },
+      {
+        "name": "lift",
+        "value": "0 1px 2px rgb(17 17 17 / 0.06), 0 4px 12px -4px rgb(17 17 17 / 0.08)",
+        "purpose": "A thumb or segment raised above its own track: the selected segment of a segmented control and the switch thumb."
+      },
+      {
+        "name": "focus-glow",
+        "value": "0 0 0 4px rgb(218 238 99 / 0.55)",
+        "purpose": "A field's focus state, paired with an ink border. It marks state, not elevation."
+      },
+      {
+        "name": "tile-glow",
+        "value": "radial-gradient(120% 90% at 0% 0%, var(--tile-tint) 0%, transparent 60%)",
+        "purpose": "Background, not a shadow: lights a KPI tile's top-left corner; --tile-tint is the tile's own pastel at about 22%."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out-expo",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Entrances and the check-in settle: sheets, toasts, the settle keyframes."
+      },
+      {
+        "name": "state",
+        "value": "150ms ease-out",
+        "purpose": "Color, background, border, and shadow transitions on buttons, fields, tiles, and toggles."
+      },
+      {
+        "name": "press",
+        "value": "scale(0.97)",
+        "purpose": "Pressed state of buttons and circles."
+      },
+      {
+        "name": "switch",
+        "value": "200ms ease-out",
+        "purpose": "Switch thumb travel (20px)."
+      },
+      {
+        "name": "settle",
+        "value": "220ms ease-out-expo; scale 0.8, 1.08 at 60%, then 1",
+        "purpose": "The check-in toggle filling lime."
+      },
+      {
+        "name": "toast-in",
+        "value": "220ms ease-out-expo; slides up from translateY(32px) and opacity 0",
+        "purpose": "Toast entrance."
+      },
+      {
+        "name": "sheet-in",
+        "value": "240ms ease-out-expo; slides up from translateY(32px) and opacity 0",
+        "purpose": "Sheet and dialog entrance; the scrim fades in over 150ms."
+      },
+      {
+        "name": "popover-in",
+        "value": "120ms ease-out fade",
+        "purpose": "Popovers, menus, and select lists."
+      },
+      {
+        "name": "meter",
+        "value": "300ms ease-out",
+        "purpose": "Meter and chart bar width or height changes."
+      },
+      {
+        "name": "shimmer",
+        "value": "1.6s linear infinite",
+        "purpose": "Skeleton loading sweep."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "1ms",
+        "purpose": "prefers-reduced-motion collapses every animation and transition to 1ms; toasts and state changes still appear."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px",
+        "purpose": "Sheets become centered dialogs; page side padding steps from 16px to 24px."
+      },
+      {
+        "name": "md",
+        "value": "768px",
+        "purpose": "Wider form and list arrangements."
+      },
+      {
+        "name": "lg",
+        "value": "1024px",
+        "purpose": "Desktop shell: the command panel and icon rail replace the phone header block and tab bar; titles step up to 40px and 44px."
+      },
+      {
+        "name": "xl",
+        "value": "1280px",
+        "purpose": "The folder panel splits into tab content and a 340px bento column."
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Ink pill for the main move on the canvas (\"Record payment\", \"Mark complete\").",
+      "html": "<button class=\"ds-btn-primary\" type=\"button\">Record payment</button>",
+      "css": ".ds-btn-primary{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 20px;border:0;border-radius:9999px;background:var(--color-ink,#111111);color:var(--color-night-ink,#ffffff);font-family:var(--font-sans,\"Figtree Variable\",ui-sans-serif,system-ui,sans-serif);font-size:0.9375rem;font-weight:500;white-space:nowrap;cursor:pointer;transition:background-color 150ms ease-out,transform 150ms ease-out} .ds-btn-primary:hover{background:var(--color-night-3,#29292c)} .ds-btn-primary:focus-visible{outline:2px solid var(--color-ink,#111111);outline-offset:2px} .ds-btn-primary:active{transform:scale(0.97)} .ds-btn-primary:disabled{opacity:0.45;cursor:not-allowed}"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "White pill with a 1px Outline Gray ring beside the primary; the 36px small size serves secondary actions in cards, sheets, and bentos.",
+      "html": "<div class=\"ds-btn2-row\"><button class=\"ds-btn2\" type=\"button\">Add charge</button><button class=\"ds-btn2 ds-btn2-sm\" type=\"button\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2\"/><circle cx=\"9\" cy=\"7\" r=\"4\"/><line x1=\"19\" x2=\"19\" y1=\"8\" y2=\"14\"/><line x1=\"22\" x2=\"16\" y1=\"11\" y2=\"11\"/></svg>Add player</button></div>",
+      "css": ".ds-btn2-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px} .ds-btn2{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 20px;border:0;border-radius:9999px;background:var(--color-card,#ffffff);color:var(--color-ink,#111111);box-shadow:0 0 0 1px var(--color-line-strong,#cfcfd4);font-family:var(--font-sans,\"Figtree Variable\",ui-sans-serif,system-ui,sans-serif);font-size:0.9375rem;font-weight:500;white-space:nowrap;cursor:pointer;transition:background-color 150ms ease-out,transform 150ms ease-out} .ds-btn2:hover{background:var(--color-panel,#f3f3f4)} .ds-btn2:focus-visible{outline:2px solid var(--color-ink,#111111);outline-offset:2px} .ds-btn2:active{transform:scale(0.97)} .ds-btn2-sm{height:36px;padding:0 16px;font-size:0.875rem}"
+    },
+    {
+      "name": "Lime Action Circles",
+      "kind": "button",
+      "refersTo": "action-circle",
+      "description": "A record's actions: 52px lime circles with 20px ink icons, then a white circle that opens the overflow menu.",
+      "html": "<div class=\"ds-actions\"><button class=\"ds-action\" type=\"button\" aria-label=\"Add player\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2\"/><circle cx=\"9\" cy=\"7\" r=\"4\"/><line x1=\"19\" x2=\"19\" y1=\"8\" y2=\"14\"/><line x1=\"22\" x2=\"16\" y1=\"11\" y2=\"11\"/></svg></button><button class=\"ds-action\" type=\"button\" aria-label=\"Add a note\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M13.4 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7.4\"/><path d=\"M2 6h4\"/><path d=\"M2 10h4\"/><path d=\"M2 14h4\"/><path d=\"M2 18h4\"/><path d=\"M21.378 5.626a1 1 0 1 0-3.004-3.004l-5.01 5.012a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506z\"/></svg></button><button class=\"ds-action\" type=\"button\" aria-label=\"Mark session complete\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M18 6 7 17l-5-5\"/><path d=\"m22 10-7.5 7.5L13 16\"/></svg></button><button class=\"ds-action ds-action-white\" type=\"button\" aria-label=\"More session actions\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"1\"/><circle cx=\"19\" cy=\"12\" r=\"1\"/><circle cx=\"5\" cy=\"12\" r=\"1\"/></svg></button></div>",
+      "css": ".ds-actions{display:inline-flex;align-items:center;gap:8px;padding:12px;border-radius:32px;background:var(--color-canvas,#e5e5e7)} .ds-action{display:inline-flex;align-items:center;justify-content:center;width:52px;height:52px;padding:0;border:0;border-radius:9999px;background:var(--color-lime,#daee63);color:var(--color-ink,#111111);cursor:pointer;transition:background-color 150ms ease-out,transform 150ms ease-out} .ds-action:hover{background:var(--color-lime-strong,#cbe148)} .ds-action:focus-visible{outline:2px solid var(--color-ink,#111111);outline-offset:2px} .ds-action:active{transform:scale(0.97)} .ds-action-white{background:var(--color-card,#ffffff)} .ds-action-white:hover{background:var(--color-panel,#f3f3f4)}"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "48px white field with a 16px radius; focus turns the border ink inside a 4px lime glow; errors turn the border coral with Alert Red text.",
+      "html": "<div class=\"ds-fields\"><label class=\"ds-field\"><span class=\"ds-field-label\">Client name</span><input class=\"ds-field-input\" type=\"text\" placeholder=\"First and last name\"></label><label class=\"ds-field\"><span class=\"ds-field-label\">Phone</span><input class=\"ds-field-input ds-field-invalid\" type=\"tel\" value=\"+1 555\" aria-invalid=\"true\"><span class=\"ds-field-error\">Enter the full number.</span></label></div>",
+      "css": ".ds-fields{display:flex;flex-direction:column;gap:16px;max-width:360px;font-family:var(--font-sans,\"Figtree Variable\",ui-sans-serif,system-ui,sans-serif);} .ds-field{display:flex;flex-direction:column;gap:6px} .ds-field-label{font-size:0.8125rem;font-weight:500;color:var(--color-ink-2,#5f6066)} .ds-field-input{box-sizing:border-box;width:100%;height:48px;padding:0 16px;border:1px solid var(--color-line-strong,#cfcfd4);border-radius:16px;background:var(--color-card,#ffffff);color:var(--color-ink,#111111);caret-color:var(--color-ink,#111111);font-family:inherit;font-size:0.9375rem;outline:none;transition:border-color 150ms,box-shadow 150ms} .ds-field-input::placeholder{color:var(--color-ink-2,#5f6066)} .ds-field-input:focus{border-color:var(--color-ink,#111111);box-shadow:0 0 0 4px rgb(218 238 99 / 0.55)} .ds-field-invalid{border-color:var(--color-coral,#f87171)} .ds-field-error{font-size:0.8125rem;font-weight:500;color:#b42318}"
+    },
+    {
+      "name": "Status Pills",
+      "kind": "chip",
+      "refersTo": "pill",
+      "description": "24px pastel pills, always with ink text: lime live, violet group, coral owes, sky info, amber expiring, mint paid, white on color, outline for tags.",
+      "html": "<div class=\"ds-pills\"><span class=\"ds-pill ds-pill-lime\">On court now</span><span class=\"ds-pill ds-pill-violet\">Beginners</span><span class=\"ds-pill ds-pill-coral\">Owes</span><span class=\"ds-pill ds-pill-sky\">Junior</span><span class=\"ds-pill ds-pill-amber\">1 left</span><span class=\"ds-pill ds-pill-mint\">Paid up</span><span class=\"ds-pill ds-pill-white\">Event session</span><span class=\"ds-pill ds-pill-outline\">Repeats weekly</span></div>",
+      "css": ".ds-pills{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:12px;border-radius:22px;background:var(--color-canvas,#e5e5e7);font-family:var(--font-sans,\"Figtree Variable\",ui-sans-serif,system-ui,sans-serif);} .ds-pill{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:9999px;color:var(--color-ink,#111111);font-size:0.75rem;font-weight:500;white-space:nowrap;font-variant-numeric:tabular-nums} .ds-pill-lime{background:var(--color-lime,#daee63)} .ds-pill-violet{background:var(--color-violet,#c9befb)} .ds-pill-coral{background:var(--color-coral,#f87171)} .ds-pill-sky{background:var(--color-sky,#a9dceb)} .ds-pill-amber{background:var(--color-amber,#f8d477)} .ds-pill-mint{background:var(--color-mint,#bfe9d0)} .ds-pill-white{background:var(--color-card,#ffffff)} .ds-pill-outline{box-shadow:0 0 0 1px var(--color-line-strong,#cfcfd4);color:var(--color-ink-2,#5f6066)}"
+    },
+    {
+      "name": "Icon Rail",
+      "kind": "nav",
+      "refersTo": "rail-link",
+      "description": "The command panel's 84px rail: BallMark, 48px charcoal circles, the current page in lime, a dashed quick-add circle.",
+      "html": "<nav class=\"ds-rail\" aria-label=\"Main\"><span class=\"ds-rail-mark\"><svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 32 32\" aria-hidden=\"true\"><circle cx=\"16\" cy=\"16\" r=\"15\" fill=\"#daee63\"/><circle cx=\"16\" cy=\"7.2\" r=\"1.9\" fill=\"#0e0e0f\"/><circle cx=\"9.6\" cy=\"10.6\" r=\"1.9\" fill=\"#0e0e0f\"/><circle cx=\"22.4\" cy=\"10.6\" r=\"1.9\" fill=\"#0e0e0f\"/><circle cx=\"16\" cy=\"16\" r=\"1.9\" fill=\"#0e0e0f\"/><circle cx=\"8.4\" cy=\"18.4\" r=\"1.9\" fill=\"#0e0e0f\"/><circle cx=\"23.6\" cy=\"18.4\" r=\"1.9\" fill=\"#0e0e0f\"/><circle cx=\"12\" cy=\"24.4\" r=\"1.9\" fill=\"#0e0e0f\"/><circle cx=\"20\" cy=\"24.4\" r=\"1.9\" fill=\"#0e0e0f\"/></svg></span><a class=\"ds-rail-link\" href=\"#\" aria-current=\"page\" aria-label=\"Today\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8\"/><path d=\"M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z\"/></svg></a><a class=\"ds-rail-link\" href=\"#\" aria-label=\"Schedule\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M8 2v3\"/><path d=\"M16 2v3\"/><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/><path d=\"M3 9h18\"/><path d=\"M8 13h.01\"/><path d=\"M12 13h.01\"/><path d=\"M16 13h.01\"/><path d=\"M8 17h.01\"/><path d=\"M12 17h.01\"/><path d=\"M16 17h.01\"/></svg></a><a class=\"ds-rail-link\" href=\"#\" aria-label=\"Clients\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M16 2v2\"/><path d=\"M7 21v-2a2 2 0 012-2h6a2 2 0 012 2v2\"/><path d=\"M8 2v2\"/><circle cx=\"12\" cy=\"10\" r=\"3\"/><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/></svg></a><a class=\"ds-rail-link\" href=\"#\" aria-label=\"Groups\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M18 21a8 8 0 0 0-16 0\"/><circle cx=\"10\" cy=\"8\" r=\"5\"/><path d=\"M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3\"/></svg></a><a class=\"ds-rail-link\" href=\"#\" aria-label=\"Money\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8\"/><path d=\"M12 18V6\"/></svg></a><button class=\"ds-rail-add\" type=\"button\" aria-label=\"Quick add\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"/><path d=\"M12 5v14\"/></svg></button></nav>",
+      "css": ".ds-rail{display:inline-flex;flex-direction:column;align-items:center;gap:10px;width:84px;padding:20px 0;border-radius:32px;background:var(--color-night,#0e0e0f);color:var(--color-night-ink,#ffffff)} .ds-rail-mark{display:block;width:40px;height:40px;margin-bottom:16px} .ds-rail-mark svg{display:block;width:40px;height:40px} .ds-rail-link{display:flex;align-items:center;justify-content:center;width:48px;height:48px;border-radius:9999px;background:var(--color-night-2,#1c1c1e);color:var(--color-night-ink,#ffffff);text-decoration:none;outline:none;transition:background-color 150ms ease-out,color 150ms ease-out} .ds-rail-link:hover{background:var(--color-night-3,#29292c)} .ds-rail-link[aria-current=\"page\"]{background:var(--color-lime,#daee63);color:var(--color-ink,#111111)} .ds-rail-link:focus-visible,.ds-rail-add:focus-visible{outline:2px solid var(--color-lime,#daee63);outline-offset:2px} .ds-rail-add{display:flex;align-items:center;justify-content:center;width:48px;height:48px;margin-top:8px;padding:0;border:1px dashed var(--color-night-4,#38383c);border-radius:9999px;background:transparent;color:var(--color-night-ink,#ffffff);cursor:pointer;transition:border-color 150ms ease-out,color 150ms ease-out} .ds-rail-add:hover{border-color:var(--color-lime,#daee63);color:var(--color-lime,#daee63)}"
+    },
+    {
+      "name": "Folder Tabs",
+      "kind": "nav",
+      "refersTo": "folder-tab",
+      "description": "Record sections as folder tabs: the selected tab takes the Folder Gray panel tone and fuses into it through 20px concave fillets; white cards sit inside.",
+      "html": "<div class=\"ds-folder\"><div class=\"ds-folder-tabs\" role=\"tablist\" aria-label=\"Session sections\"><button class=\"ds-folder-tab\" role=\"tab\" aria-selected=\"true\" type=\"button\">Roster · 2/3</button><button class=\"ds-folder-tab\" role=\"tab\" aria-selected=\"false\" type=\"button\">Notes</button><button class=\"ds-folder-tab\" role=\"tab\" aria-selected=\"false\" type=\"button\">Details</button></div><div class=\"ds-folder-panel\" role=\"tabpanel\"><section class=\"ds-folder-card\"><h2 class=\"ds-folder-title\">Check-in <span class=\"ds-folder-count\">2/3</span></h2><ul class=\"ds-folder-rows\"><li><span class=\"ds-folder-name\">Jun Park</span><span class=\"ds-folder-meta\">3 of 10 left · 10-session pack</span></li><li><span class=\"ds-folder-name\">Tessa Ruiz</span><span class=\"ds-folder-meta\">Covered by event registration</span></li></ul></section></div></div>",
+      "css": ".ds-folder{padding:16px;border-radius:28px;background:var(--color-canvas,#e5e5e7);color:var(--color-ink,#111111);font-family:var(--font-sans,\"Figtree Variable\",ui-sans-serif,system-ui,sans-serif);} .ds-folder-tabs{display:flex;gap:20px;padding:0 24px 0 40px} .ds-folder-tab{position:relative;display:flex;align-items:center;gap:8px;height:48px;padding:0 20px;border:0;border-radius:20px 20px 0 0;background:transparent;color:var(--color-ink-2,#5f6066);font-family:inherit;font-size:0.9375rem;white-space:nowrap;cursor:pointer;transition:color 150ms ease-out} .ds-folder-tab:hover{color:var(--color-ink,#111111)} .ds-folder-tab:focus-visible{outline:2px solid var(--color-ink,#111111);outline-offset:-4px} .ds-folder-tab[aria-selected=\"true\"]{background:var(--color-panel,#f3f3f4);color:var(--color-ink,#111111)} .ds-folder-tab[aria-selected=\"true\"]::before,.ds-folder-tab[aria-selected=\"true\"]::after{content:\"\";position:absolute;bottom:0;width:20px;height:20px;pointer-events:none} .ds-folder-tab[aria-selected=\"true\"]::before{left:-20px;background:radial-gradient(circle at 0 0,transparent 19.5px,var(--color-panel,#f3f3f4) 20px)} .ds-folder-tab[aria-selected=\"true\"]::after{right:-20px;background:radial-gradient(circle at 100% 0,transparent 19.5px,var(--color-panel,#f3f3f4) 20px)} .ds-folder-panel{padding:16px;border-radius:28px;background:var(--color-panel,#f3f3f4)} .ds-folder-card{padding:20px 20px 8px;border-radius:28px;background:var(--color-card,#ffffff)} .ds-folder-title{margin:0 0 4px;font-size:1.125rem;font-weight:500} .ds-folder-count{font-weight:400;color:var(--color-ink-2,#5f6066);font-variant-numeric:tabular-nums} .ds-folder-rows{margin:0;padding:0;list-style:none} .ds-folder-rows li{display:flex;flex-direction:column;gap:2px;padding:12px 0} .ds-folder-rows li+li{border-top:1px solid var(--color-line,#e4e4e7)} .ds-folder-name{font-size:1rem;font-weight:500} .ds-folder-meta{font-size:0.8125rem;color:var(--color-ink-2,#5f6066)}"
+    },
+    {
+      "name": "Command Panel List",
+      "kind": "custom",
+      "refersTo": "list-tile",
+      "description": "The 328px list column: panel title, glowing KPI tiles, an 18px light section heading, charcoal list tiles, and the selected tile in lime.",
+      "html": "<div class=\"ds-cmd\"><div class=\"ds-cmd-head\"><h2 class=\"ds-cmd-title\">Today</h2><p class=\"ds-cmd-date\">Thursday, October 15</p></div><div class=\"ds-kpis\"><div class=\"ds-kpi ds-kpi-lime\"><span class=\"ds-kpi-label\"><span class=\"ds-kpi-glyph\"></span>Sessions</span><span class=\"ds-kpi-value\">3</span></div><div class=\"ds-kpi ds-kpi-coral\"><span class=\"ds-kpi-label\"><span class=\"ds-kpi-glyph\"></span>Balances due</span><span class=\"ds-kpi-value\">2</span></div></div><h3 class=\"ds-cmd-section\">Sessions</h3><a class=\"ds-tile\" href=\"#\"><span class=\"ds-tile-top\"><span class=\"ds-tile-avatars\"><span class=\"ds-tile-avatar ds-tile-avatar-a\">LG</span></span><span class=\"ds-tile-text\"><span class=\"ds-tile-name\">Liam Gomez</span><span class=\"ds-tile-meta\">9:00–10:00 AM · Court 1</span></span><svg class=\"ds-tile-arrow\" xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M7 7h10v10\"/><path d=\"M7 17 17 7\"/></svg></span><span class=\"ds-tile-status\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"m16 9-5.5 5.5L8 12\"/></svg><span class=\"ds-tile-status-text\">Finished</span><span class=\"ds-tile-count\">0/1 in</span></span></a><a class=\"ds-tile ds-tile-selected\" href=\"#\" aria-current=\"true\"><span class=\"ds-tile-top\"><span class=\"ds-tile-avatars\"><span class=\"ds-tile-avatar ds-tile-avatar-b\">JP</span><span class=\"ds-tile-avatar ds-tile-avatar-c\">TR</span></span><span class=\"ds-tile-text\"><span class=\"ds-tile-name\">Summer Camp · Day 3</span><span class=\"ds-tile-meta\">4:00–6:00 PM · Court 2–3</span></span><svg class=\"ds-tile-arrow\" xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M7 7h10v10\"/><path d=\"M7 17 17 7\"/></svg></span><span class=\"ds-tile-status\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M16 14v2.2l1.6 1\"/><path d=\"M16 2v3\"/><path d=\"M21 7.338V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h2.338\"/><path d=\"M3 9h5.859\"/><path d=\"M8 2v3\"/><circle cx=\"16\" cy=\"16\" r=\"6\"/></svg><span class=\"ds-tile-status-text\">Starts in 3 h 33 min</span><span class=\"ds-tile-count\">0/3 in</span></span></a></div>",
+      "css": ".ds-cmd{display:flex;flex-direction:column;gap:10px;box-sizing:border-box;width:328px;padding:20px 16px;border-radius:32px;background:var(--color-night,#0e0e0f);color:var(--color-night-ink,#ffffff);font-family:var(--font-sans,\"Figtree Variable\",ui-sans-serif,system-ui,sans-serif);} .ds-cmd-head{padding:0 4px 10px} .ds-cmd-title{margin:0;font-size:1.75rem;line-height:1.25;font-weight:300;letter-spacing:-0.01em} .ds-cmd-date{margin:4px 0 0;font-size:0.875rem;color:var(--color-night-ink-2,#a3a3a9)} .ds-kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px} .ds-kpi{display:flex;flex-direction:column;box-sizing:border-box;height:104px;padding:16px;border-radius:22px;background-color:var(--color-night-2,#1c1c1e);background-image:radial-gradient(120% 90% at 0% 0%,var(--ds-tint,rgb(255 255 255 / 0.08)) 0%,transparent 60%)} .ds-kpi-lime{--ds-tint:rgb(218 238 99 / 0.22);--ds-edge:var(--color-lime,#daee63)} .ds-kpi-coral{--ds-tint:rgb(248 113 113 / 0.22);--ds-edge:var(--color-coral,#f87171)} .ds-kpi-label{display:flex;align-items:center;gap:8px;font-size:0.8125rem;color:rgb(255 255 255 / 0.85)} .ds-kpi-glyph{box-sizing:border-box;width:18px;height:18px;border:1.5px solid var(--ds-edge);border-radius:6px} .ds-kpi-value{margin-top:auto;align-self:flex-end;font-size:2rem;line-height:1;font-weight:300;font-variant-numeric:tabular-nums lining-nums} .ds-cmd-section{margin:10px 4px 0;font-size:1.125rem;font-weight:300} .ds-tile{--ds-ring:var(--color-night-2,#1c1c1e);display:block;padding:16px;border-radius:24px;background:var(--color-night-2,#1c1c1e);color:var(--color-night-ink,#ffffff);text-decoration:none;outline:none;transition:background-color 150ms ease-out} .ds-tile:hover{--ds-ring:var(--color-night-3,#29292c);background:var(--color-night-3,#29292c)} .ds-tile:focus-visible{outline:2px solid var(--color-lime,#daee63);outline-offset:2px} .ds-tile-selected,.ds-tile-selected:hover{--ds-ring:var(--color-lime,#daee63);background:var(--color-lime,#daee63);color:var(--color-ink,#111111)} .ds-tile-top{display:flex;align-items:flex-start;gap:12px} .ds-tile-avatars{display:flex;flex-shrink:0} .ds-tile-avatar{display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:9999px;color:var(--color-ink,#111111);font-size:0.75rem;font-weight:600;box-shadow:0 0 0 2px var(--ds-ring)} .ds-tile-avatar+.ds-tile-avatar{margin-left:-6px} .ds-tile-avatar-a{background:var(--color-lavender-soft,#ebe8fd)} .ds-tile-avatar-b{background:var(--color-sky-soft,#e2f3f8)} .ds-tile-avatar-c{background:var(--color-coral-soft,#fde3e3)} .ds-tile-text{flex:1;min-width:0} .ds-tile-name{display:block;font-size:1rem;line-height:1.375} .ds-tile-meta{display:block;font-size:0.75rem;color:var(--color-night-ink-2,#a3a3a9);font-variant-numeric:tabular-nums} .ds-tile-arrow{flex-shrink:0;color:var(--color-night-ink-2,#a3a3a9)} .ds-tile-selected .ds-tile-meta,.ds-tile-selected .ds-tile-arrow{color:rgb(17 17 17 / 0.7)} .ds-tile-status{display:flex;align-items:center;gap:8px;box-sizing:border-box;height:44px;margin-top:12px;padding:0 12px;border:1px solid var(--color-night-4,#38383c);border-radius:9999px;font-size:0.8125rem} .ds-tile-selected .ds-tile-status{border-color:rgb(17 17 17 / 0.15)} .ds-tile-status svg{flex-shrink:0} .ds-tile-status-text{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap} .ds-tile-count{display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:9999px;background:var(--color-sky,#a9dceb);color:var(--color-ink,#111111);font-size:0.75rem;font-weight:500;font-variant-numeric:tabular-nums} .ds-tile-selected .ds-tile-count{background:var(--color-card,#ffffff)}"
+    },
+    {
+      "name": "Bento Cards",
+      "kind": "card",
+      "refersTo": "bento-lavender",
+      "description": "Lavender and lime 28px cards for the record's right column: a light 22px title, then a checklist of translucent circles or a pair of small buttons.",
+      "html": "<div class=\"ds-bentos\"><section class=\"ds-bento ds-bento-lavender\"><h2 class=\"ds-bento-title\">Credits</h2><p class=\"ds-bento-sub\">2 of 3 covered by a package</p><ul class=\"ds-bento-checks\"><li><span class=\"ds-bento-dot\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 6 9 17l-5-5\"/></svg></span>Jun P. <span class=\"ds-bento-muted\">· 3 left</span></li><li><span class=\"ds-bento-dot\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 6 9 17l-5-5\"/></svg></span>Tessa R. <span class=\"ds-bento-muted\">· 1 left</span></li><li><span class=\"ds-bento-dot\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M18 6 6 18\"/><path d=\"m6 6 12 12\"/></svg></span>Zoe L. <span class=\"ds-bento-muted\">· pays per session</span></li></ul></section><section class=\"ds-bento ds-bento-lime\"><h2 class=\"ds-bento-title\">Session plan</h2><p class=\"ds-bento-sub\">Drills and focus for this session</p><p class=\"ds-bento-text\">Third-shot drops, then cross-court dinking patterns.</p><div class=\"ds-bento-actions\"><button class=\"ds-bento-btn ds-bento-btn-ink\" type=\"button\">Mark complete</button><button class=\"ds-bento-btn ds-bento-btn-white\" type=\"button\">Edit plan</button></div></section></div>",
+      "css": ".ds-bentos{display:flex;flex-direction:column;gap:16px;max-width:340px;font-family:var(--font-sans,\"Figtree Variable\",ui-sans-serif,system-ui,sans-serif);} .ds-bento{padding:20px;border-radius:28px;color:var(--color-ink,#111111)} .ds-bento-lavender{background:var(--color-lavender,#b3a8f5)} .ds-bento-lime{background:var(--color-lime,#daee63)} .ds-bento-title{margin:0;font-size:1.375rem;line-height:1.25;font-weight:300;letter-spacing:-0.01em} .ds-bento-sub{margin:4px 0 0;font-size:0.8125rem;color:rgb(17 17 17 / 0.75)} .ds-bento-checks{margin:16px 0 0;padding:0;list-style:none} .ds-bento-checks li{display:flex;align-items:center;gap:12px;padding:6px 0;font-size:0.875rem} .ds-bento-dot{display:flex;align-items:center;justify-content:center;width:24px;height:24px;flex-shrink:0;border-radius:9999px;background:rgb(255 255 255 / 0.45)} .ds-bento-muted{color:rgb(17 17 17 / 0.7)} .ds-bento-text{margin:16px 0 0;font-size:0.9375rem} .ds-bento-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px} .ds-bento-btn{height:36px;padding:0 16px;border:0;border-radius:9999px;font-family:inherit;font-size:0.875rem;font-weight:500;cursor:pointer;transition:background-color 150ms ease-out,transform 150ms ease-out} .ds-bento-btn:focus-visible{outline:2px solid var(--color-ink,#111111);outline-offset:2px} .ds-bento-btn:active{transform:scale(0.97)} .ds-bento-btn-ink{background:var(--color-ink,#111111);color:var(--color-night-ink,#ffffff)} .ds-bento-btn-ink:hover{background:var(--color-night-3,#29292c)} .ds-bento-btn-white{background:var(--color-card,#ffffff);color:var(--color-ink,#111111);box-shadow:0 0 0 1px var(--color-line-strong,#cfcfd4)} .ds-bento-btn-white:hover{background:var(--color-panel,#f3f3f4)}"
+    },
+    {
+      "name": "Check-in Toggle",
+      "kind": "custom",
+      "refersTo": "checkin-toggle",
+      "description": "Signature interaction: a 48px roster circle that fills lime with an ink check and settles in 220ms, answered by an ink toast with a lime Undo.",
+      "html": "<div class=\"ds-checkin-demo\"><div class=\"ds-roster\"><div class=\"ds-roster-row\"><span class=\"ds-roster-avatar ds-roster-avatar-a\" aria-hidden=\"true\">JP</span><span class=\"ds-roster-text\"><span class=\"ds-roster-name\">Jun Park</span><span class=\"ds-roster-line\">3 of 10 left · 10-session pack</span></span><button class=\"ds-checkin\" type=\"button\" aria-pressed=\"true\" aria-label=\"Jun Park is checked in. Undo check-in\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 6 9 17l-5-5\"/></svg></button></div><div class=\"ds-roster-row\"><span class=\"ds-roster-avatar ds-roster-avatar-b\" aria-hidden=\"true\">TR</span><span class=\"ds-roster-text\"><span class=\"ds-roster-name\">Tessa Ruiz</span><span class=\"ds-roster-line\">Covered by event registration</span></span><button class=\"ds-checkin\" type=\"button\" aria-pressed=\"false\" aria-label=\"Check in Tessa Ruiz\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 6 9 17l-5-5\"/></svg></button></div></div><div class=\"ds-toast\" role=\"status\"><svg class=\"ds-toast-icon\" xmlns=\"http://www.w3.org/2000/svg\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"m16 9-5.5 5.5L8 12\"/></svg><div class=\"ds-toast-text\"><p class=\"ds-toast-title\">Jun checked in</p><p class=\"ds-toast-body\">3 credits left on 10-session pack</p></div><button class=\"ds-toast-action\" type=\"button\">Undo</button><button class=\"ds-toast-dismiss\" type=\"button\" aria-label=\"Dismiss\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M18 6 6 18\"/><path d=\"m6 6 12 12\"/></svg></button></div></div>",
+      "css": ".ds-checkin-demo{display:flex;flex-direction:column;gap:16px;max-width:448px;padding:16px;border-radius:28px;background:var(--color-canvas,#e5e5e7);color:var(--color-ink,#111111);font-family:var(--font-sans,\"Figtree Variable\",ui-sans-serif,system-ui,sans-serif);} .ds-roster{padding:4px 20px;border-radius:28px;background:var(--color-card,#ffffff)} .ds-roster-row{display:flex;align-items:center;gap:12px;padding:12px 0} .ds-roster-row+.ds-roster-row{border-top:1px solid var(--color-line,#e4e4e7)} .ds-roster-avatar{display:flex;align-items:center;justify-content:center;width:44px;height:44px;flex-shrink:0;border-radius:9999px;font-size:0.875rem;font-weight:600} .ds-roster-avatar-a{background:var(--color-lavender-soft,#ebe8fd)} .ds-roster-avatar-b{background:var(--color-amber-soft,#fcf1d2)} .ds-roster-text{flex:1;min-width:0} .ds-roster-name{display:block;font-size:1rem;font-weight:500} .ds-roster-line{display:block;margin-top:2px;font-size:0.8125rem;color:var(--color-ink-2,#5f6066)} .ds-checkin{display:flex;align-items:center;justify-content:center;width:48px;height:48px;flex-shrink:0;padding:0;border:0;border-radius:9999px;background:var(--color-card,#ffffff);color:var(--color-ink-3,#8a8b91);box-shadow:0 0 0 1px var(--color-line-strong,#cfcfd4);cursor:pointer;transition:background-color 150ms ease-out,color 150ms ease-out} .ds-checkin:hover{background:var(--color-panel,#f3f3f4);color:var(--color-ink-2,#5f6066)} .ds-checkin:focus-visible{outline:2px solid var(--color-ink,#111111);outline-offset:2px} .ds-checkin[aria-pressed=\"true\"]{background:var(--color-lime,#daee63);color:var(--color-ink,#111111);box-shadow:none;animation:ds-settle 220ms var(--ease-out-expo,cubic-bezier(0.16,1,0.3,1))} @keyframes ds-settle{0%{transform:scale(0.8)}60%{transform:scale(1.08)}100%{transform:scale(1)}} .ds-toast{display:flex;align-items:center;gap:12px;padding:10px 10px 10px 16px;border-radius:22px;background:var(--color-ink,#111111);color:var(--color-night-ink,#ffffff);box-shadow:var(--shadow-pop,0 24px 48px -16px rgb(17 17 17 / 0.28),0 8px 20px -10px rgb(17 17 17 / 0.14));animation:ds-toast-in 220ms var(--ease-out-expo,cubic-bezier(0.16,1,0.3,1))} @keyframes ds-toast-in{from{transform:translateY(32px);opacity:0}to{transform:translateY(0);opacity:1}} .ds-toast-icon{flex-shrink:0;color:var(--color-lime,#daee63)} .ds-toast-text{flex:1;min-width:0} .ds-toast-title{margin:0;font-weight:500;line-height:1.25} .ds-toast-body{margin:2px 0 0;font-size:0.8125rem;color:var(--color-night-ink-2,#a3a3a9)} .ds-toast-action{height:36px;flex-shrink:0;padding:0 16px;border:0;border-radius:9999px;background:var(--color-lime,#daee63);color:var(--color-ink,#111111);font-family:inherit;font-size:0.875rem;font-weight:600;cursor:pointer} .ds-toast-action:hover{background:var(--color-lime-strong,#cbe148)} .ds-toast-action:focus-visible,.ds-toast-dismiss:focus-visible{outline:2px solid var(--color-lime,#daee63);outline-offset:2px} .ds-toast-dismiss{display:flex;align-items:center;justify-content:center;width:36px;height:36px;flex-shrink:0;padding:0;border:0;border-radius:9999px;background:transparent;color:var(--color-night-ink-2,#a3a3a9);cursor:pointer} .ds-toast-dismiss:hover{background:var(--color-night-3,#29292c)} @media (prefers-reduced-motion: reduce){.ds-checkin[aria-pressed=\"true\"],.ds-toast{animation-duration:1ms}.ds-checkin{transition-duration:1ms}}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Courtside Command Panel",
+    "overview": "CoachMan is a calm, premium CRM for courts. Every screen splits into two zones: a black command panel that holds navigation and the live list (today's sessions, the client worklist, who owes), and a soft-gray daylight canvas where the selected session or client opens as rounded white cards. Lime is the single signal across both zones. It lights whatever is live, selected, or the next action, so a coach glancing at a phone between games finds \"now\" without reading.\n\nHeadings and figures are large and light; everything a coach acts on is regular or medium weight and at least 36px tall, mostly 44px or more. Status speaks in soft pastel pills that always carry ink text. Depth is tonal (gray canvas, a lighter folder panel, white cards), and shadows appear only on things that float. Containers take generous 22–32px corners, and every control is a pill or a circle. People appear as initials on soft tints unless the coach uploads a photo. There is no stock or illustrative imagery, and the lime BallMark is the only sport motif.\n\nThe visual authority is a reference the user pinned: the Dribbble shot \"Microsoft Dynamics CRM – Lead Relationship Management Platform\" by Jack R. for RonDesignLab, translated from sales to coaching. It replaced a themed \"Court Lines\" build and a plain \"clean and light\" plan, both rejected; the system refuses flat admin tables and sport-themed costume. Where the reference sets white text on pastel pills, CoachMan sets ink, because task surfaces have to read in outdoor sun.",
+    "keyCharacteristics": [
+      "Two zones: a black command panel (icon rail plus list column) beside a soft-gray canvas of white cards.",
+      "Lime marks live, selected, and primary, and nothing else.",
+      "Figtree throughout: light (300) for headings and figures, tabular numerals for every compared number.",
+      "Pastel status pills with ink text, never white.",
+      "Tonal depth; shadows only on floating layers.",
+      "22–32px container corners; pills and circles for every control.",
+      "Records open into fused folder tabs over a lighter panel, with lavender and lime bentos beside them.",
+      "Touch-first sizing: 44px controls, 48px check-in circles, 52px action circles."
+    ],
+    "rules": [
+      {
+        "name": "The Lime Is Now Rule",
+        "body": "Lime marks what is live, selected, or the primary action: the active rail circle, the selected tile, the action circles, the checked-in toggle, the primary bento. It never labels a category, a tag, or a chart series; categories take the pastels.",
+        "section": "colors"
+      },
+      {
+        "name": "The Ink-on-Pastel Rule",
+        "body": "Every lime and pastel fill carries ink (#111111) text and icons, never white. This is a deliberate accessibility deviation from the reference, whose pills set white on pastel: white on Owes Coral reads at about 2.8:1, ink at about 6.8:1.",
+        "section": "colors"
+      },
+      {
+        "name": "The Connection Color Rule",
+        "body": "Sync Orange speaks only about connection state (offline, syncing, a change waiting to sync), and nothing else wears it.",
+        "section": "colors"
+      },
+      {
+        "name": "The Light Heading Rule",
+        "body": "Every heading and figure from 22px up is set at weight 300 with slight negative tracking (-0.01em to -0.03em). Bold (700) does not exist in this system; the wordmark (22px, 500) is the only large text that isn't light.",
+        "section": "typography"
+      },
+      {
+        "name": "The Tabular Figure Rule",
+        "body": "Every number a coach compares (times, counts, credits, money) is set in tabular lining numerals.",
+        "section": "typography"
+      },
+      {
+        "name": "The Two-Zone Rule",
+        "body": "Night tones belong to the command panel and its phone forms (the header block and the tab bar); the canvas, the folder panel, and white cards hold the work. A component that lives in both zones ships two tones, a charcoal tile in the panel and a white card on the canvas, never a dark card on the canvas.",
+        "section": "layout"
+      },
+      {
+        "name": "The Thumb Floor Rule",
+        "body": "Controls start at 44px: buttons and icon circles 44px, fields 48px, check-in toggles and rail circles 48px, a record's action circles 52px. 36px is the one smaller step, for secondary actions inside cards, sheets, bentos, and toasts.",
+        "section": "layout"
+      },
+      {
+        "name": "The Flat Card Rule",
+        "body": "Cards sit flat; tone alone separates white from gray. A resting element declares its edge once, with a 1px line or a shadow, never both.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Float-Only Shadow Rule",
+        "body": "Pop means \"this floats above the page\". Lift is the only other shadow, and only for a thumb or segment raised above its own track. Cards, tiles, and panels never cast one.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Step-Down Radius Rule",
+        "body": "A shape nested in a container takes a smaller radius than the container: a 32px panel holds 24px list tiles and 22px KPI tiles; a 28px card holds 22px wells and 16px controls.",
+        "section": "shapes"
+      },
+      {
+        "name": "The Proof Rule",
+        "body": "A credit count or a balance is a button that opens its proof: the credit ledger or the client's statement.",
+        "section": "components"
+      }
+    ],
+    "dos": [
+      "Do split every screen into the two zones: the night command panel (84px rail and 328px list column on desktop, a black header block on phones) and the gray canvas of white cards.",
+      "Do reserve lime (#daee63) for live, selected, and primary: current navigation, the selected tile, action circles, the checked-in toggle, the primary bento.",
+      "Do set every pastel and lime fill with ink (#111111) text and icons.",
+      "Do set headings and figures from 22px up at weight 300: record titles 44px and page titles 40px from 1024px, both 32px on phones.",
+      "Do give every compared number tabular lining numerals (`.num`).",
+      "Do open records into folder tabs that fuse into the Folder Gray panel, with the lavender and lime bentos in a 340px column from 1280px.",
+      "Do keep controls at 44px or more (fields and check-in toggles 48px, action circles 52px), and use the 36px small button only for secondary actions inside cards, sheets, bentos, and toasts.",
+      "Do confirm a check-in with the lime fill, the 220ms settle, and an ink toast that offers Undo.",
+      "Do use Lucide icons at 16–24px, with a 1.75 stroke in navigation.",
+      "Do show people as initials on a soft wash unless the coach has uploaded a photo."
+    ],
+    "donts": [
+      "Don't use lime to mark a category, a tag, or a chart series; categories take the pastels.",
+      "Don't put white text on lime or on any pastel, even though the reference does.",
+      "Don't set any text at weight 700, or a heading of 22px or more above weight 300.",
+      "Don't put an eyebrow or kicker above a heading, and don't uppercase labels. A field label above its value is data, not a kicker.",
+      "Don't add a colored side stripe to a card, row, or alert.",
+      "Don't use gradient text; the KPI tile's corner glow is the system's one decorative gradient.",
+      "Don't shadow a card, tile, or panel, and don't give a resting element both a 1px line and a shadow.",
+      "Don't use icons from any set but Lucide, or glyphs and emoji as icons.",
+      "Don't put a dark card on the canvas or a white card in the command panel.",
+      "Don't introduce a hex outside the `@theme` tokens in `src/app/styles.css`; declare a new color there first.",
+      "Don't use stock or illustrative images of people.",
+      "Don't reintroduce the rejected themed costume (\"Court Lines\") or flat admin tables; the BallMark is the only sport motif."
+    ]
+  }
+}

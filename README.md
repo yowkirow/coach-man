@@ -123,8 +123,9 @@ For the fastest, most realistic local run, test the production build: `npm run b
 | Worker | `coachman` | `coachman-staging` |
 | D1 | `coachman` (APAC) | `coachman-staging` (APAC) |
 | R2 | `coachman-files` (APAC) | `coachman-files-staging` (APAC) |
-| Secrets set | `BETTER_AUTH_SECRET`, `VAPID_*` | `BETTER_AUTH_SECRET`, `VAPID_*` |
-| Still needed | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` |
+| Secrets set | `BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_*`, `VAPID_*` | `BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_*`, `VAPID_*` |
+
+Google sign-in uses the Google Cloud project **CoachMan** (`coachman-512116`) and its web OAuth client "CoachMan web". The client's redirect URIs cover production, staging, and `http://localhost:5173` (local `.dev.vars` holds the same client). The consent screen is External but still in **Testing**, so only listed test users can sign in (currently the owner, jerrosyap05@gmail.com; up to 100). To let any coach sign in, add a home page and privacy policy link on the Branding page, then use **Publish app** on the Audience page. The basic scopes CoachMan asks for (email, profile, openid) don't need Google verification. Until the brand is verified, though, Google's account chooser names the domain (`jerrosyap05.workers.dev`) instead of "CoachMan". Google never shows a client secret again after creation; to rotate it, add a new secret on the client's page, then `npx wrangler secret put GOOGLE_CLIENT_SECRET --env <env>`, update `.dev.vars`, and disable the old secret.
 
 GitHub deploys are wired up: the repository secrets `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` are set. The token is the Cloudflare user token "CoachMan GitHub deploy", scoped to this account: Workers Scripts, D1, and Workers R2 Storage edit, plus Account Settings and Workers Tail read and User Details read. Pushing to `main` deploys staging; the staging smoke test stays skipped until `STAGING_URL` and the bypass secrets are set.
 

@@ -26,7 +26,7 @@ import { auditEntry } from "../lib/audit";
 import { badRequest, conflict, notFound } from "../lib/errors";
 import { idempotent } from "../lib/idempotency";
 import { v } from "../lib/validate";
-import { ctxOf } from "../middleware";
+import { assertCan, ctxOf } from "../middleware";
 import { changeAttendance, releaseLessonFunding, runBatch } from "../services/credits";
 import {
   createLessons,
@@ -123,7 +123,10 @@ export const lessonRoutes = new Hono<AppBindings>()
 
   .post("/lessons", v("json", lessonCreateSchema), async (c) => {
     const ctx = ctxOf(c);
-    const result = await createLessons(ctx, c.req.valid("json"));
+    const input = c.req.valid("json");
+    // A per-session price overrides the catalog rate: money roles only.
+    if (input.priceMinor !== undefined && input.priceMinor !== null) assertCan(ctx.role, "money");
+    const result = await createLessons(ctx, input);
     await auditEntry(ctx, "create", "lesson", result.lessonIds[0] ?? null, {
       count: result.lessonIds.length,
       seriesId: result.seriesId,
@@ -137,6 +140,7 @@ export const lessonRoutes = new Hono<AppBindings>()
   .patch("/lessons/:id", v("json", lessonUpdateSchema), async (c) => {
     const ctx = ctxOf(c);
     const input = c.req.valid("json");
+    if (input.priceMinor !== undefined) assertCan(ctx.role, "money");
     const current = await loadLesson(ctx, c.req.param("id"));
     const tz = ctx.settings.timezone;
     const date = input.date ?? localDate(current.startsAt, tz);
@@ -369,6 +373,8 @@ export const lessonRoutes = new Hono<AppBindings>()
   .post("/attendance/:id", v("json", attendanceUpdateSchema), async (c) => {
     const ctx = ctxOf(c);
     const input = c.req.valid("json");
+    // "No charge" waives the session price, so it's a price decision: money roles only.
+    if (input.complimentary !== undefined) assertCan(ctx.role, "money");
     return idempotent(c, async () => {
       const result = await changeAttendance(ctx, {
         attendanceId: c.req.param("id"),

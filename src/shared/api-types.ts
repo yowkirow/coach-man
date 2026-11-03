@@ -5,6 +5,7 @@ import type {
   ClientStatus,
   EventKind,
   EventStatus,
+  FamilyRelation,
   GoalStatus,
   LedgerReason,
   LessonKind,
@@ -14,8 +15,14 @@ import type {
   RatingSource,
   RegistrationStatus,
 } from "./domain";
+import type { Capabilities, StaffRole } from "./roles";
 
-// Response shapes returned by /api/v1. Instants are epoch ms; dates are YYYY-MM-DD.
+// Response shapes returned by /api/v1 (staff) and /api/account. Instants are epoch ms; dates are
+// YYYY-MM-DD.
+//
+// Money: every amount is a number in minor units in a field named `*Minor`. For staff without the
+// `money` capability (coaches) the API removes those fields, and empties `TodayDto.alerts.balancesDue`,
+// so the app must check `me.can.money` before showing any of them.
 
 export interface ApiErrorBody {
   error: { code: string; message: string; details?: unknown };
@@ -38,10 +45,37 @@ export interface WorkspaceSettingsDto {
 export interface MeDto {
   user: { id: string; name: string; email: string; image: string | null };
   workspace: { id: string; name: string };
+  /** The caller's staff role in this workspace, and what it allows. */
+  role: StaffRole;
+  can: Capabilities;
   settings: WorkspaceSettingsDto;
   passkeyCount: number;
   hasSampleData: boolean;
   appEnv: string;
+}
+
+/** GET /api/account: who is signed in and where they belong (no workspace needed). */
+export interface AccountDto {
+  user: { id: string; name: string; email: string; image: string | null };
+  passkeyCount: number;
+  /** Academies where this person is staff, oldest first. */
+  staff: {
+    workspaceId: string;
+    name: string;
+    slug: string;
+    role: StaffRole;
+    logoKey: string | null;
+  }[];
+  /** Academies where this person is a student or a parent, with the students they're linked to. */
+  family: {
+    workspaceId: string;
+    academyName: string;
+    slug: string;
+    logoKey: string | null;
+    students: { clientId: string; firstName: string; lastName: string; relation: FamilyRelation }[];
+  }[];
+  /** The staff workspace /api/v1 acts in; null when not staff anywhere. */
+  activeWorkspaceId: string | null;
 }
 
 export interface VenueDto {

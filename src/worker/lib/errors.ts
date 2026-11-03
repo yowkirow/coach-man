@@ -19,3 +19,6 @@ export const conflict = (message: string, details?: unknown) =>
 export const unauthorized = () => new ApiError(401, "unauthorized", "Sign in to continue.");
 export const forbidden = (message = "You don't have access to this.") =>
   new ApiError(403, "forbidden", message);
+/** Signed in, but not staff in any academy (families use the portal instead). */
+export const noWorkspace = () =>
+  new ApiError(403, "no_workspace", "You're not part of an academy on CoachMan yet.");

@@ -11,7 +11,7 @@ import * as schema from "../db/schema";
 import { auditEntry } from "../lib/audit";
 import { notFound } from "../lib/errors";
 import { v } from "../lib/validate";
-import { ctxOf } from "../middleware";
+import { ctxOf, requireCap } from "../middleware";
 import { packagesForClients, runBatch } from "../services/credits";
 import { lessonTitle } from "../services/lessons";
 import type { AppBindings } from "../types";
@@ -42,7 +42,7 @@ function csvResponse(name: string, body: string) {
 const normPhone = (p: string | null | undefined) => (p ? p.replace(/[^\d+]/g, "") : "");
 
 export const dataRoutes = new Hono<AppBindings>()
-  .post("/clients/import", v("json", clientImportSchema), async (c) => {
+  .post("/clients/import", requireCap("data"), v("json", clientImportSchema), async (c) => {
     const ctx = ctxOf(c);
     const { rows, skipDuplicates } = c.req.valid("json");
     const existing = await ctx.db
@@ -92,7 +92,7 @@ export const dataRoutes = new Hono<AppBindings>()
     return c.json(result, 201);
   })
 
-  .get("/export/:file", async (c) => {
+  .get("/export/:file", requireCap("data"), async (c) => {
     const ctx = ctxOf(c);
     const { db, workspaceId, settings } = ctx;
     const tz = settings.timezone;

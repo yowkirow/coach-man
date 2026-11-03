@@ -33,7 +33,7 @@ import { badRequest, notFound } from "../lib/errors";
 import { idempotent } from "../lib/idempotency";
 import { inList, unique } from "../lib/sql";
 import { v } from "../lib/validate";
-import { ctxOf } from "../middleware";
+import { ctxOf, requireCap } from "../middleware";
 import { runBatch } from "../services/credits";
 import { toNoteDto } from "../services/lessons";
 import type { AppBindings, Ctx } from "../types";
@@ -160,7 +160,7 @@ export const progressRoutes = new Hono<AppBindings>()
     return c.json(rows.map(toSkillDto));
   })
 
-  .post("/skills", v("json", skillSchema), async (c) => {
+  .post("/skills", requireCap("settings"), v("json", skillSchema), async (c) => {
     const ctx = ctxOf(c);
     const input = c.req.valid("json");
     const [top] = await ctx.db
@@ -181,7 +181,7 @@ export const progressRoutes = new Hono<AppBindings>()
     return c.json(toSkillDto(row as typeof skill.$inferSelect), 201);
   })
 
-  .patch("/skills/:id", v("json", skillSchema.partial()), async (c) => {
+  .patch("/skills/:id", requireCap("settings"), v("json", skillSchema.partial()), async (c) => {
     const { id: _ignored, ...input } = c.req.valid("json");
     const res = await c.var.db
       .update(skill)
@@ -192,7 +192,7 @@ export const progressRoutes = new Hono<AppBindings>()
     return c.json(toSkillDto(res[0]));
   })
 
-  .post("/skills/reorder", v("json", skillOrderSchema), async (c) => {
+  .post("/skills/reorder", requireCap("settings"), v("json", skillOrderSchema), async (c) => {
     const ctx = ctxOf(c);
     const { ids } = c.req.valid("json");
     await validateSkills(ctx, ids);

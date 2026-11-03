@@ -14,6 +14,9 @@ import { firstWorkspaceForUser, provisionWorkspace } from "./lib/workspace";
 /**
  * Test-only sign-in endpoint (POST /api/auth/e2e/sign-in). Never registered in production;
  * also requires the `x-e2e-bypass` header to match E2E_BYPASS_SECRET.
+ *
+ * `persona`: "coach" (default) makes sure the user is staff somewhere, provisioning their own
+ * workspace when they aren't; "none" signs in a bare account (no workspace, no family links).
  */
 function e2eSignIn(env: Env): BetterAuthPlugin {
   return {
@@ -26,6 +29,7 @@ function e2eSignIn(env: Env): BetterAuthPlugin {
           body: z.object({
             email: z.email().default("e2e-coach@coachman.test"),
             name: z.string().min(1).max(80).default("Casey Coach"),
+            persona: z.enum(["coach", "none"]).default("coach"),
           }),
         },
         async (ctx) => {
@@ -33,7 +37,7 @@ function e2eSignIn(env: Env): BetterAuthPlugin {
           if (!isBypassRequestAllowed(env, header)) {
             throw new APIError("NOT_FOUND", { message: "Not found" });
           }
-          const { email, name } = ctx.body;
+          const { email, name, persona } = ctx.body;
           const found = await ctx.context.internalAdapter.findUserByEmail(email);
           const user =
             found?.user ??
@@ -41,6 +45,13 @@ function e2eSignIn(env: Env): BetterAuthPlugin {
               { email, name, emailVerified: true },
               { method: "e2e" },
             ));
+          if (persona === "coach") {
+            const db = getDb(env.DB);
+            // Before the session exists, so the session hook makes this workspace active.
+            if (!(await firstWorkspaceForUser(db, user.id))) {
+              await provisionWorkspace(db, { id: user.id, name: user.name });
+            }
+          }
           const session = await ctx.context.internalAdapter.createSession(user.id);
           await setSessionCookie(ctx, { session, user });
           return ctx.json({ userId: user.id });
@@ -94,13 +105,8 @@ function buildAuth(env: Env) {
       ipAddress: { ipAddressHeaders: ["cf-connecting-ip", "x-forwarded-for"] },
     },
     databaseHooks: {
-      user: {
-        create: {
-          after: async (user) => {
-            await provisionWorkspace(db, { id: user.id, name: user.name });
-          },
-        },
-      },
+      // No workspace is created here: coaches set one up from /welcome, staff join through an
+      // invite, and families only ever get portal access.
       session: {
         create: {
           before: async (session) => {

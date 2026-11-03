@@ -14,7 +14,7 @@ export async function handleScheduled(cron: string, env: Env, now: Date) {
         where: eq(workspaceSettings.workspaceId, workspaceId),
       });
       if (!settings) return;
-      await extendAllSeries({ db, env, workspaceId, userId: "system", settings });
+      await extendAllSeries({ db, env, workspaceId, userId: "system", settings, role: "owner" });
     });
     return;
   }

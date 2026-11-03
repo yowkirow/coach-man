@@ -8,6 +8,7 @@ import type {
 } from "../../shared/api-types";
 import { LESSON_KIND_LABELS, type LessonKind } from "../../shared/domain";
 import { uuidv7 } from "../../shared/ids";
+import { can } from "../../shared/roles";
 import type { LessonCreateInput } from "../../shared/schemas";
 import {
   addDays,
@@ -149,10 +150,14 @@ export async function rostersFor(
     .orderBy(asc(client.firstName), asc(client.lastName));
 
   const clientIds = unique(rows.map((r) => r.a.clientId));
-  const chargeIds = rows.map((r) => r.a.chargeId).filter((v): v is string => Boolean(v));
+  // Coaches never get money (the API strips it anyway), so don't look it up for them.
+  const money = can(ctx.role, "money");
+  const chargeIds = money
+    ? rows.map((r) => r.a.chargeId).filter((v): v is string => Boolean(v))
+    : [];
   const [pkgs, balances, charges] = await Promise.all([
     packagesForClients(ctx, clientIds),
-    balancesFor(ctx, clientIds),
+    money ? balancesFor(ctx, clientIds) : Promise.resolve(new Map<string, number>()),
     chargeIds.length
       ? db
           .select({ id: charge.id, amountMinor: charge.amountMinor })
@@ -320,7 +325,7 @@ export async function today(ctx: Ctx): Promise<TodayDto> {
           ne(client.status, "archived"),
         ),
       ),
-    balancesDue(ctx),
+    can(ctx.role, "money") ? balancesDue(ctx) : Promise.resolve([]),
     db
       .select({
         id: client.id,

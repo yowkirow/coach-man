@@ -1,6 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { uuidv7 } from "../../shared/ids";
+import { can } from "../../shared/roles";
 import { client } from "../db/schema";
 import { badRequest, notFound } from "../lib/errors";
 import type { AppBindings } from "../types";
@@ -11,6 +12,8 @@ const TYPES: Record<string, string> = {
   "image/webp": "webp",
 };
 const MAX_BYTES = 1_500_000;
+/** ws/<workspaceId>/clients/<clientId>/payments/<file> */
+const PAYMENT_PROOF_KEY = /^ws\/[^/]+\/clients\/[^/]+\/payments\//;
 
 export const fileRoutes = new Hono<AppBindings>()
   .put("/clients/:id/photo", async (c) => {
@@ -48,6 +51,14 @@ export const fileRoutes = new Hono<AppBindings>()
   .get("/files/*", async (c) => {
     const key = decodeURIComponent(new URL(c.req.url).pathname.replace(/^\/api\/v1\/files\//, ""));
     if (!key.startsWith(`ws/${c.var.workspaceId}/`) || key.includes("..")) throw notFound("File");
+    // Payment proofs are money: owner and admins (money or enrollment review) only.
+    if (
+      PAYMENT_PROOF_KEY.test(key) &&
+      !can(c.var.role, "money") &&
+      !can(c.var.role, "enrollment")
+    ) {
+      throw notFound("File");
+    }
     const obj = await c.env.FILES.get(key);
     if (!obj) throw notFound("File");
     return new Response(obj.body, {

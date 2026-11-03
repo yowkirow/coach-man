@@ -1,12 +1,14 @@
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import type { Context } from "hono";
 import { createMiddleware } from "hono/factory";
 import { DEFAULT_PAYMENT_METHODS } from "../shared/domain";
+import { type Capability, can, normalizeRole } from "../shared/roles";
 import { getAuth } from "./auth";
 import { getDb } from "./db/client";
-import { member, workspaceSettings } from "./db/schema";
-import { ApiError, forbidden, unauthorized } from "./lib/errors";
-import { firstWorkspaceForUser, provisionWorkspace } from "./lib/workspace";
+import { organization, workspaceSettings } from "./db/schema";
+import { ApiError, forbidden, noWorkspace, unauthorized } from "./lib/errors";
+import { redactMoney } from "./lib/redact";
+import { activeMembership } from "./lib/workspace";
 import type { AppBindings, Ctx } from "./types";
 
 export const withServices = createMiddleware<AppBindings>(async (c, next) => {
@@ -37,36 +39,51 @@ export const originGuard = createMiddleware<AppBindings>(async (c, next) => {
   await next();
 });
 
+/** Any signed-in person (staff or family); sets `user`. */
+export const requireUser = createMiddleware<AppBindings>(async (c, next) => {
+  const result = await c.var.auth.api.getSession({ headers: c.req.raw.headers });
+  if (!result) throw unauthorized();
+  c.set("user", result.user);
+  await next();
+});
+
+/**
+ * Staff only: resolves the academy the caller acts in (the session's active workspace, else their
+ * oldest membership) and their role there. Never creates a workspace: people who aren't staff
+ * anywhere get 403 `no_workspace` and the app sends them to /welcome.
+ */
 export const requireWorkspace = createMiddleware<AppBindings>(async (c, next) => {
   const db = c.var.db;
   const result = await c.var.auth.api.getSession({ headers: c.req.raw.headers });
   if (!result) throw unauthorized();
   const { user, session } = result;
 
-  let workspaceId =
-    (session as { activeOrganizationId?: string | null }).activeOrganizationId ?? null;
-  if (workspaceId) {
-    const rows = await db
-      .select({ id: member.id })
-      .from(member)
-      .where(and(eq(member.userId, user.id), eq(member.organizationId, workspaceId)))
-      .limit(1);
-    if (rows.length === 0) workspaceId = null;
-  }
-  if (!workspaceId) {
-    workspaceId =
-      (await firstWorkspaceForUser(db, user.id)) ??
-      (await provisionWorkspace(db, { id: user.id, name: user.name }));
-  }
+  const membership = await activeMembership(
+    db,
+    user.id,
+    (session as { activeOrganizationId?: string | null }).activeOrganizationId,
+  );
+  if (!membership) throw noWorkspace();
+  const { workspaceId } = membership;
 
   let settings = await db.query.workspaceSettings.findFirst({
     where: eq(workspaceSettings.workspaceId, workspaceId),
   });
   if (!settings) {
-    await db
-      .insert(workspaceSettings)
-      .values({ workspaceId, paymentMethods: DEFAULT_PAYMENT_METHODS })
-      .onConflictDoNothing();
+    try {
+      await db
+        .insert(workspaceSettings)
+        .values({ workspaceId, paymentMethods: DEFAULT_PAYMENT_METHODS })
+        .onConflictDoNothing();
+    } catch (err) {
+      // The workspace was deleted while this request was in flight: not staff there any more.
+      const exists = await db.query.organization.findFirst({
+        where: eq(organization.id, workspaceId),
+        columns: { id: true },
+      });
+      if (!exists) throw noWorkspace();
+      throw err;
+    }
     settings = await db.query.workspaceSettings.findFirst({
       where: eq(workspaceSettings.workspaceId, workspaceId),
     });
@@ -77,7 +94,64 @@ export const requireWorkspace = createMiddleware<AppBindings>(async (c, next) =>
   c.set("user", user);
   c.set("workspaceId", workspaceId);
   c.set("settings", settings);
+  c.set("role", normalizeRole(membership.role));
   await next();
+});
+
+const CAPABILITY_DENIED: Record<Capability, string> = {
+  money: "Only the academy's owner and admins can see or change money.",
+  catalog: "Only the academy's owner and admins can change rates, packages, programs, and events.",
+  team: "Only the academy's owner and admins can manage the team.",
+  settings: "Only the academy's owner and admins can change academy settings.",
+  enrollment: "Only the academy's owner and admins can review enrollments and payments.",
+  familyAccess: "Only the academy's owner and admins can manage family access.",
+  announcements: "Only the academy's owner and admins can publish announcements.",
+  data: "Only the academy's owner and admins can import, export, or delete data.",
+  ownership: "Only the academy's owner can do this.",
+};
+
+/** 403 unless the caller's role has the capability. */
+export function assertCan(role: string, cap: Capability): void {
+  if (!can(role, cap)) throw new ApiError(403, "forbidden", CAPABILITY_DENIED[cap], { cap });
+}
+
+/** Route guard: the caller's role must have `cap` (runs after requireWorkspace). */
+export const requireCap = (cap: Capability) =>
+  createMiddleware<AppBindings>(async (c, next) => {
+    if (!can(c.var.role, cap)) {
+      // Drain the body first: Miniflare's local proxy can fail a request answered unread.
+      if (c.req.method !== "GET" && c.req.method !== "HEAD") {
+        await c.req.raw.arrayBuffer().catch(() => undefined);
+      }
+      assertCan(c.var.role, cap);
+    }
+    await next();
+  });
+
+/**
+ * Strips money from successful JSON responses for staff without the `money` capability (coaches).
+ * See lib/redact.ts for what counts as money.
+ */
+export const redactMoneyForRole = createMiddleware<AppBindings>(async (c, next) => {
+  await next();
+  if (!c.var.role || can(c.var.role, "money")) return;
+  const res = c.res;
+  if (res.status < 200 || res.status >= 300) return;
+  if (!(res.headers.get("content-type") ?? "").includes("application/json")) return;
+  const text = await res.text();
+  let body: unknown;
+  try {
+    body = JSON.parse(text);
+  } catch {
+    body = undefined;
+  }
+  const headers = new Headers(res.headers);
+  headers.delete("content-length");
+  c.res = undefined;
+  c.res = new Response(body === undefined ? text : JSON.stringify(redactMoney(body)), {
+    status: res.status,
+    headers,
+  });
 });
 
 export function ctxOf(c: Context<AppBindings>): Ctx {
@@ -87,5 +161,6 @@ export function ctxOf(c: Context<AppBindings>): Ctx {
     workspaceId: c.var.workspaceId,
     userId: c.var.user.id,
     settings: c.var.settings,
+    role: c.var.role,
   };
 }

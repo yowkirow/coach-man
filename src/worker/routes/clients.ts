@@ -8,6 +8,7 @@ import type {
 } from "../../shared/api-types";
 import { CLIENT_STATUSES } from "../../shared/domain";
 import { uuidv7 } from "../../shared/ids";
+import { can } from "../../shared/roles";
 import { clientSchema, clientUpdateSchema } from "../../shared/schemas";
 import { localDate, todayIn } from "../../shared/time";
 import {
@@ -27,7 +28,7 @@ import { auditEntry } from "../lib/audit";
 import { badRequest, conflict, notFound } from "../lib/errors";
 import { unique } from "../lib/sql";
 import { v } from "../lib/validate";
-import { ctxOf } from "../middleware";
+import { ctxOf, requireCap } from "../middleware";
 import { packagesForClients, runBatch } from "../services/credits";
 import {
   lessonSummaries,
@@ -130,7 +131,9 @@ async function loadClient(ctx: Ctx, id: string): Promise<ClientDto> {
     .from(client)
     .where(and(eq(client.id, id), eq(client.workspaceId, ctx.workspaceId)));
   if (!row) throw notFound("Client");
-  const balances = await balancesFor(ctx, [id]);
+  const balances = can(ctx.role, "money")
+    ? await balancesFor(ctx, [id])
+    : new Map<string, number>();
   return toClientDto(toListItem(row, balances.get(id) ?? 0, ctx.settings.timezone), row.c);
 }
 
@@ -213,7 +216,7 @@ export const clientRoutes = new Hono<AppBindings>()
         ),
       )
       .orderBy(asc(client.firstName), asc(client.lastName));
-    const balances = await balancesFor(ctx);
+    const balances = can(ctx.role, "money") ? await balancesFor(ctx) : new Map<string, number>();
     return c.json(rows.map((r) => toListItem(r, balances.get(r.c.id) ?? 0, ctx.settings.timezone)));
   })
 
@@ -346,7 +349,7 @@ export const clientRoutes = new Hono<AppBindings>()
     return c.json(await loadClient(ctx, id));
   })
 
-  .delete("/clients/:id", async (c) => {
+  .delete("/clients/:id", requireCap("data"), async (c) => {
     const ctx = ctxOf(c);
     const id = c.req.param("id");
     const existing = await ctx.db.query.client.findFirst({

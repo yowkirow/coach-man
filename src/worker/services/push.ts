@@ -2,6 +2,7 @@ import { buildPushHTTPRequest } from "@pushforge/builder";
 import { and, eq, gte, isNotNull, lt, sql } from "drizzle-orm";
 import { LESSON_KIND_LABELS } from "../../shared/domain";
 import { uuidv7 } from "../../shared/ids";
+import { can } from "../../shared/roles";
 import { addDays, localDate, localTime, todayIn } from "../../shared/time";
 import type { Db } from "../db/client";
 import {
@@ -130,6 +131,7 @@ export async function runReminders(db: Db, env: Env, now: Date) {
       timezone: workspaceSettings.timezone,
       noShow: workspaceSettings.noShowUsesCredit,
       lateCancel: workspaceSettings.lateCancelUsesCredit,
+      role: member.role,
     })
     .from(notificationPref)
     .innerJoin(workspaceSettings, eq(workspaceSettings.workspaceId, notificationPref.workspaceId))
@@ -199,7 +201,8 @@ export async function runReminders(db: Db, env: Env, now: Date) {
               sql`${clientPackage.expiresOn} >= ${date} and ${clientPackage.expiresOn} <= ${addDays(date, target.expiryDays)}`,
             ),
           ),
-        balancesFor(scope),
+        // Who owes is money: only in the digest of roles that may see it.
+        can(target.role, "money") ? balancesFor(scope) : Promise.resolve(new Map<string, number>()),
       ]);
       const todays = lessonsToday.filter(
         (l) => localDate(l.summary.startsAt, target.timezone) === date,

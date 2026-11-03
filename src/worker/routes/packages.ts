@@ -19,10 +19,13 @@ import {
 import { auditEntry } from "../lib/audit";
 import { badRequest, notFound } from "../lib/errors";
 import { v } from "../lib/validate";
-import { ctxOf } from "../middleware";
+import { ctxOf, requireCap } from "../middleware";
 import { packagesForClients, refreshPackageStatus, runBatch } from "../services/credits";
 import { rebuildAllocations } from "../services/money";
 import type { AppBindings, Ctx } from "../types";
+
+/** Selling, voiding, extending, and adjusting packages is money: owner and admins only. */
+const moneyOnly = requireCap("money");
 
 async function packageDto(ctx: Ctx, clientId: string, id: string): Promise<PackageBalanceDto> {
   const all = await packagesForClients(ctx, [clientId], { includeInactive: true });
@@ -40,7 +43,7 @@ async function packageDto(ctx: Ctx, clientId: string, id: string): Promise<Packa
 }
 
 export const packageRoutes = new Hono<AppBindings>()
-  .post("/clients/:id/packages", v("json", sellPackageSchema), async (c) => {
+  .post("/clients/:id/packages", moneyOnly, v("json", sellPackageSchema), async (c) => {
     const ctx = ctxOf(c);
     const clientId = c.req.param("id");
     const input = c.req.valid("json");
@@ -140,7 +143,7 @@ export const packageRoutes = new Hono<AppBindings>()
     return c.json(await packageDto(ctx, clientId, id), 201);
   })
 
-  .patch("/client-packages/:id", v("json", clientPackageUpdateSchema), async (c) => {
+  .patch("/client-packages/:id", moneyOnly, v("json", clientPackageUpdateSchema), async (c) => {
     const ctx = ctxOf(c);
     const id = c.req.param("id");
     const input = c.req.valid("json");
@@ -179,7 +182,7 @@ export const packageRoutes = new Hono<AppBindings>()
     return c.json(await packageDto(ctx, pkg.clientId, id));
   })
 
-  .post("/client-packages/:id/adjust", v("json", creditAdjustSchema), async (c) => {
+  .post("/client-packages/:id/adjust", moneyOnly, v("json", creditAdjustSchema), async (c) => {
     const ctx = ctxOf(c);
     const id = c.req.param("id");
     const input = c.req.valid("json");

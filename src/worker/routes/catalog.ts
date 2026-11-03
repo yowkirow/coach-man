@@ -11,9 +11,12 @@ import { packageTemplate, rate } from "../db/schema";
 import { auditEntry } from "../lib/audit";
 import { notFound } from "../lib/errors";
 import { v } from "../lib/validate";
-import { ctxOf } from "../middleware";
+import { ctxOf, requireCap } from "../middleware";
 import { runBatch } from "../services/credits";
 import type { AppBindings } from "../types";
+
+/** Rates and package templates set prices: owner and admins only. */
+const catalogOnly = requireCap("catalog");
 
 const toRateDto = (r: typeof rate.$inferSelect): RateDto => ({
   id: r.id,
@@ -52,7 +55,7 @@ export const catalogRoutes = new Hono<AppBindings>()
     return c.json(rows.map(toRateDto));
   })
 
-  .post("/rates", v("json", rateSchema), async (c) => {
+  .post("/rates", catalogOnly, v("json", rateSchema), async (c) => {
     const ctx = ctxOf(c);
     const input = c.req.valid("json");
     const id = input.id ?? uuidv7();
@@ -64,7 +67,7 @@ export const catalogRoutes = new Hono<AppBindings>()
     return c.json(toRateDto(row as typeof rate.$inferSelect), 201);
   })
 
-  .patch("/rates/:id", v("json", rateSchema.partial()), async (c) => {
+  .patch("/rates/:id", catalogOnly, v("json", rateSchema.partial()), async (c) => {
     const ctx = ctxOf(c);
     const { id: _ignored, ...input } = c.req.valid("json");
     const res = await ctx.db
@@ -86,7 +89,7 @@ export const catalogRoutes = new Hono<AppBindings>()
     return c.json(rows.map((r) => toPackageDto(r.p, r.sold)));
   })
 
-  .post("/packages", v("json", packageTemplateSchema), async (c) => {
+  .post("/packages", catalogOnly, v("json", packageTemplateSchema), async (c) => {
     const ctx = ctxOf(c);
     const input = c.req.valid("json");
     const id = input.id ?? uuidv7();
@@ -106,7 +109,7 @@ export const catalogRoutes = new Hono<AppBindings>()
     return c.json(toPackageDto(row as typeof packageTemplate.$inferSelect, 0), 201);
   })
 
-  .patch("/packages/:id", v("json", packageTemplateUpdateSchema), async (c) => {
+  .patch("/packages/:id", catalogOnly, v("json", packageTemplateUpdateSchema), async (c) => {
     const ctx = ctxOf(c);
     const { id: _ignored, ...input } = c.req.valid("json");
     const id = c.req.param("id");

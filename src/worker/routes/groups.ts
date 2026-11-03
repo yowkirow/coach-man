@@ -9,7 +9,7 @@ import { auditEntry } from "../lib/audit";
 import { badRequest, notFound } from "../lib/errors";
 import { inList, unique } from "../lib/sql";
 import { v } from "../lib/validate";
-import { ctxOf } from "../middleware";
+import { ctxOf, requireCap } from "../middleware";
 import { packagesForClients, runBatch } from "../services/credits";
 import {
   lessonSummaries,
@@ -76,7 +76,7 @@ export const groupRoutes = new Hono<AppBindings>()
     return c.json(rows.map((r) => toGroupDto(r.g, r.members)));
   })
 
-  .post("/groups", v("json", groupSchema), async (c) => {
+  .post("/groups", requireCap("catalog"), v("json", groupSchema), async (c) => {
     const ctx = ctxOf(c);
     const input = c.req.valid("json");
     const id = input.id ?? uuidv7();
@@ -138,7 +138,7 @@ export const groupRoutes = new Hono<AppBindings>()
     return c.json(body);
   })
 
-  .patch("/groups/:id", v("json", groupSchema.partial()), async (c) => {
+  .patch("/groups/:id", requireCap("catalog"), v("json", groupSchema.partial()), async (c) => {
     const ctx = ctxOf(c);
     const { id: _ignored, ...input } = c.req.valid("json");
     const res = await ctx.db
@@ -155,7 +155,7 @@ export const groupRoutes = new Hono<AppBindings>()
     return c.json(await loadGroup(ctx, c.req.param("id")));
   })
 
-  .post("/groups/:id/archive", async (c) => {
+  .post("/groups/:id/archive", requireCap("catalog"), async (c) => {
     const ctx = ctxOf(c);
     const id = c.req.param("id");
     const res = await ctx.db

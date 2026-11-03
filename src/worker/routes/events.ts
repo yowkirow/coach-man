@@ -12,7 +12,7 @@ import { attendance, charge, client, event, eventRegistration, lesson } from "..
 import { auditEntry } from "../lib/audit";
 import { badRequest, conflict, notFound } from "../lib/errors";
 import { v } from "../lib/validate";
-import { ctxOf } from "../middleware";
+import { assertCan, ctxOf, requireCap } from "../middleware";
 import { runBatch } from "../services/credits";
 import { bookClientsIntoLessons, lessonSummaries } from "../services/lessons";
 import { rebuildAllocations } from "../services/money";
@@ -175,7 +175,7 @@ export const eventRoutes = new Hono<AppBindings>()
     return c.json(rows.map(toEventDto));
   })
 
-  .post("/events", v("json", eventSchema), async (c) => {
+  .post("/events", requireCap("catalog"), v("json", eventSchema), async (c) => {
     const ctx = ctxOf(c);
     const input = c.req.valid("json");
     if (compareDates(input.endsOn, input.startsOn) < 0)
@@ -226,7 +226,7 @@ export const eventRoutes = new Hono<AppBindings>()
     return c.json(body);
   })
 
-  .patch("/events/:id", v("json", eventSchema.partial()), async (c) => {
+  .patch("/events/:id", requireCap("catalog"), v("json", eventSchema.partial()), async (c) => {
     const ctx = ctxOf(c);
     const { id: _ignored, ...input } = c.req.valid("json");
     const before = await loadEvent(ctx, c.req.param("id"));
@@ -251,6 +251,8 @@ export const eventRoutes = new Hono<AppBindings>()
     if (e.status === "cancelled" || e.status === "completed")
       throw conflict("This event is closed.");
     const input = c.req.valid("json");
+    // Coaches register players at the event's list price; only money roles set another price.
+    if (input.priceMinor !== undefined) assertCan(ctx.role, "money");
     const who = await ctx.db.query.client.findFirst({
       where: and(eq(client.id, input.clientId), eq(client.workspaceId, ctx.workspaceId)),
     });

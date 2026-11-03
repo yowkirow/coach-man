@@ -1,3 +1,4 @@
+import type { StaffRole } from "../shared/roles";
 import type { Auth } from "./auth";
 import type { Db } from "./db/client";
 import type { workspaceSettings } from "./db/schema";
@@ -13,6 +14,8 @@ export interface AppBindings {
     user: SessionUser;
     workspaceId: string;
     settings: WorkspaceSettingsRow;
+    /** The caller's staff role in the workspace (see src/shared/roles.ts). */
+    role: StaffRole;
   };
 }
 
@@ -23,4 +26,5 @@ export interface Ctx {
   workspaceId: string;
   userId: string;
   settings: WorkspaceSettingsRow;
+  role: StaffRole;
 }

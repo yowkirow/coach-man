@@ -2,12 +2,13 @@ import { and, asc, count, eq, isNull } from "drizzle-orm";
 import { Hono } from "hono";
 import type { MeDto, VenueDto, WorkspaceSettingsDto } from "../../shared/api-types";
 import { uuidv7 } from "../../shared/ids";
+import { capabilitiesFor } from "../../shared/roles";
 import { onboardingSchema, venueSchema, workspaceUpdateSchema } from "../../shared/schemas";
 import { organization, passkey, venue, workspaceSettings } from "../db/schema";
 import { auditEntry } from "../lib/audit";
 import { notFound } from "../lib/errors";
 import { v } from "../lib/validate";
-import { ctxOf } from "../middleware";
+import { ctxOf, requireCap } from "../middleware";
 import { runBatch } from "../services/credits";
 import { hasSampleData, removeSampleData, seedSampleData } from "../services/sample-data";
 import type { AppBindings, WorkspaceSettingsRow } from "../types";
@@ -38,7 +39,7 @@ const toVenueDto = (r: typeof venue.$inferSelect): VenueDto => ({
 
 export const meRoutes = new Hono<AppBindings>()
   .get("/me", async (c) => {
-    const { db, user, workspaceId, settings } = c.var;
+    const { db, user, workspaceId, settings, role } = c.var;
     const [org, keys] = await Promise.all([
       db.query.organization.findFirst({ where: eq(organization.id, workspaceId) }),
       db.select({ n: count() }).from(passkey).where(eq(passkey.userId, user.id)),
@@ -46,6 +47,8 @@ export const meRoutes = new Hono<AppBindings>()
     const body: MeDto = {
       user: { id: user.id, name: user.name, email: user.email, image: user.image ?? null },
       workspace: { id: workspaceId, name: org?.name ?? "My coaching" },
+      role,
+      can: capabilitiesFor(role),
       settings: toSettingsDto(settings),
       passkeyCount: keys[0]?.n ?? 0,
       hasSampleData: await hasSampleData({ db, workspaceId }),
@@ -54,12 +57,12 @@ export const meRoutes = new Hono<AppBindings>()
     return c.json(body);
   })
 
-  .delete("/workspace/sample-data", async (c) => {
+  .delete("/workspace/sample-data", requireCap("data"), async (c) => {
     const removed = await removeSampleData(ctxOf(c));
     return c.json({ removed });
   })
 
-  .patch("/workspace", v("json", workspaceUpdateSchema), async (c) => {
+  .patch("/workspace", requireCap("settings"), v("json", workspaceUpdateSchema), async (c) => {
     const ctx = ctxOf(c);
     const { name, ...settings } = c.req.valid("json");
     const statements: unknown[] = [];
@@ -84,7 +87,7 @@ export const meRoutes = new Hono<AppBindings>()
     return c.json(toSettingsDto(fresh as WorkspaceSettingsRow));
   })
 
-  .post("/workspace/onboard", v("json", onboardingSchema), async (c) => {
+  .post("/workspace/onboard", requireCap("settings"), v("json", onboardingSchema), async (c) => {
     const ctx = ctxOf(c);
     const input = c.req.valid("json");
     await runBatch(ctx, [
@@ -118,7 +121,7 @@ export const meRoutes = new Hono<AppBindings>()
     return c.json(rows.map(toVenueDto));
   })
 
-  .post("/venues", v("json", venueSchema), async (c) => {
+  .post("/venues", requireCap("settings"), v("json", venueSchema), async (c) => {
     const input = c.req.valid("json");
     const id = input.id ?? uuidv7();
     await c.var.db.insert(venue).values({
@@ -133,7 +136,7 @@ export const meRoutes = new Hono<AppBindings>()
     return c.json(toVenueDto(row as typeof venue.$inferSelect), 201);
   })
 
-  .patch("/venues/:id", v("json", venueSchema.partial()), async (c) => {
+  .patch("/venues/:id", requireCap("settings"), v("json", venueSchema.partial()), async (c) => {
     const { id: _ignored, ...input } = c.req.valid("json");
     const id = c.req.param("id");
     const res = await c.var.db
@@ -145,7 +148,7 @@ export const meRoutes = new Hono<AppBindings>()
     return c.json(toVenueDto(res[0]));
   })
 
-  .delete("/venues/:id", async (c) => {
+  .delete("/venues/:id", requireCap("settings"), async (c) => {
     const res = await c.var.db
       .update(venue)
       .set({ archivedAt: Date.now() })

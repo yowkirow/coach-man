@@ -9,7 +9,7 @@ import { auditEntry } from "../lib/audit";
 import { badRequest, notFound } from "../lib/errors";
 import { idempotent } from "../lib/idempotency";
 import { v } from "../lib/validate";
-import { ctxOf } from "../middleware";
+import { ctxOf, requireCap } from "../middleware";
 import { runBatch } from "../services/credits";
 import {
   balancesDue,
@@ -29,22 +29,22 @@ async function ensureClient(ctx: Ctx, clientId: string) {
 }
 
 export const moneyRoutes = new Hono<AppBindings>()
-  .get("/money/summary", async (c) => {
+  .get("/money/summary", requireCap("money"), async (c) => {
     const ctx = ctxOf(c);
     const month = c.req.query("month") ?? todayIn(ctx.settings.timezone).slice(0, 7);
     if (!/^\d{4}-\d{2}$/.test(month)) throw badRequest("Use YYYY-MM for the month.");
     return c.json(await moneySummary(ctx, month));
   })
 
-  .get("/money/balances", async (c) => c.json(await balancesDue(ctxOf(c))))
+  .get("/money/balances", requireCap("money"), async (c) => c.json(await balancesDue(ctxOf(c))))
 
-  .get("/clients/:id/statement", async (c) => {
+  .get("/clients/:id/statement", requireCap("money"), async (c) => {
     const ctx = ctxOf(c);
     await ensureClient(ctx, c.req.param("id"));
     return c.json(await statementFor(ctx, c.req.param("id")));
   })
 
-  .get("/payments", v("query", rangeQuerySchema), async (c) => {
+  .get("/payments", requireCap("money"), v("query", rangeQuerySchema), async (c) => {
     const ctx = ctxOf(c);
     const { from, to } = c.req.valid("query");
     const rows = await ctx.db
@@ -62,7 +62,7 @@ export const moneyRoutes = new Hono<AppBindings>()
     return c.json(rows.map((r) => toPaymentDto(r.p, `${r.firstName} ${r.lastName}`.trim())));
   })
 
-  .post("/payments", v("json", paymentSchema), async (c) => {
+  .post("/payments", requireCap("money"), v("json", paymentSchema), async (c) => {
     const ctx = ctxOf(c);
     const input = c.req.valid("json");
     return idempotent(c, async () => {
@@ -94,7 +94,7 @@ export const moneyRoutes = new Hono<AppBindings>()
     });
   })
 
-  .post("/payments/:id/void", v("json", voidSchema), async (c) => {
+  .post("/payments/:id/void", requireCap("money"), v("json", voidSchema), async (c) => {
     const ctx = ctxOf(c);
     const row = await ctx.db.query.payment.findFirst({
       where: and(eq(payment.id, c.req.param("id")), eq(payment.workspaceId, ctx.workspaceId)),
@@ -115,7 +115,7 @@ export const moneyRoutes = new Hono<AppBindings>()
     return c.json(await statementFor(ctx, row.clientId));
   })
 
-  .get("/charges", v("query", rangeQuerySchema), async (c) => {
+  .get("/charges", requireCap("money"), v("query", rangeQuerySchema), async (c) => {
     const ctx = ctxOf(c);
     const { from, to } = c.req.valid("query");
     const paid = ctx.db
@@ -165,7 +165,7 @@ export const moneyRoutes = new Hono<AppBindings>()
     );
   })
 
-  .post("/charges", v("json", chargeSchema), async (c) => {
+  .post("/charges", requireCap("money"), v("json", chargeSchema), async (c) => {
     const ctx = ctxOf(c);
     const input = c.req.valid("json");
     await ensureClient(ctx, input.clientId);
@@ -187,7 +187,7 @@ export const moneyRoutes = new Hono<AppBindings>()
     return c.json(await statementFor(ctx, input.clientId), 201);
   })
 
-  .post("/charges/:id/void", v("json", voidSchema), async (c) => {
+  .post("/charges/:id/void", requireCap("money"), v("json", voidSchema), async (c) => {
     const ctx = ctxOf(c);
     const row = await ctx.db.query.charge.findFirst({
       where: and(eq(charge.id, c.req.param("id")), eq(charge.workspaceId, ctx.workspaceId)),

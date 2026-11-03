@@ -1,21 +1,35 @@
 import { sql } from "drizzle-orm";
 import { index, integer, real, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 import type {
+  AnnouncementAudience,
   AttendanceStatus,
   ChargeKind,
+  ClientCoachRole,
   ClientPackageStatus,
   ClientStatus,
+  ConsentAppliesTo,
+  ConsentKind,
+  ConsentSignerRelation,
+  EnrollmentAnswers,
+  EnrollmentStatus,
   EventKind,
   EventStatus,
+  FamilyRelation,
   GoalStatus,
+  InviteKind,
   LedgerReason,
   LessonKind,
   LessonStatus,
+  NoteKind,
+  NoteVisibility,
+  PaymentSubmissionStatus,
   RateKind,
   RateUnit,
   RatingSource,
   RegistrationStatus,
+  ValidityMode,
 } from "../../shared/domain";
+import type { StaffRole } from "../../shared/roles";
 
 // Column names are snake_case via drizzle's `casing: "snake_case"` (see drizzle.config.ts and db/client.ts).
 // Auth tables use Date timestamps (Better Auth expects Date objects); app tables use epoch-ms numbers.
@@ -184,7 +198,7 @@ export const rateLimit = sqliteTable("rate_limit", {
 });
 
 // ---------------------------------------------------------------------------
-// Workspace (one per coach in v1; a workspace is a Better Auth organization)
+// Workspace (an academy, or a solo coach's one-person academy; a Better Auth organization)
 // ---------------------------------------------------------------------------
 
 const workspaceId = () =>
@@ -263,6 +277,7 @@ export const client = sqliteTable(
       .$defaultFn(() => []),
     photoKey: text(),
     joinedOn: text(),
+    shirtSize: text(),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -287,6 +302,17 @@ export const trainingGroup = sqliteTable(
     defaultRateId: text(),
     defaultVenueId: text(),
     archivedAt: integer(),
+    // Academy: a group is a program, with a lead coach and assistants, publishable to the
+    // academy page.
+    coachUserId: text(),
+    assistantCoachIds: text({ mode: "json" }).$type<string[]>().notNull().default([]),
+    isPublic: integer({ mode: "boolean" }).notNull().default(false),
+    publicDescription: text(),
+    /** e.g. "Every Tue & Thu, 7–10pm". */
+    scheduleNote: text(),
+    ageMin: integer(),
+    ageMax: integer(),
+    sortOrder: integer().notNull().default(0),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -329,6 +355,8 @@ export const rate = sqliteTable(
     priceMinor: integer().notNull(),
     unit: text().$type<RateUnit>().notNull().default("session"),
     active: integer({ mode: "boolean" }).notNull().default(true),
+    /** Set for a coach-specific rate; null = the academy's rate. */
+    coachUserId: text(),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -351,6 +379,22 @@ export const packageTemplate = sqliteTable(
     validityDays: integer(),
     description: text(),
     active: integer({ mode: "boolean" }).notNull().default(true),
+    // Academy package tiers (the rates sheet): program, label, validity, inclusions, publishing.
+    programId: text(),
+    coachUserId: text(),
+    /** e.g. "4–6 sessions" when credits is the upper bound. */
+    sessionsLabel: text(),
+    validityMode: text().$type<ValidityMode>().notNull().default("days"),
+    inclusions: text({ mode: "json" }).$type<string[]>().notNull().default([]),
+    /** "Who it's for". */
+    audience: text(),
+    /** Recommended commitment, e.g. "At least 2 months". */
+    commitmentNote: text(),
+    includesUniform: integer({ mode: "boolean" }).notNull().default(false),
+    asksSelfRating: integer({ mode: "boolean" }).notNull().default(false),
+    isPublic: integer({ mode: "boolean" }).notNull().default(false),
+    highlight: integer({ mode: "boolean" }).notNull().default(false),
+    sortOrder: integer().notNull().default(0),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -377,6 +421,11 @@ export const clientPackage = sqliteTable(
     expiresOn: text(),
     status: text().$type<ClientPackageStatus>().notNull().default("active"),
     notes: text(),
+    /** YYYY-MM for month-end packages. */
+    startMonth: text(),
+    uniformSize: text(),
+    uniformIssuedAt: integer(),
+    enrollmentId: text(),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -442,6 +491,9 @@ export const lessonSeries = sqliteTable(
       .$defaultFn(() => []),
     materializedThrough: text(),
     active: integer({ mode: "boolean" }).notNull().default(true),
+    /** Lead coach; occurrences inherit it. */
+    coachUserId: text(),
+    assistantCoachIds: text({ mode: "json" }).$type<string[]>().notNull().default([]),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -473,6 +525,9 @@ export const lesson = sqliteTable(
     detached: integer({ mode: "boolean" }).notNull().default(false),
     notes: text(),
     completedAt: integer(),
+    /** Lead coach. */
+    coachUserId: text(),
+    assistantCoachIds: text({ mode: "json" }).$type<string[]>().notNull().default([]),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -480,6 +535,7 @@ export const lesson = sqliteTable(
     index("lesson_ws_start_idx").on(t.workspaceId, t.startsAt),
     index("lesson_group_idx").on(t.groupId),
     index("lesson_event_idx").on(t.eventId),
+    index("lesson_coach_idx").on(t.workspaceId, t.coachUserId, t.startsAt),
     uniqueIndex("lesson_series_occurrence_unique").on(t.seriesId, t.occurrenceDate),
   ],
 );
@@ -538,6 +594,9 @@ export const event = sqliteTable(
     ageMin: integer(),
     ageMax: integer(),
     status: text().$type<EventStatus>().notNull().default("draft"),
+    /** Lead coach. */
+    coachUserId: text(),
+    assistantCoachIds: text({ mode: "json" }).$type<string[]>().notNull().default([]),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -678,6 +737,8 @@ export const assessment = sqliteTable(
     notes: text(),
     lessonId: text(),
     createdBy: text(),
+    /** Progress is the point: assessments are shared with the student and parents by default. */
+    sharedWithFamily: integer({ mode: "boolean" }).notNull().default(true),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -730,6 +791,10 @@ export const note = sqliteTable(
     body: text().notNull(),
     pinned: integer({ mode: "boolean" }).notNull().default(false),
     createdBy: text(),
+    /** Coaches only by default; `shared` also shows to the student and parents. */
+    visibility: text().$type<NoteVisibility>().notNull().default("staff"),
+    kind: text().$type<NoteKind>().notNull().default("comment"),
+    editedAt: integer(),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -753,6 +818,281 @@ export const ratingSnapshot = sqliteTable(
     createdAt: createdAt(),
   },
   (t) => [index("rating_client_idx").on(t.workspaceId, t.clientId, t.recordedOn)],
+);
+
+// ---------------------------------------------------------------------------
+// Academy: profile, coaches, family access, invites, enrollment, consents, safety, news
+// ---------------------------------------------------------------------------
+
+/** The public face of a workspace. Its public URL slug is `organization.slug`. */
+export const academyProfile = sqliteTable("academy_profile", {
+  workspaceId: text()
+    .primaryKey()
+    .references(() => organization.id, { onDelete: "cascade" }),
+  tagline: text(),
+  about: text(),
+  contactPhone: text(),
+  contactEmail: text(),
+  address: text(),
+  mapUrl: text(),
+  socials: text({ mode: "json" }).$type<Record<string, string>>().notNull().default({}),
+  logoKey: text(),
+  coverKey: text(),
+  paymentInstructions: text(),
+  paymentQrKey: text(),
+  policies: text(),
+  enrollmentOpen: integer({ mode: "boolean" }).notNull().default(false),
+  /** The public academy page is visible. */
+  listed: integer({ mode: "boolean" }).notNull().default(false),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});
+
+export const coachProfile = sqliteTable(
+  "coach_profile",
+  {
+    id: text().primaryKey(),
+    workspaceId: workspaceId(),
+    userId: text()
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    /** Null = the user's own name. */
+    displayName: text(),
+    title: text(),
+    bio: text(),
+    photoKey: text(),
+    certifications: text({ mode: "json" }).$type<string[]>().notNull().default([]),
+    duprRating: real(),
+    specialties: text({ mode: "json" }).$type<string[]>().notNull().default([]),
+    languages: text({ mode: "json" }).$type<string[]>().notNull().default([]),
+    yearsCoaching: integer(),
+    isPublic: integer({ mode: "boolean" }).notNull().default(true),
+    sortOrder: integer().notNull().default(0),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [uniqueIndex("coach_profile_ws_user_unique").on(t.workspaceId, t.userId)],
+);
+
+/** A student's coaches over time. At most one current primary per client (enforced in code). */
+export const clientCoach = sqliteTable(
+  "client_coach",
+  {
+    id: text().primaryKey(),
+    workspaceId: workspaceId(),
+    clientId: text()
+      .notNull()
+      .references(() => client.id, { onDelete: "cascade" }),
+    coachUserId: text().notNull(),
+    role: text().$type<ClientCoachRole>().notNull(),
+    startedOn: text().notNull(),
+    /** Null = current. */
+    endedOn: text(),
+    assignedBy: text(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index("client_coach_client_idx").on(t.workspaceId, t.clientId),
+    index("client_coach_coach_idx").on(t.workspaceId, t.coachUserId, t.endedOn),
+  ],
+);
+
+/** Links a signed-in person (student or parent) to a student for the family portal. */
+export const clientAccess = sqliteTable(
+  "client_access",
+  {
+    id: text().primaryKey(),
+    workspaceId: workspaceId(),
+    clientId: text()
+      .notNull()
+      .references(() => client.id, { onDelete: "cascade" }),
+    userId: text()
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    relation: text().$type<FamilyRelation>().notNull(),
+    grantedBy: text(),
+    createdAt: createdAt(),
+    /** Null = active. */
+    revokedAt: integer(),
+  },
+  (t) => [
+    uniqueIndex("client_access_client_user_unique").on(t.clientId, t.userId),
+    index("client_access_user_idx").on(t.userId),
+  ],
+);
+
+/** Staff and family invite links. Only the SHA-256 of the token is stored. */
+export const invite = sqliteTable(
+  "invite",
+  {
+    id: text().primaryKey(),
+    workspaceId: workspaceId(),
+    kind: text().$type<InviteKind>().notNull(),
+    tokenHash: text().notNull().unique(),
+    /** Staff invites: the Google email that may accept, lowercased. */
+    email: text(),
+    role: text().$type<StaffRole>(),
+    clientId: text().references(() => client.id, { onDelete: "cascade" }),
+    relation: text().$type<FamilyRelation>(),
+    createdBy: text(),
+    createdAt: createdAt(),
+    expiresAt: integer().notNull(),
+    acceptedBy: text(),
+    acceptedAt: integer(),
+    revokedAt: integer(),
+  },
+  (t) => [index("invite_ws_kind_idx").on(t.workspaceId, t.kind)],
+);
+
+export const enrollmentRequest = sqliteTable(
+  "enrollment_request",
+  {
+    id: text().primaryKey(),
+    workspaceId: workspaceId(),
+    /** New students are created as clients with status `lead` when the request is sent. */
+    clientId: text()
+      .notNull()
+      .references(() => client.id, { onDelete: "cascade" }),
+    requestedBy: text().notNull(),
+    packageId: text(),
+    /** A program (training_group) id. */
+    programId: text(),
+    eventId: text(),
+    /** YYYY-MM. */
+    startMonth: text(),
+    /** The trial session picked. */
+    lessonId: text(),
+    answers: text({ mode: "json" }).$type<EnrollmentAnswers>().notNull().default({}),
+    status: text().$type<EnrollmentStatus>().notNull().default("requested"),
+    decidedBy: text(),
+    decidedAt: integer(),
+    decisionNote: text(),
+    clientPackageId: text(),
+    registrationId: text(),
+    chargeId: text(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    index("enrollment_ws_status_idx").on(t.workspaceId, t.status, t.createdAt),
+    index("enrollment_client_idx").on(t.clientId),
+  ],
+);
+
+/** A family's proof of an outside payment (GCash, bank transfer, cash), waiting for review. */
+export const paymentSubmission = sqliteTable(
+  "payment_submission",
+  {
+    id: text().primaryKey(),
+    workspaceId: workspaceId(),
+    clientId: text()
+      .notNull()
+      .references(() => client.id, { onDelete: "cascade" }),
+    submittedBy: text().notNull(),
+    enrollmentId: text(),
+    amountMinor: integer().notNull(),
+    method: text().notNull(),
+    reference: text(),
+    paidOn: text().notNull(),
+    proofKey: text(),
+    note: text(),
+    status: text().$type<PaymentSubmissionStatus>().notNull().default("pending"),
+    reviewedBy: text(),
+    reviewedAt: integer(),
+    rejectReason: text(),
+    /** The payment recorded when staff confirmed it. */
+    paymentId: text(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    index("payment_submission_ws_status_idx").on(t.workspaceId, t.status, t.createdAt),
+    index("payment_submission_client_idx").on(t.clientId),
+  ],
+);
+
+export const consentDocument = sqliteTable(
+  "consent_document",
+  {
+    id: text().primaryKey(),
+    workspaceId: workspaceId(),
+    kind: text().$type<ConsentKind>().notNull(),
+    title: text().notNull(),
+    body: text().notNull(),
+    version: integer().notNull().default(1),
+    required: integer({ mode: "boolean" }).notNull().default(true),
+    appliesTo: text().$type<ConsentAppliesTo>().notNull().default("all"),
+    active: integer({ mode: "boolean" }).notNull().default(true),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index("consent_document_ws_idx").on(t.workspaceId)],
+);
+
+/** A typed-name signature of one version of a consent document, for one student. */
+export const consentSignature = sqliteTable(
+  "consent_signature",
+  {
+    id: text().primaryKey(),
+    workspaceId: workspaceId(),
+    documentId: text()
+      .notNull()
+      .references(() => consentDocument.id, { onDelete: "cascade" }),
+    documentVersion: integer().notNull(),
+    clientId: text()
+      .notNull()
+      .references(() => client.id, { onDelete: "cascade" }),
+    signedByUserId: text(),
+    signerName: text().notNull(),
+    relation: text().$type<ConsentSignerRelation>().notNull(),
+    signedAt: integer().notNull(),
+    ipAddress: text(),
+    userAgent: text(),
+    enrollmentId: text(),
+  },
+  (t) => [index("consent_signature_client_idx").on(t.clientId, t.documentId)],
+);
+
+/** People allowed to pick up a junior after a session. */
+export const authorizedPickup = sqliteTable(
+  "authorized_pickup",
+  {
+    id: text().primaryKey(),
+    workspaceId: workspaceId(),
+    clientId: text()
+      .notNull()
+      .references(() => client.id, { onDelete: "cascade" }),
+    name: text().notNull(),
+    relationship: text(),
+    phone: text(),
+    photoKey: text(),
+    notes: text(),
+    createdBy: text(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index("authorized_pickup_client_idx").on(t.clientId)],
+);
+
+export const announcement = sqliteTable(
+  "announcement",
+  {
+    id: text().primaryKey(),
+    workspaceId: workspaceId(),
+    title: text().notNull(),
+    body: text().notNull(),
+    audience: text().$type<AnnouncementAudience>().notNull().default("all"),
+    /** The program or event id when the audience is narrowed. */
+    audienceId: text(),
+    pinned: integer({ mode: "boolean" }).notNull().default(false),
+    /** Null = draft. */
+    publishedAt: integer(),
+    expiresAt: integer(),
+    createdBy: text(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index("announcement_ws_published_idx").on(t.workspaceId, t.publishedAt)],
 );
 
 // ---------------------------------------------------------------------------

@@ -94,3 +94,85 @@ export const POLICY_STATUSES: readonly AttendanceStatus[] = ["no_show", "late_ca
 
 export const SCORE_MIN = 1;
 export const SCORE_MAX = 5;
+
+// --- Academy ----------------------------------------------------------------
+
+/** A student's coach: the primary coach leads; assistants help. */
+export const CLIENT_COACH_ROLES = ["primary", "assistant"] as const;
+export type ClientCoachRole = (typeof CLIENT_COACH_ROLES)[number];
+
+/** How a signed-in person is linked to a student: the student themself, or a parent/guardian. */
+export const FAMILY_RELATIONS = ["self", "guardian"] as const;
+export type FamilyRelation = (typeof FAMILY_RELATIONS)[number];
+
+export const FAMILY_RELATION_LABELS: Record<FamilyRelation, string> = {
+  self: "Student",
+  guardian: "Parent or guardian",
+};
+
+export const INVITE_KINDS = ["staff", "family"] as const;
+export type InviteKind = (typeof INVITE_KINDS)[number];
+
+export const ENROLLMENT_STATUSES = [
+  "requested",
+  "approved",
+  "waitlisted",
+  "declined",
+  "cancelled",
+] as const;
+export type EnrollmentStatus = (typeof ENROLLMENT_STATUSES)[number];
+
+export const PAYMENT_SUBMISSION_STATUSES = ["pending", "confirmed", "rejected"] as const;
+export type PaymentSubmissionStatus = (typeof PAYMENT_SUBMISSION_STATUSES)[number];
+
+export const CONSENT_KINDS = ["waiver", "privacy", "parental", "media", "other"] as const;
+export type ConsentKind = (typeof CONSENT_KINDS)[number];
+
+export const CONSENT_APPLIES_TO = ["all", "minors"] as const;
+export type ConsentAppliesTo = (typeof CONSENT_APPLIES_TO)[number];
+
+/** Who signed a consent for a student. */
+export const CONSENT_SIGNER_RELATIONS = ["self", "guardian", "staff"] as const;
+export type ConsentSignerRelation = (typeof CONSENT_SIGNER_RELATIONS)[number];
+
+export const ANNOUNCEMENT_AUDIENCES = ["all", "program", "event"] as const;
+export type AnnouncementAudience = (typeof ANNOUNCEMENT_AUDIENCES)[number];
+
+/** `staff` = coaches only (the default); `shared` = also the student and their parents. */
+export const NOTE_VISIBILITIES = ["staff", "shared"] as const;
+export type NoteVisibility = (typeof NOTE_VISIBILITIES)[number];
+
+/** Handoff notes are written when a student's primary coach changes; always coaches only. */
+export const NOTE_KINDS = ["comment", "handoff"] as const;
+export type NoteKind = (typeof NOTE_KINDS)[number];
+
+/** Package validity: a number of days from purchase, or to the end of the start month. */
+export const VALIDITY_MODES = ["days", "month_end"] as const;
+export type ValidityMode = (typeof VALIDITY_MODES)[number];
+
+/** What a family answered on an enrollment request (stored as JSON). */
+export interface EnrollmentAnswers {
+  /** Self-rating on the DUPR-style scale (saved to rating history with source "self"). */
+  selfRating?: number | null;
+  shirtSize?: string | null;
+  /** Preferred weekdays, 0 = Sunday ... 6 = Saturday. */
+  preferredDays?: number[];
+  notes?: string | null;
+  [key: string]: unknown;
+}
+
+/** Public academy slugs: lowercase letters, digits, single hyphens; 3–40 characters. */
+export const ACADEMY_SLUG_RE = /^[a-z0-9](-?[a-z0-9])+$/;
+
+export function isAcademySlug(slug: string): boolean {
+  // Legacy `ws-<id>` slugs come from automatic provisioning and are never public.
+  return (
+    slug.length >= 3 && slug.length <= 40 && ACADEMY_SLUG_RE.test(slug) && !slug.startsWith("ws-")
+  );
+}
+
+/** Passkey-only family accounts get an address here, so no email can ever link to them. */
+export const PLACEHOLDER_EMAIL_DOMAIN = "passkey.coachman.invalid";
+
+export const isPlaceholderEmail = (email: string | null | undefined) =>
+  Boolean(email?.toLowerCase().endsWith(`@${PLACEHOLDER_EMAIL_DOMAIN}`));

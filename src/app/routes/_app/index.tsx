@@ -19,7 +19,7 @@ import { EmptyState, ErrorState, RowsSkeleton, Skeleton } from "../../components
 import { phaseLabel, SessionDetail, whereOf } from "../../features/sessions/session-detail";
 import { errorMessage } from "../../lib/api";
 import { plural, useFormat } from "../../lib/format";
-import { useMe, useNow, useToday } from "../../lib/hooks";
+import { useCan, useMe, useNow, useToday } from "../../lib/hooks";
 
 type TodayLesson = TodayDto["lessons"][number];
 
@@ -108,6 +108,7 @@ function DesktopSkeleton() {
 
 function TodayKpis({ data }: { data?: TodayDto }) {
   const navigate = useNavigate();
+  const can = useCan();
   const lessons = (data?.lessons ?? []).filter((l) => l.status !== "cancelled");
   const booked = lessons.reduce((n, l) => n + l.bookedCount, 0);
   const checkedIn = lessons.reduce((n, l) => n + l.checkedInCount, 0);
@@ -117,7 +118,10 @@ function TodayKpis({ data }: { data?: TodayDto }) {
     ),
   ).size;
   const due = data?.alerts.balancesDue.length ?? 0;
+  const birthdays = data?.alerts.birthdays.length ?? 0;
   const dash = "–";
+  const toAttention = () =>
+    document.getElementById("attention")?.scrollIntoView({ behavior: "smooth", block: "start" });
   return (
     <div className="grid grid-cols-2 gap-2.5">
       <KpiTile label="Sessions" value={data ? lessons.length : dash} tint="lime" />
@@ -127,19 +131,25 @@ function TodayKpis({ data }: { data?: TodayDto }) {
         value={data ? renewals : dash}
         tint="amber"
         hint="Clients who need a new package soon"
-        onPress={() =>
-          document
-            .getElementById("attention")
-            ?.scrollIntoView({ behavior: "smooth", block: "start" })
-        }
+        onPress={toAttention}
       />
-      <KpiTile
-        label="Balances due"
-        value={data ? due : dash}
-        tint="coral"
-        hint="Open Money"
-        onPress={() => void navigate({ to: "/money" })}
-      />
+      {can.money ? (
+        <KpiTile
+          label="Balances due"
+          value={data ? due : dash}
+          tint="coral"
+          hint="Open Money"
+          onPress={() => void navigate({ to: "/money" })}
+        />
+      ) : (
+        <KpiTile
+          label="Birthdays"
+          value={data ? birthdays : dash}
+          tint="violet"
+          hint="Players with a birthday today"
+          onPress={toAttention}
+        />
+      )}
     </div>
   );
 }
@@ -249,8 +259,9 @@ const ALERT_TONES = {
 
 function Attention({ alerts }: { alerts: TodayDto["alerts"] }) {
   const fmt = useFormat();
+  const can = useCan();
   const items = [
-    ...alerts.balancesDue.map((a) => ({
+    ...(can.money ? alerts.balancesDue : []).map((a) => ({
       key: `due-${a.clientId}`,
       clientId: a.clientId,
       name: a.name,
@@ -315,7 +326,9 @@ function Attention({ alerts }: { alerts: TodayDto["alerts"] }) {
           </ul>
         ) : (
           <p className="px-5 pb-5 text-[0.9375rem] text-ink-2">
-            All clear: no low credits, renewals, or balances due.
+            {can.money
+              ? "All clear: no low credits, renewals, or balances due."
+              : "All clear: no low credits, renewals, or birthdays."}
           </p>
         )}
       </Card>

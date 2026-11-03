@@ -1,3 +1,4 @@
+import type { Capability } from "@shared/roles";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
   CalendarDays,
@@ -16,23 +17,40 @@ import {
 import { createContext, type ReactNode, useContext, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { fullName } from "../../lib/format";
-import { useMe } from "../../lib/hooks";
+import { useCan, useMe } from "../../lib/hooks";
 import { useOnline, usePendingChanges } from "../../lib/offline";
 import { BallMark } from "../brand";
 import { Avatar } from "../ui/display";
 import { Sheet } from "../ui/overlay";
 
-export const NAV = [
+interface NavItem {
+  to: string;
+  label: string;
+  icon: typeof Home;
+  /** Hidden from roles without this capability. */
+  cap?: Capability;
+}
+
+export const NAV: readonly NavItem[] = [
   { to: "/", label: "Today", icon: Home },
   { to: "/schedule", label: "Schedule", icon: CalendarDays },
   { to: "/clients", label: "Clients", icon: Contact },
   { to: "/groups", label: "Groups", icon: UsersRound },
   { to: "/events", label: "Events", icon: Tent },
-  { to: "/money", label: "Money", icon: CircleDollarSign },
-  { to: "/packages", label: "Packages & rates", icon: Ticket },
-] as const;
+  { to: "/money", label: "Money", icon: CircleDollarSign, cap: "money" },
+  { to: "/packages", label: "Packages & rates", icon: Ticket, cap: "catalog" },
+];
 
-const TABS = ["/", "/schedule", "/clients", "/money"] as const;
+/** Phone tab bar: Money for roles that handle it, Groups for coaches. */
+function tabsFor(money: boolean): string[] {
+  return ["/", "/schedule", "/clients", money ? "/money" : "/groups"];
+}
+
+/** The navigation this role can use. */
+export function useNav(): readonly NavItem[] {
+  const can = useCan();
+  return NAV.filter((n) => !n.cap || can[n.cap]);
+}
 
 export function isActivePath(pathname: string, to: string) {
   if (to === "/") return pathname === "/" || pathname.startsWith("/sessions");
@@ -102,6 +120,7 @@ function QuickActions({
   onOpenChange: (v: boolean) => void;
 }) {
   const navigate = useNavigate();
+  const can = useCan();
   const go = (to: string, search?: Record<string, string>) => {
     onOpenChange(false);
     void navigate({ to, search: search as never });
@@ -119,18 +138,22 @@ function QuickActions({
       icon: UserPlus,
       onPress: () => go("/clients/new"),
     },
-    {
-      label: "Record payment",
-      body: "Cash, transfer, card, or e-wallet",
-      icon: CircleDollarSign,
-      onPress: () => go("/money", { record: "1" }),
-    },
-    {
-      label: "Sell a package",
-      body: "Credits for lessons or classes",
-      icon: Ticket,
-      onPress: () => go("/packages", { sell: "1" }),
-    },
+    ...(can.money
+      ? [
+          {
+            label: "Record payment",
+            body: "Cash, transfer, card, or e-wallet",
+            icon: CircleDollarSign,
+            onPress: () => go("/money", { record: "1" }),
+          },
+          {
+            label: "Sell a package",
+            body: "Credits for lessons or classes",
+            icon: Ticket,
+            onPress: () => go("/packages", { sell: "1" }),
+          },
+        ]
+      : []),
   ];
   return (
     <Sheet isOpen={isOpen} onOpenChange={onOpenChange} title="Quick add">
@@ -186,9 +209,11 @@ function RailLink({
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const me = useMe();
+  const nav = useNav();
+  const tabs = tabsFor(Boolean(me.data?.can?.money));
   const [quickOpen, setQuickOpen] = useState(false);
   const [slot, setSlot] = useState<HTMLElement | null>(null);
-  const moreActive = !TABS.some((t) => isActivePath(pathname, t));
+  const moreActive = !tabs.some((t) => isActivePath(pathname, t));
   const [firstName, ...rest] = (me.data?.user.name ?? "Coach").split(" ");
   const coach = { firstName: firstName ?? "Coach", lastName: rest.join(" ") };
 
@@ -213,7 +238,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               <BallMark className="size-10" />
             </Link>
             <nav aria-label="Main" className="flex flex-col items-center gap-2.5">
-              {NAV.map((n) => (
+              {nav.map((n) => (
                 <RailLink
                   key={n.to}
                   to={n.to}
@@ -269,8 +294,8 @@ export function AppShell({ children }: { children: ReactNode }) {
             className="dark-zone min-w-0 flex-1 rounded-full bg-night p-1.5 shadow-pop"
           >
             <ul className="grid grid-cols-5">
-              {TABS.map((to) => {
-                const item = NAV.find((n) => n.to === to);
+              {tabs.map((to) => {
+                const item = nav.find((n) => n.to === to);
                 if (!item) return null;
                 const active = isActivePath(pathname, to);
                 return (
@@ -339,10 +364,15 @@ function SyncDot() {
   );
 }
 
-export const MORE_LINKS = [
-  ...NAV.filter((n) => !TABS.includes(n.to as (typeof TABS)[number])),
-  { to: "/settings", label: "Settings", icon: Settings },
-] as const;
+/** The More page's links: everything this role can use that isn't in the phone tab bar. */
+export function useMoreLinks(): readonly NavItem[] {
+  const can = useCan();
+  const tabs = tabsFor(can.money);
+  return [
+    ...NAV.filter((n) => !tabs.includes(n.to) && (!n.cap || can[n.cap])),
+    { to: "/settings", label: "Settings", icon: Settings },
+  ];
+}
 
 /** Standard page padding inside the canvas. */
 export function Page({ children, className = "" }: { children: ReactNode; className?: string }) {

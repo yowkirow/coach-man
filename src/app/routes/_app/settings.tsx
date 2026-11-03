@@ -1,30 +1,31 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Page, ShellAside, useIsDesktop } from "../../components/layout/app-shell";
 import { PageHeader } from "../../components/ui/display";
+import { AcademySection } from "../../features/settings/academy";
 import { AppDataSection } from "../../features/settings/app-data";
 import { NotificationsSection } from "../../features/settings/notifications";
 import { ConnectionPill } from "../../features/settings/offline";
 import { PaymentMethodsSection } from "../../features/settings/payment-methods";
 import { RubricSection } from "../../features/settings/rubric";
 import {
-  SETTINGS_SECTIONS,
   SectionChips,
   SettingsNav,
   useActiveSection,
+  useSettingsSections,
 } from "../../features/settings/sections";
 import { SecuritySection } from "../../features/settings/security";
 import { VenuesSection } from "../../features/settings/venues";
 import { PoliciesSection, WorkspaceSection } from "../../features/settings/workspace-settings";
-import { useMe } from "../../lib/hooks";
+import { useCan, useMe } from "../../lib/hooks";
 
 export const Route = createFileRoute("/_app/settings")({ component: SettingsPage });
 
-const SECTION_IDS = SETTINGS_SECTIONS.map((s) => s.id);
-
 function SettingsPage() {
   const me = useMe().data;
+  const can = useCan();
   const desktop = useIsDesktop();
-  const { active, jump } = useActiveSection(SECTION_IDS);
+  const sections = useSettingsSections();
+  const { active, jump } = useActiveSection(sections.map((s) => s.id));
 
   return (
     <>
@@ -39,11 +40,16 @@ function SettingsPage() {
           className="mb-1"
         />
         {desktop ? null : <SectionChips onJump={jump} />}
-        <WorkspaceSection />
-        <PoliciesSection />
-        <PaymentMethodsSection />
-        <VenuesSection />
-        <RubricSection />
+        <AcademySection />
+        {can.settings ? (
+          <>
+            <WorkspaceSection />
+            <PoliciesSection />
+            <PaymentMethodsSection />
+            <VenuesSection />
+            <RubricSection />
+          </>
+        ) : null}
         <SecuritySection />
         <NotificationsSection />
         <AppDataSection />

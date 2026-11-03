@@ -24,9 +24,24 @@ export function setUnauthorizedHandler(fn: () => void) {
   onUnauthorized = fn;
 }
 
+let onNoWorkspace: (() => void) | null = null;
+/** Called when a staff request finds the person isn't staff anywhere (403 no_workspace). */
+export function setNoWorkspaceHandler(fn: () => void) {
+  onNoWorkspace = fn;
+}
+
 export async function request<T>(
   method: "GET" | "POST" | "PATCH" | "PUT" | "DELETE",
   path: string,
+  body?: unknown,
+  opts: RequestOptions = {},
+): Promise<T> {
+  return send<T>(method, `/api/v1${path}`, body, opts);
+}
+
+async function send<T>(
+  method: "GET" | "POST" | "PATCH" | "PUT" | "DELETE",
+  url: string,
   body?: unknown,
   opts: RequestOptions = {},
 ): Promise<T> {
@@ -35,7 +50,7 @@ export async function request<T>(
   if (opts.idempotencyKey) headers["Idempotency-Key"] = opts.idempotencyKey;
   let res: Response;
   try {
-    res = await fetch(`/api/v1${path}`, {
+    res = await fetch(url, {
       method,
       headers,
       credentials: "same-origin",
@@ -52,6 +67,7 @@ export async function request<T>(
   if (!res.ok) {
     const err = (data as ApiErrorBody | undefined)?.error;
     if (res.status === 401) onUnauthorized?.();
+    if (res.status === 403 && err?.code === "no_workspace") onNoWorkspace?.();
     const fields = (err?.details as { fields?: Record<string, string> } | undefined)?.fields ?? {};
     throw new ApiRequestError(
       res.status,
@@ -82,6 +98,17 @@ export const api = {
   del: <T>(path: string, body?: unknown, opts?: RequestOptions) =>
     request<T>("DELETE", path, body, opts),
 };
+
+/** /api/account: the signed-in person, whether or not they're staff anywhere. */
+export const accountApi = {
+  get: <T>(path = "") => send<T>("GET", `/api/account${path}`),
+  post: <T>(path: string, body?: unknown) => send<T>("POST", `/api/account${path}`, body ?? {}),
+};
+
+/** Signed in, but not staff in any academy: the staff app sends them to /welcome. */
+export function isNoWorkspace(err: unknown): boolean {
+  return err instanceof ApiRequestError && err.status === 403 && err.code === "no_workspace";
+}
 
 export function errorMessage(err: unknown): string {
   if (err instanceof ApiRequestError) return err.message;

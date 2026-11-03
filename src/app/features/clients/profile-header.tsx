@@ -19,6 +19,7 @@ import { InlineError } from "../../components/ui/feedback";
 import { ActionMenu, ConfirmSheet, Sheet } from "../../components/ui/overlay";
 import { ApiRequestError, api, errorMessage, fieldErrors } from "../../lib/api";
 import { fullName, useFormat } from "../../lib/format";
+import { useCan } from "../../lib/hooks";
 import { notify } from "../../lib/notify";
 import { useOnline } from "../../lib/offline";
 import { keys } from "../../lib/query";
@@ -103,6 +104,7 @@ export function ProfileHeader({
   onMedical: () => void;
 }) {
   const fmt = useFormat();
+  const can = useCan();
   const online = useOnline();
   const desktop = useIsDesktop();
   const c = detail.client;
@@ -268,7 +270,7 @@ export function ProfileHeader({
             <Ticket aria-hidden className="size-4.5" />
             {credit.tone === "none" ? "No package" : credit.label}
           </FigureButton>
-          {c.balanceMinor !== 0 ? (
+          {can.money && c.balanceMinor !== 0 ? (
             <FigureButton
               tone={c.balanceMinor > 0 ? "coral" : "mint"}
               onPress={onMoney}
@@ -286,24 +288,28 @@ export function ProfileHeader({
           ) : null}
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <IconButton
-            label="Sell a package"
-            variant="lime"
-            size="lg"
-            isDisabled={!online}
-            onPress={onSell}
-          >
-            <Ticket aria-hidden className="size-5" />
-          </IconButton>
-          <IconButton
-            label="Record a payment"
-            variant="lime"
-            size="lg"
-            isDisabled={!online}
-            onPress={onPay}
-          >
-            <CircleDollarSign aria-hidden className="size-5" />
-          </IconButton>
+          {can.money ? (
+            <>
+              <IconButton
+                label="Sell a package"
+                variant="lime"
+                size="lg"
+                isDisabled={!online}
+                onPress={onSell}
+              >
+                <Ticket aria-hidden className="size-5" />
+              </IconButton>
+              <IconButton
+                label="Record a payment"
+                variant="lime"
+                size="lg"
+                isDisabled={!online}
+                onPress={onPay}
+              >
+                <CircleDollarSign aria-hidden className="size-5" />
+              </IconButton>
+            </>
+          ) : null}
           <IconButton label="Add a note" variant="lime" size="lg" onPress={onNote}>
             <NotebookPen aria-hidden className="size-5" />
           </IconButton>
@@ -326,13 +332,18 @@ export function ProfileHeader({
             actions={[
               { id: "edit", label: "Edit profile", onAction: onEdit, isDisabled: !online },
               ...statusActions.map((a) => ({ ...a, isDisabled: !online })),
-              {
-                id: "delete",
-                label: "Delete client",
-                tone: "danger" as const,
-                onAction: onDelete,
-                isDisabled: !online,
-              },
+              // Deleting a client is a data decision for owners and admins; coaches archive.
+              ...(can.data
+                ? [
+                    {
+                      id: "delete",
+                      label: "Delete client",
+                      tone: "danger" as const,
+                      onAction: onDelete,
+                      isDisabled: !online,
+                    },
+                  ]
+                : []),
             ]}
           />
         </div>

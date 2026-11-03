@@ -1,6 +1,6 @@
 import { createFileRoute, isRedirect, Outlet, redirect } from "@tanstack/react-router";
 import { AppShell } from "../components/layout/app-shell";
-import { ApiRequestError } from "../lib/api";
+import { ApiRequestError, isNoWorkspace } from "../lib/api";
 import { meQuery } from "../lib/hooks";
 import { claimCache, useOfflinePack, whenCacheRestored } from "../lib/offline";
 
@@ -11,12 +11,16 @@ export const Route = createFileRoute("/_app")({
     try {
       const me = await context.queryClient.ensureQueryData(meQuery);
       claimCache(me.user.id);
-      if (!me.settings.onboardedAt) throw redirect({ to: "/onboarding" });
+      // Only someone who can change the academy's settings can finish setting it up; a coach who
+      // joins before the owner has finished goes straight in.
+      if (!me.settings.onboardedAt && me.can?.settings) throw redirect({ to: "/onboarding" });
     } catch (err) {
       if (isRedirect(err)) throw err;
       if (err instanceof ApiRequestError && err.status === 401) {
         throw redirect({ to: "/sign-in", search: { next: location.href } });
       }
+      // Signed in but not staff anywhere: families and brand-new accounts start at /welcome.
+      if (isNoWorkspace(err)) throw redirect({ to: "/welcome" });
       // Offline with nothing cached yet: let the page render its own offline state.
     }
   },

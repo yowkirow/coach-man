@@ -4,6 +4,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Plus, Ticket } from "lucide-react";
 import { useState } from "react";
 import { Page, ShellAside, useIsDesktop } from "../../components/layout/app-shell";
+import { NoAccess } from "../../components/layout/no-access";
 import { Button, IconButton } from "../../components/ui/button";
 import { PageHeader, PillTabs } from "../../components/ui/display";
 import { Skeleton } from "../../components/ui/feedback";
@@ -15,7 +16,7 @@ import { RateSheet } from "../../features/packages/rate-sheet";
 import { SellPackageSheet } from "../../features/packages/sell-package-sheet";
 import { ConnectionPill } from "../../features/settings/offline";
 import { plural } from "../../lib/format";
-import { usePackageTemplates, useRates } from "../../lib/hooks";
+import { useCan, usePackageTemplates, useRates } from "../../lib/hooks";
 import { useOnline } from "../../lib/offline";
 
 interface PackagesSearch {
@@ -29,8 +30,21 @@ export const Route = createFileRoute("/_app/packages")({
     sell: s.sell === "1" || s.sell === 1 ? "1" : undefined,
     tab: s.tab === "packages" || s.tab === "rates" ? s.tab : undefined,
   }),
-  component: PackagesPage,
+  component: PackagesRoute,
 });
+
+function PackagesRoute() {
+  const can = useCan();
+  if (!can.catalog) {
+    return (
+      <NoAccess
+        title="Packages & rates"
+        body="The rate card and packages are set by the academy's owner and admins. You see each player's credits on their profile and at check-in."
+      />
+    );
+  }
+  return <PackagesPage />;
+}
 
 function PackagesPage() {
   const search = Route.useSearch();

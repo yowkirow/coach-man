@@ -1,5 +1,7 @@
 import type { MeDto } from "@shared/api-types";
+import type { Capability } from "@shared/roles";
 import {
+  BadgeCheck,
   BellRing,
   Building2,
   CreditCard,
@@ -13,20 +15,34 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 import { Button } from "../../components/ui/button";
 import { Avatar } from "../../components/ui/display";
 import { plural } from "../../lib/format";
+import { useCan } from "../../lib/hooks";
 import { scrollToId } from "./scroll";
 
 export const SETTINGS_SECTIONS = [
-  { id: "workspace", label: "Workspace", icon: Building2 },
-  { id: "policies", label: "Policies", icon: Scale },
-  { id: "payment-methods", label: "Payment methods", icon: CreditCard },
-  { id: "venues", label: "Venues", icon: MapPin },
-  { id: "rubric", label: "Progress rubric", icon: ListChecks },
+  { id: "academy", label: "Academy", icon: BadgeCheck },
+  { id: "workspace", label: "Workspace", icon: Building2, cap: "settings" },
+  { id: "policies", label: "Policies", icon: Scale, cap: "settings" },
+  { id: "payment-methods", label: "Payment methods", icon: CreditCard, cap: "settings" },
+  { id: "venues", label: "Venues", icon: MapPin, cap: "settings" },
+  { id: "rubric", label: "Progress rubric", icon: ListChecks, cap: "settings" },
   { id: "security", label: "Sign-in & security", icon: KeyRound },
   { id: "notifications", label: "Notifications", icon: BellRing },
   { id: "app-data", label: "App & data", icon: Database },
-] as const;
+] as const satisfies readonly {
+  id: string;
+  label: string;
+  icon: typeof Building2;
+  cap?: Capability;
+}[];
 
 export type SectionId = (typeof SETTINGS_SECTIONS)[number]["id"];
+type Section = (typeof SETTINGS_SECTIONS)[number];
+
+/** The settings sections this role can use (academy settings are for owners and admins). */
+export function useSettingsSections(): readonly Section[] {
+  const can = useCan();
+  return SETTINGS_SECTIONS.filter((s) => !("cap" in s) || can[s.cap]);
+}
 
 /** A settings card: white, with an h2 the nav can move focus to. */
 export function SettingsSection({
@@ -63,7 +79,7 @@ export function SettingsSection({
         </div>
         {action ? <div className="flex shrink-0 flex-wrap items-center gap-2">{action}</div> : null}
       </div>
-      <div className="mt-5">{children}</div>
+      {children ? <div className="mt-5">{children}</div> : null}
     </section>
   );
 }
@@ -169,6 +185,7 @@ export function SettingsNav({
   active: string;
   onJump: (id: SectionId) => void;
 }) {
+  const sections = useSettingsSections();
   const [firstName, ...rest] = (me?.user.name ?? "Coach").split(" ");
   const coach = { firstName: firstName ?? "Coach", lastName: rest.join(" ") };
   return (
@@ -191,7 +208,7 @@ export function SettingsNav({
       </div>
       <nav aria-label="Settings sections">
         <ul className="flex flex-col gap-2">
-          {SETTINGS_SECTIONS.map((s) => {
+          {sections.map((s) => {
             const on = s.id === active;
             return (
               <li key={s.id}>
@@ -220,10 +237,11 @@ export function SettingsNav({
 
 /** Phone: a scrolling row of section chips under the title. */
 export function SectionChips({ onJump }: { onJump: (id: SectionId) => void }) {
+  const sections = useSettingsSections();
   return (
     <nav aria-label="Settings sections">
       <ul className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
-        {SETTINGS_SECTIONS.map((s) => (
+        {sections.map((s) => (
           <li key={s.id} className="shrink-0">
             <a
               href={`#${s.id}`}

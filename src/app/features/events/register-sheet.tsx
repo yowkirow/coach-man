@@ -10,6 +10,7 @@ import { MoneyField, TextField } from "../../components/ui/field";
 import { Sheet } from "../../components/ui/overlay";
 import { api, errorMessage, fieldErrors } from "../../lib/api";
 import { fullName, useFormat } from "../../lib/format";
+import { useCan } from "../../lib/hooks";
 import { notify } from "../../lib/notify";
 import { useOnline } from "../../lib/offline";
 import { useInvalidateMoney } from "../money/record-payment-sheet";
@@ -41,6 +42,8 @@ export function RegisterClientSheet({
   takenIds: string[];
 }) {
   const fmt = useFormat();
+  // Coaches register players at the event's list price; only money roles see or change prices.
+  const can = useCan();
   const online = useOnline();
   const invalidateEvents = useInvalidateEvents();
   const invalidateMoney = useInvalidateMoney();
@@ -57,7 +60,7 @@ export function RegisterClientSheet({
         `/events/${event.id}/registrations`,
         {
           clientId: v.client.id,
-          priceMinor: v.price ?? undefined,
+          priceMinor: can.money ? (v.price ?? undefined) : undefined,
           note: v.note.trim() || null,
         },
       ),
@@ -82,7 +85,7 @@ export function RegisterClientSheet({
           : `${v.client.firstName} registered`,
         body: waitlisted
           ? `The event is full. Number ${res.event.waitlistCount} in line; nothing is charged yet.`
-          : charged > 0
+          : can.money && charged > 0
             ? `${fmt.money(charged)} added to their balance. Booked into upcoming sessions.`
             : "Booked into upcoming sessions.",
       });
@@ -146,11 +149,13 @@ export function RegisterClientSheet({
             <Avatar person={client} size="sm" />
             <div className="min-w-0 flex-1">
               <p className="truncate font-medium">{fullName(client)}</p>
-              <p className="num truncate text-[0.8125rem] text-ink-2">
-                {client.balanceMinor > 0
-                  ? `Owes ${fmt.money(client.balanceMinor)} already`
-                  : "Nothing owed"}
-              </p>
+              {can.money ? (
+                <p className="num truncate text-[0.8125rem] text-ink-2">
+                  {client.balanceMinor > 0
+                    ? `Owes ${fmt.money(client.balanceMinor)} already`
+                    : "Nothing owed"}
+                </p>
+              ) : null}
             </div>
             <Button variant="ghost" size="sm" onPress={() => setClient(null)}>
               Change
@@ -169,19 +174,21 @@ export function RegisterClientSheet({
         )}
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <MoneyField
-            label="Price (optional)"
-            currency={fmt.currency}
-            valueMinor={price}
-            onChange={setPrice}
-            placeholder={plainAmount(now.priceMinor, fmt)}
-            description={
-              now.earlyBird && event.earlyBirdUntil
-                ? `Early-bird price until ${fmt.day(event.earlyBirdUntil)}.`
-                : "Leave empty to charge the event price."
-            }
-            error={errs.priceMinor}
-          />
+          {can.money ? (
+            <MoneyField
+              label="Price (optional)"
+              currency={fmt.currency}
+              valueMinor={price}
+              onChange={setPrice}
+              placeholder={plainAmount(now.priceMinor, fmt)}
+              description={
+                now.earlyBird && event.earlyBirdUntil
+                  ? `Early-bird price until ${fmt.day(event.earlyBirdUntil)}.`
+                  : "Leave empty to charge the event price."
+              }
+              error={errs.priceMinor}
+            />
+          ) : null}
           <TextField
             label="Note (optional)"
             value={note}

@@ -4,6 +4,7 @@ import { LedgerSheet } from "../../components/domain/roster";
 import { PillTabs } from "../../components/ui/display";
 import { Skeleton } from "../../components/ui/feedback";
 import { fullName } from "../../lib/format";
+import { useCan } from "../../lib/hooks";
 import { AssessmentDetailSheet, NewAssessmentSheet } from "./assessment";
 import { CardSkeleton } from "./bits";
 import type { ProfileTab } from "./client-utils";
@@ -51,8 +52,11 @@ export function ClientProfile({
   onPay: () => void;
 }) {
   const c = detail.client;
+  const can = useCan();
   const progress = useProgress(c.id);
-  const statement = useStatement(c.id);
+  const statement = useStatement(c.id, { enabled: can.money });
+  // Coaches have no Money tab; an old ?tab=money link opens the overview instead.
+  const shownTab: ProfileTab = tab === "money" && !can.money ? "overview" : tab;
   const [sheet, setSheet] = useState<ProfileSheet>(null);
   const [goal, setGoal] = useState<GoalDto | null>(null);
   const [assessment, setAssessment] = useState<AssessmentDto | null>(null);
@@ -94,7 +98,7 @@ export function ClientProfile({
       <PillTabs
         label="Client sections"
         fill
-        selected={tab}
+        selected={shownTab}
         onChange={(id) => onTab(id as ProfileTab)}
         tabs={[
           {
@@ -134,13 +138,22 @@ export function ClientProfile({
             label: "Sessions",
             content: <SessionsTab detail={detail} />,
           },
-          {
-            id: "money",
-            label: "Money",
-            content: (
-              <MoneyTab clientId={c.id} firstName={c.firstName} onPay={onPay} onSell={onSell} />
-            ),
-          },
+          ...(can.money
+            ? [
+                {
+                  id: "money",
+                  label: "Money",
+                  content: (
+                    <MoneyTab
+                      clientId={c.id}
+                      firstName={c.firstName}
+                      onPay={onPay}
+                      onSell={onSell}
+                    />
+                  ),
+                },
+              ]
+            : []),
         ]}
         aside={
           <>

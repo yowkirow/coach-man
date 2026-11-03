@@ -35,7 +35,7 @@ import {
 import { ActionMenu, ConfirmSheet, Sheet } from "../../components/ui/overlay";
 import { ApiRequestError, api, errorMessage } from "../../lib/api";
 import { type Format, fullName, plural, useFormat } from "../../lib/format";
-import { useLesson, useVenues } from "../../lib/hooks";
+import { useCan, useLesson, useVenues } from "../../lib/hooks";
 import { notify } from "../../lib/notify";
 import { type CompleteVars, keys, type NoteVars, storeLesson } from "../../lib/query";
 
@@ -524,6 +524,7 @@ function NotesPanel({ detail, autoFocus }: { detail: LessonDetailDto; autoFocus:
 
 function DetailsPanel({ detail }: { detail: LessonDetailDto }) {
   const fmt = useFormat();
+  const can = useCan();
   const l = detail.lesson;
   return (
     <Card className="p-5" label="Session details">
@@ -535,12 +536,14 @@ function DetailsPanel({ detail }: { detail: LessonDetailDto }) {
         </KeyValue>
         <KeyValue label="Where">{whereOf(l) || "No venue set"}</KeyValue>
         <KeyValue label="Type">{LESSON_KIND_LABELS[l.kind]}</KeyValue>
-        <KeyValue label="Price per player">
-          <span className="num">{fmt.money(l.effectivePriceMinor)}</span>
-          {l.priceMinor === null ? (
-            <span className="text-ink-2"> · from your rate card</span>
-          ) : null}
-        </KeyValue>
+        {can.money ? (
+          <KeyValue label="Price per player">
+            <span className="num">{fmt.money(l.effectivePriceMinor)}</span>
+            {l.priceMinor === null ? (
+              <span className="text-ink-2"> · from your rate card</span>
+            ) : null}
+          </KeyValue>
+        ) : null}
         <KeyValue label="Capacity">
           {l.capacity ? `${l.bookedCount} of ${l.capacity} spots taken` : "No limit"}
         </KeyValue>
@@ -578,7 +581,7 @@ function DetailsPanel({ detail }: { detail: LessonDetailDto }) {
 function shortCredit(r: RosterEntryDto, fmt: Format) {
   if (r.complimentary) return "complimentary";
   if (r.packageRemaining !== null) return `${r.packageRemaining} left`;
-  if (r.chargeMinor !== null) return `pays ${fmt.moneyShort(r.chargeMinor)}`;
+  if (r.chargeMinor != null) return `pays ${fmt.moneyShort(r.chargeMinor)}`;
   return "pays per session";
 }
 
@@ -782,6 +785,7 @@ function EditSessionSheet({
   focusPlan: boolean;
 }) {
   const fmt = useFormat();
+  const can = useCan();
   const navigate = useNavigate();
   const sync = useLessonCacheSync();
   const venues = useVenues();
@@ -824,7 +828,8 @@ function EditSessionSheet({
         venueId: venueId === "none" ? null : venueId,
         court: court.trim() || null,
         capacity: capacity ? Number(capacity) : null,
-        priceMinor: price,
+        // Only money roles may set a per-session price; coaches leave it as it is.
+        priceMinor: can.money ? price : undefined,
         notes: plan.trim() || null,
         scope,
       }),
@@ -923,14 +928,16 @@ function EditSessionSheet({
                 onChange={setCapacity}
                 placeholder="No limit"
               />
-              <MoneyField
-                label="Price per player"
-                currency={fmt.currency}
-                valueMinor={price}
-                onChange={setPrice}
-                placeholder={fmt.money(l.effectivePriceMinor)}
-                description="Leave empty to use your rate card."
-              />
+              {can.money ? (
+                <MoneyField
+                  label="Price per player"
+                  currency={fmt.currency}
+                  valueMinor={price}
+                  onChange={setPrice}
+                  placeholder={fmt.money(l.effectivePriceMinor)}
+                  description="Leave empty to use your rate card."
+                />
+              ) : null}
             </div>
             <TextAreaField
               label="Plan"

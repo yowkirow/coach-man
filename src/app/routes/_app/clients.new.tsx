@@ -23,7 +23,7 @@ import { normPhone } from "../../features/clients/client-utils";
 import { ClientWorklist } from "../../features/clients/worklist";
 import { api, errorMessage, fieldErrors } from "../../lib/api";
 import { fullName, useFormat } from "../../lib/format";
-import { useClients } from "../../lib/hooks";
+import { useCan, useClients } from "../../lib/hooks";
 import { notify } from "../../lib/notify";
 import { useOnline } from "../../lib/offline";
 import { keys } from "../../lib/query";
@@ -55,6 +55,7 @@ function findDuplicate(
 
 function NewClientPage() {
   const fmt = useFormat();
+  const can = useCan();
   const online = useOnline();
   const navigate = useNavigate();
   const qc = useQueryClient();
@@ -92,21 +93,25 @@ function NewClientPage() {
         void qc.invalidateQueries({ queryKey: ["group"] });
         void qc.invalidateQueries({ queryKey: ["lessons"] });
       }
-      notify({
-        tone: "success",
-        title: `${c.firstName} added`,
-        body: "Sell a package now, or any time from their profile.",
-        duration: 8000,
-        action: {
-          label: "Sell a package",
-          onAction: () =>
-            void navigate({
-              to: "/clients/$clientId",
-              params: { clientId: c.id },
-              search: { sell: "1" },
-            }),
-        },
-      });
+      notify(
+        can.money
+          ? {
+              tone: "success",
+              title: `${c.firstName} added`,
+              body: "Sell a package now, or any time from their profile.",
+              duration: 8000,
+              action: {
+                label: "Sell a package",
+                onAction: () =>
+                  void navigate({
+                    to: "/clients/$clientId",
+                    params: { clientId: c.id },
+                    search: { sell: "1" },
+                  }),
+              },
+            }
+          : { tone: "success", title: `${c.firstName} added` },
+      );
       void navigate({ to: "/clients/$clientId", params: { clientId: c.id } });
     },
     onError: (err) => {

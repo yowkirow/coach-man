@@ -8,6 +8,7 @@ import { ErrorState, InlineError, RowsSkeleton } from "../../components/ui/feedb
 import { Segmented, Switch, TextField } from "../../components/ui/field";
 import { api, errorMessage } from "../../lib/api";
 import { plural } from "../../lib/format";
+import { useCan } from "../../lib/hooks";
 import { notify } from "../../lib/notify";
 import { useOnline } from "../../lib/offline";
 import { currentPushSubscription, disablePush, enablePush, pushSupported } from "../../lib/pwa";
@@ -56,6 +57,7 @@ function draftOf(p: NotificationPrefDto): PrefDraft {
 
 export function NotificationsSection() {
   const online = useOnline();
+  const can = useCan();
   const qc = useQueryClient();
   const prefs = useQuery({
     queryKey: keys.notificationPrefs,
@@ -288,7 +290,11 @@ export function NotificationsSection() {
                 <Switch
                   isSelected={draft.digestOn}
                   onChange={(v) => set("digestOn", v)}
-                  description="Who's coming today, low credits, and who owes, first thing."
+                  description={
+                    can.money
+                      ? "Who's coming today, low credits, and who owes, first thing."
+                      : "Who's coming today and packages about to expire, first thing."
+                  }
                 >
                   Morning digest
                 </Switch>

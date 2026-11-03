@@ -6,6 +6,7 @@ import { AuthLayout, GoogleG } from "../components/auth-layout";
 import { Button } from "../components/ui/button";
 import { AvatarStack, KpiTile, Pill } from "../components/ui/display";
 import { InlineError } from "../components/ui/feedback";
+import { isNoWorkspace } from "../lib/api";
 import { authClient, passkeysSupported, signInWithGoogle } from "../lib/auth-client";
 import { meQuery } from "../lib/hooks";
 import { keys } from "../lib/query";
@@ -21,7 +22,9 @@ export const Route = createFileRoute("/sign-in")({
   beforeLoad: async ({ context, search }) => {
     try {
       await context.queryClient.ensureQueryData(meQuery);
-    } catch {
+    } catch (err) {
+      // Signed in already, just not staff anywhere (a family account, or a coach before setup).
+      if (isNoWorkspace(err)) throw redirect({ to: "/welcome" });
       return;
     }
     throw redirect({ href: search.next ?? "/" });
@@ -76,11 +79,12 @@ function SignIn() {
       panel={
         <>
           <p className="mt-10 max-w-[15ch] text-[2.25rem] leading-[1.04] font-light tracking-[-0.025em] sm:text-[2.75rem] lg:mt-auto lg:text-[3.5rem]">
-            Your courts, clients, and credits in one calm place.
+            Your courts, players, and progress in one calm place.
           </p>
           <p className="mt-4 max-w-[46ch] text-[0.9375rem] text-night-ink-2">
-            Check players in on court, even offline. Packages count themselves down, balances stay
-            honest, and every player's progress lives in one profile.
+            Coaches check players in on court, even offline, and keep every player's progress in one
+            profile. Students and parents see their own sessions and progress once their academy
+            links them.
           </p>
           <div aria-hidden className="mt-10 hidden max-w-[540px] grid-cols-2 gap-2.5 sm:grid">
             <KpiTile label="Sessions" value="4" tint="lime" />
@@ -114,9 +118,12 @@ function SignIn() {
         </>
       }
     >
-      <h1 className="text-[2rem] leading-tight font-light tracking-[-0.02em]">Sign in</h1>
+      <h1 className="text-[2rem] leading-tight font-light tracking-[-0.02em]">
+        Sign in to CoachMan
+      </h1>
       <p className="mt-2 text-ink-2">
-        For coaches. Your workspace and your clients' details stay private to you.
+        For coaches and academy staff, and for students and parents. Each person sees only what
+        their academy shares with them.
       </p>
       {message ? (
         <div className="mt-5">
@@ -148,8 +155,9 @@ function SignIn() {
         </Button>
       </div>
       <p className="mt-6 text-[0.875rem] text-ink-2">
-        New to CoachMan? Continue with Google to create your workspace. You'll add a passkey next,
-        so signing in on court takes one tap.
+        New to CoachMan? Coaches: continue with Google to set up your coaching or academy, then add
+        a passkey so signing in on court takes one tap. Students and parents: start from the invite
+        link your academy sent you.
       </p>
     </AuthLayout>
   );

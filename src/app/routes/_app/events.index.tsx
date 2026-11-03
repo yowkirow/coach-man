@@ -24,7 +24,7 @@ import { EventSheet } from "../../features/events/event-sheet";
 import { OfflineNote } from "../../features/schedule/choice";
 import { api, errorMessage } from "../../lib/api";
 import { plural } from "../../lib/format";
-import { meQuery } from "../../lib/hooks";
+import { meQuery, useCan } from "../../lib/hooks";
 import { useOnline } from "../../lib/offline";
 import { keys } from "../../lib/query";
 
@@ -76,6 +76,8 @@ const EMPTY: Record<Scope, { title: string; body: string }> = {
 };
 
 function EventsPage() {
+  // Creating an event sets its price, so it's for owners and admins (the catalog capability).
+  const can = useCan();
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const desktop = useIsDesktop();
@@ -151,7 +153,7 @@ function EventsPage() {
         title={EMPTY[scope].title}
         body={EMPTY[scope].body}
         action={
-          scope === "past" ? undefined : (
+          scope === "past" || !can.catalog ? undefined : (
             <Button variant="dark" isDisabled={!online} onPress={openNew}>
               New event
             </Button>
@@ -175,14 +177,16 @@ function EventsPage() {
             actions={
               <>
                 {scopePicker}
-                <Button
-                  variant="dark"
-                  icon={<Plus aria-hidden className="size-4.5" />}
-                  isDisabled={!online}
-                  onPress={openNew}
-                >
-                  New event
-                </Button>
+                {can.catalog ? (
+                  <Button
+                    variant="dark"
+                    icon={<Plus aria-hidden className="size-4.5" />}
+                    isDisabled={!online}
+                    onPress={openNew}
+                  >
+                    New event
+                  </Button>
+                ) : null}
               </>
             }
           />
@@ -202,15 +206,17 @@ function EventsPage() {
             <div className="mt-5">
               <EventKpis stats={stats} />
             </div>
-            <Button
-              variant="lime"
-              className="mt-4 w-full"
-              icon={<Plus aria-hidden className="size-4.5" />}
-              isDisabled={!online}
-              onPress={openNew}
-            >
-              New event
-            </Button>
+            {can.catalog ? (
+              <Button
+                variant="lime"
+                className="mt-4 w-full"
+                icon={<Plus aria-hidden className="size-4.5" />}
+                isDisabled={!online}
+                onPress={openNew}
+              >
+                New event
+              </Button>
+            ) : null}
             {!online ? <OfflineNote dark className="mt-3" /> : null}
           </section>
           <Page className="flex flex-col gap-4 pt-4">
@@ -221,7 +227,7 @@ function EventsPage() {
       )}
 
       <EventSheet
-        isOpen={search.new === "1"}
+        isOpen={search.new === "1" && can.catalog}
         onSaved={(e, created) => {
           if (created) createdId.current = e.id;
         }}

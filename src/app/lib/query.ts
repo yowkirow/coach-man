@@ -12,6 +12,7 @@ export const CACHE_BUSTER = "coachman-cache-v1";
 
 export const keys = {
   me: ["me"] as const,
+  account: ["account"] as const,
   today: ["today"] as const,
   lesson: (id: string) => ["lesson", id] as const,
   lessons: (from: string, to: string) => ["lessons", from, to] as const,
@@ -36,6 +37,7 @@ export const keys = {
 /** Query families kept in IndexedDB so the app can open and read offline. */
 const PERSISTED = new Set([
   "me",
+  "account",
   "today",
   "lesson",
   "lessons",

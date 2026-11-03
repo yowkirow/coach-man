@@ -17,7 +17,7 @@ import { InlineError } from "../../components/ui/feedback";
 import { ConfirmSheet } from "../../components/ui/overlay";
 import { api, errorMessage } from "../../lib/api";
 import { plural } from "../../lib/format";
-import { useMe } from "../../lib/hooks";
+import { useCan, useMe } from "../../lib/hooks";
 import { notify } from "../../lib/notify";
 import { clearLocalData, useOnline, usePendingChanges } from "../../lib/offline";
 import { useInstallPrompt } from "../../lib/pwa";
@@ -61,6 +61,7 @@ function Block({
 
 export function AppDataSection() {
   const me = useMe().data;
+  const can = useCan();
   const online = useOnline();
   const pending = usePendingChanges();
   const install = useInstallPrompt();
@@ -97,7 +98,11 @@ export function AppDataSection() {
     <SettingsSection
       id="app-data"
       title="App & data"
-      description="Install CoachMan, take your data with you, and tidy up this device."
+      description={
+        can.data
+          ? "Install CoachMan, take your data with you, and tidy up this device."
+          : "Install CoachMan and tidy up this device."
+      }
     >
       <div className="flex flex-col divide-y divide-line">
         <Block
@@ -129,54 +134,58 @@ export function AppDataSection() {
           )}
         </Block>
 
-        <Block
-          title="Export your data"
-          description="Spreadsheet-ready CSVs, plus a full backup. Your data is yours, any time."
-        >
-          <ul className="-mx-2 grid gap-1 sm:grid-cols-2">
-            {EXPORTS.map((x) => (
-              <li key={x.file}>
-                <a
-                  href={`/api/v1/export/${x.file}`}
-                  download
-                  onClick={(e) => {
-                    if (online) return;
-                    e.preventDefault();
-                    notify({ tone: "neutral", title: "Exports need a connection" });
-                  }}
-                  className="flex items-center gap-3 rounded-2xl px-2 py-2.5 outline-none hover:bg-panel focus-visible:outline-2 focus-visible:outline-ink"
-                >
-                  <span
-                    aria-hidden
-                    className="flex size-10 shrink-0 items-center justify-center rounded-full bg-panel text-ink"
-                  >
-                    <Download className="size-4.5" />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="flex items-center gap-2">
-                      <span className="font-medium">{x.label}</span>
-                      <Pill tone="outline">{x.file.endsWith(".json") ? "JSON" : "CSV"}</Pill>
-                    </span>
-                    <span className="block truncate text-[0.8125rem] text-ink-2">{x.body}</span>
-                  </span>
-                </a>
-              </li>
-            ))}
-          </ul>
-        </Block>
+        {can.data ? (
+          <>
+            <Block
+              title="Export your data"
+              description="Spreadsheet-ready CSVs, plus a full backup. Your data is yours, any time."
+            >
+              <ul className="-mx-2 grid gap-1 sm:grid-cols-2">
+                {EXPORTS.map((x) => (
+                  <li key={x.file}>
+                    <a
+                      href={`/api/v1/export/${x.file}`}
+                      download
+                      onClick={(e) => {
+                        if (online) return;
+                        e.preventDefault();
+                        notify({ tone: "neutral", title: "Exports need a connection" });
+                      }}
+                      className="flex items-center gap-3 rounded-2xl px-2 py-2.5 outline-none hover:bg-panel focus-visible:outline-2 focus-visible:outline-ink"
+                    >
+                      <span
+                        aria-hidden
+                        className="flex size-10 shrink-0 items-center justify-center rounded-full bg-panel text-ink"
+                      >
+                        <Download className="size-4.5" />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-center gap-2">
+                          <span className="font-medium">{x.label}</span>
+                          <Pill tone="outline">{x.file.endsWith(".json") ? "JSON" : "CSV"}</Pill>
+                        </span>
+                        <span className="block truncate text-[0.8125rem] text-ink-2">{x.body}</span>
+                      </span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </Block>
 
-        <Block title="Import clients" description="Bring your list over from a spreadsheet.">
-          <Link
-            to="/import"
-            className="inline-flex h-11 items-center gap-2 rounded-full bg-card px-5 font-medium text-ink ring-1 ring-line-strong outline-none hover:bg-panel focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
-          >
-            <FileUp aria-hidden className="size-4.5" />
-            Import from CSV
-            <ArrowUpRight aria-hidden className="size-4 text-ink-2" />
-          </Link>
-        </Block>
+            <Block title="Import clients" description="Bring your list over from a spreadsheet.">
+              <Link
+                to="/import"
+                className="inline-flex h-11 items-center gap-2 rounded-full bg-card px-5 font-medium text-ink ring-1 ring-line-strong outline-none hover:bg-panel focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+              >
+                <FileUp aria-hidden className="size-4.5" />
+                Import from CSV
+                <ArrowUpRight aria-hidden className="size-4 text-ink-2" />
+              </Link>
+            </Block>
+          </>
+        ) : null}
 
-        {me?.hasSampleData ? (
+        {me?.hasSampleData && can.data ? (
           <Block
             title="Sample data"
             description="The clients tagged Sample, with their sessions, packages, and payments, are synthetic. Remove them once you're settled in."
@@ -211,11 +220,13 @@ export function AppDataSection() {
           </div>
         </Block>
       </div>
-      <div className="mt-4">
-        <OfflineNote>
-          You're offline. Exports and removing sample data need a connection.
-        </OfflineNote>
-      </div>
+      {can.data ? (
+        <div className="mt-4">
+          <OfflineNote>
+            You're offline. Exports and removing sample data need a connection.
+          </OfflineNote>
+        </div>
+      ) : null}
 
       <ConfirmSheet
         isOpen={confirmSample}

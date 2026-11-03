@@ -25,10 +25,12 @@ export function useProgress(id: string) {
   });
 }
 
-export function useStatement(id: string) {
+/** A client's charges and payments; only for roles with money (pass `enabled: can.money`). */
+export function useStatement(id: string, { enabled = true }: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: keys.statement(id),
     queryFn: () => api.get<StatementDto>(`/clients/${id}/statement`),
+    enabled,
   });
 }
 

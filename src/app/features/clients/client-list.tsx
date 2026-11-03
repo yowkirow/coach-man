@@ -11,6 +11,7 @@ import {
 import type { ReactNode } from "react";
 import { Avatar, Pill } from "../../components/ui/display";
 import { fullName, useFormat } from "../../lib/format";
+import { useCan } from "../../lib/hooks";
 import {
   CREDIT_PILL,
   CREDIT_TEXT,
@@ -132,6 +133,8 @@ export function ClientRow({
   onOpenLedger: (client: ClientListItemDto) => void;
 }) {
   const fmt = useFormat();
+  // Balances are money: coaches don't get them, and nothing about them shows.
+  const balance = useCan().money ? client.balanceMinor : 0;
   const credit = creditState(client);
   const names = groupNamesOf(client, groups);
   const contact = [client.email, client.phone].filter(Boolean).join(" · ");
@@ -152,7 +155,7 @@ export function ClientRow({
           <span className="flex flex-wrap items-center gap-1.5">
             <NamePills client={client} />
           </span>
-          {client.balanceMinor > 0 ? <OwesLink client={client} className="xl:hidden" /> : null}
+          {balance > 0 ? <OwesLink client={client} className="xl:hidden" /> : null}
         </div>
         <p className="mt-0.5 truncate text-[0.8125rem] text-ink-2">
           {contact || "No contact details yet"}
@@ -198,11 +201,11 @@ export function ClientRow({
       </div>
 
       <div className="hidden w-[8.5rem] shrink-0 xl:block">
-        {client.balanceMinor > 0 ? (
+        {balance > 0 ? (
           <OwesLink client={client} />
-        ) : client.balanceMinor < 0 ? (
+        ) : balance < 0 ? (
           <Pill tone="mint">
-            <span className="num">{fmt.moneyShort(-client.balanceMinor)} credit</span>
+            <span className="num">{fmt.moneyShort(-balance)} credit</span>
           </Pill>
         ) : null}
       </div>
@@ -227,7 +230,7 @@ export function PhoneClientRow({
   const fmt = useFormat();
   const credit = creditState(client);
   const names = groupNamesOf(client, groups);
-  const owes = client.balanceMinor > 0;
+  const owes = useCan().money && client.balanceMinor > 0;
   const warn = credit.tone === "low" || credit.tone === "out";
   return (
     <li>
@@ -283,7 +286,7 @@ export function ClientTile({
   const subtitle = [credit.tone === "none" ? "No package" : credit.short, names[0] ?? null]
     .filter(Boolean)
     .join(" · ");
-  const owes = client.balanceMinor > 0;
+  const owes = useCan().money && client.balanceMinor > 0;
   const RowIcon = owes ? CircleDollarSign : client.nextSessionAt ? CalendarClock : CalendarX2;
   const rowText = owes
     ? `Owes ${fmt.moneyShort(client.balanceMinor)}`

@@ -11,6 +11,8 @@ const FALLBACK: Pick<WorkspaceSettingsDto, "currency" | "timezone" | "locale" | 
   weekStartsOn: 1,
 };
 
+const NO_AMOUNT = "–";
+
 export function makeFormat(
   s: Pick<WorkspaceSettingsDto, "currency" | "timezone" | "locale" | "weekStartsOn">,
 ) {
@@ -53,8 +55,11 @@ export function makeFormat(
     locale,
     weekStartsOn: s.weekStartsOn,
     today: () => todayIn(tz),
-    money: (minor: number) => formatMoney(minor, currency, locale),
-    moneyShort: (minor: number) => formatMoneyShort(minor, currency, locale),
+    // Money fields are absent for coaches; never print "NaN" if one slips through ungated.
+    money: (minor: number) =>
+      Number.isFinite(minor) ? formatMoney(minor, currency, locale) : NO_AMOUNT,
+    moneyShort: (minor: number) =>
+      Number.isFinite(minor) ? formatMoneyShort(minor, currency, locale) : NO_AMOUNT,
     time: (epoch: number) => timeFmt.format(epoch),
     timeRange: (start: number, end: number) => `${timeFmt.format(start)}–${timeFmt.format(end)}`,
     /** "Tue 14 Oct" for a YYYY-MM-DD date. */

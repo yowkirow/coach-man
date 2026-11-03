@@ -4,6 +4,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Download, FileUp, Users } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Page, ShellAside } from "../../components/layout/app-shell";
+import { NoAccess } from "../../components/layout/no-access";
 import { Button, buttonClass } from "../../components/ui/button";
 import { PageHeader } from "../../components/ui/display";
 import {
@@ -29,13 +30,26 @@ import {
 } from "../../features/import/import-steps";
 import { api, errorMessage } from "../../lib/api";
 import { plural, useFormat } from "../../lib/format";
-import { useClients } from "../../lib/hooks";
+import { useCan, useClients } from "../../lib/hooks";
 import { notify } from "../../lib/notify";
 import { keys } from "../../lib/query";
 
 export const Route = createFileRoute("/_app/import")({
-  component: ImportPage,
+  component: ImportRoute,
 });
+
+function ImportRoute() {
+  const can = useCan();
+  if (!can.data) {
+    return (
+      <NoAccess
+        title="Import clients"
+        body="Importing and exporting the academy's data is for its owner and admins. You can still add players one by one from Clients."
+      />
+    );
+  }
+  return <ImportPage />;
+}
 
 interface Skipped {
   line: number;

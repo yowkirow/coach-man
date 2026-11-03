@@ -42,7 +42,7 @@ import { Checkbox } from "../../components/ui/field";
 import { ActionMenu, ConfirmSheet, type MenuAction } from "../../components/ui/overlay";
 import { ApiRequestError, api, errorMessage } from "../../lib/api";
 import { type Format, fullName, plural, useFormat } from "../../lib/format";
-import { useClients, useNow, useVenues } from "../../lib/hooks";
+import { useCan, useClients, useNow, useVenues } from "../../lib/hooks";
 import { notify } from "../../lib/notify";
 import { useOnline } from "../../lib/offline";
 import {
@@ -98,6 +98,7 @@ export function EventDetail({
   onTab: (tab: EventTab) => void;
 }) {
   const now = useNow();
+  const can = useCan();
   const q = useEvent(eventId);
   const clients = useClients({});
   const invalidateEvents = useInvalidateEvents();
@@ -180,7 +181,7 @@ export function EventDetail({
         ]}
         aside={
           <>
-            <MoneyBento detail={detail} />
+            {can.money ? <MoneyBento detail={detail} /> : null}
             <CapacityBento event={e} onRegister={() => setSheet("register")} />
           </>
         }
@@ -202,19 +203,19 @@ export function EventDetail({
         }}
       />
       <EventSheet
-        isOpen={sheet === "edit"}
+        isOpen={sheet === "edit" && can.catalog}
         onOpenChange={(o) => setSheet(o ? "edit" : null)}
         event={e}
       />
       <CancelEventSheet
-        isOpen={sheet === "cancel"}
+        isOpen={sheet === "cancel" && can.catalog}
         onOpenChange={(o) => setSheet(o ? "cancel" : null)}
         event={e}
         sessions={sessions}
       />
       <RegistrationConfirm confirm={confirm} event={e} onClose={() => setConfirm(null)} />
       <RecordPaymentSheet
-        isOpen={paying !== null}
+        isOpen={paying !== null && can.money}
         onOpenChange={(o) => {
           if (o) return;
           setPaying(null);
@@ -259,6 +260,8 @@ function useStatusChange(event: EventDto) {
 
 function EventHeader({ event: e, onSheet }: { event: EventDto; onSheet: (s: SheetName) => void }) {
   const fmt = useFormat();
+  // Editing, opening, closing, and cancelling an event is catalog work (owners and admins).
+  const can = useCan();
   const online = useOnline();
   const venues = useVenues();
   const setStatus = useStatusChange(e);
@@ -352,24 +355,28 @@ function EventHeader({ event: e, onSheet }: { event: EventDto; onSheet: (s: Shee
           >
             <CalendarPlus aria-hidden className="size-5" />
           </IconButton>
-          <IconButton
-            label="Edit event"
-            variant="lime"
-            size="lg"
-            isDisabled={!online}
-            onPress={() => onSheet("edit")}
-          >
-            <Pencil aria-hidden className="size-5" />
-          </IconButton>
-          <ActionMenu
-            label="Event status and more"
-            trigger={
-              <IconButton label="Event status and more" variant="white" size="lg">
-                <Ellipsis aria-hidden className="size-5" />
+          {can.catalog ? (
+            <>
+              <IconButton
+                label="Edit event"
+                variant="lime"
+                size="lg"
+                isDisabled={!online}
+                onPress={() => onSheet("edit")}
+              >
+                <Pencil aria-hidden className="size-5" />
               </IconButton>
-            }
-            actions={actions}
-          />
+              <ActionMenu
+                label="Event status and more"
+                trigger={
+                  <IconButton label="Event status and more" variant="white" size="lg">
+                    <Ellipsis aria-hidden className="size-5" />
+                  </IconButton>
+                }
+                actions={actions}
+              />
+            </>
+          ) : null}
         </div>
         {!online ? <OfflineNote /> : null}
       </div>
@@ -377,8 +384,14 @@ function EventHeader({ event: e, onSheet }: { event: EventDto; onSheet: (s: Shee
   );
 }
 
-/** Money line for a registration; null when the coral "owes" pill already says it all. */
-function paidLine(r: Registration, fmt: Format): string | null {
+/**
+ * Money line for a registration; null when the coral "owes" pill already says it all. Without
+ * the money capability (coaches) only the waitlist wait shows.
+ */
+function paidLine(r: Registration, fmt: Format, money: boolean): string | null {
+  if (!money) {
+    return r.status === "waitlisted" ? `Waiting since ${fmt.day(fmt.dayOf(r.registeredAt))}` : null;
+  }
   if (r.status === "waitlisted") {
     const since = `waiting since ${fmt.day(fmt.dayOf(r.registeredAt))}`;
     return r.priceMinor > 0
@@ -408,12 +421,13 @@ function RegistrationRow({
   onPay: (c: SelectedClient) => void;
 }) {
   const fmt = useFormat();
+  const can = useCan();
   const online = useOnline();
   const invalidateEvents = useInvalidateEvents();
   const invalidateMoney = useInvalidateMoney();
   const name = fullName(r);
-  const due = owed(r);
-  const line = paidLine(r, fmt);
+  const due = can.money ? owed(r) : 0;
+  const line = paidLine(r, fmt, can.money);
   const full = event.capacity !== null && event.registeredCount >= event.capacity;
 
   const promote = useMutation({
@@ -426,7 +440,7 @@ function RegistrationRow({
         tone: "success",
         title: `${r.firstName} moved off the waitlist`,
         body:
-          r.priceMinor > 0
+          can.money && r.priceMinor > 0
             ? `${fmt.money(r.priceMinor)} added to their balance.`
             : "Booked into upcoming sessions.",
       });
@@ -464,19 +478,23 @@ function RegistrationRow({
   const actions: MenuAction[] =
     r.status === "registered"
       ? [
-          {
-            id: "pay",
-            label: "Record payment",
-            onAction: () =>
-              onPay({
-                id: r.clientId,
-                firstName: r.firstName,
-                lastName: r.lastName,
-                photoKey: client?.photoKey,
-                balanceMinor: client?.balanceMinor ?? due,
-              }),
-            isDisabled: !online,
-          },
+          ...(can.money
+            ? [
+                {
+                  id: "pay",
+                  label: "Record payment",
+                  onAction: () =>
+                    onPay({
+                      id: r.clientId,
+                      firstName: r.firstName,
+                      lastName: r.lastName,
+                      photoKey: client?.photoKey,
+                      balanceMinor: client?.balanceMinor ?? due,
+                    }),
+                  isDisabled: !online,
+                },
+              ]
+            : []),
           {
             id: "cancel",
             label: "Cancel registration",
@@ -572,6 +590,7 @@ function RegistrationsCard({
   onPay: (c: SelectedClient) => void;
 }) {
   const online = useOnline();
+  const can = useCan();
   const e = detail.event;
   const byStatus = (s: RegistrationStatus) =>
     detail.registrations
@@ -645,7 +664,9 @@ function RegistrationsCard({
             body={
               locked
                 ? "This event is closed to new registrations."
-                : "Register players as they sign up. Each registration adds the event price to their balance, and once it's full, new sign-ups join the waitlist."
+                : can.money
+                  ? "Register players as they sign up. Each registration adds the event price to their balance, and once it's full, new sign-ups join the waitlist."
+                  : "Register players as they sign up. Once it's full, new sign-ups join the waitlist."
             }
             action={
               locked ? undefined : (
@@ -726,6 +747,7 @@ function SessionsCard({
 
 function DetailsCard({ event: e }: { event: EventDto }) {
   const fmt = useFormat();
+  const can = useCan();
   const venues = useVenues();
   const venue = venues.data?.find((v) => v.id === e.venueId)?.name;
   const days = daysBetween(e.startsOn, e.endsOn) + 1;
@@ -738,18 +760,22 @@ function DetailsCard({ event: e }: { event: EventDto }) {
           </span>
         </KeyValue>
         <KeyValue label="Venue">{venue ?? "No venue set"}</KeyValue>
-        <KeyValue label="Price">
-          <span className="num">{e.priceMinor ? fmt.money(e.priceMinor) : "Free"}</span>
-        </KeyValue>
-        <KeyValue label="Early-bird price">
-          {e.earlyBirdPriceMinor !== null && e.earlyBirdUntil ? (
-            <span className="num">
-              {fmt.money(e.earlyBirdPriceMinor)} until {fmt.day(e.earlyBirdUntil)}
-            </span>
-          ) : (
-            "None"
-          )}
-        </KeyValue>
+        {can.money ? (
+          <>
+            <KeyValue label="Price">
+              <span className="num">{e.priceMinor ? fmt.money(e.priceMinor) : "Free"}</span>
+            </KeyValue>
+            <KeyValue label="Early-bird price">
+              {e.earlyBirdPriceMinor !== null && e.earlyBirdUntil ? (
+                <span className="num">
+                  {fmt.money(e.earlyBirdPriceMinor)} until {fmt.day(e.earlyBirdUntil)}
+                </span>
+              ) : (
+                "None"
+              )}
+            </KeyValue>
+          </>
+        ) : null}
         <KeyValue label="Capacity">
           {e.capacity ? <span className="num">{plural(e.capacity, "player")}</span> : "No limit"}
         </KeyValue>
@@ -874,6 +900,7 @@ function RegistrationConfirm({
   onClose: () => void;
 }) {
   const fmt = useFormat();
+  const can = useCan();
   const invalidateEvents = useInvalidateEvents();
   const invalidateMoney = useInvalidateMoney();
   const [shown, setShown] = useState<RegConfirm | null>(confirm);
@@ -906,7 +933,7 @@ function RegistrationConfirm({
             : `${c.reg.firstName} taken off the waitlist`,
           body: wasRegistered
             ? [
-                c.reg.priceMinor > 0 ? "The charge was voided." : null,
+                can.money && c.reg.priceMinor > 0 ? "The charge was voided." : null,
                 filled ? "The next player on the waitlist got the spot." : null,
               ]
                 .filter(Boolean)
@@ -954,15 +981,20 @@ function RegistrationConfirm({
           {promoting ? (
             <p>
               {event.name} is full at <span className="num">{event.capacity}</span>. {name} is
-              registered anyway, booked into the upcoming sessions, and charged{" "}
-              <span className="num">{fmt.money(r?.priceMinor ?? 0)}</span>.
+              registered anyway and booked into the upcoming sessions
+              {can.money ? (
+                <>
+                  , and charged <span className="num">{fmt.money(r?.priceMinor ?? 0)}</span>
+                </>
+              ) : null}
+              .
             </p>
           ) : r?.status === "waitlisted" ? (
             <p>{name} comes off the waitlist. Nothing was charged, so there's nothing to undo.</p>
           ) : (
             <p>
               {name} comes off the list and the upcoming sessions.{" "}
-              {r && r.priceMinor > 0 ? (
+              {can.money && r && r.priceMinor > 0 ? (
                 <>
                   The <span className="num">{fmt.money(r.priceMinor)}</span> charge is voided
                   {paid > 0 ? (

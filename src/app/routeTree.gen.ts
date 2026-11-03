@@ -10,8 +10,10 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/_app'
+import { Route as PortalRouteImport } from './routes/_portal'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as SignInRouteImport } from './routes/sign-in'
+import { Route as WelcomeRouteImport } from './routes/welcome'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppImportRouteImport } from './routes/_app/import'
 import { Route as AppMoneyRouteImport } from './routes/_app/money'
@@ -27,9 +29,14 @@ import { Route as AppEventsEventIdRouteImport } from './routes/_app/events.$even
 import { Route as AppGroupsIndexRouteImport } from './routes/_app/groups.index'
 import { Route as AppGroupsGroupIdRouteImport } from './routes/_app/groups.$groupId'
 import { Route as AppSessionsLessonIdRouteImport } from './routes/_app/sessions.$lessonId'
+import { Route as PortalMyIndexRouteImport } from './routes/_portal/my.index'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PortalRoute = PortalRouteImport.update({
+  id: '/_portal',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OnboardingRoute = OnboardingRouteImport.update({
@@ -40,6 +47,11 @@ const OnboardingRoute = OnboardingRouteImport.update({
 const SignInRoute = SignInRouteImport.update({
   id: '/sign-in',
   path: '/sign-in',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WelcomeRoute = WelcomeRouteImport.update({
+  id: '/welcome',
+  path: '/welcome',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppIndexRoute = AppIndexRouteImport.update({
@@ -117,11 +129,17 @@ const AppSessionsLessonIdRoute = AppSessionsLessonIdRouteImport.update({
   path: '/sessions/$lessonId',
   getParentRoute: () => AppRoute,
 } as any)
+const PortalMyIndexRoute = PortalMyIndexRouteImport.update({
+  id: '/my/',
+  path: '/my/',
+  getParentRoute: () => PortalRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/onboarding': typeof OnboardingRoute
   '/sign-in': typeof SignInRoute
+  '/welcome': typeof WelcomeRoute
   '/import': typeof AppImportRoute
   '/money': typeof AppMoneyRoute
   '/more': typeof AppMoreRoute
@@ -136,17 +154,19 @@ export interface FileRoutesByFullPath {
   '/clients/': typeof AppClientsIndexRoute
   '/events/': typeof AppEventsIndexRoute
   '/groups/': typeof AppGroupsIndexRoute
+  '/my/': typeof PortalMyIndexRoute
 }
 export interface FileRoutesByTo {
+  '/': typeof AppIndexRoute
   '/onboarding': typeof OnboardingRoute
   '/sign-in': typeof SignInRoute
+  '/welcome': typeof WelcomeRoute
   '/import': typeof AppImportRoute
   '/money': typeof AppMoneyRoute
   '/more': typeof AppMoreRoute
   '/packages': typeof AppPackagesRoute
   '/schedule': typeof AppScheduleRoute
   '/settings': typeof AppSettingsRoute
-  '/': typeof AppIndexRoute
   '/clients/$clientId': typeof AppClientsClientIdRoute
   '/clients/new': typeof AppClientsNewRoute
   '/events/$eventId': typeof AppEventsEventIdRoute
@@ -155,12 +175,15 @@ export interface FileRoutesByTo {
   '/clients': typeof AppClientsIndexRoute
   '/events': typeof AppEventsIndexRoute
   '/groups': typeof AppGroupsIndexRoute
+  '/my': typeof PortalMyIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
+  '/_portal': typeof PortalRouteWithChildren
   '/onboarding': typeof OnboardingRoute
   '/sign-in': typeof SignInRoute
+  '/welcome': typeof WelcomeRoute
   '/_app/import': typeof AppImportRoute
   '/_app/money': typeof AppMoneyRoute
   '/_app/more': typeof AppMoreRoute
@@ -176,6 +199,7 @@ export interface FileRoutesById {
   '/_app/clients/': typeof AppClientsIndexRoute
   '/_app/events/': typeof AppEventsIndexRoute
   '/_app/groups/': typeof AppGroupsIndexRoute
+  '/_portal/my/': typeof PortalMyIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -183,6 +207,7 @@ export interface FileRouteTypes {
     | '/'
     | '/onboarding'
     | '/sign-in'
+    | '/welcome'
     | '/import'
     | '/money'
     | '/more'
@@ -197,17 +222,19 @@ export interface FileRouteTypes {
     | '/clients/'
     | '/events/'
     | '/groups/'
+    | '/my/'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/'
     | '/onboarding'
     | '/sign-in'
+    | '/welcome'
     | '/import'
     | '/money'
     | '/more'
     | '/packages'
     | '/schedule'
     | '/settings'
-    | '/'
     | '/clients/$clientId'
     | '/clients/new'
     | '/events/$eventId'
@@ -216,11 +243,14 @@ export interface FileRouteTypes {
     | '/clients'
     | '/events'
     | '/groups'
+    | '/my'
   id:
     | '__root__'
     | '/_app'
+    | '/_portal'
     | '/onboarding'
     | '/sign-in'
+    | '/welcome'
     | '/_app/import'
     | '/_app/money'
     | '/_app/more'
@@ -236,12 +266,15 @@ export interface FileRouteTypes {
     | '/_app/clients/'
     | '/_app/events/'
     | '/_app/groups/'
+    | '/_portal/my/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
+  PortalRoute: typeof PortalRouteWithChildren
   OnboardingRoute: typeof OnboardingRoute
   SignInRoute: typeof SignInRoute
+  WelcomeRoute: typeof WelcomeRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -251,6 +284,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_portal': {
+      id: '/_portal'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof PortalRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/onboarding': {
@@ -265,6 +305,13 @@ declare module '@tanstack/react-router' {
       path: '/sign-in'
       fullPath: '/sign-in'
       preLoaderRoute: typeof SignInRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/welcome': {
+      id: '/welcome'
+      path: '/welcome'
+      fullPath: '/welcome'
+      preLoaderRoute: typeof WelcomeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app/': {
@@ -372,6 +419,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSessionsLessonIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_portal/my/': {
+      id: '/_portal/my/'
+      path: '/my'
+      fullPath: '/my/'
+      preLoaderRoute: typeof PortalMyIndexRouteImport
+      parentRoute: typeof PortalRoute
+    }
   }
 }
 
@@ -413,10 +467,23 @@ const AppRouteChildren: AppRouteChildren = {
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
+interface PortalRouteChildren {
+  PortalMyIndexRoute: typeof PortalMyIndexRoute
+}
+
+const PortalRouteChildren: PortalRouteChildren = {
+  PortalMyIndexRoute: PortalMyIndexRoute,
+}
+
+const PortalRouteWithChildren =
+  PortalRoute._addFileChildren(PortalRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
+  PortalRoute: PortalRouteWithChildren,
   OnboardingRoute: OnboardingRoute,
   SignInRoute: SignInRoute,
+  WelcomeRoute: WelcomeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

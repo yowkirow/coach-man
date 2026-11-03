@@ -9,7 +9,7 @@ import { SelectField, TextAreaField, TextField } from "../../components/ui/field
 import { Sheet } from "../../components/ui/overlay";
 import { api, errorMessage, fieldErrors } from "../../lib/api";
 import { plural, useFormat } from "../../lib/format";
-import { useGroups, useRates, useVenues } from "../../lib/hooks";
+import { useCan, useGroups, useRates, useVenues } from "../../lib/hooks";
 import { notify } from "../../lib/notify";
 import { useOnline } from "../../lib/offline";
 import { OfflineNote } from "../schedule/choice";
@@ -97,6 +97,7 @@ export function GroupSheet({
   onSaved?: (group: GroupDto, created: boolean) => void;
 }) {
   const fmt = useFormat();
+  const can = useCan();
   const online = useOnline();
   const invalidate = useInvalidateGroups();
   const groups = useGroups();
@@ -182,7 +183,9 @@ export function GroupSheet({
     ...activeRates.map((r) => ({
       id: r.id,
       label: r.name,
-      description: `${fmt.money(r.priceMinor)} per ${r.unit === "hour" ? "hour" : "session"}`,
+      description: can.money
+        ? `${fmt.money(r.priceMinor)} per ${r.unit === "hour" ? "hour" : "session"}`
+        : undefined,
     })),
     ...(draft.rateId !== "none" && !activeRates.some((r) => r.id === draft.rateId)
       ? [{ id: draft.rateId, label: "Current rate (switched off)" }]

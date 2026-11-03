@@ -23,6 +23,7 @@ import { GroupSheet } from "../../features/groups/group-sheet";
 import { OfflineNote } from "../../features/schedule/choice";
 import { api, errorMessage } from "../../lib/api";
 import { plural } from "../../lib/format";
+import { useCan } from "../../lib/hooks";
 import { useOnline } from "../../lib/offline";
 import { keys } from "../../lib/query";
 
@@ -51,6 +52,8 @@ export const Route = createFileRoute("/_app/groups/")({
 });
 
 function GroupsPage() {
+  // Groups are the academy's programs (the catalog capability): coaches use them, not create them.
+  const can = useCan();
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const desktop = useIsDesktop();
@@ -121,9 +124,11 @@ function GroupsPage() {
         title="No groups yet"
         body="A group keeps a class's players together: add members once, give it a weekly time, and everyone is booked into every session. Credits come off their packages at check-in."
         action={
-          <Button variant="dark" isDisabled={!online} onPress={openNew}>
-            New group
-          </Button>
+          can.catalog ? (
+            <Button variant="dark" isDisabled={!online} onPress={openNew}>
+              New group
+            </Button>
+          ) : undefined
         }
       />
     </Card>
@@ -143,14 +148,16 @@ function GroupsPage() {
             actions={
               <>
                 {archivedToggle}
-                <Button
-                  variant="dark"
-                  icon={<Plus aria-hidden className="size-4.5" />}
-                  isDisabled={!online}
-                  onPress={openNew}
-                >
-                  New group
-                </Button>
+                {can.catalog ? (
+                  <Button
+                    variant="dark"
+                    icon={<Plus aria-hidden className="size-4.5" />}
+                    isDisabled={!online}
+                    onPress={openNew}
+                  >
+                    New group
+                  </Button>
+                ) : null}
               </>
             }
           />
@@ -170,15 +177,17 @@ function GroupsPage() {
             <div className="mt-5">
               <GroupKpis stats={stats} />
             </div>
-            <Button
-              variant="lime"
-              className="mt-4 w-full"
-              icon={<Plus aria-hidden className="size-4.5" />}
-              isDisabled={!online}
-              onPress={openNew}
-            >
-              New group
-            </Button>
+            {can.catalog ? (
+              <Button
+                variant="lime"
+                className="mt-4 w-full"
+                icon={<Plus aria-hidden className="size-4.5" />}
+                isDisabled={!online}
+                onPress={openNew}
+              >
+                New group
+              </Button>
+            ) : null}
             {!online ? <OfflineNote dark className="mt-3" /> : null}
           </section>
           <Page className="flex flex-col gap-4 pt-4">
@@ -189,7 +198,7 @@ function GroupsPage() {
       )}
 
       <GroupSheet
-        isOpen={search.new === "1"}
+        isOpen={search.new === "1" && can.catalog}
         onSaved={(g, created) => {
           if (created) createdId.current = g.id;
         }}

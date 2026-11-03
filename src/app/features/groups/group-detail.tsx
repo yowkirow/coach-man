@@ -43,7 +43,7 @@ import { Checkbox } from "../../components/ui/field";
 import { ActionMenu, ConfirmSheet } from "../../components/ui/overlay";
 import { ApiRequestError, api, errorMessage } from "../../lib/api";
 import { type Format, fullName, plural, useFormat } from "../../lib/format";
-import { useClients, useLessons, useNow, useRates, useVenues } from "../../lib/hooks";
+import { useCan, useClients, useLessons, useNow, useRates, useVenues } from "../../lib/hooks";
 import { notify } from "../../lib/notify";
 import { useOnline } from "../../lib/offline";
 import { keys } from "../../lib/query";
@@ -85,6 +85,8 @@ export function GroupDetail({
   onTab: (tab: GroupTab) => void;
 }) {
   const fmt = useFormat();
+  // A group is a program: owners and admins edit or archive it; every coach manages members.
+  const can = useCan();
   const now = useNow();
   const today = fmt.today();
   const q = useGroup(groupId);
@@ -166,7 +168,9 @@ export function GroupDetail({
           {
             id: "details",
             label: "Details",
-            content: <DetailsCard group={g} onEdit={() => setSheet("edit")} />,
+            content: (
+              <DetailsCard group={g} onEdit={can.catalog ? () => setSheet("edit") : undefined} />
+            ),
           },
         ]}
         aside={
@@ -193,12 +197,12 @@ export function GroupDetail({
         }}
       />
       <GroupSheet
-        isOpen={sheet === "edit"}
+        isOpen={sheet === "edit" && can.catalog}
         onOpenChange={(o) => setSheet(o ? "edit" : null)}
         group={g}
       />
       <ArchiveGroupSheet
-        isOpen={sheet === "archive"}
+        isOpen={sheet === "archive" && can.catalog}
         onOpenChange={(o) => setSheet(o ? "archive" : null)}
         group={g}
       />
@@ -232,6 +236,7 @@ function GroupHeader({
   onSheet: (s: SheetName) => void;
 }) {
   const fmt = useFormat();
+  const can = useCan();
   const online = useOnline();
   const g = detail.group;
   const archived = g.archivedAt !== null;
@@ -302,38 +307,42 @@ function GroupHeader({
           >
             <CalendarPlus aria-hidden className="size-5" />
           </IconButton>
-          <IconButton
-            label="Edit group"
-            variant="lime"
-            size="lg"
-            isDisabled={!online}
-            onPress={() => onSheet("edit")}
-          >
-            <Pencil aria-hidden className="size-5" />
-          </IconButton>
-          <ActionMenu
-            label="More group actions"
-            trigger={
-              <IconButton label="More group actions" variant="white" size="lg">
-                <Ellipsis aria-hidden className="size-5" />
+          {can.catalog ? (
+            <>
+              <IconButton
+                label="Edit group"
+                variant="lime"
+                size="lg"
+                isDisabled={!online}
+                onPress={() => onSheet("edit")}
+              >
+                <Pencil aria-hidden className="size-5" />
               </IconButton>
-            }
-            actions={[
-              {
-                id: "edit",
-                label: "Edit details",
-                onAction: () => onSheet("edit"),
-                isDisabled: !online,
-              },
-              {
-                id: "archive",
-                label: archived ? "Archived" : "Archive group",
-                tone: "danger",
-                onAction: () => onSheet("archive"),
-                isDisabled: archived || !online,
-              },
-            ]}
-          />
+              <ActionMenu
+                label="More group actions"
+                trigger={
+                  <IconButton label="More group actions" variant="white" size="lg">
+                    <Ellipsis aria-hidden className="size-5" />
+                  </IconButton>
+                }
+                actions={[
+                  {
+                    id: "edit",
+                    label: "Edit details",
+                    onAction: () => onSheet("edit"),
+                    isDisabled: !online,
+                  },
+                  {
+                    id: "archive",
+                    label: archived ? "Archived" : "Archive group",
+                    tone: "danger",
+                    onAction: () => onSheet("archive"),
+                    isDisabled: archived || !online,
+                  },
+                ]}
+              />
+            </>
+          ) : null}
         </div>
         {!online ? <OfflineNote /> : null}
       </div>
@@ -572,8 +581,10 @@ function ScheduleCards({
   );
 }
 
-function DetailsCard({ group, onEdit }: { group: GroupDto; onEdit: () => void }) {
+/** onEdit is left out for roles that can't edit the group (coaches). */
+function DetailsCard({ group, onEdit }: { group: GroupDto; onEdit?: () => void }) {
   const fmt = useFormat();
+  const can = useCan();
   const online = useOnline();
   const rates = useRates();
   const venues = useVenues();
@@ -593,10 +604,13 @@ function DetailsCard({ group, onEdit }: { group: GroupDto; onEdit: () => void })
         <KeyValue label="Default rate">
           {rate ? (
             <>
-              {rate.name}{" "}
-              <span className="num text-ink-2">
-                · {fmt.money(rate.priceMinor)} per {rate.unit === "hour" ? "hour" : "session"}
-              </span>
+              {rate.name}
+              {can.money ? (
+                <span className="num text-ink-2">
+                  {" "}
+                  · {fmt.money(rate.priceMinor)} per {rate.unit === "hour" ? "hour" : "session"}
+                </span>
+              ) : null}
             </>
           ) : group.defaultRateId ? (
             "A rate that's no longer on your rate card"
@@ -628,16 +642,18 @@ function DetailsCard({ group, onEdit }: { group: GroupDto; onEdit: () => void })
           </KeyValue>
         </div>
       </dl>
-      <Button
-        variant="light"
-        size="sm"
-        className="mt-5"
-        icon={<Pencil aria-hidden className="size-4" />}
-        isDisabled={!online}
-        onPress={onEdit}
-      >
-        Edit details
-      </Button>
+      {onEdit ? (
+        <Button
+          variant="light"
+          size="sm"
+          className="mt-5"
+          icon={<Pencil aria-hidden className="size-4" />}
+          isDisabled={!online}
+          onPress={onEdit}
+        >
+          Edit details
+        </Button>
+      ) : null}
     </Card>
   );
 }

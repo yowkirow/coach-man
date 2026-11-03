@@ -20,7 +20,7 @@ import {
 import { Sheet } from "../../components/ui/overlay";
 import { api, errorMessage, fieldErrors } from "../../lib/api";
 import { fullName, plural, useFormat } from "../../lib/format";
-import { useGroups, useMe, useRates, useVenues } from "../../lib/hooks";
+import { useCan, useGroups, useMe, useRates, useVenues } from "../../lib/hooks";
 import { notify } from "../../lib/notify";
 import { useOnline } from "../../lib/offline";
 import { keys, storeLesson } from "../../lib/query";
@@ -115,6 +115,7 @@ export function NewSessionSheet({
   onCreated?: (result: CreateLessonsResult) => void;
 }) {
   const fmt = useFormat();
+  const can = useCan();
   const me = useMe().data;
   const online = useOnline();
   const navigate = useNavigate();
@@ -294,7 +295,8 @@ export function NewSessionSheet({
       groupId: kind === "group" ? groupId : null,
       eventId: kind === "event" ? eventId : null,
       rateId: kind === "event" ? null : rateId,
-      priceMinor: kind === "event" ? null : price,
+      // A price override is a money decision; coaches book at the rate's price.
+      priceMinor: kind === "event" || !can.money ? null : price,
       capacity: capacity ? Number(capacity) : null,
       notes: plan.trim() || null,
       clientIds: PLAYER_KINDS.includes(kind) ? players.map((p) => p.id) : [],
@@ -586,22 +588,26 @@ export function NewSessionSheet({
                 ...rateChoices.map((r) => ({
                   id: r.id,
                   label: r.name,
-                  description: `${fmt.money(r.priceMinor)} per ${r.unit === "hour" ? "hour" : "session"}`,
+                  description: can.money
+                    ? `${fmt.money(r.priceMinor)} per ${r.unit === "hour" ? "hour" : "session"}`
+                    : undefined,
                 })),
               ]}
               value={rateId ?? "none"}
               onChange={setRateSel}
               description="Charged per player who pays per session."
             />
-            <MoneyField
-              label="Price override (optional)"
-              currency={fmt.currency}
-              valueMinor={price}
-              onChange={setPrice}
-              placeholder={plainAmount(rate ? rate.priceMinor : 0, fmt)}
-              description="Leave empty to use the rate."
-              error={err("priceMinor")}
-            />
+            {can.money ? (
+              <MoneyField
+                label="Price override (optional)"
+                currency={fmt.currency}
+                valueMinor={price}
+                onChange={setPrice}
+                placeholder={plainAmount(rate ? rate.priceMinor : 0, fmt)}
+                description="Leave empty to use the rate."
+                error={err("priceMinor")}
+              />
+            ) : null}
           </div>
         ) : null}
 

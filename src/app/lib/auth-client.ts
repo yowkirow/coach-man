@@ -1,10 +1,11 @@
 import { passkeyClient } from "@better-auth/passkey/client";
-import { organizationClient } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
 
+// Academies (Better Auth organizations) are managed through /api/account and /api/v1, never the
+// organization plugin's own endpoints, so its client plugin isn't loaded here.
 export const authClient = createAuthClient({
   basePath: "/api/auth",
-  plugins: [passkeyClient(), organizationClient()],
+  plugins: [passkeyClient()],
 });
 
 export async function signInWithGoogle(next = "/") {

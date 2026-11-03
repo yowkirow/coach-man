@@ -1,4 +1,5 @@
 import type {
+  AccountDto,
   ClientListItemDto,
   GroupDto,
   LessonDetailDto,
@@ -10,9 +11,10 @@ import type {
   TodayDto,
   VenueDto,
 } from "@shared/api-types";
+import { CAPABILITY_NAMES, type Capabilities } from "@shared/roles";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { api } from "./api";
+import { accountApi, api } from "./api";
 import { claimCache } from "./offline";
 import { keys, queryClient } from "./query";
 
@@ -40,6 +42,27 @@ export const meQuery = {
 
 export function useMe() {
   return useQuery(meQuery);
+}
+
+const NO_CAPABILITIES = Object.fromEntries(CAPABILITY_NAMES.map((c) => [c, false])) as Capabilities;
+
+/**
+ * What the signed-in staff member may do here (see src/shared/roles.ts). Until the profile has
+ * loaded, nothing: money and admin surfaces stay hidden rather than flash for a coach.
+ */
+export function useCan(): Capabilities {
+  return useMe().data?.can ?? NO_CAPABILITIES;
+}
+
+/** Who is signed in and where they belong: staff academies and family links (no workspace needed). */
+export const accountQuery = {
+  queryKey: keys.account,
+  queryFn: () => accountApi.get<AccountDto>(),
+  staleTime: 60_000,
+};
+
+export function useAccount() {
+  return useQuery(accountQuery);
 }
 
 export function useToday() {

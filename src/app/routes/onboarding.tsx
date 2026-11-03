@@ -7,9 +7,9 @@ import { AuthLayout } from "../components/auth-layout";
 import { Button } from "../components/ui/button";
 import { InlineError } from "../components/ui/feedback";
 import { Checkbox, SelectField, TextField } from "../components/ui/field";
-import { ApiRequestError, api, errorMessage } from "../lib/api";
+import { ApiRequestError, api, errorMessage, isNoWorkspace } from "../lib/api";
 import { authClient, defaultPasskeyName, passkeysSupported } from "../lib/auth-client";
-import { meQuery, useMe } from "../lib/hooks";
+import { meQuery, useCan, useMe } from "../lib/hooks";
 import { notify } from "../lib/notify";
 import { enablePush, pushSupported, useInstallPrompt } from "../lib/pwa";
 import { keys } from "../lib/query";
@@ -26,9 +26,12 @@ export const Route = createFileRoute("/onboarding")({
     } catch (err) {
       if (err instanceof ApiRequestError && err.status === 401)
         throw redirect({ to: "/sign-in", search: { next: "/onboarding" } });
+      if (isNoWorkspace(err)) throw redirect({ to: "/welcome" });
       return;
     }
-    if (me.settings.onboardedAt && !search.step) throw redirect({ to: "/" });
+    // Setting up the academy is for its owner or admins; the passkey and reminder steps are
+    // personal, so anyone may revisit them.
+    if (!search.step && (me.settings.onboardedAt || !me.can?.settings)) throw redirect({ to: "/" });
   },
   component: Onboarding,
 });
@@ -357,6 +360,7 @@ function PasskeyStep() {
 }
 
 function RemindersStep() {
+  const can = useCan();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const install = useInstallPrompt();
@@ -408,8 +412,9 @@ function RemindersStep() {
           Stay a step ahead
         </h1>
         <p className="mt-2 text-ink-2">
-          A nudge 30 minutes before each session and a short morning digest of who's coming and who
-          owes.
+          {can.money
+            ? "A nudge 30 minutes before each session and a short morning digest of who's coming and who owes."
+            : "A nudge 30 minutes before each session and a short morning digest of who's coming."}
         </p>
       </div>
 

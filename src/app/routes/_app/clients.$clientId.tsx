@@ -11,6 +11,7 @@ import { ClientWorklist } from "../../features/clients/worklist";
 import { RecordPaymentSheet, type SelectedClient } from "../../features/money/record-payment-sheet";
 import { SellPackageSheet } from "../../features/packages/sell-package-sheet";
 import { ApiRequestError, errorMessage } from "../../lib/api";
+import { useCan } from "../../lib/hooks";
 
 export const Route = createFileRoute("/_app/clients/$clientId")({
   validateSearch: (
@@ -27,10 +28,11 @@ function ClientProfilePage() {
   const { clientId } = Route.useParams();
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
+  const can = useCan();
   const detail = useClientDetail(clientId);
   // Start progress and the statement alongside the profile instead of after it.
   useProgress(clientId);
-  useStatement(clientId);
+  useStatement(clientId, { enabled: can.money });
   const tab = search.tab ?? "overview";
   const c = detail.data?.client;
 
@@ -109,7 +111,7 @@ function ClientProfilePage() {
           </Card>
         )}
       </Page>
-      {selected ? (
+      {selected && can.money ? (
         <>
           <SellPackageSheet
             isOpen={search.sell === "1"}

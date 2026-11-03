@@ -8,7 +8,7 @@ import { buttonClass } from "../../components/ui/button";
 import { AvatarStack, KpiTile, Meter, Pill } from "../../components/ui/display";
 import { Skeleton } from "../../components/ui/feedback";
 import { plural, useFormat } from "../../lib/format";
-import { useClients, useLessons, useNow } from "../../lib/hooks";
+import { useCan, useClients, useLessons, useNow } from "../../lib/hooks";
 import { startOfWeek } from "../schedule/dates";
 import {
   type GroupScheduleInfo,
@@ -170,6 +170,8 @@ export function GroupsPanel({
   /** The open group, shown even when it is archived. */
   current?: GroupDto;
 }) {
+  // Groups are the academy's programs: owners and admins create them.
+  const can = useCan();
   const { groups, members, schedule, stats } = useGroupsOverview(false);
   const list = groups.data ?? [];
   const shown =
@@ -193,13 +195,15 @@ export function GroupsPanel({
           <h3 id="panel-groups" className="text-[1.125rem] font-light">
             Your groups
           </h3>
-          <Link
-            to="/groups"
-            search={{ new: "1" }}
-            className="rounded-full px-2 py-1 text-[0.8125rem] text-night-ink-2 outline-none hover:text-night-ink focus-visible:outline-2 focus-visible:outline-lime"
-          >
-            New group
-          </Link>
+          {can.catalog ? (
+            <Link
+              to="/groups"
+              search={{ new: "1" }}
+              className="rounded-full px-2 py-1 text-[0.8125rem] text-night-ink-2 outline-none hover:text-night-ink focus-visible:outline-2 focus-visible:outline-lime"
+            >
+              New group
+            </Link>
+          ) : null}
         </div>
         {groups.isPending ? (
           <>
@@ -233,9 +237,15 @@ export function GroupsPanel({
             <p className="mt-1 text-[0.8125rem] text-night-ink-2">
               Group classes keep their members together and book them every week.
             </p>
-            <Link to="/groups" search={{ new: "1" }} className={buttonClass("lime", "sm", "mt-4")}>
-              New group
-            </Link>
+            {can.catalog ? (
+              <Link
+                to="/groups"
+                search={{ new: "1" }}
+                className={buttonClass("lime", "sm", "mt-4")}
+              >
+                New group
+              </Link>
+            ) : null}
           </div>
         )}
       </section>

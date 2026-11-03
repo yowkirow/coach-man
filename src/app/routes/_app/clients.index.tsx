@@ -22,7 +22,7 @@ import {
 import { useAllClients, useGroupMap } from "../../features/clients/queries";
 import { errorMessage } from "../../lib/api";
 import { fullName, plural, useFormat } from "../../lib/format";
-import { useGroups, useMe } from "../../lib/hooks";
+import { useCan, useGroups, useMe } from "../../lib/hooks";
 
 export const Route = createFileRoute("/_app/clients/")({
   validateSearch: (
@@ -106,7 +106,11 @@ function useClientList(search: ListSearch) {
 }
 
 function ClientsPage() {
-  const search = Route.useSearch();
+  const can = useCan();
+  const raw = Route.useSearch();
+  // "Owe money" is a money list: coaches never get balances, so an old link shows everyone.
+  const search: ListSearch =
+    !can.money && raw.filter === "owes" ? { ...raw, filter: undefined } : raw;
   const navigate = useNavigate({ from: Route.fullPath });
   const desktop = useIsDesktop();
   const me = useMe().data;
@@ -170,10 +174,12 @@ function ClientsPage() {
             }
             actions={
               <>
-                <Link to="/import" className={buttonClass("light")}>
-                  <FileUp aria-hidden className="size-4.5" />
-                  Import
-                </Link>
+                {can.data ? (
+                  <Link to="/import" className={buttonClass("light")}>
+                    <FileUp aria-hidden className="size-4.5" />
+                    Import
+                  </Link>
+                ) : null}
                 <Link to="/clients/new" className={buttonClass("dark")}>
                   <UserPlus aria-hidden className="size-4.5" />
                   Add client
@@ -212,18 +218,24 @@ function ClientsPage() {
             <div className="min-w-0">
               <h1 className="text-[2rem] leading-[1.1] font-light tracking-[-0.02em]">Clients</h1>
               <p className="num mt-1.5 text-[0.9375rem] text-ink-2">
-                {counts ? `${counts.active} active · ${counts.owes} owe money` : "Loading…"}
+                {counts
+                  ? can.money
+                    ? `${counts.active} active · ${counts.owes} owe money`
+                    : `${counts.active} active · ${counts.low} low on credits`
+                  : "Loading…"}
               </p>
             </div>
             <div className="flex items-center gap-2">
               <SyncStatus />
-              <Link
-                to="/import"
-                aria-label="Import clients"
-                className="flex size-11 items-center justify-center rounded-full bg-card text-ink outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
-              >
-                <FileUp aria-hidden className="size-5" />
-              </Link>
+              {can.data ? (
+                <Link
+                  to="/import"
+                  aria-label="Import clients"
+                  className="flex size-11 items-center justify-center rounded-full bg-card text-ink outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+                >
+                  <FileUp aria-hidden className="size-5" />
+                </Link>
+              ) : null}
               <Link
                 to="/clients/new"
                 aria-label="Add client"
@@ -429,6 +441,7 @@ function PhoneFilters({
   groups: GroupDto[];
   onChange: (patch: Partial<ListSearch>) => void;
 }) {
+  const can = useCan();
   const chips: Chip[] = [
     {
       id: "all",
@@ -444,13 +457,17 @@ function PhoneFilters({
       on: search.filter === "low",
       patch: { filter: search.filter === "low" ? undefined : "low" },
     },
-    {
-      id: "owes",
-      label: "Owe money",
-      count: counts?.owes,
-      on: search.filter === "owes",
-      patch: { filter: search.filter === "owes" ? undefined : "owes" },
-    },
+    ...(can.money
+      ? [
+          {
+            id: "owes",
+            label: "Owe money",
+            count: counts?.owes,
+            on: search.filter === "owes",
+            patch: { filter: search.filter === "owes" ? undefined : ("owes" as const) },
+          },
+        ]
+      : []),
     {
       id: "lead",
       label: "Leads",
@@ -509,6 +526,7 @@ const TILE_TINTS = {
   amber: { tint: "rgb(248 212 119 / 0.2)", border: "border-amber" },
   coral: { tint: "rgb(248 113 113 / 0.22)", border: "border-coral" },
   sky: { tint: "rgb(110 168 255 / 0.22)", border: "border-sky" },
+  violet: { tint: "rgb(201 190 251 / 0.22)", border: "border-violet" },
 } as const;
 
 /** KPI tile that doubles as a filter; the selected one turns lime like a selected list card. */
@@ -604,6 +622,7 @@ function ListPanel({
   current?: ClientListItemDto[];
 }) {
   const dash = "–";
+  const can = useCan();
   const q: ListSearch = search.q ? { q: search.q } : {};
   const plain = !search.status && !search.filter && !search.group;
   const groupCount = (id: string) => current?.filter((c) => c.groupIds.includes(id)).length;
@@ -638,14 +657,25 @@ function ListPanel({
           search={{ ...q, filter: "low" }}
           hint="One credit or fewer left, used up, or expiring within a week"
         />
-        <FilterKpi
-          label="Owe money"
-          value={counts?.owes ?? dash}
-          tint="coral"
-          selected={search.filter === "owes"}
-          search={{ ...q, filter: "owes" }}
-          hint="Clients with a balance due"
-        />
+        {can.money ? (
+          <FilterKpi
+            label="Owe money"
+            value={counts?.owes ?? dash}
+            tint="coral"
+            selected={search.filter === "owes"}
+            search={{ ...q, filter: "owes" }}
+            hint="Clients with a balance due"
+          />
+        ) : (
+          <FilterKpi
+            label="Leads"
+            value={counts?.lead ?? dash}
+            tint="violet"
+            selected={search.status === "lead" && !search.filter && !search.group}
+            search={{ ...q, status: "lead" }}
+            hint="People interested but not yet training"
+          />
+        )}
         <FilterKpi
           label="New this month"
           value={counts?.new ?? dash}

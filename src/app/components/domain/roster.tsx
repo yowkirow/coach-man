@@ -8,6 +8,7 @@ import { useState } from "react";
 import { ToggleButton } from "react-aria-components";
 import { api } from "../../lib/api";
 import { fullName, plural, useFormat } from "../../lib/format";
+import { useCan } from "../../lib/hooks";
 import { notify } from "../../lib/notify";
 import { type AttendanceVars, keys, type NoteVars } from "../../lib/query";
 import { Button } from "../ui/button";
@@ -97,8 +98,10 @@ export function creditLine(
   if (entry.pending) return { text: "Waiting to sync", tone: "sync" };
   if (kind === "event") return { text: "Covered by event registration", tone: "ink" };
   if (entry.complimentary) return { text: "Complimentary session", tone: "ink" };
-  if (entry.chargeMinor !== null)
+  // chargeMinor is absent for coaches (no money): they still see that the player pays per session.
+  if (entry.chargeMinor != null)
     return { text: `Pay per session · ${money(entry.chargeMinor)}`, tone: "warn" };
+  if (entry.chargeId) return { text: "Pay per session", tone: "warn" };
   if (entry.packageRemaining !== null && entry.packageCredits !== null) {
     const left = entry.packageRemaining;
     return {
@@ -246,6 +249,7 @@ function PlayerSheet({
   onRemove?: (clientId: string) => void;
 }) {
   const fmt = useFormat();
+  const can = useCan();
   const [ledgerOpen, setLedgerOpen] = useState(false);
   const [note, setNote] = useState("");
   const createNote = useMutation<unknown, Error, NoteVars>({ mutationKey: ["notes", "create"] });
@@ -322,25 +326,27 @@ function PlayerSheet({
                     className={`flex w-full cursor-pointer items-center gap-3 rounded-2xl px-4 py-3 text-left outline-none focus-visible:outline-2 focus-visible:outline-ink ${entry.chargeId ? "bg-lime" : "bg-panel hover:bg-line"}`}
                   >
                     <span className="flex-1 font-medium">Pay per session</span>
-                    {entry.chargeMinor !== null ? (
+                    {entry.chargeMinor != null ? (
                       <span className="num text-ink-2">{fmt.money(entry.chargeMinor)}</span>
                     ) : null}
                   </button>
                 </li>
-                <li>
-                  <button
-                    type="button"
-                    aria-pressed={entry.complimentary}
-                    onClick={() =>
-                      pick(checked ? entry.status : "present", {
-                        complimentary: !entry.complimentary,
-                      })
-                    }
-                    className={`flex w-full cursor-pointer items-center gap-3 rounded-2xl px-4 py-3 text-left outline-none focus-visible:outline-2 focus-visible:outline-ink ${entry.complimentary ? "bg-lime" : "bg-panel hover:bg-line"}`}
-                  >
-                    <span className="flex-1 font-medium">No charge (complimentary)</span>
-                  </button>
-                </li>
+                {can.money ? (
+                  <li>
+                    <button
+                      type="button"
+                      aria-pressed={entry.complimentary}
+                      onClick={() =>
+                        pick(checked ? entry.status : "present", {
+                          complimentary: !entry.complimentary,
+                        })
+                      }
+                      className={`flex w-full cursor-pointer items-center gap-3 rounded-2xl px-4 py-3 text-left outline-none focus-visible:outline-2 focus-visible:outline-ink ${entry.complimentary ? "bg-lime" : "bg-panel hover:bg-line"}`}
+                    >
+                      <span className="flex-1 font-medium">No charge (complimentary)</span>
+                    </button>
+                  </li>
+                ) : null}
               </ul>
               {entry.packageRemaining !== null && entry.packageCredits ? (
                 <div className="mt-3">
@@ -453,6 +459,7 @@ export function LedgerSheet({
   balanceMinor?: number;
 }) {
   const fmt = useFormat();
+  const can = useCan();
   const q = useQuery({
     queryKey: keys.ledger(clientId),
     queryFn: () => api.get<LedgerLineDto[]>(`/clients/${clientId}/ledger`),
@@ -496,7 +503,9 @@ export function LedgerSheet({
         </ol>
       ) : (
         <p className="text-ink-2">
-          No credit history yet. Sell a package from the client's profile to start one.
+          {can.money
+            ? "No credit history yet. Sell a package from the client's profile to start one."
+            : "No credit history yet. It starts when the academy sells this player a package."}
         </p>
       )}
     </Sheet>

@@ -4,6 +4,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { HandCoins, ReceiptText } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Page, ShellAside, useIsDesktop } from "../../components/layout/app-shell";
+import { NoAccess } from "../../components/layout/no-access";
 import { Button, IconButton } from "../../components/ui/button";
 import { Card, PageHeader } from "../../components/ui/display";
 import { ErrorState } from "../../components/ui/feedback";
@@ -35,6 +36,7 @@ import { ConnectionPill } from "../../features/settings/offline";
 import { scrollToId, scrollToIdSoon } from "../../features/settings/scroll";
 import { errorMessage } from "../../lib/api";
 import { plural, useFormat } from "../../lib/format";
+import { useCan } from "../../lib/hooks";
 import { useOnline } from "../../lib/offline";
 
 interface MoneySearch {
@@ -48,8 +50,21 @@ export const Route = createFileRoute("/_app/money")({
     record: s.record === "1" || s.record === 1 ? "1" : undefined,
     month: typeof s.month === "string" && MONTH_RE.test(s.month) ? s.month : undefined,
   }),
-  component: MoneyPage,
+  component: MoneyRoute,
 });
+
+function MoneyRoute() {
+  const can = useCan();
+  if (!can.money) {
+    return (
+      <NoAccess
+        title="Money"
+        body="Payments, charges, and balances are for the academy's owner and admins. You still see every player's credits on their profile and at check-in."
+      />
+    );
+  }
+  return <MoneyPage />;
+}
 
 const LEDGER_ID = "money-ledger";
 const OWES_ID = "money-owes";

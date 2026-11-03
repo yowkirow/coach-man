@@ -18,7 +18,7 @@ import { buttonClass } from "../../components/ui/button";
 import { KpiTile, Meter, Pill } from "../../components/ui/display";
 import { Skeleton } from "../../components/ui/feedback";
 import { plural, useFormat } from "../../lib/format";
-import { useVenues } from "../../lib/hooks";
+import { useCan, useVenues } from "../../lib/hooks";
 import {
   EVENT_KIND_FILL,
   EVENT_KIND_ICON,
@@ -36,6 +36,9 @@ export interface EventStats {
   open: number;
   registered: number;
   waitlisted: number;
+  /** Upcoming events at capacity. */
+  full: number;
+  /** Absent for coaches (no money). */
   dueMinor: number;
 }
 
@@ -56,7 +59,8 @@ export function useEventsOverview() {
           open: live.filter((e) => e.status === "open").length,
           registered: live.reduce((n, e) => n + e.registeredCount, 0),
           waitlisted: live.reduce((n, e) => n + e.waitlistCount, 0),
-          dueMinor: list.reduce((n, e) => n + e.dueMinor, 0),
+          full: live.filter((e) => e.capacity !== null && e.registeredCount >= e.capacity).length,
+          dueMinor: list.reduce((n, e) => n + (e.dueMinor ?? 0), 0),
         }
       : null;
     return { all, upcoming, past, stats, today };
@@ -65,6 +69,7 @@ export function useEventsOverview() {
 
 export function EventKpis({ stats }: { stats: EventStats | null }) {
   const fmt = useFormat();
+  const can = useCan();
   const navigate = useNavigate();
   const dash = "–";
   return (
@@ -82,13 +87,24 @@ export function EventKpis({ stats }: { stats: EventStats | null }) {
         tint="amber"
         hint="Players waiting for a spot in upcoming events"
       />
-      <KpiTile
-        label="Due"
-        value={stats ? moneyCompact(stats.dueMinor, fmt) : dash}
-        tint="coral"
-        hint={stats ? `${fmt.money(stats.dueMinor)} of event fees unpaid. Opens Money.` : undefined}
-        onPress={() => void navigate({ to: "/money" })}
-      />
+      {can.money ? (
+        <KpiTile
+          label="Due"
+          value={stats ? moneyCompact(stats.dueMinor, fmt) : dash}
+          tint="coral"
+          hint={
+            stats ? `${fmt.money(stats.dueMinor)} of event fees unpaid. Opens Money.` : undefined
+          }
+          onPress={() => void navigate({ to: "/money" })}
+        />
+      ) : (
+        <KpiTile
+          label="Full"
+          value={stats?.full ?? dash}
+          tint="violet"
+          hint="Upcoming events with no spots left"
+        />
+      )}
     </div>
   );
 }
@@ -168,6 +184,8 @@ function TileSkeletons() {
 
 /** The command panel on Events pages: KPIs, upcoming events, and the latest past ones. */
 export function EventsPanel({ selectedId }: { selectedId?: string }) {
+  // Events are priced offerings: owners and admins create them; coaches run the roster.
+  const can = useCan();
   const { all, upcoming, past, stats } = useEventsOverview();
   const selectedPast = past.find((e) => e.id === selectedId);
   const recent = past.slice(0, 3);
@@ -192,13 +210,15 @@ export function EventsPanel({ selectedId }: { selectedId?: string }) {
           <h3 id="panel-upcoming" className="text-[1.125rem] font-light">
             Upcoming
           </h3>
-          <Link
-            to="/events"
-            search={{ new: "1" }}
-            className="rounded-full px-2 py-1 text-[0.8125rem] text-night-ink-2 outline-none hover:text-night-ink focus-visible:outline-2 focus-visible:outline-lime"
-          >
-            New event
-          </Link>
+          {can.catalog ? (
+            <Link
+              to="/events"
+              search={{ new: "1" }}
+              className="rounded-full px-2 py-1 text-[0.8125rem] text-night-ink-2 outline-none hover:text-night-ink focus-visible:outline-2 focus-visible:outline-lime"
+            >
+              New event
+            </Link>
+          ) : null}
         </div>
         {all.isPending ? (
           <TileSkeletons />
@@ -219,11 +239,19 @@ export function EventsPanel({ selectedId }: { selectedId?: string }) {
           <div className="rounded-[24px] bg-night-2 p-5">
             <p className="text-night-ink">Nothing coming up.</p>
             <p className="mt-1 text-[0.8125rem] text-night-ink-2">
-              Plan a camp, clinic, or social and take sign-ups here.
+              {can.catalog
+                ? "Plan a camp, clinic, or social and take sign-ups here."
+                : "Camps, clinics, and socials your academy plans show up here."}
             </p>
-            <Link to="/events" search={{ new: "1" }} className={buttonClass("lime", "sm", "mt-4")}>
-              New event
-            </Link>
+            {can.catalog ? (
+              <Link
+                to="/events"
+                search={{ new: "1" }}
+                className={buttonClass("lime", "sm", "mt-4")}
+              >
+                New event
+              </Link>
+            ) : null}
           </div>
         )}
       </section>
@@ -255,6 +283,7 @@ export function EventsPanel({ selectedId }: { selectedId?: string }) {
 /** White card for the main grid: dates, kind and status, fill, waitlist, and money. */
 export function EventCard({ event: e }: { event: EventDto }) {
   const fmt = useFormat();
+  const can = useCan();
   const venues = useVenues();
   const today = fmt.today();
   const Icon = EVENT_KIND_ICON[e.kind];
@@ -327,17 +356,19 @@ export function EventCard({ event: e }: { event: EventDto }) {
         {e.capacity ? <Meter value={e.registeredCount} max={e.capacity} /> : null}
       </div>
 
-      <p className="mt-auto flex h-11 items-center gap-2 rounded-full bg-panel px-4 text-[0.875rem]">
-        <CircleDollarSign aria-hidden className="size-4 shrink-0 text-ink-2" />
-        <span className="num min-w-0 flex-1 truncate">{fmt.moneyShort(e.paidMinor)} paid</span>
-        {e.dueMinor > 0 ? (
-          <Pill tone="coral">
-            <span className="num">{fmt.moneyShort(e.dueMinor)} due</span>
-          </Pill>
-        ) : e.registeredCount ? (
-          <span className="text-ink-2">All paid</span>
-        ) : null}
-      </p>
+      {can.money ? (
+        <p className="mt-auto flex h-11 items-center gap-2 rounded-full bg-panel px-4 text-[0.875rem]">
+          <CircleDollarSign aria-hidden className="size-4 shrink-0 text-ink-2" />
+          <span className="num min-w-0 flex-1 truncate">{fmt.moneyShort(e.paidMinor)} paid</span>
+          {e.dueMinor > 0 ? (
+            <Pill tone="coral">
+              <span className="num">{fmt.moneyShort(e.dueMinor)} due</span>
+            </Pill>
+          ) : e.registeredCount ? (
+            <span className="text-ink-2">All paid</span>
+          ) : null}
+        </p>
+      ) : null}
     </article>
   );
 }

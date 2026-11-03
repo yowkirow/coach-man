@@ -6,9 +6,15 @@ import { SyncStatus } from "../../components/layout/app-shell";
 import { Skeleton } from "../../components/ui/feedback";
 import { SearchField } from "../../components/ui/field";
 import { plural, useFormat } from "../../lib/format";
-import { useClients, useNow } from "../../lib/hooks";
+import { useCan, useClients, useNow } from "../../lib/hooks";
 import { ClientTile, MiniKpi } from "./client-list";
-import { matchesQuery, needsPackage, owesMoney, type ProfileTab } from "./client-utils";
+import {
+  isNewThisMonth,
+  matchesQuery,
+  needsPackage,
+  owesMoney,
+  type ProfileTab,
+} from "./client-utils";
 import { useGroupMap } from "./queries";
 
 const MAX_TILES = 80;
@@ -28,6 +34,7 @@ export function ClientWorklist({
   tab?: ProfileTab;
 }) {
   const fmt = useFormat();
+  const can = useCan();
   const now = useNow();
   const today = fmt.today();
   const groups = useGroupMap();
@@ -49,6 +56,7 @@ export function ClientWorklist({
             active: all.filter((c) => c.status === "active").length,
             low: all.filter((c) => needsPackage(c, today)).length,
             owes: all.filter(owesMoney).length,
+            fresh: all.filter((c) => isNewThisMonth(c, today)).length,
           }
         : null,
     [all, today],
@@ -75,7 +83,11 @@ export function ClientWorklist({
         <div className="min-w-0 flex-1">
           <h2 className="text-[1.75rem] leading-tight font-light tracking-[-0.01em]">Clients</h2>
           <p className="num mt-1 text-[0.875rem] text-night-ink-2">
-            {all ? `${plural(all.length, "client")} · ${counts?.owes ?? 0} owe money` : "Loading…"}
+            {!all
+              ? "Loading…"
+              : can.money
+                ? `${plural(all.length, "client")} · ${counts?.owes ?? 0} owe money`
+                : `${plural(all.length, "client")} · ${counts?.low ?? 0} low on credits`}
           </p>
         </div>
         <SyncStatus dark />
@@ -102,12 +114,21 @@ export function ClientWorklist({
           tint="rgb(248 212 119 / 0.2)"
           search={{ filter: "low" }}
         />
-        <MiniKpi
-          label="Owe money"
-          value={counts?.owes ?? dash}
-          tint="rgb(248 113 113 / 0.22)"
-          search={{ filter: "owes" }}
-        />
+        {can.money ? (
+          <MiniKpi
+            label="Owe money"
+            value={counts?.owes ?? dash}
+            tint="rgb(248 113 113 / 0.22)"
+            search={{ filter: "owes" }}
+          />
+        ) : (
+          <MiniKpi
+            label="New"
+            value={counts?.fresh ?? dash}
+            tint="rgb(110 168 255 / 0.22)"
+            search={{ filter: "new" }}
+          />
+        )}
       </div>
 
       <section aria-labelledby="worklist-title" className="flex flex-col gap-2.5">

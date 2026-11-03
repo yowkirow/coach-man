@@ -11,6 +11,7 @@ import { Segmented, Switch, TextField } from "../../components/ui/field";
 import { Sheet } from "../../components/ui/overlay";
 import { api, errorMessage, fieldErrors } from "../../lib/api";
 import { plural, useFormat } from "../../lib/format";
+import { useCan } from "../../lib/hooks";
 import { notify } from "../../lib/notify";
 import { useOnline } from "../../lib/offline";
 import { OfflineHint } from "./bits";
@@ -66,6 +67,8 @@ export function PackagesBento({
   onLedger: () => void;
 }) {
   const online = useOnline();
+  // Selling, adjusting, and re-dating packages is money: coaches see the credits only.
+  const can = useCan();
   const [adjusting, setAdjusting] = useState<PackageBalanceDto | null>(null);
   const [expiry, setExpiry] = useState<PackageBalanceDto | null>(null);
   const live = livePackages(detail);
@@ -107,37 +110,48 @@ export function PackagesBento({
               <div className="mt-2">
                 <ExpiryLine p={p} />
               </div>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <Button
-                  variant="light"
-                  size="sm"
-                  isDisabled={!online}
-                  onPress={() => setAdjusting(p)}
-                >
-                  Adjust
-                </Button>
-                <Button variant="light" size="sm" isDisabled={!online} onPress={() => setExpiry(p)}>
-                  {p.status === "expired" ? "Extend" : "Change expiry"}
-                </Button>
-              </div>
+              {can.money ? (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Button
+                    variant="light"
+                    size="sm"
+                    isDisabled={!online}
+                    onPress={() => setAdjusting(p)}
+                  >
+                    Adjust
+                  </Button>
+                  <Button
+                    variant="light"
+                    size="sm"
+                    isDisabled={!online}
+                    onPress={() => setExpiry(p)}
+                  >
+                    {p.status === "expired" ? "Extend" : "Change expiry"}
+                  </Button>
+                </div>
+              ) : null}
             </li>
           ))}
         </ul>
       ) : (
         <p className="text-[0.9375rem] text-ink/80">
-          Sell a package and credits come off automatically at check-in, earliest expiry first.
+          {can.money
+            ? "Sell a package and credits come off automatically at check-in, earliest expiry first."
+            : "Once the academy sells a package, credits come off automatically at check-in."}
         </p>
       )}
       <div className="mt-4 flex flex-wrap gap-2">
-        <Button
-          variant="dark"
-          size="sm"
-          isDisabled={!online}
-          icon={<Ticket aria-hidden className="size-4" />}
-          onPress={onSell}
-        >
-          Sell package
-        </Button>
+        {can.money ? (
+          <Button
+            variant="dark"
+            size="sm"
+            isDisabled={!online}
+            icon={<Ticket aria-hidden className="size-4" />}
+            onPress={onSell}
+          >
+            Sell package
+          </Button>
+        ) : null}
         <Button
           variant="light"
           size="sm"

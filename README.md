@@ -120,8 +120,8 @@ Wrangler asks before applying; in scripts and on Windows PowerShell set `CI=1` t
 | Name | Kind | Purpose |
 | --- | --- | --- |
 | `APP_ENV` | var | `development`, `staging`, or `production` |
-| `APP_URL` | var | Public origin, e.g. `https://coachman.example` (auth callbacks, passkey origin) |
-| `PASSKEY_RP_ID` / `PASSKEY_RP_NAME` | var | WebAuthn relying party (the bare domain, e.g. `coachman.example`) |
+| `APP_URL` | var | Public origin, e.g. `https://coachman.cloud` (auth callbacks, passkey origin) |
+| `PASSKEY_RP_ID` / `PASSKEY_RP_NAME` | var | WebAuthn relying party (the bare domain, e.g. `coachman.cloud`) |
 | `BETTER_AUTH_SECRET` | secret | 32+ random characters for session signing |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | secret | Google OAuth client |
 | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` | secret | Web Push keys from `npm run vapid:generate`; push is off when unset |
@@ -176,17 +176,19 @@ For the fastest, most realistic local run, test the production build: `npm run b
 
 | | Production | Staging |
 | --- | --- | --- |
-| URL | https://coachman.jerrosyap05.workers.dev | https://coachman-staging.jerrosyap05.workers.dev |
-| Worker | `coachman` | `coachman-staging` |
+| URL | https://coachman.cloud (`www.coachman.cloud` redirects here) | https://coachman-staging.jerrosyap05.workers.dev |
+| Worker | `coachman` (custom domain; `workers.dev` off) | `coachman-staging` |
 | D1 | `coachman` (APAC) | `coachman-staging` (APAC) |
 | R2 | `coachman-files` (APAC) | `coachman-files-staging` (APAC) |
 | Secrets set | `BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_*`, `VAPID_*` | `BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_*`, `VAPID_*` |
 
-Google sign-in uses the Google Cloud project **CoachMan** (`coachman-512116`) and its web OAuth client "CoachMan web". The client's redirect URIs cover production, staging, and `http://localhost:5173` (local `.dev.vars` holds the same client). The consent screen is External but still in **Testing**, so only listed test users can sign in (currently the owner, jerrosyap05@gmail.com; up to 100). To let any coach sign in, add a home page and privacy policy link on the Branding page, then use **Publish app** on the Audience page. The basic scopes CoachMan asks for (email, profile, openid) don't need Google verification. Until the brand is verified, though, Google's account chooser names the domain (`jerrosyap05.workers.dev`) instead of "CoachMan". Google never shows a client secret again after creation; to rotate it, add a new secret on the client's page, then `npx wrangler secret put GOOGLE_CLIENT_SECRET --env <env>`, update `.dev.vars`, and disable the old secret.
+Google sign-in uses the Google Cloud project **CoachMan** (`coachman-512116`) and its web OAuth client "CoachMan web". The client's redirect URIs cover production (`https://coachman.cloud/api/auth/callback/google`), staging, and `http://localhost:5173` (local `.dev.vars` holds the same client), and `coachman.cloud` is listed under **Authorized domains** on the Branding page. The consent screen is External but still in **Testing**, so only listed test users can sign in (currently the owner, jerrosyap05@gmail.com; up to 100). To let any coach sign in, add a home page and privacy policy link on the Branding page, then use **Publish app** on the Audience page. The basic scopes CoachMan asks for (email, profile, openid) don't need Google verification. Until the brand is verified, though, Google's account chooser names the domain (`coachman.cloud` in production, `jerrosyap05.workers.dev` on staging) instead of "CoachMan". Google never shows a client secret again after creation; to rotate it, add a new secret on the client's page, then `npx wrangler secret put GOOGLE_CLIENT_SECRET --env <env>`, update `.dev.vars`, and disable the old secret.
 
-GitHub deploys are wired up: the repository secrets `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` are set. The token is the Cloudflare user token "CoachMan GitHub deploy", scoped to this account: Workers Scripts, D1, and Workers R2 Storage edit, plus Account Settings and Workers Tail read and User Details read. Pushing to `main` deploys staging; the staging smoke test stays skipped until `STAGING_URL` and the bypass secrets are set.
+GitHub deploys are wired up: the repository secrets `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` are set. The token is the Cloudflare user token "CoachMan GitHub deploy", scoped to this account: Workers Scripts, D1, and Workers R2 Storage edit, plus Account Settings and Workers Tail read and User Details read. Pushing to `main` deploys staging; the staging smoke test stays skipped until `STAGING_URL` and the bypass secrets are set. Before running a production deploy from Actions, add **Zone → Workers Routes → Edit** for `coachman.cloud` to that token: wrangler re-sends production's custom domain on every deploy, and Cloudflare requires that permission to add or change a custom domain. Staging doesn't need it.
 
-Both run on free `workers.dev` addresses. Passkeys are bound to `PASSKEY_RP_ID`, so moving to a custom domain later means updating `APP_URL` and `PASSKEY_RP_ID`, adding the new Google redirect URI, and coaches re-adding their passkeys (Google sign-in keeps working). The test bypass is off on both (`E2E_*` secrets aren't set, and production ignores them anyway).
+Production runs on the Workers custom domain `coachman.cloud`. It's declared in `wrangler.jsonc` (a `routes` entry with `"custom_domain": true`), so `wrangler deploy` attaches it and Cloudflare manages its DNS record and certificate. The domain is registered at Hostinger and points at Cloudflare's nameservers; its zone is in the same Cloudflare account. Production's `workers.dev` address and version preview URLs are off. The Worker only answers on the bare domain: `www.coachman.cloud` has a proxied DNS record and a Cloudflare redirect rule (**Rules → Redirect Rules**, template "Redirect from WWW to root": 301, path and query string kept) that sends visitors to `https://coachman.cloud`. Staging stays on its free `workers.dev` address.
+
+Passkeys are bound to `PASSKEY_RP_ID`, so passkeys created on the old production address (`coachman.jerrosyap05.workers.dev`) don't work on `coachman.cloud`. Coaches sign in with Google once, then add a new passkey in **Settings → Sign-in & security**. Sessions, the installed app, and push reminders from the old address don't carry over either, so coaches also reinstall the app from `https://coachman.cloud` and turn reminders back on in **Settings → Notifications**. Their data is unaffected (same D1 database). The test bypass is off on both environments (`E2E_*` secrets aren't set, and production ignores them anyway).
 
 To rotate the app's own secrets (session signing key and Web Push keys) for an environment: `node scripts/set-app-secrets.mjs <staging|production> <contact email>`. Rotating `BETTER_AUTH_SECRET` signs everyone out; rotating the VAPID keys means devices turn reminders back on.
 
@@ -202,7 +204,7 @@ One-time setup:
    npx wrangler r2 bucket create coachman-files-staging
    npx wrangler r2 bucket create coachman-files
    ```
-3. Choose the domains, then set `APP_URL` and `PASSKEY_RP_ID` for each environment in `wrangler.jsonc` and add a custom domain to each Worker. **Passkeys are bound to `PASSKEY_RP_ID`.** Use the final production domain from day one; moving domains later means coaches re-add passkeys (Google sign-in keeps working).
+3. Choose the domains, then set `APP_URL` and `PASSKEY_RP_ID` for each environment in `wrangler.jsonc` and add a custom domain to each Worker (a `routes` entry with `"custom_domain": true`, as production has; the domain's zone must already be active in the same Cloudflare account). **Passkeys are bound to `PASSKEY_RP_ID`.** Use the final production domain from day one; moving domains later means coaches re-add passkeys (Google sign-in keeps working).
 4. In Google Cloud Console, add `https://<domain>/api/auth/callback/google` for each environment.
 5. Set secrets for each environment:
    ```bash
@@ -222,7 +224,7 @@ npx wrangler d1 migrations apply DB --remote --env staging
 npm run deploy:staging            # or deploy:production
 ```
 
-GitHub Actions: `ci.yml` runs lint, typecheck, unit tests, build, and Playwright on every PR. `deploy.yml` deploys `main` to staging (then smoke-tests it) and production on manual dispatch. It needs the repository secrets `CLOUDFLARE_API_TOKEN` (Workers Scripts, D1, and R2 edit), `CLOUDFLARE_ACCOUNT_ID`, and for smoke tests `STAGING_E2E_BYPASS_SECRET`, `CF_ACCESS_CLIENT_ID`, `CF_ACCESS_CLIENT_SECRET`, plus the variable `STAGING_URL`.
+GitHub Actions: `ci.yml` runs lint, typecheck, unit tests, build, and Playwright on every PR. `deploy.yml` deploys `main` to staging (then smoke-tests it) and production on manual dispatch. It needs the repository secrets `CLOUDFLARE_API_TOKEN` (Workers Scripts, D1, and R2 edit, plus Zone → Workers Routes → Edit on the production domain), `CLOUDFLARE_ACCOUNT_ID`, and for smoke tests `STAGING_E2E_BYPASS_SECRET`, `CF_ACCESS_CLIENT_ID`, `CF_ACCESS_CLIENT_SECRET`, plus the variable `STAGING_URL`.
 
 ## Design
 

@@ -53,11 +53,16 @@
     },
     "production": {
       "name": "coachman",
-      "workers_dev": true,
+      // Served only on the custom domain coachman.cloud (the zone must be active on this account);
+      // www.coachman.cloud redirects there via a Cloudflare redirect rule. The workers.dev address and
+      // version preview URLs are off. Passkeys are bound to PASSKEY_RP_ID (see README).
+      "workers_dev": false,
+      "preview_urls": false,
+      "routes": [{ "pattern": "coachman.cloud", "custom_domain": true }],
       "vars": {
         "APP_ENV": "production",
-        "APP_URL": "https://coachman.jerrosyap05.workers.dev",
-        "PASSKEY_RP_ID": "coachman.jerrosyap05.workers.dev",
+        "APP_URL": "https://coachman.cloud",
+        "PASSKEY_RP_ID": "coachman.cloud",
         "PASSKEY_RP_NAME": "CoachMan"
       },
       "d1_databases": [

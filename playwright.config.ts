@@ -47,6 +47,9 @@ export default defineConfig({
         command: process.env.CI ? "npx vite preview --port 5173 --strictPort" : "npm run dev",
         url: "http://localhost:5173/api/health",
         reuseExistingServer: !process.env.CI,
+        // Miniflare's local trace store (observability is on in wrangler.jsonc) grows without
+        // limit and stalls the local runtime under test load; tests don't need it.
+        env: { X_LOCAL_OBSERVABILITY: "false" },
         timeout: 600_000,
       },
 });

@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test } from "./support";
+import { expect, linkFamily, test, testEmail, visit } from "./support";
 
 const SCREENS = [
   "/",
@@ -42,4 +42,36 @@ test.describe("accessibility", () => {
       expect(await seriousViolations(page)).toEqual([]);
     });
   }
+
+  test("/welcome has no serious violations", async ({ personas }, info) => {
+    const { page } = await personas.open({
+      email: testEmail("a11y-welcome", info),
+      name: "Jordan Lake",
+      persona: "none",
+    });
+    await visit(page, "/welcome");
+    await expect(page.getByRole("heading", { name: "Welcome, Jordan" })).toBeVisible();
+    await page.getByRole("button", { name: /I'm a student or a parent/ }).click();
+    expect(await seriousViolations(page)).toEqual([]);
+  });
+
+  test("/my has no serious violations", async ({ seeded, personas }, info) => {
+    const kid = await seeded.api.post<{ id: string }>("/clients", {
+      firstName: "Mia",
+      lastName: "Santos",
+      isJunior: true,
+    });
+    const email = testEmail("a11y-parent", info);
+    const linked = await linkFamily(seeded.request, {
+      clientId: kid.id,
+      email,
+      name: "Pat Santos",
+      relation: "guardian",
+    });
+    expect(linked.status).toBe(201);
+    const { page } = await personas.open({ email, name: "Pat Santos", persona: "none" });
+    await visit(page, "/my");
+    await expect(page.getByRole("heading", { name: "Hi, Pat" })).toBeVisible();
+    expect(await seriousViolations(page)).toEqual([]);
+  });
 });

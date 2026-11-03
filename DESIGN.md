@@ -567,7 +567,7 @@ Quietly confident pills: ink for the main move, white for the alternative, lime 
 
 ### Navigation
 - **Desktop rail:** an 84px column inside the command panel. The 40px BallMark sits at the top, then 48px charcoal circles with 20px white icons at a 1.75 stroke (hover Raised Charcoal). The current page is a lime circle with an ink icon. Below the links sits the dashed quick-add circle; Settings and the coach's avatar sit at the foot, joined by a Sync Orange circle only while offline or syncing.
-- **Phone tab bar:** a floating Command Black pill (6px padding, Pop) 12px above the safe area with five 52px items (Today, Schedule, Clients, Money, More): a 20px icon over an 11px/500 Night Mist label. The current item fills lime with ink. The 64px lime quick-add floats beside the bar, never over content.
+- **Phone tab bar:** a floating Command Black pill (6px padding, Pop) 12px above the safe area with five 52px items (Today, Schedule, Clients, Money, More; coaches, who never see money, get Groups in place of Money): a 20px icon over an 11px/500 Night Mist label. The current item fills lime with ink. The 64px lime quick-add floats beside the bar, never over content.
 - **Focus:** a 2px lime outline everywhere in the dark zone.
 
 ### Folder Tabs (signature)

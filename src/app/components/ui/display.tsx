@@ -314,6 +314,60 @@ export interface TabDef {
   content: ReactNode;
 }
 
+/**
+ * Keeps the current item of a horizontally scrolling row (the chip or tab marked aria-current,
+ * aria-pressed, or aria-selected) in view, so a phone never opens on a row whose selection sits
+ * off-screen. Scrolls the row only, never the page. Pass what changes the selection as `key`.
+ */
+export function useCurrentInView<T extends HTMLElement>(key: unknown) {
+  const ref = useRef<T>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs when the selection (`key`) changes.
+  useLayoutEffect(() => {
+    const row = ref.current;
+    if (!row) return;
+    let frame = 0;
+    // Once the person scrolls the row themselves, it stays where they put it.
+    let touched = false;
+    const keep = () => {
+      const item = row.querySelector<HTMLElement>(
+        '[aria-current]:not([aria-current="false"]), [aria-pressed="true"], [aria-selected="true"]',
+      );
+      if (touched || !item || row.scrollWidth <= row.clientWidth) return;
+      const r = row.getBoundingClientRect();
+      const i = item.getBoundingClientRect();
+      // Room for a folder tab's fillets, and a hint of the neighbor.
+      const lead = 28;
+      if (i.left < r.left + lead) row.scrollLeft -= r.left + lead - i.left;
+      else if (i.right > r.right - lead) row.scrollLeft += i.right - (r.right - lead);
+    };
+    const schedule = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(keep);
+    };
+    // Items move as they render (React Aria's tabs arrive a frame late), as counts load, and as
+    // the web font lands: check again after each.
+    const mutations = new MutationObserver(schedule);
+    mutations.observe(row, { childList: true, subtree: true, characterData: true });
+    const resize = new ResizeObserver(schedule);
+    resize.observe(row);
+    void document.fonts?.ready.then(schedule);
+    const stop = () => {
+      touched = true;
+    };
+    row.addEventListener("pointerdown", stop);
+    row.addEventListener("wheel", stop, { passive: true });
+    keep();
+    return () => {
+      cancelAnimationFrame(frame);
+      mutations.disconnect();
+      resize.disconnect();
+      row.removeEventListener("pointerdown", stop);
+      row.removeEventListener("wheel", stop);
+    };
+  }, [key]);
+  return ref;
+}
+
 /** Measures an element's document offset so a panel can stretch to the viewport's bottom edge. */
 function useDocumentTop(enabled: boolean) {
   const ref = useRef<HTMLDivElement>(null);
@@ -358,6 +412,7 @@ export function PillTabs({
   className?: string;
 }) {
   const panel = useDocumentTop(fill);
+  const tabList = useCurrentInView<HTMLDivElement>(selected);
   const panels = tabs.map((t) => (
     <TabPanel
       key={t.id}
@@ -374,6 +429,7 @@ export function PillTabs({
       className={`flex flex-col ${className}`}
     >
       <TabList
+        ref={tabList}
         aria-label={label}
         className="flex gap-5 overflow-x-auto pr-6 pl-10 [scrollbar-width:none] lg:pl-12"
       >

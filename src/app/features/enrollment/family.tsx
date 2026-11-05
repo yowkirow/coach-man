@@ -344,12 +344,12 @@ export function RenewCard({ renewal, fmt }: { renewal: PortalRenewalDto; fmt: Fo
   return (
     <section
       aria-labelledby={headingId}
-      className="flex flex-col gap-3 rounded-[28px] bg-lime p-5 text-ink sm:col-span-2"
+      className="flex flex-col gap-3 rounded-[28px] bg-card p-5 text-ink sm:col-span-2"
     >
       <div className="flex items-start gap-3">
         <span
           aria-hidden
-          className="flex size-11 shrink-0 items-center justify-center rounded-full bg-ink text-lime"
+          className="flex size-11 shrink-0 items-center justify-center rounded-full bg-lime text-ink"
         >
           <CalendarSync className="size-5" />
         </span>
@@ -360,14 +360,14 @@ export function RenewCard({ renewal, fmt }: { renewal: PortalRenewalDto; fmt: Fo
           >
             Renew for {fmt.month(renewal.startMonth)}
           </h3>
-          <p className="num mt-1 text-[0.875rem] text-ink/75">
+          <p className="num mt-1 text-[0.875rem] text-ink-2">
             {renewal.tierName} · {fmt.money(renewal.priceMinor)} · valid until{" "}
             {fmt.date(renewal.expiresOn)}
           </p>
         </div>
       </div>
       {blocked ? (
-        <p className="flex items-start gap-2 rounded-[18px] bg-white/45 px-4 py-3 text-[0.875rem]">
+        <p className="flex items-start gap-2 rounded-[18px] bg-panel px-4 py-3 text-[0.875rem]">
           <Lock aria-hidden className="mt-0.5 size-4 shrink-0" />
           <span>{renewal.allowed.ok ? "" : renewal.allowed.message}</span>
         </p>
@@ -381,7 +381,7 @@ export function RenewCard({ renewal, fmt }: { renewal: PortalRenewalDto; fmt: Fo
           >
             Renew for next month
           </Button>
-          <span className="text-[0.8125rem] text-ink/75">
+          <span className="text-[0.8125rem] text-ink-2">
             {renewal.consents.length
               ? `${renewal.consents.length === 1 ? "A form" : "Forms"} to sign first`
               : "The academy confirms it, then you pay."}

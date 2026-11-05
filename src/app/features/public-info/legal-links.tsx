@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { tapArea } from "../../components/ui/button";
 import { usePublicConfig } from "./config";
 
 const tones = {
@@ -24,7 +25,7 @@ export function LegalLinks({
   /** The nav's accessible name (unique when a page has more than one). */
   label?: string;
 }) {
-  const link = `rounded-sm underline underline-offset-4 outline-none focus-visible:outline-2 ${tones[tone]}`;
+  const link = `${tapArea} rounded-sm underline underline-offset-4 outline-none focus-visible:outline-2 ${tones[tone]}`;
   return (
     <nav aria-label={label} className={className}>
       <ul className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[0.8125rem]">

@@ -41,6 +41,12 @@ const SECTION_LABELS: Record<StudentSection, string> = {
   profile: "Profile",
 };
 
+/**
+ * Portal links are current only on their own page: by default the router counts `/my` (Home) as
+ * current on every portal page, so Home and the page itself would both read as current.
+ */
+const EXACT = { exact: true } as const;
+
 /** The academy's own logo (never recoloured) on a white tile, or its initials. */
 export function AcademyTile({
   name,
@@ -158,6 +164,7 @@ export function PortalTabBar() {
             <Link
               to={item.to}
               params={item.params as never}
+              activeOptions={EXACT}
               aria-current={item.active ? "page" : undefined}
               className={`flex h-13 w-full flex-col items-center justify-center gap-0.5 rounded-full text-[0.6875rem] font-medium outline-none focus-visible:outline-2 focus-visible:outline-lime ${item.active ? "bg-lime text-ink" : "text-night-ink-2"}`}
             >
@@ -186,6 +193,7 @@ function DesktopNav() {
         <li>
           <Link
             to="/my"
+            activeOptions={EXACT}
             aria-current={pathname === "/my" || pathname === "/my/" ? "page" : undefined}
             className={pill(pathname === "/my" || pathname === "/my/")}
           >
@@ -308,6 +316,7 @@ export function PortalPage({
         <div className="flex items-center justify-between gap-3">
           <Link
             to="/my"
+            activeOptions={EXACT}
             className="flex min-w-0 items-center gap-3 rounded-[16px] outline-none focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-lime"
           >
             <AcademyTile name={brand?.name ?? "CoachMan"} logoKey={brand?.logoKey ?? null} />

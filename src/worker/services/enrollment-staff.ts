@@ -458,7 +458,7 @@ export async function enrollmentDetail(
     })),
     consentsMissing: missing.get(student.id) ?? 0,
     capacity,
-    ageNote: program ? programAgeNote(program, student.birthDate, today) : null,
+    ageNote: program ? programAgeNote(program, student.birthDate, today, "staff") : null,
     payment: requestPayment(req, payments),
     proofs,
     created: { clientPackageId: req.clientPackageId, chargeId: req.chargeId },

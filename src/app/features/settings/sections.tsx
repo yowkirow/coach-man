@@ -83,7 +83,9 @@ export function SettingsSection({
             <p className="mt-1.5 max-w-[60ch] text-[0.875rem] text-ink-2">{description}</p>
           ) : null}
         </div>
-        {action ? <div className="flex shrink-0 flex-wrap items-center gap-2">{action}</div> : null}
+        {action ? (
+          <div className="flex max-w-full shrink-0 flex-wrap items-center gap-2">{action}</div>
+        ) : null}
       </div>
       {children ? <div className="mt-5">{children}</div> : null}
     </section>

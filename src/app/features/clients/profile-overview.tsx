@@ -231,22 +231,24 @@ function buildActivity(
 }
 
 function ActivityCard({ item }: { item: Activity }) {
+  const linked = Boolean(item.to || item.onPress);
+  // On phones the pill drops under the text (the text keeps the width); beside it from sm up.
   const body = (
     <>
-      <span className="min-w-0 flex-1">
+      <span
+        className={`min-w-0 flex-1 sm:basis-0 ${linked ? "basis-[calc(100%-2rem)]" : "basis-full"}`}
+      >
         <span className="block font-medium">{item.title}</span>
         {item.detail ? (
           <span className="mt-0.5 block text-[0.8125rem] text-ink-2">{item.detail}</span>
         ) : null}
       </span>
-      {item.pill ? <span className="shrink-0">{item.pill}</span> : null}
-      {item.to || item.onPress ? (
-        <ArrowUpRight aria-hidden className="size-4 shrink-0 text-ink-3" />
-      ) : null}
+      {item.pill ? <span className="order-3 shrink-0 sm:order-none">{item.pill}</span> : null}
+      {linked ? <ArrowUpRight aria-hidden className="size-4 shrink-0 text-ink-3" /> : null}
     </>
   );
   const cls =
-    "flex min-h-[4.25rem] w-full items-start gap-3 rounded-[22px] bg-card px-5 py-4 text-left";
+    "flex min-h-[4.25rem] w-full flex-wrap items-start gap-x-3 gap-y-2 rounded-[22px] bg-card px-5 py-4 text-left sm:flex-nowrap";
   const interactive =
     "cursor-pointer outline-none transition-colors hover:bg-panel focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink";
   if (item.to)

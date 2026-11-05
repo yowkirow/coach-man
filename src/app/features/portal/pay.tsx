@@ -16,7 +16,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { Copy, ImagePlus, QrCode, TriangleAlert } from "lucide-react";
 import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 import { copyText } from "../../components/domain/invite-link";
-import { Button } from "../../components/ui/button";
+import { Button, buttonClass } from "../../components/ui/button";
 import { Card, Pill } from "../../components/ui/display";
 import { InlineError, Skeleton } from "../../components/ui/feedback";
 import {
@@ -517,11 +517,7 @@ function ProofForm({
           >
             {usingCash ? "Tell the academy" : "Send proof"}
           </Button>
-          <Link
-            to="/my/$clientId/payments"
-            params={{ clientId }}
-            className="rounded-sm text-[0.9375rem] font-medium text-ink-2 underline decoration-line-strong underline-offset-4 outline-none hover:text-ink focus-visible:outline-2 focus-visible:outline-ink"
-          >
+          <Link to="/my/$clientId/payments" params={{ clientId }} className={buttonClass("ghost")}>
             Not now
           </Link>
         </div>

@@ -3,6 +3,7 @@ import type { AnnouncementDto } from "@shared/api-types";
 import { Link } from "@tanstack/react-router";
 import { Megaphone, Pin } from "lucide-react";
 import { useState } from "react";
+import { textActionClass } from "../../components/ui/button";
 import { Card, CardHeader } from "../../components/ui/display";
 import { Sheet } from "../../components/ui/overlay";
 import { useFormat } from "../../lib/format";
@@ -23,10 +24,7 @@ export function TodayAnnouncements({ items }: { items: AnnouncementDto[] | undef
       <CardHeader
         title="Announcements"
         action={
-          <Link
-            to="/announcements"
-            className="rounded-full px-2 py-1 text-[0.875rem] font-medium outline-none hover:underline focus-visible:outline-2 focus-visible:outline-ink"
-          >
+          <Link to="/announcements" className={textActionClass}>
             {items.length > shown.length ? `All ${items.length}` : "All"}
           </Link>
         }

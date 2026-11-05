@@ -374,13 +374,15 @@ export function Switch({
       onChange={onChange}
       isDisabled={isDisabled}
       aria-label={ariaLabel}
-      className="group flex cursor-pointer items-start justify-between gap-4 py-2 text-ink outline-none data-[disabled]:opacity-50"
+      className={`group flex cursor-pointer justify-between gap-4 py-2 text-ink outline-none data-[disabled]:opacity-50 ${description ? "items-start" : "items-center"}`}
     >
       <span className="flex flex-col gap-0.5">
         <span className="font-medium">{children}</span>
         {description ? <span className="text-[0.8125rem] text-ink-2">{description}</span> : null}
       </span>
-      <span className="relative mt-0.5 h-7 w-12 shrink-0 rounded-full bg-line-strong transition-colors group-data-[selected]:bg-ink group-data-[focus-visible]:outline-2 group-data-[focus-visible]:outline-offset-2 group-data-[focus-visible]:outline-ink">
+      <span
+        className={`relative h-7 w-12 shrink-0 rounded-full bg-line-strong transition-colors group-data-[selected]:bg-ink group-data-[focus-visible]:outline-2 group-data-[focus-visible]:outline-offset-2 group-data-[focus-visible]:outline-ink ${description ? "mt-0.5" : ""}`}
+      >
         <span className="absolute top-1 left-1 size-5 rounded-full bg-card shadow-lift transition-transform duration-200 ease-out group-data-[selected]:translate-x-5 group-data-[selected]:bg-lime" />
       </span>
     </RACSwitch>

@@ -8,7 +8,7 @@ import { enrollmentMode } from "@shared/enrollment";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, ArrowRight, Mail, MessageCircle, Phone, Send } from "lucide-react";
-import { type ReactNode, useCallback, useEffect, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { Button, buttonClass } from "../../components/ui/button";
 import { ErrorState, InlineError, Skeleton } from "../../components/ui/feedback";
 import { ApiRequestError, accountApi, errorMessage, portalApi } from "../../lib/api";
@@ -242,6 +242,9 @@ export function EnrollWizard({
   const [draft, setDraft] = useState<WizardDraft | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [message, setMessage] = useState<string | null>(null);
+  // Errors from a step's own check clear as the answers are fixed; a refusal from the server stays
+  // until the next try.
+  const ownCheck = useRef(false);
   const [done, setDone] = useState<EnrollmentSubmittedDto | null>(null);
   const [wantsSignIn, setWantsSignIn] = useState(false);
   const me = account.data;
@@ -342,6 +345,7 @@ export function EnrollWizard({
     }
   };
   const go = (to: StepId) => {
+    ownCheck.current = false;
     setErrors({});
     setMessage(null);
     update((d) => ({ ...d, step: to }));
@@ -349,6 +353,7 @@ export function EnrollWizard({
   const next = () => {
     if (!draft) return;
     const errs = errorsFor(current, draft);
+    ownCheck.current = true;
     setErrors(errs);
     if (Object.keys(errs).length) {
       setMessage("Some answers need attention.");
@@ -361,6 +366,20 @@ export function EnrollWizard({
     const previous = steps[at - 1];
     if (previous) go(previous.id);
   };
+
+  // Each answer fixed takes its error away (and the summary once none is left); nothing new is
+  // flagged until Continue is pressed again.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: re-checks when the answers change.
+  useEffect(() => {
+    if (!draft || !ownCheck.current) return;
+    const showing = Object.keys(errors);
+    if (!showing.length) return;
+    const now = errorsFor(current, draft);
+    const still = showing.filter((k) => now[k]);
+    if (still.length === showing.length) return;
+    setErrors(Object.fromEntries(still.map((k) => [k, now[k] as string])));
+    if (!still.length) setMessage(null);
+  }, [draft]);
 
   const send = useMutation({
     meta: { silent: true },
@@ -424,6 +443,7 @@ export function EnrollWizard({
       if (placed?.step === "when") void sessions.refetch();
       if (placed?.step === "who" || placed?.step === "when") void context.refetch();
       if (placed && steps.some((s) => s.id === placed.step)) {
+        ownCheck.current = false;
         setErrors(placed.errors);
         setMessage(placed.message ?? "Some answers need attention.");
         update((d) => ({ ...d, step: placed.step }));
@@ -629,9 +649,13 @@ export function EnrollWizard({
               Back
             </Button>
           ) : (
-            <Link to="/a/$slug" params={{ slug }} className={buttonClass("ghost", "lg")}>
-              <ArrowLeft aria-hidden className="size-5" />
-              {academy.name}
+            <Link
+              to="/a/$slug"
+              params={{ slug }}
+              className={buttonClass("ghost", "lg", "max-w-full min-w-0")}
+            >
+              <ArrowLeft aria-hidden className="size-5 shrink-0" />
+              <span className="min-w-0 truncate">{academy.name}</span>
             </Link>
           )
         }

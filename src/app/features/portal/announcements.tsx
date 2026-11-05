@@ -7,6 +7,7 @@ import type {
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Megaphone, Pin } from "lucide-react";
+import { textActionClass } from "../../components/ui/button";
 import { Card, Pill } from "../../components/ui/display";
 import { EmptyState } from "../../components/ui/feedback";
 import { portalApi } from "../../lib/api";
@@ -56,19 +57,19 @@ function AnnouncementItem({
   return (
     <li className="py-4 first:pt-0 last:pb-0">
       <article aria-labelledby={titleId}>
-        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.8125rem] text-ink-2">
+        <h3 id={titleId} className="text-[1.125rem] leading-snug font-medium">
+          {a.title}
+        </h3>
+        <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.8125rem] text-ink-2">
+          <span className="num">{meta.join(" · ")}</span>
           {a.pinned ? (
             <Pill tone="outline">
               <Pin aria-hidden className="size-3.5" />
               Pinned
             </Pill>
           ) : null}
-          <span className="num">{meta.join(" · ")}</span>
         </p>
-        <h3 id={titleId} className="mt-1.5 text-[1.125rem] leading-snug font-medium">
-          {a.title}
-        </h3>
-        <AnnouncementBody body={a.body} className="mt-1.5 text-[0.9375rem]" />
+        <AnnouncementBody body={a.body} className="mt-2 text-[0.9375rem]" />
       </article>
     </li>
   );
@@ -84,10 +85,7 @@ export function HomeAnnouncements({ home }: { home: PortalHomeDto }) {
       title="Announcements"
       action={
         home.announcements.length ? (
-          <Link
-            to="/my/announcements"
-            className="rounded-full px-2 py-1 text-[0.875rem] font-medium outline-none hover:underline focus-visible:outline-2 focus-visible:outline-ink"
-          >
+          <Link to="/my/announcements" className={textActionClass}>
             All announcements
           </Link>
         ) : null

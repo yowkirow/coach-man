@@ -18,9 +18,9 @@ import {
   Ticket,
   UsersRound,
 } from "lucide-react";
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { BallMark } from "../../components/brand";
-import { buttonClass } from "../../components/ui/button";
+import { buttonClass, tapArea } from "../../components/ui/button";
 import { publicFileUrl } from "../../lib/api";
 import { type Format, initials } from "../../lib/format";
 import { LegalLinks } from "../public-info/legal-links";
@@ -103,7 +103,11 @@ function contactPair(actions: ContactAction[]): ContactAction[] {
   return second ? [primary, second] : [primary];
 }
 
-/** The primary way to reach the academy (lime) and a second one (charcoal), on the dark block. */
+/**
+ * The primary way to reach the academy (lime) and a second one (charcoal), on the dark block. With
+ * `enroll` (phones only, while the academy takes enrollments) Enroll leads in lime and the contacts
+ * turn charcoal, with shorter labels on phones so the three fit one row; from lg the contact leads.
+ */
 function ContactButtons({
   actions,
   enroll,
@@ -115,17 +119,39 @@ function ContactButtons({
 }) {
   const [primary, second] = contactPair(actions);
   if (!primary && !enroll) return null;
+  const short = Boolean(enroll);
   return (
     <div className={`flex flex-wrap gap-2 ${className}`}>
-      {enroll}
+      {enroll ? <span className="contents lg:hidden">{enroll}</span> : null}
       {primary ? (
-        <a href={primary.href} className={buttonClass(enroll ? "night" : "lime", "md")}>
+        <a
+          href={primary.href}
+          className={
+            enroll
+              ? buttonClass("night", "md", "lg:bg-lime lg:text-ink lg:hover:bg-lime-strong")
+              : buttonClass("lime", "md")
+          }
+        >
           {actionIcon[primary.id]}
-          {primary.id === "messenger"
-            ? "Message us"
-            : primary.id === "text"
-              ? "Text us"
-              : primary.label}
+          {primary.id === "messenger" ? (
+            short ? (
+              <span>
+                Message<span className="hidden lg:inline"> us</span>
+              </span>
+            ) : (
+              "Message us"
+            )
+          ) : primary.id === "text" ? (
+            short ? (
+              <span>
+                Text<span className="hidden lg:inline"> us</span>
+              </span>
+            ) : (
+              "Text us"
+            )
+          ) : (
+            primary.label
+          )}
         </a>
       ) : null}
       {second ? (
@@ -381,8 +407,7 @@ function CoachCard({ coach }: { coach: PublicCoachDto }) {
   );
 }
 
-const linkCls =
-  "rounded-sm font-medium underline decoration-line-strong underline-offset-4 outline-none hover:decoration-ink focus-visible:outline-2 focus-visible:outline-ink";
+const linkCls = `${tapArea} rounded-sm font-medium underline decoration-line-strong underline-offset-4 outline-none hover:decoration-ink focus-visible:outline-2 focus-visible:outline-ink`;
 
 function ContactCard({ academy }: { academy: PublicAcademyDto }) {
   const socials = ACADEMY_SOCIALS.filter((k) => academy.socials[k]);
@@ -490,14 +515,14 @@ function Rates({
           <div className="flex flex-wrap items-end justify-between gap-2 px-1">
             <h2
               id="rates-title"
-              className="text-[2rem] leading-tight font-light tracking-[-0.02em] lg:text-[2.5rem]"
+              className="scroll-mt-4 text-[2rem] leading-tight font-light tracking-[-0.02em] lg:text-[2.5rem]"
             >
               Rates
             </h2>
             <p className="text-[0.875rem] text-ink-2">{program.name} · prices per head</p>
           </div>
           {tiers.length ? (
-            <div className="grid items-start gap-3 sm:grid-cols-[repeat(auto-fill,minmax(17rem,1fr))]">
+            <div className="grid gap-3 sm:grid-cols-[repeat(auto-fill,minmax(17rem,1fr))]">
               {tiers.map((t) => card(t, program))}
             </div>
           ) : (
@@ -508,14 +533,18 @@ function Rates({
         </section>
       ) : null}
       {others.length ? (
-        <section aria-labelledby="packages-title" className="flex flex-col gap-3">
+        // Without a program this is the page's Rates (what "Skip to rates" and Enroll lead to).
+        <section
+          aria-labelledby={program ? "packages-title" : "rates-title"}
+          className="flex flex-col gap-3"
+        >
           <h2
-            id="packages-title"
-            className="px-1 text-[2rem] leading-tight font-light tracking-[-0.02em] lg:text-[2.5rem]"
+            id={program ? "packages-title" : "rates-title"}
+            className="scroll-mt-4 px-1 text-[2rem] leading-tight font-light tracking-[-0.02em] lg:text-[2.5rem]"
           >
             {program ? "Other packages" : "Rates"}
           </h2>
-          <div className="grid items-start gap-3 sm:grid-cols-[repeat(auto-fill,minmax(17rem,1fr))]">
+          <div className="grid gap-3 sm:grid-cols-[repeat(auto-fill,minmax(17rem,1fr))]">
             {others.map((t) => card(t, null))}
           </div>
         </section>
@@ -590,6 +619,7 @@ export function AcademyPage({
   programId,
   fmt,
   renderEnroll,
+  enroll,
 }: {
   page: PublicPage;
   slug: string;
@@ -597,12 +627,27 @@ export function AcademyPage({
   fmt: Format;
   /** WS4b: the Enroll control for a tier card (the page has none of its own). */
   renderEnroll?: RenderEnroll;
+  /** The dark block's first action on phones while enrollment is open (down to the rates). */
+  enroll?: ReactNode;
 }) {
   const academy = page.academy;
   const preview = page.kind === "preview";
   const program = academy.programs.find((p) => p.id === programId) ?? academy.programs[0] ?? null;
   const actions = contactActions(academy);
   const nothing = !academy.programs.length && !academy.packages.length;
+  // The phone's contact bar joins once the block's own buttons have scrolled away, so the first
+  // screen has one set of actions and the rates start at the fold.
+  const contactRef = useRef<HTMLDivElement>(null);
+  const [barShown, setBarShown] = useState(false);
+  useEffect(() => {
+    const el = contactRef.current;
+    if (!el || !actions.length || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(([entry]) => {
+      if (entry) setBarShown(!entry.isIntersecting && entry.boundingClientRect.top < 0);
+    });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [actions.length]);
   return (
     <div className="min-h-dvh lg:grid lg:grid-cols-[minmax(0,400px)_minmax(0,1fr)] lg:gap-3 lg:p-3 xl:grid-cols-[440px_minmax(0,1fr)]">
       <a
@@ -630,7 +675,11 @@ export function AcademyPage({
           preview={preview}
         />
         {program ? <ProgramPass key={program.id} program={program} fmt={fmt} /> : null}
-        <ContactButtons actions={actions} />
+        {actions.length || enroll ? (
+          <div ref={contactRef}>
+            <ContactButtons actions={actions} enroll={enroll} />
+          </div>
+        ) : null}
         {academy.packages.length ? (
           <div className="mt-auto hidden border-t border-night-line pt-5 lg:block">
             <Link
@@ -732,7 +781,10 @@ export function AcademyPage({
       {actions.length ? (
         <nav
           aria-label={`Contact ${academy.name}`}
-          className="dark-zone fixed inset-x-3 bottom-[calc(12px+env(safe-area-inset-bottom))] z-40 rounded-full bg-night p-1.5 shadow-pop lg:hidden"
+          inert={!barShown}
+          className={`dark-zone fixed inset-x-3 bottom-[calc(12px+env(safe-area-inset-bottom))] z-40 rounded-full bg-night p-1.5 shadow-pop transition-[translate,opacity] duration-200 ease-out lg:hidden ${
+            barShown ? "" : "pointer-events-none translate-y-[calc(100%+24px)] opacity-0"
+          }`}
         >
           <ul className="flex gap-1.5">
             {contactPair(actions).map((a, i) => (

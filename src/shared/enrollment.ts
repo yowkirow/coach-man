@@ -341,11 +341,15 @@ export function checkNewChild(input: { birthDate: string | null; today: string }
   return { ok: true, relation: "guardian" };
 }
 
-/** A note when a student's age is outside the program's ages (shown, never a refusal). */
+/**
+ * A note when a student's age is outside the program's ages (shown, never a refusal), worded for
+ * the family filling in the form or for the staff deciding.
+ */
 export function programAgeNote(
   program: { name: string; ageMin: number | null; ageMax: number | null },
   birthDate: string | null,
   today: string,
+  reader: "family" | "staff" = "family",
 ): string | null {
   if (!birthDate || (program.ageMin === null && program.ageMax === null)) return null;
   const age = ageOn(birthDate, today);
@@ -359,7 +363,9 @@ export function programAgeNote(
     (program.ageMin !== null && age < program.ageMin) ||
     (program.ageMax !== null && age > program.ageMax)
   ) {
-    return `${program.name} is for ${range}, and this student is ${age}. The academy will check before approving.`;
+    return `${program.name} is for ${range}, and this student is ${age}. ${
+      reader === "staff" ? "You can still approve." : "The academy will check before approving."
+    }`;
   }
   return null;
 }

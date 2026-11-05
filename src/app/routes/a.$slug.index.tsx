@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { EnrollSlot } from "../features/enrollment/enroll-slot";
+import { EnrollJump, EnrollSlot } from "../features/enrollment/enroll-slot";
 import { AcademyPage } from "../features/public/academy-page";
 import { PublicGate, publicSearch } from "../features/public/public-gate";
 
@@ -28,6 +28,14 @@ function PublicAcademyRoute() {
             page.kind === "public"
               ? ({ academy, tier }) => <EnrollSlot academy={academy} tier={tier} />
               : undefined
+          }
+          // On phones the dark block leads with Enroll (down to the rates) while it's open.
+          enroll={
+            page.kind === "public" &&
+            page.academy.enrollmentOpen &&
+            page.academy.packages.length ? (
+              <EnrollJump />
+            ) : undefined
           }
         />
       )}

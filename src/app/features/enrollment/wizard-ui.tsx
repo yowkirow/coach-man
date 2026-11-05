@@ -223,8 +223,8 @@ export function Note({
 export function StepActions({ back, next }: { back?: ReactNode; next: ReactNode }) {
   return (
     <div className="mt-8 flex flex-col-reverse gap-3 border-t border-line pt-5 sm:flex-row sm:items-center sm:justify-between">
-      <div>{back}</div>
-      <div className="flex flex-col sm:flex-row">{next}</div>
+      <div className="min-w-0">{back}</div>
+      <div className="flex shrink-0 flex-col sm:flex-row">{next}</div>
     </div>
   );
 }

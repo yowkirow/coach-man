@@ -637,13 +637,14 @@ function JoinPage() {
   return (
     <AuthLayout
       panel={
-        <div className="mt-10 flex flex-1 flex-col lg:justify-end">
+        // On phones the statement stands alone, so the invite card (which says the rest) moves up.
+        <div className="mt-8 flex flex-1 flex-col sm:mt-10 lg:justify-end">
           {family ? (
             <>
               <p className="max-w-[16ch] text-[2.5rem] leading-[1.04] font-light tracking-[-0.025em] lg:text-[3.5rem]">
                 Training, progress, and payments in one place.
               </p>
-              <p className="mt-4 max-w-[46ch] text-[0.9375rem] text-night-ink-2">
+              <p className="mt-4 hidden max-w-[46ch] text-[0.9375rem] text-night-ink-2 sm:block">
                 Your academy uses CoachMan. The invite opens what it shares with you: the schedule,
                 skills and goals, the comments coaches share, packages, and what's due. Sign in with
                 Google or a passkey; there's no password.
@@ -654,7 +655,7 @@ function JoinPage() {
               <p className="max-w-[16ch] text-[2.5rem] leading-[1.04] font-light tracking-[-0.025em] lg:text-[3.5rem]">
                 Your academy runs on CoachMan.
               </p>
-              <p className="mt-4 max-w-[46ch] text-[0.9375rem] text-night-ink-2">
+              <p className="mt-4 hidden max-w-[46ch] text-[0.9375rem] text-night-ink-2 sm:block">
                 Coaches check players in on court, even offline, and keep every player's progress in
                 one place. The invite brings you into the academy that sent it.
               </p>

@@ -101,20 +101,25 @@ function DetailHeader({ d, fmt }: { d: Detail; fmt: Format }) {
     <header className="flex min-w-0 items-start gap-3">
       <Link
         to="/enrollments"
+        activeOptions={{ exact: true }}
         aria-label="All enrollment requests"
         className="mt-1 flex size-11 shrink-0 items-center justify-center rounded-full bg-card text-ink outline-none hover:bg-panel focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink lg:hidden"
       >
         <ArrowLeft aria-hidden className="size-5" />
       </Link>
       <div className="min-w-0">
-        <p className="num text-[0.875rem] text-ink-2">
-          Enrollment request · sent {fmt.date(fmt.dayOf(d.createdAt))}
-        </p>
-        <h1 className="mt-1 text-[2rem] leading-[1.08] font-light tracking-[-0.02em] break-words lg:text-[2.75rem]">
+        <h1 className="text-[2rem] leading-[1.08] font-light tracking-[-0.02em] break-words lg:text-[2.75rem]">
           {fullName(d.student)}
         </h1>
         <p className="num mt-2 text-[0.9375rem] text-ink-2">
-          {[d.tier?.name ?? "Package removed", period, d.program?.name].filter(Boolean).join(" · ")}
+          {[
+            d.tier?.name ?? "Package removed",
+            period,
+            d.program?.name,
+            `sent ${fmt.date(fmt.dayOf(d.createdAt))}`,
+          ]
+            .filter(Boolean)
+            .join(" · ")}
         </p>
         <div className="mt-3 flex flex-wrap gap-1.5">
           <Pill tone={pill.tone}>{pill.label}</Pill>
@@ -188,7 +193,7 @@ function DecisionCard({
           </Warn>
         ) : null}
         {d.ageNote ? <Warn>{d.ageNote}</Warn> : null}
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
           <Button
             variant="dark"
             icon={<Check aria-hidden className="size-4.5" />}
@@ -197,14 +202,16 @@ function DecisionCard({
           >
             Approve
           </Button>
-          {d.status === "requested" ? (
-            <Button variant="light" onPress={() => onSheet("waitlist")} isDisabled={!online}>
-              Waitlist
+          <div className="flex gap-2 *:flex-1 sm:*:flex-none">
+            {d.status === "requested" ? (
+              <Button variant="light" onPress={() => onSheet("waitlist")} isDisabled={!online}>
+                Waitlist
+              </Button>
+            ) : null}
+            <Button variant="light" onPress={() => onSheet("decline")} isDisabled={!online}>
+              Decline
             </Button>
-          ) : null}
-          <Button variant="light" onPress={() => onSheet("decline")} isDisabled={!online}>
-            Decline
-          </Button>
+          </div>
         </div>
         {!online ? (
           <p className="text-[0.8125rem] text-ink-2">Decisions need a connection.</p>
@@ -446,11 +453,15 @@ function PackageCard({ d, fmt }: { d: Detail; fmt: Format }) {
               <KeyValue label="Session">
                 {s ? (
                   <span className="num">
-                    {fmt.day(fmt.dayOf(s.startsAt))} · {fmt.timeRange(s.startsAt, s.endsAt)}
+                    <span className="whitespace-nowrap">{fmt.day(fmt.dayOf(s.startsAt))}</span> ·{" "}
+                    <span className="whitespace-nowrap">{fmt.timeRange(s.startsAt, s.endsAt)}</span>
                     <span className="block text-[0.8125rem] text-ink-2">
-                      {[s.venueName, s.court ? `Court ${s.court}` : null]
-                        .filter(Boolean)
-                        .join(" · ") || "Venue to confirm"}
+                      {s.venueName || (s.court ? null : "Venue to confirm")}
+                      {s.court ? (
+                        <span className="whitespace-nowrap">
+                          {s.venueName ? " · " : ""}Court {s.court}
+                        </span>
+                      ) : null}
                       {s.status !== "scheduled" ? ` · ${s.status}` : ""}
                     </span>
                   </span>

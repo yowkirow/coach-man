@@ -89,8 +89,11 @@
     outline-offset: 2px;
   }
 
-  .dark-zone :focus-visible {
-    outline-color: var(--color-lime);
+  /* Large light headings break into even lines instead of leaving one word behind. */
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
   }
 
   a {
@@ -156,6 +159,24 @@
       transparent 60%
     );
   }
+}
+
+/*
+ * Keyboard focus. Tailwind v4's `outline-none` also sets `--tw-outline-style: none`, and the
+ * `focus-visible:outline-2` / `data-[focus-visible]:outline-2` rings drawn on top of it read that
+ * variable, so every focus ring resolved to `outline-style: none`. Unlayered, so it beats the
+ * utility; fields (outline-none with a border and glow, no outline utility) are unaffected.
+ */
+.outline-none:focus-visible,
+.outline-none[data-focus-visible] {
+  --tw-outline-style: solid;
+}
+
+/* In the dark zone every focus ring is lime (an ink ring disappears on black), whatever color the
+   control's own focus utility names. */
+.dark-zone :focus-visible,
+.dark-zone [data-focus-visible] {
+  outline-color: var(--color-lime);
 }
 
 /* Printing (the public rates sheet): white paper, no app chrome, each tier kept whole. A4 and

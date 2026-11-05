@@ -2,11 +2,11 @@ import type { PortalAcademyDto } from "@shared/api-types";
 import { ACADEMY_SOCIAL_LABELS, ACADEMY_SOCIALS } from "@shared/domain";
 import { ChevronDown, Globe, Mail, MapPin, Phone } from "lucide-react";
 import { useState } from "react";
+import { tapArea } from "../../components/ui/button";
 import { PortalCard } from "./bits";
 import { AcademyTile } from "./shell";
 
-const linkCls =
-  "rounded-sm font-medium underline decoration-line-strong underline-offset-4 outline-none hover:decoration-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink";
+const linkCls = `${tapArea} rounded-sm font-medium underline decoration-line-strong underline-offset-4 outline-none hover:decoration-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink`;
 
 const tel = (v: string) => `tel:${v.replace(/[^\d+]/g, "")}`;
 

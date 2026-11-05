@@ -35,7 +35,7 @@ export function InclusionsEditor({
     onChange(next);
   };
   return (
-    <fieldset className="flex flex-col gap-2">
+    <fieldset className="flex min-w-0 flex-col gap-2">
       <legend className="text-[0.8125rem] font-medium text-ink-2">What's included</legend>
       <p className="-mt-1 text-[0.8125rem] text-ink-2">
         The checklist on the tier card, top to bottom. Court fees, coaching, game analysis…
@@ -57,6 +57,7 @@ export function InclusionsEditor({
                 className="h-11 min-w-0 flex-1 rounded-xl bg-transparent px-2 text-[0.9375rem] text-ink outline-none focus-visible:bg-card focus-visible:outline-2 focus-visible:outline-ink"
               />
               <IconButton
+                size="sm"
                 label={`Move “${item || `line ${i + 1}`}” up`}
                 isDisabled={i === 0}
                 onPress={() => move(i, -1)}
@@ -64,6 +65,7 @@ export function InclusionsEditor({
                 <ArrowUp aria-hidden className="size-4.5" />
               </IconButton>
               <IconButton
+                size="sm"
                 label={`Move “${item || `line ${i + 1}`}” down`}
                 isDisabled={i === items.length - 1}
                 onPress={() => move(i, 1)}
@@ -71,6 +73,7 @@ export function InclusionsEditor({
                 <ArrowDown aria-hidden className="size-4.5" />
               </IconButton>
               <IconButton
+                size="sm"
                 label={`Remove “${item || `line ${i + 1}`}”`}
                 onPress={() => onChange(items.filter((_, k) => k !== i))}
               >

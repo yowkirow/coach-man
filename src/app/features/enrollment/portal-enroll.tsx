@@ -85,7 +85,7 @@ function AcademyTiers({ a }: { a: PortalEnrollAcademyDto }) {
                 <p className="num text-[0.875rem] text-ink-2">{schedule.join(" · ")}</p>
               ) : null}
             </div>
-            <div className="grid items-start gap-3 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-2">
               {tiers.map((t) => (
                 <TierCard
                   key={t.id}
@@ -100,7 +100,7 @@ function AcademyTiers({ a }: { a: PortalEnrollAcademyDto }) {
         );
       })}
       {loose.length ? (
-        <div className="grid items-start gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-2">
           {loose.map((t) => (
             <TierCard
               key={t.id}

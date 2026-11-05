@@ -36,6 +36,15 @@ export function buttonClass(variant: ButtonVariant = "dark", size: ButtonSize = 
   return `${linkBase} ${buttonVariants[variant]} ${buttonSizes[size]} ${extra}`;
 }
 
+/**
+ * Grows a small text link's tap area to about 44px (an invisible box above and below it) without
+ * moving anything around it. For links set as text: footers, contact lines, "All" in a card head.
+ */
+export const tapArea = "relative before:absolute before:-inset-y-2.5 before:inset-x-0";
+
+/** A card header's quiet text action ("All", "Open session"), underlined on hover. */
+export const textActionClass = `${tapArea} rounded-full px-2 py-1 text-[0.875rem] font-medium outline-none hover:underline focus-visible:outline-2 focus-visible:outline-ink`;
+
 export interface ButtonProps extends Omit<RACButtonProps, "className" | "children"> {
   variant?: ButtonVariant;
   size?: ButtonSize;

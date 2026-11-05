@@ -219,8 +219,16 @@ export function ProfileHeader({
           {meta.length ? (
             <p className="num mt-2 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[0.9375rem] text-ink-2">
               {meta.map((m, i) => (
-                <span key={m.key} className="inline-flex items-center gap-2">
-                  {i ? <span aria-hidden>·</span> : null}
+                // The coach (with an avatar) takes its own line on phones, so no line starts with "·".
+                <span
+                  key={m.key}
+                  className={`inline-flex items-center gap-2 ${m.key === "coach" && i ? "max-lg:basis-full" : ""}`}
+                >
+                  {i ? (
+                    <span aria-hidden className={m.key === "coach" ? "max-lg:hidden" : ""}>
+                      ·
+                    </span>
+                  ) : null}
                   {m.node}
                 </span>
               ))}

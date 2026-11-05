@@ -15,7 +15,7 @@ import {
   MessageSquareText,
   UserRound,
 } from "lucide-react";
-import { buttonClass } from "../../components/ui/button";
+import { buttonClass, tapArea } from "../../components/ui/button";
 import { Card, Meter, Pill } from "../../components/ui/display";
 import { EmptyState } from "../../components/ui/feedback";
 import { type Format, fullName, plural } from "../../lib/format";
@@ -293,7 +293,7 @@ function CommentRow({
       <Link
         to="/my/$clientId/progress"
         params={{ clientId: comment.clientId }}
-        className="mt-1.5 inline-flex items-center gap-1 rounded-sm text-[0.8125rem] font-medium text-ink-2 underline decoration-line-strong underline-offset-4 outline-none hover:text-ink focus-visible:outline-2 focus-visible:outline-ink"
+        className={`${tapArea} mt-1.5 inline-flex items-center gap-1 rounded-sm text-[0.8125rem] font-medium text-ink-2 underline decoration-line-strong underline-offset-4 outline-none hover:text-ink focus-visible:outline-2 focus-visible:outline-ink`}
       >
         All progress
       </Link>

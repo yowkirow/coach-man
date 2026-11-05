@@ -10,9 +10,10 @@ import { InlineError } from "../../components/ui/feedback";
 import { Checkbox, SelectField, TextAreaField, TextField } from "../../components/ui/field";
 import { Sheet } from "../../components/ui/overlay";
 import { ApiRequestError, api, errorMessage, fieldErrors } from "../../lib/api";
-import { type Format, fullName, plural } from "../../lib/format";
+import { type Format, fullName, plural, useFormat } from "../../lib/format";
 import { notify } from "../../lib/notify";
 import { keys, queryClient } from "../../lib/query";
+import { STATUS_LABELS } from "../clients/client-utils";
 
 // The three decisions on a request: approve (sell, enroll, activate), waitlist, decline. Each is a
 // sheet; errors stay in the sheet, beside what caused them.
@@ -363,6 +364,7 @@ function LinkSection({
   onConfirm: (v: boolean) => void;
 }) {
   const [picking, setPicking] = useState(false);
+  const fmt = useFormat();
   const lead = fullName(d.student);
   const submitter = d.submitter.name;
   const pick = (c: ClientListItemDto | Detail["matches"][number]) => {
@@ -436,7 +438,11 @@ function LinkSection({
                 <span className="min-w-0 flex-1">
                   <span className="block font-medium">This is {fullName(m)}</span>
                   <span className="num block truncate text-[0.8125rem] text-ink-2">
-                    {[m.birthDate ? `Born ${m.birthDate}` : null, m.phone, m.status]
+                    {[
+                      m.birthDate ? `Born ${fmt.date(m.birthDate)}` : null,
+                      m.phone,
+                      STATUS_LABELS[m.status],
+                    ]
                       .filter(Boolean)
                       .join(" · ")}
                   </span>

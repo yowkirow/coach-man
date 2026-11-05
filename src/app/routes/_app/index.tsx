@@ -17,7 +17,7 @@ import { ScopeToggle } from "../../components/domain/coaches";
 import { LessonRow, SessionTile, sessionPhase } from "../../components/domain/lesson";
 import { RosterRow } from "../../components/domain/roster";
 import { Page, ShellAside, SyncStatus, useIsDesktop } from "../../components/layout/app-shell";
-import { Button, buttonClass } from "../../components/ui/button";
+import { Button, buttonClass, textActionClass } from "../../components/ui/button";
 import { Avatar, AvatarStack, Card, CardHeader, KpiTile, Pill } from "../../components/ui/display";
 import { EmptyState, ErrorState, RowsSkeleton, Skeleton } from "../../components/ui/feedback";
 import { TodayAnnouncements } from "../../features/announcements/today-card";
@@ -561,7 +561,7 @@ function PhoneToday({
                   <Link
                     to="/sessions/$lessonId"
                     params={{ lessonId: featured.id }}
-                    className="rounded-full px-2 py-1 text-[0.875rem] font-medium outline-none hover:underline focus-visible:outline-2 focus-visible:outline-ink"
+                    className={textActionClass}
                   >
                     Open session
                   </Link>

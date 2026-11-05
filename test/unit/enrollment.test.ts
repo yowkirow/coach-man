@@ -354,6 +354,10 @@ describe("who can be enrolled", () => {
     expect(programAgeNote(program, born(9), TODAY)).toBe(
       "Evening program is for ages 10 and up, and this student is 9. The academy will check before approving.",
     );
+    // Staff read it on the request page, where approving is theirs to decide.
+    expect(programAgeNote(program, born(9), TODAY, "staff")).toBe(
+      "Evening program is for ages 10 and up, and this student is 9. You can still approve.",
+    );
     expect(programAgeNote(program, born(12), TODAY)).toBeNull();
     expect(programAgeNote({ name: "Juniors", ageMin: 9, ageMax: 14 }, born(15), TODAY)).toMatch(
       /ages 9–14/,

@@ -9,7 +9,7 @@ import { Megaphone, Pin, Plus } from "lucide-react";
 import { useState } from "react";
 import { Page, ShellAside } from "../../components/layout/app-shell";
 import { Button } from "../../components/ui/button";
-import { Card, KpiTile, PageHeader, Pill } from "../../components/ui/display";
+import { Card, KpiTile, PageHeader, Pill, useCurrentInView } from "../../components/ui/display";
 import { EmptyState, ErrorState, RowsSkeleton } from "../../components/ui/feedback";
 import { ActionMenu, ConfirmSheet } from "../../components/ui/overlay";
 import { api, errorMessage } from "../../lib/api";
@@ -109,19 +109,9 @@ function AnnouncementCard({
   return (
     <article aria-labelledby={titleId} className="rounded-[28px] bg-card p-5">
       <div className="flex items-start gap-3">
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <StatePill state={a.state} />
-            {a.pinned ? <PinnedPill /> : null}
-          </div>
-          <h3 id={titleId} className="mt-2 text-[1.125rem] leading-snug font-medium">
-            {a.title}
-          </h3>
-          <p className="num mt-1 text-[0.8125rem] text-ink-2">
-            {audienceLine(a)} · {whenLine(a, fmt)}
-            {a.author ? ` · by ${a.author.name}` : ""}
-          </p>
-        </div>
+        <h3 id={titleId} className="min-w-0 flex-1 pt-1.5 text-[1.125rem] leading-snug font-medium">
+          {a.title}
+        </h3>
         {canCompose ? (
           <div className="flex shrink-0 items-center gap-1">
             <Button variant="light" size="sm" onPress={() => onEdit(a)}>
@@ -152,6 +142,14 @@ function AnnouncementCard({
             />
           </div>
         ) : null}
+      </div>
+      <p className="num mt-1 text-[0.8125rem] text-ink-2">
+        {audienceLine(a)} · {whenLine(a, fmt)}
+        {a.author ? ` · by ${a.author.name}` : ""}
+      </p>
+      <div className="mt-2.5 flex flex-wrap items-center gap-2">
+        <StatePill state={a.state} />
+        {a.pinned ? <PinnedPill /> : null}
       </div>
       <AnnouncementBody body={a.body} className="mt-3 text-[0.9375rem]" />
       <ConfirmSheet
@@ -229,6 +227,7 @@ export function AnnouncementsPage({
   const tabs = canCompose
     ? (["draft", "scheduled", "live", "expired"] as const)
     : (["live"] as const);
+  const tabRow = useCurrentInView<HTMLUListElement>(current);
 
   return (
     <>
@@ -287,11 +286,14 @@ export function AnnouncementsPage({
         />
         {tabs.length > 1 ? (
           <nav aria-label="Announcement lists">
-            <ul className="-mx-1 flex flex-wrap gap-2 px-1">
+            <ul
+              ref={tabRow}
+              className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0"
+            >
               {tabs.map((s) => {
                 const on = s === current;
                 return (
-                  <li key={s}>
+                  <li key={s} className="shrink-0">
                     <button
                       type="button"
                       aria-pressed={on}

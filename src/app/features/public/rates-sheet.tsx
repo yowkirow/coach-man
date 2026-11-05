@@ -160,10 +160,10 @@ export function RatesSheet({ page, slug, fmt }: { page: PublicPage; slug: string
             to="/a/$slug"
             params={{ slug }}
             search={preview ? { preview: 1 } : {}}
-            className={buttonClass("light", "md")}
+            className={buttonClass("light", "md", "max-w-full min-w-0")}
           >
-            <ArrowLeft aria-hidden className="size-4.5" />
-            {academy.name}
+            <ArrowLeft aria-hidden className="size-4.5 shrink-0" />
+            <span className="min-w-0 truncate">{academy.name}</span>
           </Link>
           <Button
             variant="dark"

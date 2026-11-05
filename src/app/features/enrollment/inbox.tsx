@@ -11,7 +11,14 @@ import { ArrowUpRight, Copy, Inbox, Phone } from "lucide-react";
 import { useState } from "react";
 import { copyText } from "../../components/domain/invite-link";
 import { Button } from "../../components/ui/button";
-import { Avatar, Card, CardHeader, KpiTile, Pill } from "../../components/ui/display";
+import {
+  Avatar,
+  Card,
+  CardHeader,
+  KpiTile,
+  Pill,
+  useCurrentInView,
+} from "../../components/ui/display";
 import { EmptyState, ErrorState, RowsSkeleton } from "../../components/ui/feedback";
 import { errorMessage } from "../../lib/api";
 import { type Format, fullName } from "../../lib/format";
@@ -28,6 +35,11 @@ export interface InboxSearch {
 }
 
 const FILTERS: InboxStatus[] = [...ENROLLMENT_STATUSES, "all"];
+/**
+ * A list link is current only on its own list: by default the router also counts `/enrollments`,
+ * the Requested list, as current on every other list and on each request's page.
+ */
+const EXACT = { exact: true } as const;
 const filterLabel = (s: InboxStatus) => (s === "all" ? "All" : ENROLLMENT_STATUS_LABELS[s]);
 
 /** Status chips (and "Not yet renewed") above the list on the canvas. */
@@ -45,8 +57,13 @@ export function InboxFilters({
       on ? "bg-ink text-white" : "bg-card text-ink hover:bg-panel"
     }`;
   const total = counts ? Object.values(counts).reduce((s, n) => s + n, 0) : undefined;
+  const row = useCurrentInView<HTMLUListElement>(active);
   return (
-    <ul aria-label="Filters" className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0">
+    <ul
+      ref={row}
+      aria-label="Filters"
+      className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0"
+    >
       {FILTERS.map((s) => {
         const on = active === s;
         const n = s === "all" ? total : counts?.[s];
@@ -55,6 +72,7 @@ export function InboxFilters({
             <Link
               to="/enrollments"
               search={s === "requested" ? {} : { status: s }}
+              activeOptions={EXACT}
               aria-current={on ? "true" : undefined}
               className={chip(on)}
             >
@@ -70,6 +88,7 @@ export function InboxFilters({
         <Link
           to="/enrollments"
           search={{ view: "renewals" }}
+          activeOptions={EXACT}
           aria-current={active === "renewals" ? "true" : undefined}
           className={chip(active === "renewals")}
         >
@@ -127,6 +146,7 @@ export function InboxPanel({
               key={s}
               to="/enrollments"
               search={s === "requested" ? {} : { status: s }}
+              activeOptions={EXACT}
               aria-current={on ? "true" : undefined}
               className={row(on)}
             >
@@ -142,6 +162,7 @@ export function InboxPanel({
         <Link
           to="/enrollments"
           search={{ view: "renewals" }}
+          activeOptions={EXACT}
           aria-current={active === "renewals" ? "true" : undefined}
           className={row(active === "renewals")}
         >
@@ -399,7 +420,7 @@ export function RenewalsList({ fmt }: { fmt: Format }) {
         title="Not yet renewed"
         action={data.items.length ? <Pill tone="panel">{data.items.length}</Pill> : null}
       />
-      <p className="-mt-1 px-5 pb-3 text-[0.875rem] text-ink-2">
+      <p className="-mt-1 max-w-[70ch] px-5 pb-3 text-[0.875rem] text-ink-2">
         Monthly packages that end this month, with nothing yet for {fmt.month(data.nextMonth)}.
         Families renew in one tap from their portal; the reminder says how.
       </p>

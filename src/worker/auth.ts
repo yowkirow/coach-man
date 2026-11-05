@@ -19,6 +19,7 @@ import {
   account as accountTable,
   authSchema,
   clientAccess,
+  enrollmentRequest,
   invite,
   member,
   passkey as passkeyTable,
@@ -27,9 +28,18 @@ import {
 import { E2E_HEADER, isBypassEnabled, isBypassRequestAllowed } from "./lib/bypass";
 import { normalizeEmail } from "./lib/invites";
 import { checkGoogleLink, idTokenClaims } from "./lib/passkey-accounts";
-import { clientIp, hit, INVITE_MISS_RULE, PASSKEY_ACCOUNT_RULE, spent } from "./lib/rate-limit";
+import {
+  clientIp,
+  hit,
+  INVITE_MISS_RULE,
+  PASSKEY_ACCOUNT_RULE,
+  PASSKEY_ENROLL_ACADEMY_RULE,
+  PASSKEY_ENROLL_RULE,
+  spent,
+} from "./lib/rate-limit";
 import { hashToken, inviteStatus, isTokenShaped } from "./lib/tokens";
 import { firstWorkspaceForUser, provisionWorkspace } from "./lib/workspace";
+import { findListedAcademy } from "./services/public-academy";
 
 /**
  * Test-only sign-in endpoint (POST /api/auth/e2e/sign-in). Never registered in production;
@@ -287,16 +297,20 @@ async function guardLastPasskey(db: Db, ctx: GenericEndpointContext) {
 
 /**
  * Passkey-only family accounts (no Google needed), only for someone holding a family invite that
- * still works, so nobody can create anonymous accounts at will:
- * - POST /api/auth/passkey-account/start { name, inviteToken } creates the account (placeholder
- *   email) and signs it in; the page then adds the passkey and accepts the invite.
+ * still works, or enrolling at a listed academy that takes new students, so nobody can create
+ * anonymous accounts at will:
+ * - POST /api/auth/passkey-account/start { name, inviteToken } or { name, enrollment: { slug } }
+ *   creates the account (placeholder email) and signs it in; the page then adds the passkey and
+ *   accepts the invite (or goes on with the enrollment wizard).
  * - POST /api/auth/passkey-account/abandon, after a failed or cancelled passkey: deletes the
- *   account while it has nothing (no passkey, no family link, no academy) and signs out.
+ *   account while it has nothing (no passkey, no family link, no academy, no request) and signs
+ *   out.
  * Accounts that are never finished or abandoned are removed by the daily maintenance after a day.
- * Enrollment from the academy page (WS4) is the other context that may start one.
  */
 function passkeyAccounts(env: Env): BetterAuthPlugin {
   const db = getDb(env.DB);
+  const tooMany = (message: string) =>
+    new APIError("TOO_MANY_REQUESTS", { code: "rate_limited", message });
   return {
     id: "coachman-passkey-accounts",
     endpoints: {
@@ -306,7 +320,9 @@ function passkeyAccounts(env: Env): BetterAuthPlugin {
           method: "POST",
           body: z.object({
             name: z.string().trim().min(1).max(80),
-            inviteToken: z.string().max(200),
+            inviteToken: z.string().max(200).optional(),
+            /** Enrolling from a listed academy's page (WS4b). */
+            enrollment: z.object({ slug: z.string().trim().toLowerCase().max(60) }).optional(),
           }),
         },
         async (ctx) => {
@@ -318,38 +334,67 @@ function passkeyAccounts(env: Env): BetterAuthPlugin {
             });
           }
           const ip = clientIp(ctx.headers ?? new Headers());
-          if (await spent(db, `invite-miss:ip:${ip}`, INVITE_MISS_RULE)) {
-            throw new APIError("TOO_MANY_REQUESTS", {
-              code: "rate_limited",
-              message: "Too many tries. Wait a few minutes, then try again.",
+          const { name, inviteToken, enrollment } = ctx.body;
+          if (Boolean(inviteToken) === Boolean(enrollment)) {
+            throw new APIError("BAD_REQUEST", {
+              code: "bad_request",
+              message: "Open the invite link or the academy's page again, then try once more.",
             });
           }
-          const { name, inviteToken } = ctx.body;
-          const found = isTokenShaped(inviteToken)
-            ? await db.query.invite.findFirst({
-                where: eq(invite.tokenHash, await hashToken(inviteToken)),
-              })
-            : undefined;
-          if (found?.kind !== "family") {
-            await hit(db, `invite-miss:ip:${ip}`, INVITE_MISS_RULE);
-            throw new APIError("NOT_FOUND", {
-              code: "invite_not_found",
-              message: "This invite link doesn't work. Ask the academy for a new one.",
-            });
-          }
-          const status = inviteStatus(found);
-          if (status !== "valid") {
-            throw new APIError("GONE", {
-              code: `invite_${status}`,
-              message: "This invite link no longer works. Ask the academy for a new one.",
-            });
-          }
-          const counted = await hit(db, `passkey-account:${found.id}`, PASSKEY_ACCOUNT_RULE);
-          if (!counted.allowed) {
-            throw new APIError("TOO_MANY_REQUESTS", {
-              code: "rate_limited",
-              message: "Too many accounts were started from this link. Try again in an hour.",
-            });
+          if (enrollment) {
+            // Unknown academies are counted per connection, like invite misses.
+            if (await spent(db, `enroll-miss:ip:${ip}`, INVITE_MISS_RULE)) {
+              throw tooMany("Too many tries. Wait a few minutes, then try again.");
+            }
+            const academy = await findListedAcademy(db, enrollment.slug);
+            if (!academy) {
+              await hit(db, `enroll-miss:ip:${ip}`, INVITE_MISS_RULE);
+              throw new APIError("NOT_FOUND", {
+                code: "academy_not_found",
+                message: "This academy's page isn't available. Ask the academy for its link.",
+              });
+            }
+            if (!academy.enrollmentOpen) {
+              throw new APIError("CONFLICT", {
+                code: "enrollment_closed",
+                message: `${academy.name} isn't taking new students right now. Get in touch with them instead.`,
+              });
+            }
+            const [perIp, perAcademy] = await Promise.all([
+              hit(db, `passkey-account:enroll:${academy.workspaceId}:${ip}`, PASSKEY_ENROLL_RULE),
+              hit(db, `passkey-account:enroll:${academy.workspaceId}`, PASSKEY_ENROLL_ACADEMY_RULE),
+            ]);
+            if (!perIp.allowed || !perAcademy.allowed) {
+              throw tooMany("Too many accounts were started here. Try again in an hour.");
+            }
+          } else {
+            if (await spent(db, `invite-miss:ip:${ip}`, INVITE_MISS_RULE)) {
+              throw tooMany("Too many tries. Wait a few minutes, then try again.");
+            }
+            const token = inviteToken ?? "";
+            const found = isTokenShaped(token)
+              ? await db.query.invite.findFirst({
+                  where: eq(invite.tokenHash, await hashToken(token)),
+                })
+              : undefined;
+            if (found?.kind !== "family") {
+              await hit(db, `invite-miss:ip:${ip}`, INVITE_MISS_RULE);
+              throw new APIError("NOT_FOUND", {
+                code: "invite_not_found",
+                message: "This invite link doesn't work. Ask the academy for a new one.",
+              });
+            }
+            const status = inviteStatus(found);
+            if (status !== "valid") {
+              throw new APIError("GONE", {
+                code: `invite_${status}`,
+                message: "This invite link no longer works. Ask the academy for a new one.",
+              });
+            }
+            const counted = await hit(db, `passkey-account:${found.id}`, PASSKEY_ACCOUNT_RULE);
+            if (!counted.allowed) {
+              throw tooMany("Too many accounts were started from this link. Try again in an hour.");
+            }
           }
           const created = await ctx.context.internalAdapter.createUser(
             { email: placeholderEmail(crypto.randomUUID()), name, emailVerified: false },
@@ -368,12 +413,16 @@ function passkeyAccounts(env: Env): BetterAuthPlugin {
           const owner = await placeholderOwner(db, user.id);
           let deleted = false;
           if (owner) {
-            const [keys, links, memberships] = await Promise.all([
+            const [keys, links, memberships, requests] = await Promise.all([
               db.select({ n: count() }).from(passkeyTable).where(eq(passkeyTable.userId, owner.id)),
               db.select({ n: count() }).from(clientAccess).where(eq(clientAccess.userId, owner.id)),
               db.select({ n: count() }).from(member).where(eq(member.userId, owner.id)),
+              db
+                .select({ n: count() })
+                .from(enrollmentRequest)
+                .where(eq(enrollmentRequest.requestedBy, owner.id)),
             ]);
-            if (!keys[0]?.n && !links[0]?.n && !memberships[0]?.n) {
+            if (!keys[0]?.n && !links[0]?.n && !memberships[0]?.n && !requests[0]?.n) {
               await db.delete(userTable).where(eq(userTable.id, owner.id));
               deleted = true;
             }

@@ -20,11 +20,13 @@ export interface AccountFootprint {
   /** client_access rows of any state: revoked history is kept with its account. */
   familyLinks: number;
   memberships: number;
+  /** Enrollment requests the account sent (of any status). */
+  enrollmentRequests?: number;
 }
 
 /**
  * An abandoned passkey-only account: a placeholder email, older than a day, and nothing that
- * makes it usable or worth keeping (no passkey, no family link, no academy).
+ * makes it usable or worth keeping (no passkey, no family link, no academy, no enrollment request).
  */
 export function isAbandonedPasskeyAccount(a: AccountFootprint, now: number): boolean {
   return (
@@ -32,7 +34,8 @@ export function isAbandonedPasskeyAccount(a: AccountFootprint, now: number): boo
     now - a.createdAt >= ABANDONED_ACCOUNT_MS &&
     a.passkeys === 0 &&
     a.familyLinks === 0 &&
-    a.memberships === 0
+    a.memberships === 0 &&
+    (a.enrollmentRequests ?? 0) === 0
   );
 }
 
@@ -50,6 +53,7 @@ export async function deleteAbandonedPasskeyAccounts(db: Db, now: number): Promi
         sql`not exists (select 1 from passkey p where p.user_id = "user"."id")`,
         sql`not exists (select 1 from client_access ca where ca.user_id = "user"."id")`,
         sql`not exists (select 1 from member m where m.user_id = "user"."id")`,
+        sql`not exists (select 1 from enrollment_request er where er.requested_by = "user"."id")`,
       ),
     )
     .returning({ id: user.id });

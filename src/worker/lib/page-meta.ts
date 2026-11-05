@@ -46,7 +46,7 @@ export function publicImageUrl(appUrl: string, key: string): string {
   return `${origin(appUrl)}/api/public/files/${key.split("/").map(encodeURIComponent).join("/")}`;
 }
 
-export type PublicPageKind = "home" | "rates";
+export type PublicPageKind = "home" | "rates" | "enroll";
 
 /** The page of /a/<slug>[/<rest>] a request is for, or null when the path isn't an academy page. */
 export function parseAcademyPath(pathname: string): { slug: string; page: PublicPageKind } | null {
@@ -58,7 +58,8 @@ export function parseAcademyPath(pathname: string): { slug: string; page: Public
   } catch {
     return null;
   }
-  return { slug, page: match[2] === "rates" ? "rates" : "home" };
+  const page = match[2] === "rates" ? "rates" : match[2] === "enroll" ? "enroll" : "home";
+  return { slug, page };
 }
 
 /**
@@ -85,15 +86,22 @@ export function academyPageMeta(input: {
       url: `${base}/`,
     };
   }
-  const path = `/a/${encodeURIComponent(a.slug)}${input.page === "rates" ? "/rates" : ""}`;
+  const path = `/a/${encodeURIComponent(a.slug)}${input.page === "home" ? "" : `/${input.page}`}`;
   const about = a.tagline?.trim() || (a.about ? summarize(a.about) : "");
   const description =
     input.page === "rates"
       ? summarize(`Rates and packages at ${a.name}${about ? `. ${about}` : "."}`)
-      : about || `Programs, schedule, rates, and coaches at ${a.name}.`;
+      : input.page === "enroll"
+        ? summarize(`Enroll at ${a.name}${about ? `. ${about}` : "."}`)
+        : about || `Programs, schedule, rates, and coaches at ${a.name}.`;
   const imageKey = a.coverKey ?? a.logoKey;
   return {
-    title: input.page === "rates" ? `Rates and packages · ${a.name}` : a.name,
+    title:
+      input.page === "rates"
+        ? `Rates and packages · ${a.name}`
+        : input.page === "enroll"
+          ? `Enroll · ${a.name}`
+          : a.name,
     description,
     image: imageKey ? publicImageUrl(base, imageKey) : `${base}/icons/icon-512.png`,
     twitterCard: a.coverKey ? "summary_large_image" : "summary",

@@ -1,9 +1,19 @@
 import { Hono } from "hono";
-import type { PublicAcademyDto, PublicConsentDocumentDto } from "../../shared/api-types";
+import type {
+  PublicAcademyDto,
+  PublicConsentDocumentDto,
+  PublicSessionDto,
+} from "../../shared/api-types";
+import { publicSessionsQuerySchema } from "../../shared/schemas";
 import { notFound } from "../lib/errors";
 import { limitByIp } from "../lib/rate-limit";
 import { PUBLIC_KEY_RE } from "../lib/uploads";
-import { loadPublicAcademy, loadPublicConsents } from "../services/public-academy";
+import { v } from "../lib/validate";
+import {
+  loadPublicAcademy,
+  loadPublicConsents,
+  loadPublicSessions,
+} from "../services/public-academy";
 import type { AppBindings } from "../types";
 
 /** Published data changes rarely and is the same for everyone: browsers and caches keep it a minute. */
@@ -52,4 +62,25 @@ export const publicRoutes = new Hono<AppBindings>()
     if (!docs) throw notFound("Academy");
     c.header("Cache-Control", PUBLIC_DATA_CACHE);
     return c.json<PublicConsentDocumentDto[]>(docs);
-  });
+  })
+
+  /**
+   * Upcoming sessions of a public program, for picking a trial session when enrolling: date,
+   * time, venue, court, and places left. Never who's booked.
+   */
+  .get(
+    "/academies/:slug/programs/:programId/sessions",
+    limitByIp("public-sessions", { windowMs: 60_000, max: 60 }),
+    v("query", publicSessionsQuerySchema),
+    async (c) => {
+      const sessions = await loadPublicSessions(
+        c.var.db,
+        c.req.param("slug"),
+        c.req.param("programId"),
+        c.req.valid("query"),
+      );
+      if (!sessions) throw notFound("Program");
+      c.header("Cache-Control", PUBLIC_DATA_CACHE);
+      return c.json<PublicSessionDto[]>(sessions);
+    },
+  );

@@ -9,6 +9,7 @@ import type {
   ConsentAppliesTo,
   ConsentKind,
   ConsentSignerRelation,
+  EnrollmentStatus,
   EventKind,
   EventStatus,
   FamilyRelation,
@@ -26,6 +27,7 @@ import type {
   RegistrationStatus,
   ValidityMode,
 } from "./domain";
+import type { EnrollmentMode } from "./enrollment";
 import type { Capabilities, StaffRole } from "./roles";
 
 // Response shapes returned by /api/v1 (staff) and /api/account. Instants are epoch ms; dates are
@@ -602,6 +604,12 @@ export interface TodayDto {
       packageName: string;
       uniformSize: string | null;
     }[];
+    /**
+     * Owners and admins (`enrollment`): requests waiting in the inbox, and in the month's last
+     * week the students who haven't renewed (null outside it). Absent for coaches and for Today
+     * pages cached before WS4b.
+     */
+    enrollments?: { requested: number; notRenewed: number | null };
   };
 }
 
@@ -936,6 +944,13 @@ export interface PortalHomeDto {
   /** The latest shared comments across the linked students, newest first. */
   comments: PortalCommentDto[];
   announcements: PortalAnnouncementDto[];
+  /**
+   * Enrollment requests of the linked students: open ones, and ones decided in the last 60 days
+   * (optional for homes cached before WS4b).
+   */
+  enrollments?: PortalEnrollmentDto[];
+  /** Students who can renew their month-end package for next month. */
+  renewals?: PortalRenewalDto[];
 }
 
 /** A parent's view of their teen's own login (only for guardians). */
@@ -1282,4 +1297,372 @@ export interface PublicAcademyPreviewDto extends PublicAcademyDto {
   listed: boolean;
   /** `${APP_URL}/a/<slug>`, or null without a public address yet. */
   publicUrl: string | null;
+}
+
+// --- Enrollment (WS4b) ---------------------------------------------------------------------------
+//
+// A family asks to join a tier from the academy page (or the portal's Enroll page); the academy
+// approves, waitlists, or declines it from its Enrollments inbox. Approving sells the tier (the
+// charge is created), adds the student to the program or books the trial session, and makes a
+// new student active.
+
+/**
+ * A session of a public program a family can pick for a trial (GET
+ * /api/public/academies/:slug/programs/:programId/sessions). Never who's booked on it.
+ */
+export interface PublicSessionDto {
+  /** The session (lesson) id, sent back when enrolling. */
+  id: string;
+  /** Local date in the academy's time zone. */
+  date: string;
+  startsAt: number;
+  endsAt: number;
+  venue: PublicVenueDto | null;
+  court: string | null;
+  /** Places left (its own capacity, else the program's); null = no limit. */
+  seatsLeft: number | null;
+}
+
+/** What's owed for an approved request: its charge and how much of it payments cover. */
+export interface EnrollmentPaymentDto {
+  /** The charge approving made (null when the tier was free). */
+  chargeId: string | null;
+  amountMinor: number;
+  paidMinor: number;
+  dueMinor: number;
+  status: "unpaid" | "partial" | "paid";
+}
+
+/** Who the family said may pick a junior up (authorized_pickup rows). */
+export interface EnrollmentPickupDto {
+  id: string;
+  name: string;
+  relationship: string | null;
+  phone: string | null;
+}
+
+/** A student the signed-in person can choose in the wizard's first step. */
+export interface EnrollStudentChoiceDto {
+  clientId: string;
+  firstName: string;
+  lastName: string;
+  birthDate: string | null;
+  minor: boolean;
+  relation: FamilyRelation;
+  /** Whether this person may enroll the student, and if not, why. */
+  allowed: { ok: true } | { ok: false; code: string; message: string };
+  /** Consent documents this student already signed (current version, by someone who counts). */
+  signedDocumentIds: string[];
+  /** What the academy has on file, to start the details step from. */
+  details: {
+    phone: string | null;
+    medicalNotes: string | null;
+    emergencyName: string | null;
+    emergencyPhone: string | null;
+    shirtSize: string | null;
+  };
+}
+
+/**
+ * GET /api/portal/enrollment-context?slug=: who the signed-in person can enroll at a listed
+ * academy, and what they already asked for there.
+ */
+export interface EnrollmentContextDto {
+  workspaceId: string;
+  slug: string;
+  academyName: string;
+  /** New students can enroll (current ones can always renew or add a tier). */
+  enrollmentOpen: boolean;
+  today: string;
+  account: {
+    name: string;
+    emailIsPlaceholder: boolean;
+    hasPasskey: boolean;
+    hasGoogle: boolean;
+  };
+  /** A teen's own login: a parent or guardian enrolls them. */
+  blocked: { code: string; message: string } | null;
+  /** Their own student record here (a `self` link), if any. */
+  self: EnrollStudentChoiceDto | null;
+  /** Students they're a parent or guardian of here. */
+  children: EnrollStudentChoiceDto[];
+  /** Open and approved requests of those students, to catch a repeat before it's sent. */
+  requests: {
+    clientId: string;
+    packageId: string | null;
+    startMonth: string | null;
+    lessonId: string | null;
+    status: EnrollmentStatus;
+  }[];
+}
+
+/** A request as the family sees it (the portal's home, a student's Payments page). */
+export interface PortalEnrollmentDto {
+  id: string;
+  clientId: string;
+  workspaceId: string;
+  student: { firstName: string; lastName: string };
+  tier: {
+    name: string;
+    sessionsLabel: string | null;
+    credits: number | null;
+    validityMode: ValidityMode | null;
+    /** The tier's price now (what approving charges). */
+    priceMinor: number | null;
+  };
+  programName: string | null;
+  mode: EnrollmentMode;
+  startMonth: string | null;
+  startDate: string | null;
+  session: {
+    startsAt: number;
+    endsAt: number;
+    venue: string | null;
+    court: string | null;
+  } | null;
+  status: EnrollmentStatus;
+  createdAt: number;
+  decidedAt: number | null;
+  /** The academy's words for the family: why it was declined, or a waitlist note. */
+  note: string | null;
+  /** Still requested or waitlisted, and the caller may withdraw it. */
+  canCancel: boolean;
+  /** It renews a month-end package. */
+  renewal: boolean;
+  /** Approved: what it charged and what's still due. */
+  payment: EnrollmentPaymentDto | null;
+}
+
+/** "Renew for next month" for one student (the portal's home and Payments page). */
+export interface PortalRenewalDto {
+  clientId: string;
+  workspaceId: string;
+  student: { firstName: string; lastName: string };
+  tierName: string;
+  packageId: string;
+  startMonth: string;
+  expiresOn: string;
+  priceMinor: number;
+  /** Required forms to sign (or sign again) before renewing. */
+  consents: PortalConsentDocumentDto[];
+  /** Whether the caller may renew (a parent for a minor, the student as an adult). */
+  allowed: { ok: true } | { ok: false; code: string; message: string };
+}
+
+/** GET /api/portal/students/:clientId/enrollments. */
+export interface PortalStudentEnrollmentsDto {
+  academy: PortalAcademyRefDto;
+  requests: PortalEnrollmentDto[];
+  renewal: PortalRenewalDto | null;
+}
+
+/** POST /api/portal/enrollments (and …/renew): the request made, and the student it's for. */
+export interface EnrollmentSubmittedDto {
+  request: PortalEnrollmentDto;
+  clientId: string;
+  /** The request made a new student (a `lead` until approved). */
+  newStudent: boolean;
+  /** A retried send: this request already existed. */
+  replay: boolean;
+}
+
+/** GET /api/portal/enroll: tiers of the academies the person's students train at. */
+export interface PortalEnrollAcademyDto {
+  workspaceId: string;
+  name: string;
+  slug: string;
+  logoKey: string | null;
+  /** Enrolling goes through the academy's public page, so it must be listed. */
+  listed: boolean;
+  enrollmentOpen: boolean;
+  contactPhone: string | null;
+  contactEmail: string | null;
+  /** The academy page's programs and tiers (null when the page isn't listed). */
+  page: PublicAcademyDto | null;
+}
+
+/** The staff inbox's list (GET /api/v1/enrollments?status=), newest first. */
+export interface EnrollmentListItemDto {
+  id: string;
+  status: EnrollmentStatus;
+  createdAt: number;
+  decidedAt: number | null;
+  student: {
+    clientId: string;
+    firstName: string;
+    lastName: string;
+    /** The request made this student (still a lead). */
+    isNew: boolean;
+    minor: boolean;
+  };
+  submitter: { name: string; relation: FamilyRelation | null };
+  tierName: string;
+  programName: string | null;
+  mode: EnrollmentMode;
+  startMonth: string | null;
+  startDate: string | null;
+  sessionStartsAt: number | null;
+  renewal: boolean;
+}
+
+export interface EnrollmentListDto {
+  counts: Record<EnrollmentStatus, number>;
+  items: EnrollmentListItemDto[];
+}
+
+/** GET /api/v1/enrollments/:id: everything staff need to decide a request. */
+export interface EnrollmentDetailDto {
+  id: string;
+  status: EnrollmentStatus;
+  createdAt: number;
+  decidedAt: number | null;
+  decidedBy: CoachRefDto | null;
+  /** Why it was declined, or the waitlist note (both shown to the family). */
+  decisionNote: string | null;
+  renewal: boolean;
+  student: {
+    clientId: string;
+    firstName: string;
+    lastName: string;
+    birthDate: string | null;
+    age: number | null;
+    minor: boolean;
+    status: ClientStatus;
+    /** Made by this request (a lead): it can be matched to someone already training here. */
+    isNew: boolean;
+    phone: string | null;
+    email: string | null;
+    guardianName: string | null;
+    guardianPhone: string | null;
+  };
+  submitter: {
+    name: string;
+    /** Their sign-in address (null for passkey-only accounts). */
+    email: string | null;
+    relation: FamilyRelation | null;
+    signIn: "google" | "passkey";
+  };
+  tier: {
+    id: string;
+    name: string;
+    priceMinor: number;
+    credits: number;
+    sessionsLabel: string | null;
+    validityMode: ValidityMode;
+    validityDays: number | null;
+    includesUniform: boolean;
+    asksSelfRating: boolean;
+    inclusions: string[];
+    /** Still for sale (an inactive tier can't be approved). */
+    active: boolean;
+  } | null;
+  program: {
+    id: string;
+    name: string;
+    capacity: number | null;
+    members: number;
+    ageMin: number | null;
+    ageMax: number | null;
+  } | null;
+  mode: EnrollmentMode;
+  period: {
+    startMonth: string | null;
+    startDate: string | null;
+    /** The validity approving would give (month-end and date modes). */
+    startsOn: string | null;
+    expiresOn: string | null;
+    session: {
+      lessonId: string;
+      startsAt: number;
+      endsAt: number;
+      venueName: string | null;
+      court: string | null;
+      status: LessonStatus;
+      capacity: number | null;
+      booked: number;
+    } | null;
+  };
+  answers: {
+    selfRating: number | null;
+    selfRatingUnsure: boolean;
+    shirtSize: string | null;
+    phone: string | null;
+    email: string | null;
+    medicalNotes: string | null;
+    emergencyName: string | null;
+    emergencyPhone: string | null;
+    notes: string | null;
+  };
+  pickups: EnrollmentPickupDto[];
+  /** Consents signed with this request. */
+  consents: {
+    documentId: string;
+    title: string;
+    version: number;
+    signerName: string;
+    relation: ConsentSignerRelation;
+    signedAt: number;
+  }[];
+  /** Required documents the student still has to sign (if any were added since). */
+  consentsMissing: number;
+  /** Room in the program (or on the session) if this is approved. */
+  capacity: {
+    kind: "program" | "session";
+    capacity: number | null;
+    taken: number;
+    left: number | null;
+    over: boolean;
+    alreadyIn: boolean;
+  } | null;
+  /** The student's age is outside the program's ages. */
+  ageNote: string | null;
+  /** Approved: the charge and how much of it is paid (WS4c adds payment proofs). */
+  payment: EnrollmentPaymentDto | null;
+  created: { clientPackageId: string | null; chargeId: string | null };
+  /** New students: people already training here who may be the same person. */
+  matches: {
+    clientId: string;
+    firstName: string;
+    lastName: string;
+    birthDate: string | null;
+    phone: string | null;
+    status: ClientStatus;
+  }[];
+  /** What approving can pick instead of the request's own choice. */
+  options: {
+    startMonths: { month: string; expiresOn: string }[];
+    sessions: { lessonId: string; startsAt: number; endsAt: number; seatsLeft: number | null }[];
+  };
+  /** Set by approve: things staff were told but that didn't stop it (over capacity). */
+  warnings?: string[];
+}
+
+/** One student whose month-end package ends this month with nothing booked for next month. */
+export interface RenewalDueDto {
+  clientId: string;
+  firstName: string;
+  lastName: string;
+  minor: boolean;
+  tierName: string;
+  packageId: string;
+  clientPackageId: string;
+  expiresOn: string;
+  /** Who to message: the student, or for a junior their parent (as on file). */
+  contactName: string | null;
+  contactPhone: string | null;
+}
+
+/** GET /api/v1/enrollments/renewals: "Not yet renewed" (owners and admins). */
+export interface RenewalsDueDto {
+  academyName: string;
+  today: string;
+  nextMonth: string;
+  /** `${APP_URL}/my`: where families renew in one tap. */
+  portalUrl: string;
+  items: RenewalDueDto[];
+}
+
+/** GET /api/v1/enrollments/count: the inbox badge. */
+export interface EnrollmentCountDto {
+  requested: number;
 }

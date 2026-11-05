@@ -30,6 +30,7 @@ import {
   recordSignature,
   studentIsMinor,
 } from "../services/consents";
+import { familyEnrollments, renewalOffers } from "../services/enrollment-family";
 import { createFamilyInvite, familyAudit, revokeFamilyAccess } from "../services/family";
 import {
   academiesFor,
@@ -49,6 +50,7 @@ import {
   teenAccessFor,
 } from "../services/portal";
 import type { AppBindings } from "../types";
+import { portalEnrollmentRoutes } from "./portal-enrollment";
 
 const studentNotFound = () => notFound("Student");
 
@@ -132,6 +134,10 @@ export const portalRoutes = new Hono<AppBindings>()
         consentsMissing: consents.get(row.id) ?? 0,
       });
     }
+    const [enrollments, renewals] = await Promise.all([
+      familyEnrollments(db, c.var.user.id, scope.links),
+      renewalOffers(db, scope.links, students),
+    ]);
     const body: PortalHomeDto = {
       user: { name: c.var.user.name, firstName: firstNameOf(c.var.user.name) },
       academies: [...academies.values()],
@@ -139,9 +145,14 @@ export const portalRoutes = new Hono<AppBindings>()
       comments,
       // Announcements arrive with WS5; the home page already has their place.
       announcements: [],
+      // Only when there are some (the home of someone linked to nobody stays as it was).
+      ...(enrollments.length ? { enrollments } : {}),
+      ...(renewals.length ? { renewals } : {}),
     };
     return c.json(body);
   })
+
+  .route("/", portalEnrollmentRoutes)
 
   .get("/academies/:workspaceId", async (c) => {
     const workspaceId = c.req.param("workspaceId");

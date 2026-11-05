@@ -140,3 +140,7 @@ export const INVITE_PREVIEW_RULE: RateRule = { windowMs: 60_000, max: 60 };
 export const INVITE_ACCEPT_RULE: RateRule = { windowMs: 60_000, max: 10 };
 /** Passkey-only accounts started from one invite. */
 export const PASSKEY_ACCOUNT_RULE: RateRule = { windowMs: 60 * 60_000, max: 5 };
+/** Passkey-only accounts started to enroll at one academy, per connection. */
+export const PASSKEY_ENROLL_RULE: RateRule = { windowMs: 60 * 60_000, max: 5 };
+/** Passkey-only accounts started to enroll at one academy, from everywhere. */
+export const PASSKEY_ENROLL_ACADEMY_RULE: RateRule = { windowMs: 60 * 60_000, max: 100 };

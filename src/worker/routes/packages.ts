@@ -9,16 +9,9 @@ import {
   sellPackageSchema,
   uniformUpdateSchema,
 } from "../../shared/schemas";
-import { monthLabel, todayIn } from "../../shared/time";
+import { todayIn } from "../../shared/time";
 import { saleTerms } from "../../shared/validity";
-import {
-  charge,
-  client,
-  clientPackage,
-  creditLedger,
-  packageTemplate,
-  payment,
-} from "../db/schema";
+import { charge, client, clientPackage, creditLedger, packageTemplate } from "../db/schema";
 import { auditEntry } from "../lib/audit";
 import { badRequest, conflict, notFound } from "../lib/errors";
 import { v } from "../lib/validate";
@@ -30,6 +23,7 @@ import {
   toPackageBalanceDto,
 } from "../services/credits";
 import { rebuildAllocations } from "../services/money";
+import { planPackageSale } from "../services/packages";
 import type { AppBindings, Ctx } from "../types";
 
 /** Selling, voiding, extending, and adjusting packages is money: owner and admins only. */
@@ -100,72 +94,31 @@ export const packageRoutes = new Hono<AppBindings>()
       expiresOn: input.expiresOn,
     });
     if (!sale.ok) throw badRequest(sale.message, { fields: { [sale.field]: sale.message } });
-    const { purchasedOn, startMonth, expiresOn } = sale.terms;
-    const sessions = sessionsLabel ?? `${credits} ${credits === 1 ? "session" : "sessions"}`;
-    const description = startMonth
-      ? `${name} (${sessions}) · ${monthLabel(startMonth, ctx.settings.locale)}`
-      : `${name} (${sessions})`;
 
-    const id = input.id ?? uuidv7();
-    const statements: unknown[] = [
-      ctx.db.insert(clientPackage).values({
-        id,
-        workspaceId: ctx.workspaceId,
-        clientId,
-        packageId: templateId,
-        name,
-        creditsTotal: credits,
-        lessonKinds: lessonKinds ?? [],
-        priceMinor: price,
-        purchasedOn,
-        expiresOn,
-        startMonth,
-        includesUniform,
-        uniformSize: includesUniform ? (input.uniformSize ?? null) : null,
-        status: "active",
-        notes: input.notes ?? null,
-      }),
-      auditEntry(ctx, "sell", "client_package", id, {
-        clientId,
+    const planned = planPackageSale(
+      ctx,
+      {
+        id: templateId,
         name,
         credits,
-        price,
-        ...(startMonth ? { startMonth } : {}),
-      }),
-    ];
-    if (price > 0) {
-      statements.push(
-        ctx.db.insert(charge).values({
-          id: uuidv7(),
-          workspaceId: ctx.workspaceId,
-          clientId,
-          kind: "package",
-          description,
-          amountMinor: price,
-          clientPackageId: id,
-          occurredOn: purchasedOn,
-          createdBy: ctx.userId,
-        }),
-      );
-    }
-    if (input.payment) {
-      statements.push(
-        ctx.db.insert(payment).values({
-          id: uuidv7(),
-          workspaceId: ctx.workspaceId,
-          clientId,
-          amountMinor: input.payment.amountMinor,
-          method: input.payment.method,
-          reference: input.payment.reference ?? null,
-          paidOn: purchasedOn,
-          note: `For ${name}`,
-          createdBy: ctx.userId,
-        }),
-      );
-    }
-    await runBatch(ctx, statements);
+        lessonKinds: lessonKinds ?? [],
+        validityMode,
+        includesUniform,
+        sessionsLabel,
+      },
+      {
+        id: input.id,
+        clientId,
+        priceMinor: price,
+        terms: sale.terms,
+        uniformSize: input.uniformSize,
+        notes: input.notes,
+        payment: input.payment,
+      },
+    );
+    await runBatch(ctx, planned.statements);
     await rebuildAllocations(ctx, clientId);
-    return c.json(await packageDto(ctx, clientId, id), 201);
+    return c.json(await packageDto(ctx, clientId, planned.id), 201);
   })
 
   .patch("/client-packages/:id", moneyOnly, v("json", clientPackageUpdateSchema), async (c) => {

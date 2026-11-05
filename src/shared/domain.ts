@@ -159,14 +159,42 @@ export type NoteKind = (typeof NOTE_KINDS)[number];
 export const VALIDITY_MODES = ["days", "month_end"] as const;
 export type ValidityMode = (typeof VALIDITY_MODES)[number];
 
+/** A person allowed to pick a junior up after training, as a family enters them when enrolling. */
+export interface EnrollmentPickup {
+  name: string;
+  relationship: string | null;
+  phone: string | null;
+}
+
 /** What a family answered on an enrollment request (stored as JSON). */
 export interface EnrollmentAnswers {
   /** Self-rating on the DUPR-style scale (saved to rating history with source "self"). */
   selfRating?: number | null;
+  /** The tier asked for a self-rating and the family chose "Not sure". */
+  selfRatingUnsure?: boolean;
   shirtSize?: string | null;
   /** Preferred weekdays, 0 = Sunday ... 6 = Saturday. */
   preferredDays?: number[];
   notes?: string | null;
+  /** The submitter's phone (the student's own for adults, the parent's for a child). */
+  phone?: string | null;
+  /** An address to reach a passkey-only account (its own email is a placeholder). */
+  email?: string | null;
+  medicalNotes?: string | null;
+  emergencyName?: string | null;
+  emergencyPhone?: string | null;
+  /** Juniors: who may pick them up (saved to authorized_pickup when the request is sent). */
+  pickups?: EnrollmentPickup[];
+  /** Tiers enrolled by start date ("date" mode): the day the family wants to start. */
+  startDate?: string | null;
+  /** Who the family said is training. */
+  who?: "self" | "child" | "new_child";
+  /** How the submitter is linked to the student. */
+  relation?: FamilyRelation;
+  /** The request created the student (a `lead` client) rather than picking a linked one. */
+  newStudent?: boolean;
+  /** Renewals: the month-end package this one follows. */
+  renewalOf?: string | null;
   [key: string]: unknown;
 }
 

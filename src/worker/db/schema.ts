@@ -980,6 +980,8 @@ export const enrollmentRequest = sqliteTable(
   (t) => [
     index("enrollment_ws_status_idx").on(t.workspaceId, t.status, t.createdAt),
     index("enrollment_client_idx").on(t.clientId),
+    // The passkey-account cleanup keeps accounts that sent a request.
+    index("enrollment_requested_by_idx").on(t.requestedBy),
   ],
 );
 

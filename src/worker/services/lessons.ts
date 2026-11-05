@@ -8,6 +8,7 @@ import type {
   TodayDto,
 } from "../../shared/api-types";
 import { LESSON_KIND_LABELS, type LessonKind } from "../../shared/domain";
+import { isLastWeekOfMonth } from "../../shared/enrollment";
 import { uuidv7 } from "../../shared/ids";
 import { can } from "../../shared/roles";
 import type { LessonCreateInput } from "../../shared/schemas";
@@ -50,6 +51,7 @@ import {
   runBatch,
   usablePackages,
 } from "./credits";
+import { renewalsDue, requestedCount } from "./enrollment-staff";
 import { balancesDue, balancesFor } from "./money";
 
 /** How far ahead recurring series are materialized into concrete lessons. */
@@ -323,7 +325,7 @@ export async function today(ctx: Ctx): Promise<TodayDto> {
   });
   const expiryWindow = pref?.packageExpiryDays ?? 7;
 
-  const [activePackages, due, clients, uniforms] = await Promise.all([
+  const [activePackages, due, clients, uniforms, enrollments] = await Promise.all([
     db
       .select({
         clientId: clientPackage.clientId,
@@ -383,6 +385,13 @@ export async function today(ctx: Ctx): Promise<TodayDto> {
           .orderBy(asc(clientPackage.purchasedOn))
           .limit(20)
       : Promise.resolve([]),
+    // Owners and admins: requests to review, and in the month's last week who hasn't renewed.
+    can(ctx.role, "enrollment")
+      ? Promise.all([
+          requestedCount(ctx),
+          isLastWeekOfMonth(date) ? renewalsDue(ctx).then((r) => r.length) : null,
+        ]).then(([requested, notRenewed]) => ({ requested, notRenewed }))
+      : Promise.resolve(undefined),
   ]);
 
   const horizon = addDays(date, expiryWindow);
@@ -431,6 +440,7 @@ export async function today(ctx: Ctx): Promise<TodayDto> {
         packageName: u.name,
         uniformSize: u.uniformSize,
       })),
+      ...(enrollments ? { enrollments } : {}),
     },
   };
 }

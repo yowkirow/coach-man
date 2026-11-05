@@ -29,6 +29,13 @@
       "when": 1793856185067,
       "tag": "0003_offerings",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1793867972395,
+      "tag": "0004_enrollment",
+      "breakpoints": true
     }
   ]
 }

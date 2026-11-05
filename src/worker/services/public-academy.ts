@@ -3,9 +3,12 @@ import type {
   PublicAcademyDto,
   PublicCoachRefDto,
   PublicConsentDocumentDto,
+  PublicSessionDto,
 } from "../../shared/api-types";
 import { isAcademySlug } from "../../shared/domain";
-import { todayIn } from "../../shared/time";
+import { SESSION_WINDOW_DAYS } from "../../shared/enrollment";
+import { UUID_RE } from "../../shared/ids";
+import { addDays, daysBetween, startOfLocalDay, todayIn } from "../../shared/time";
 import type { Db } from "../db/client";
 import {
   academyProfile,
@@ -35,11 +38,35 @@ import {
 } from "../lib/public-dto";
 import { inList, unique } from "../lib/sql";
 import { coachName } from "./coaches";
+import { programSessions, toPublicSession } from "./enrollment-core";
 
 type OrgRow = typeof organization.$inferSelect;
 
 /** Who to load: a public address (anyone), or an academy by id (its own staff's preview). */
 export type PublicTarget = { slug: string } | { workspaceId: string };
+
+/**
+ * A listed academy by its public address, with what enrolling needs to know about it (null when
+ * the page isn't public: unlisted, legacy `ws-…`, or unknown).
+ */
+export async function findListedAcademy(db: Db, slug: string) {
+  const found = await findAcademy(db, { slug }, false);
+  if (!found) return null;
+  const settings = await db.query.workspaceSettings.findFirst({
+    where: eq(workspaceSettings.workspaceId, found.org.id),
+  });
+  return {
+    workspaceId: found.org.id,
+    slug: found.org.slug,
+    name: found.org.name,
+    enrollmentOpen: Boolean(found.profile?.enrollmentOpen),
+    timezone: settings?.timezone ?? "UTC",
+    locale: settings?.locale ?? "en-US",
+    currency: settings?.currency ?? "USD",
+  };
+}
+
+export type ListedAcademy = NonNullable<Awaited<ReturnType<typeof findListedAcademy>>>;
 
 /**
  * The academy and its profile, if the page may be shown: listed under a real public address, or
@@ -254,4 +281,47 @@ export async function loadPublicConsents(
     )
     .orderBy(asc(consentDocument.createdAt));
   return rows.map(toPublicConsentDocument);
+}
+
+/** The widest window of sessions one public request may ask for. */
+const MAX_SESSION_WINDOW_DAYS = 92;
+
+/**
+ * Upcoming sessions of a listed academy's public program (for picking a trial session): from
+ * today (or `from`) for six weeks (or to `to`, at most 92 days), scheduled ones only, with places
+ * left. Null when the academy or the program isn't public.
+ */
+export async function loadPublicSessions(
+  db: Db,
+  slug: string,
+  programId: string,
+  q: { from?: string; to?: string },
+  now = Date.now(),
+): Promise<PublicSessionDto[] | null> {
+  const found = await findAcademy(db, { slug }, false);
+  if (!found || !UUID_RE.test(programId)) return null;
+  const ws = found.org.id;
+  const program = await db.query.trainingGroup.findFirst({
+    where: and(
+      eq(trainingGroup.id, programId),
+      eq(trainingGroup.workspaceId, ws),
+      eq(trainingGroup.isPublic, true),
+      isNull(trainingGroup.archivedAt),
+    ),
+  });
+  if (!program) return null;
+  const settings = await db.query.workspaceSettings.findFirst({
+    where: eq(workspaceSettings.workspaceId, ws),
+  });
+  const tz = settings?.timezone ?? "UTC";
+  const today = todayIn(tz, now);
+  const from = q.from && q.from > today ? q.from : today;
+  let to = q.to ?? addDays(today, SESSION_WINDOW_DAYS);
+  if (daysBetween(from, to) > MAX_SESSION_WINDOW_DAYS) to = addDays(from, MAX_SESSION_WINDOW_DAYS);
+  if (to < from) return [];
+  const sessions = await programSessions(db, ws, program, {
+    from: Math.max(now, startOfLocalDay(from, tz)),
+    to: startOfLocalDay(addDays(to, 1), tz),
+  });
+  return sessions.map((s) => toPublicSession(s, tz));
 }

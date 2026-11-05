@@ -6,6 +6,7 @@ import {
   CLIENT_STATUSES,
   CONSENT_APPLIES_TO,
   CONSENT_KINDS,
+  ENROLLMENT_STATUSES,
   EVENT_KINDS,
   EVENT_STATUSES,
   FAMILY_RELATIONS,
@@ -24,6 +25,7 @@ import {
   SCORE_MIN,
   VALIDITY_MODES,
 } from "./domain";
+import { ALL_UNIFORM_SIZES, isSelfRating, MAX_PICKUPS } from "./enrollment";
 import { UUID_RE } from "./ids";
 import { STAFF_ROLES } from "./roles";
 import { DATE_RE, isValidTimeZone, TIME_RE } from "./time";
@@ -614,6 +616,116 @@ export const consentTemplateSchema = z.object({ kind: z.enum(CONSENT_TEMPLATE_KI
 export const consentSignSchema = z.object({
   signerName: trimmed(120).min(2, "Type your full name to sign."),
   version: z.number().int().min(1),
+});
+
+// --- Enrollment ----------------------------------------------------------------
+
+/** A consent signed inside the enrollment wizard (or a renewal): saved with the request. */
+export const enrollmentSignatureSchema = z.object({
+  documentId: id,
+  version: z.number().int().min(1),
+  signerName: trimmed(120).min(2, "Type your full name to sign."),
+});
+
+const pickupSchema = z.object({
+  name: trimmed(80).min(1, "Add the person's name."),
+  relationship: optionalText(40),
+  phone: optionalText(40),
+});
+
+/** The details step of the enrollment wizard. Which ones a tier needs is checked by the server. */
+export const enrollmentAnswersSchema = z.object({
+  phone: trimmed(40).min(5, "Add a phone number the academy can reach you on."),
+  /** Passkey-only accounts: an address the academy can use (optional). */
+  email: optionalEmail,
+  selfRating: z.number().refine(isSelfRating, "Pick a level from the scale.").nullable().optional(),
+  selfRatingUnsure: z.boolean().optional(),
+  shirtSize: z
+    .string()
+    .trim()
+    .refine((v) => v === "" || ALL_UNIFORM_SIZES.includes(v), "Pick a size from the list.")
+    .transform((v) => (v === "" ? null : v))
+    .nullable()
+    .optional(),
+  medicalNotes: optionalText(1000),
+  emergencyName: trimmed(80).min(1, "Add someone to call in an emergency."),
+  emergencyPhone: trimmed(40).min(5, "Add their phone number."),
+  notes: optionalText(1000),
+  pickups: z.array(pickupSchema).max(MAX_PICKUPS).default([]),
+});
+export type EnrollmentAnswersInput = z.infer<typeof enrollmentAnswersSchema>;
+
+/**
+ * POST /api/portal/enrollments: the wizard's request. `who` is the caller themself (their own
+ * student record here, or a new one with their name and birth date), one of their children, or a
+ * new child. The period field matches the tier's mode (start month, session, or start date).
+ */
+export const enrollmentSubmitSchema = z.object({
+  /** Made by the app, so a retried send finds the request it already made. */
+  id: id.optional(),
+  slug: z.string().trim().toLowerCase().min(3).max(40),
+  packageId: id,
+  who: z.discriminatedUnion("kind", [
+    z.object({
+      kind: z.literal("self"),
+      firstName: trimmed(60).min(1, "Add your first name.").optional(),
+      lastName: trimmed(60).optional(),
+      birthDate: date.optional(),
+    }),
+    z.object({ kind: z.literal("child"), clientId: id }),
+    z.object({
+      kind: z.literal("new_child"),
+      firstName: trimmed(60).min(1, "Add your child's first name."),
+      lastName: trimmed(60).default(""),
+      birthDate: date,
+    }),
+  ]),
+  startMonth: z.string().regex(MONTH_RE, "Use YYYY-MM").optional(),
+  lessonId: id.optional(),
+  startDate: date.optional(),
+  answers: enrollmentAnswersSchema,
+  signatures: z.array(enrollmentSignatureSchema).max(20).default([]),
+});
+export type EnrollmentSubmitInput = z.infer<typeof enrollmentSubmitSchema>;
+
+/** POST /api/portal/students/:clientId/renew: next month, same tier; forms to re-sign, if any. */
+export const enrollmentRenewSchema = z.object({
+  id: id.optional(),
+  signatures: z.array(enrollmentSignatureSchema).max(20).default([]),
+});
+
+/** POST /api/v1/enrollments/:id/approve. Every field is optional: the request's own choice wins. */
+export const enrollmentApproveSchema = z.object({
+  /** Month-end tiers: the month to approve (this month or next), when the asked one has passed. */
+  startMonth: z.string().regex(MONTH_RE, "Use YYYY-MM").optional(),
+  /** Trial sessions: another session of the program, when the chosen one passed or is full. */
+  lessonId: id.optional(),
+  /** Tiers by start date: another start date. */
+  startDate: date.optional(),
+  /** New students: the student already on the books this really is (their record is used). */
+  linkClientId: id.optional(),
+  /** Book a session that's already full. */
+  force: z.boolean().optional(),
+});
+export type EnrollmentApproveInput = z.infer<typeof enrollmentApproveSchema>;
+
+/** POST /api/v1/enrollments/:id/waitlist: an optional note the family sees. */
+export const enrollmentWaitlistSchema = z.object({ note: optionalText(500) });
+
+/** POST /api/v1/enrollments/:id/decline: the reason, which the family sees. */
+export const enrollmentDeclineSchema = z.object({
+  reason: trimmed(500).min(2, "Say why, so the family knows."),
+});
+
+/** GET /api/v1/enrollments?status=. */
+export const enrollmentListQuerySchema = z.object({
+  status: z.enum([...ENROLLMENT_STATUSES, "all"]).optional(),
+});
+
+/** GET /api/public/academies/:slug/programs/:programId/sessions?from&to. */
+export const publicSessionsQuerySchema = z.object({
+  from: date.optional(),
+  to: date.optional(),
 });
 
 // --- Push ------------------------------------------------------------------

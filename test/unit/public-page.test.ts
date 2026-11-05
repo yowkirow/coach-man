@@ -334,7 +334,7 @@ describe("link preview tags", () => {
     expect(parseAcademyPath("/a/riverside")).toEqual({ slug: "riverside", page: "home" });
     expect(parseAcademyPath("/a/riverside/")).toEqual({ slug: "riverside", page: "home" });
     expect(parseAcademyPath("/a/riverside/rates")).toEqual({ slug: "riverside", page: "rates" });
-    expect(parseAcademyPath("/a/riverside/enroll")).toEqual({ slug: "riverside", page: "home" });
+    expect(parseAcademyPath("/a/riverside/enroll")).toEqual({ slug: "riverside", page: "enroll" });
     expect(parseAcademyPath("/a/")).toBeNull();
     expect(parseAcademyPath("/a/%E0%A4%A")).toBeNull();
     expect(parseAcademyPath("/a/x/y/z")).toBeNull();

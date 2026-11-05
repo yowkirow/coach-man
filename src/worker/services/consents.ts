@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, sql } from "drizzle-orm";
+import { and, asc, desc, eq, type SQL, sql } from "drizzle-orm";
 import type {
   ClientConsentDto,
   ClientConsentsDto,
@@ -276,57 +276,78 @@ export async function portalConsentDocuments(
   return { minor, documents, missing: missingConsents(docs, signatures, minor) };
 }
 
+export interface SignatureInput {
+  workspaceId: string;
+  document: Pick<DocumentRow, "id" | "version" | "title">;
+  clientId: string;
+  signedByUserId: string;
+  signerName: string;
+  relation: ConsentSignerRelation;
+  ipAddress: string | null;
+  userAgent: string | null;
+  enrollmentId?: string | null;
+  /**
+   * The value written to the signature's client_id when it isn't `clientId` itself (a guard
+   * subquery inside a bigger batch).
+   */
+  clientIdValue?: SQL;
+}
+
+/**
+ * Builds (does not run) a signature and its audit entry, so signing can be part of a bigger batch
+ * (an enrollment request and its consents are saved together).
+ */
+export function signatureStatements(
+  db: Db,
+  input: SignatureInput,
+): { id: string; statements: unknown[] } {
+  const id = uuidv7();
+  const now = Date.now();
+  return {
+    id,
+    statements: [
+      db.insert(consentSignature).values({
+        id,
+        workspaceId: input.workspaceId,
+        documentId: input.document.id,
+        documentVersion: input.document.version,
+        clientId: input.clientIdValue ?? input.clientId,
+        signedByUserId: input.signedByUserId,
+        signerName: input.signerName,
+        relation: input.relation,
+        signedAt: now,
+        ipAddress: input.ipAddress,
+        userAgent: input.userAgent?.slice(0, 400) ?? null,
+        enrollmentId: input.enrollmentId ?? null,
+      }),
+      db.insert(auditLog).values({
+        id: uuidv7(),
+        workspaceId: input.workspaceId,
+        userId: input.signedByUserId,
+        action: input.relation === "staff" ? "record" : "sign",
+        entity: "consent_signature",
+        entityId: id,
+        data: {
+          clientId: input.clientId,
+          documentId: input.document.id,
+          version: input.document.version,
+          title: input.document.title,
+          relation: input.relation,
+          ...(input.enrollmentId ? { enrollmentId: input.enrollmentId } : {}),
+        },
+        createdAt: now,
+      }),
+    ],
+  };
+}
+
 /**
  * Records a signature (and its audit entry) in one batch. `signedByUserId` is the family member
  * who signed, or the staff member who recorded a paper form.
  */
-export async function recordSignature(
-  db: Db,
-  input: {
-    workspaceId: string;
-    document: Pick<DocumentRow, "id" | "version" | "title">;
-    clientId: string;
-    signedByUserId: string;
-    signerName: string;
-    relation: ConsentSignerRelation;
-    ipAddress: string | null;
-    userAgent: string | null;
-    enrollmentId?: string | null;
-  },
-): Promise<string> {
-  const id = uuidv7();
-  const now = Date.now();
-  await db.batch([
-    db.insert(consentSignature).values({
-      id,
-      workspaceId: input.workspaceId,
-      documentId: input.document.id,
-      documentVersion: input.document.version,
-      clientId: input.clientId,
-      signedByUserId: input.signedByUserId,
-      signerName: input.signerName,
-      relation: input.relation,
-      signedAt: now,
-      ipAddress: input.ipAddress,
-      userAgent: input.userAgent?.slice(0, 400) ?? null,
-      enrollmentId: input.enrollmentId ?? null,
-    }),
-    db.insert(auditLog).values({
-      id: uuidv7(),
-      workspaceId: input.workspaceId,
-      userId: input.signedByUserId,
-      action: input.relation === "staff" ? "record" : "sign",
-      entity: "consent_signature",
-      entityId: id,
-      data: {
-        clientId: input.clientId,
-        documentId: input.document.id,
-        version: input.document.version,
-        title: input.document.title,
-        relation: input.relation,
-      },
-      createdAt: now,
-    }),
-  ]);
+export async function recordSignature(db: Db, input: SignatureInput): Promise<string> {
+  const { id, statements } = signatureStatements(db, input);
+  // biome-ignore lint/suspicious/noExplicitAny: a fixed pair of drizzle statements.
+  await db.batch(statements as any);
   return id;
 }

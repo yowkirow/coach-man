@@ -13,6 +13,7 @@ import {
   isNewThisMonth,
   type ListSearch,
   matchesQuery,
+  missesConsents,
   needsPackage,
   owesMoney,
   parseListSearch,
@@ -32,7 +33,7 @@ export const Route = createFileRoute("/_app/clients/")({
     q?: string;
     status?: "active" | "lead" | "paused" | "archived";
     group?: string;
-    filter?: "low" | "owes" | "new";
+    filter?: "low" | "owes" | "new" | "consents";
     mine?: "1";
   } => parseListSearch(s),
   component: ClientsPage,
@@ -42,6 +43,7 @@ const QUICK_LABELS: Record<QuickFilter, string> = {
   low: "Low credits",
   owes: "Owe money",
   new: "New this month",
+  consents: "Missing consents",
 };
 
 const STATUS_CHOICES: { id: StatusFilter | "all"; label: string }[] = [
@@ -61,6 +63,7 @@ interface Counts {
   low: number;
   owes: number;
   new: number;
+  consents: number;
   mine: number;
 }
 
@@ -84,6 +87,7 @@ function useClientList(search: ListSearch) {
       low: list.filter((c) => needsPackage(c, today)).length,
       owes: list.filter(owesMoney).length,
       new: list.filter((c) => isNewThisMonth(c, today)).length,
+      consents: list.filter(missesConsents).length,
       mine: list.filter((c) => isMyStudent(c, userId)).length,
     };
   }, [current.data, archived.data, today, userId]);
@@ -100,7 +104,9 @@ function useClientList(search: ListSearch) {
             ? owesMoney(c)
             : search.filter === "new"
               ? isNewThisMonth(c, today)
-              : true) &&
+              : search.filter === "consents"
+                ? missesConsents(c)
+                : true) &&
         matchesQuery(c, search.q ?? ""),
     );
     if (search.filter === "owes") return list.sort((a, b) => b.balanceMinor - a.balanceMinor);
@@ -504,6 +510,13 @@ function PhoneFilters({
         ]
       : []),
     {
+      id: "consents",
+      label: "Missing consents",
+      count: counts?.consents,
+      on: search.filter === "consents",
+      patch: { filter: search.filter === "consents" ? undefined : ("consents" as const) },
+    },
+    {
       id: "lead",
       label: "Leads",
       count: counts?.lead,
@@ -744,6 +757,12 @@ function ListPanel({
           count={counts?.paused}
           selected={search.status === "paused"}
           search={{ ...q, status: "paused" }}
+        />
+        <FilterRow
+          label="Missing consents"
+          count={counts?.consents}
+          selected={search.filter === "consents"}
+          search={{ ...q, filter: "consents" }}
         />
         <FilterRow
           label="Archived"

@@ -120,6 +120,12 @@ export const inviteApi = {
     send<T>("POST", `/api/invites/${encodeURIComponent(token)}/accept`, {}),
 };
 
+/** /api/public: what anyone may read (a listed academy's page), no sign-in. */
+export const publicApi = {
+  get: <T>(path: string, opts?: RequestOptions) =>
+    send<T>("GET", `/api/public${path}`, undefined, opts),
+};
+
 /** /api/portal: the family portal's own API (never /api/v1, which families can't use). */
 export const portalApi = {
   get: <T>(path: string, opts?: RequestOptions) =>

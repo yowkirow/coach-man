@@ -2,6 +2,7 @@ import type {
   AccountDto,
   PortalAcademyDto,
   PortalAcademyRefDto,
+  PortalConsentsDto,
   PortalHomeDto,
   PortalMoneyDto,
   PortalProgressDto,
@@ -78,6 +79,17 @@ export function usePortalMoney(clientId: string) {
   return useQuery({
     queryKey: keys.portal.money(userId, clientId),
     queryFn: () => portalApi.get<PortalMoneyDto>(`/students/${encodeURIComponent(clientId)}/money`),
+    enabled: Boolean(userId && clientId),
+    ...FRESH,
+  });
+}
+
+export function usePortalConsents(clientId: string) {
+  const userId = usePortalAccount().data?.user.id ?? "";
+  return useQuery({
+    queryKey: keys.portal.consents(userId, clientId),
+    queryFn: () =>
+      portalApi.get<PortalConsentsDto>(`/students/${encodeURIComponent(clientId)}/consents`),
     enabled: Boolean(userId && clientId),
     ...FRESH,
   });

@@ -9,7 +9,7 @@ export function Toaster() {
     <section
       aria-label="Notifications"
       aria-live="polite"
-      className="pointer-events-none fixed inset-x-0 bottom-[calc(96px+env(safe-area-inset-bottom))] z-60 flex flex-col items-center gap-2 px-3 lg:bottom-6 lg:left-auto lg:right-6 lg:items-end"
+      className="pointer-events-none fixed inset-x-0 bottom-[calc(96px+env(safe-area-inset-bottom))] z-60 flex flex-col items-center gap-2 px-3 lg:bottom-6 lg:left-auto lg:right-6 lg:items-end print:hidden"
     >
       {notices.map((n) => (
         <div

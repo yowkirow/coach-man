@@ -44,6 +44,11 @@ export const keys = {
   coaches: ["coaches"] as const,
   coachProfile: (userId: string) => ["coach-profile", userId] as const,
   familyAccess: (clientId: string) => ["family-access", clientId] as const,
+  consentDocuments: ["consent-documents"] as const,
+  clientConsents: (clientId: string) => ["client-consents", clientId] as const,
+  /** Public academy pages: never persisted (not in PERSISTED). */
+  publicAcademy: (slug: string) => ["public-academy", slug] as const,
+  publicPreview: ["public-preview"] as const,
   /**
    * The family portal's reads, under the signed-in person's id: another person signing in on
    * the same device never sees them, even before the cache owner switches.
@@ -57,6 +62,8 @@ export const keys = {
     progress: (userId: string, clientId: string) =>
       ["portal", userId, "progress", clientId] as const,
     money: (userId: string, clientId: string) => ["portal", userId, "money", clientId] as const,
+    consents: (userId: string, clientId: string) =>
+      ["portal", userId, "consents", clientId] as const,
     academy: (userId: string, workspaceId: string) =>
       ["portal", userId, "academy", workspaceId] as const,
   },

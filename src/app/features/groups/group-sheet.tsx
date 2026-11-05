@@ -6,7 +6,7 @@ import { Label, Radio, RadioGroup } from "react-aria-components";
 import { type CoachChoice, CoachFields } from "../../components/domain/coaches";
 import { Button } from "../../components/ui/button";
 import { InlineError } from "../../components/ui/feedback";
-import { SelectField, TextAreaField, TextField } from "../../components/ui/field";
+import { SelectField, Switch, TextAreaField, TextField } from "../../components/ui/field";
 import { Sheet } from "../../components/ui/overlay";
 import { api, errorMessage, fieldErrors } from "../../lib/api";
 import { plural, useFormat } from "../../lib/format";
@@ -72,6 +72,11 @@ interface Draft {
   rateId: string;
   venueId: string;
   description: string;
+  isPublic: boolean;
+  publicDescription: string;
+  scheduleNote: string;
+  ageMin: string;
+  ageMax: string;
 }
 
 const EMPTY: Draft = {
@@ -82,7 +87,20 @@ const EMPTY: Draft = {
   rateId: "none",
   venueId: "none",
   description: "",
+  isPublic: false,
+  publicDescription: "",
+  scheduleNote: "",
+  ageMin: "",
+  ageMax: "",
 };
+
+/** An age typed into the form: null when empty, NaN when it isn't a whole number from 3 to 100. */
+function ageOf(text: string): number | null {
+  const t = text.trim();
+  if (!t) return null;
+  const n = Number(t);
+  return Number.isInteger(n) && n >= 3 && n <= 100 ? n : Number.NaN;
+}
 
 /** Creates a group or edits one. Sessions keep their own copies of rate, venue, and size. */
 export function GroupSheet({
@@ -152,6 +170,11 @@ export function GroupSheet({
         rateId: group.defaultRateId ?? "none",
         venueId: group.defaultVenueId ?? "none",
         description: group.description ?? "",
+        isPublic: group.isPublic ?? false,
+        publicDescription: group.publicDescription ?? "",
+        scheduleNote: group.scheduleNote ?? "",
+        ageMin: group.ageMin ? String(group.ageMin) : "",
+        ageMax: group.ageMax ? String(group.ageMax) : "",
       });
       return;
     }
@@ -173,6 +196,15 @@ export function GroupSheet({
     const cap = draft.capacity.trim() ? Number(draft.capacity) : null;
     if (cap !== null && (!Number.isInteger(cap) || cap < 1 || cap > 500))
       errs.capacity = "Use a whole number from 1 to 500.";
+    const ageMin = ageOf(draft.ageMin);
+    const ageMax = ageOf(draft.ageMax);
+    if (Number.isNaN(ageMin)) errs.ageMin = "Use a whole number from 3 to 100.";
+    if (Number.isNaN(ageMax)) errs.ageMax = "Use a whole number from 3 to 100.";
+    if (ageMin !== null && ageMax !== null && ageMin > ageMax && !errs.ageMin && !errs.ageMax)
+      errs.ageMax = "The oldest age can't be under the youngest.";
+    if (draft.scheduleNote.trim().length > 80) errs.scheduleNote = "Keep it under 80 characters.";
+    if (draft.publicDescription.trim().length > 1000)
+      errs.publicDescription = "Keep it under 1,000 characters.";
     setErrors(errs);
     if (Object.keys(errs).length) return;
     save.mutate({
@@ -183,6 +215,11 @@ export function GroupSheet({
       defaultRateId: draft.rateId === "none" ? null : draft.rateId,
       defaultVenueId: draft.venueId === "none" ? null : draft.venueId,
       description: draft.description.trim() || null,
+      isPublic: draft.isPublic,
+      publicDescription: draft.publicDescription.trim() || null,
+      scheduleNote: draft.scheduleNote.trim() || null,
+      ageMin,
+      ageMax,
       ...(hasTeam ? { coachUserId: coaches.lead, assistantCoachIds: coaches.assistants } : {}),
     });
   };
@@ -314,12 +351,75 @@ export function GroupSheet({
         </div>
 
         <TextAreaField
-          label="Description (optional)"
+          label="Description (optional, for your team)"
           value={draft.description}
           onChange={(description) => set({ description })}
           placeholder="What the group works on and who it's for"
           error={err("description")}
         />
+
+        <fieldset className="flex flex-col gap-4 border-t border-line pt-5">
+          <legend className="sr-only">Academy page</legend>
+          <div>
+            <h3 className="text-[1.125rem] font-medium">Academy page</h3>
+            <p className="mt-0.5 text-[0.8125rem] text-ink-2">
+              A public group is a program on your academy page, with its schedule, venue, coaches,
+              and the packages you put in it.
+            </p>
+          </div>
+          <div className="rounded-[22px] bg-panel px-4 py-2">
+            <Switch
+              isSelected={draft.isPublic}
+              onChange={(isPublic) => set({ isPublic })}
+              description={
+                draft.isPublic
+                  ? "Families see it on your academy page once the page is listed."
+                  : "Only your team sees it."
+              }
+            >
+              Show on the academy page
+            </Switch>
+          </div>
+          <TextAreaField
+            label="What families read (optional)"
+            value={draft.publicDescription}
+            onChange={(publicDescription) => set({ publicDescription })}
+            placeholder="What players work on, the level, and what a session looks like"
+            error={err("publicDescription")}
+          />
+          <TextField
+            label="Schedule label (optional)"
+            value={draft.scheduleNote}
+            onChange={(scheduleNote) => set({ scheduleNote })}
+            placeholder="e.g. Every Tue & Thu, 7–10pm"
+            description="Leave it empty to show the days and times of the group's weekly sessions."
+            error={err("scheduleNote")}
+          />
+          <div className="grid grid-cols-2 gap-4 sm:max-w-[24rem]">
+            <TextField
+              label="Youngest age"
+              type="number"
+              inputMode="numeric"
+              min="3"
+              max="100"
+              value={draft.ageMin}
+              onChange={(ageMin) => set({ ageMin })}
+              placeholder="Any"
+              error={err("ageMin")}
+            />
+            <TextField
+              label="Oldest age"
+              type="number"
+              inputMode="numeric"
+              min="3"
+              max="100"
+              value={draft.ageMax}
+              onChange={(ageMax) => set({ ageMax })}
+              placeholder="Any"
+              error={err("ageMax")}
+            />
+          </div>
+        </fieldset>
 
         {save.error ? <InlineError>{errorMessage(save.error)}</InlineError> : null}
         <button type="submit" hidden />

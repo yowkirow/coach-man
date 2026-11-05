@@ -22,7 +22,14 @@ import {
 } from "./queries";
 
 /** Student pages, in tab order. */
-export const STUDENT_SECTIONS = ["progress", "schedule", "coaches", "payments", "profile"] as const;
+export const STUDENT_SECTIONS = [
+  "progress",
+  "schedule",
+  "coaches",
+  "payments",
+  "consents",
+  "profile",
+] as const;
 export type StudentSection = (typeof STUDENT_SECTIONS)[number];
 
 const SECTION_LABELS: Record<StudentSection, string> = {
@@ -30,6 +37,7 @@ const SECTION_LABELS: Record<StudentSection, string> = {
   schedule: "Schedule",
   coaches: "Coaches",
   payments: "Payments",
+  consents: "Consents",
   profile: "Profile",
 };
 
@@ -125,6 +133,7 @@ function useNavItems(): NavItem[] {
         pathname.startsWith("/my/more") ||
         pathname.startsWith("/my/settings") ||
         section === "coaches" ||
+        section === "consents" ||
         section === "profile",
     },
   ];

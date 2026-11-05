@@ -2,6 +2,7 @@ import type { PackageBalanceDto } from "@shared/api-types";
 import { LESSON_KIND_LABELS } from "@shared/domain";
 import { uuidv7 } from "@shared/ids";
 import { addDays } from "@shared/time";
+import { firstDayOf, lastDayOf, monthOf, startMonthChoices } from "@shared/validity";
 import { useMutation } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Check } from "lucide-react";
@@ -10,7 +11,7 @@ import { Label, Radio, RadioGroup } from "react-aria-components";
 import { ClientPicker } from "../../components/domain/lesson";
 import { Button } from "../../components/ui/button";
 import { InlineError } from "../../components/ui/feedback";
-import { MoneyField, Switch, TextField } from "../../components/ui/field";
+import { MoneyField, Segmented, Switch, TextField } from "../../components/ui/field";
 import { Sheet } from "../../components/ui/overlay";
 import { api, errorMessage, fieldErrors } from "../../lib/api";
 import { fullName, plural, useFormat } from "../../lib/format";
@@ -24,6 +25,7 @@ import {
   useInvalidateMoney,
 } from "../money/record-payment-sheet";
 import { OfflineNote } from "../settings/offline";
+import { templateValidityText } from "./catalog";
 
 export function SellPackageSheet({
   isOpen,
@@ -48,6 +50,8 @@ export function SellPackageSheet({
   const [templateId, setTemplateId] = useState<string | null>(initialTemplate);
   const [price, setPrice] = useState<number | null>(null);
   const [purchasedOn, setPurchasedOn] = useState(fmt.today());
+  const [startMonth, setStartMonth] = useState(monthOf(fmt.today()));
+  const [uniformSize, setUniformSize] = useState("");
   const [paidNow, setPaidNow] = useState(true);
   const [paidAmount, setPaidAmount] = useState<number | null>(null);
   const [method, setMethod] = useState(me?.settings.paymentMethods[0] ?? "Cash");
@@ -69,12 +73,21 @@ export function SellPackageSheet({
     setClient(initialClient);
     pick(initialTemplate ?? null);
     setPurchasedOn(fmt.today());
+    setStartMonth(monthOf(fmt.today()));
+    setUniformSize("");
     setPaidNow(true);
     setMethod(me?.settings.paymentMethods[0] ?? "Cash");
     setIdemKey(uuidv7());
   }, [isOpen]);
 
-  const expiresOn = template?.validityDays ? addDays(purchasedOn, template.validityDays - 1) : null;
+  // Month-end packages run for a calendar month (this one or next), from the 1st to the last day.
+  const monthEnd = template?.validityMode === "month_end";
+  const months = startMonthChoices(fmt.today());
+  const expiresOn = monthEnd
+    ? lastDayOf(startMonth)
+    : template?.validityDays
+      ? addDays(purchasedOn, template.validityDays - 1)
+      : null;
 
   const sell = useMutation({
     meta: { silent: true },
@@ -86,6 +99,9 @@ export function SellPackageSheet({
           packageId: templateId,
           priceMinor: price ?? undefined,
           purchasedOn,
+          startMonth: monthEnd ? startMonth : undefined,
+          uniformSize:
+            template?.includesUniform && uniformSize.trim() ? uniformSize.trim() : undefined,
           payment: paidNow && paidAmount ? { amountMinor: paidAmount, method } : undefined,
         },
         { idempotencyKey: idemKey },
@@ -166,8 +182,8 @@ export function SellPackageSheet({
                       <span className="min-w-0 flex-1">
                         <span className="block font-medium">{t.name}</span>
                         <span className="mt-0.5 block text-[0.8125rem] text-ink-2">
-                          {plural(t.credits, "credit")}
-                          {t.validityDays ? ` · ${t.validityDays} days` : " · no expiry"}
+                          {t.sessionsLabel ? `${t.sessionsLabel} · ` : ""}
+                          {plural(t.credits, "credit")} · {templateValidityText(t).toLowerCase()}
                           {t.lessonKinds.length
                             ? ` · ${t.lessonKinds.map((k) => LESSON_KIND_LABELS[k]).join(", ")}`
                             : ""}
@@ -209,13 +225,50 @@ export function SellPackageSheet({
                 error={errs.priceMinor}
               />
               <TextField
-                label="Starts on"
+                label={monthEnd ? "Sold on" : "Starts on"}
                 type="date"
                 value={purchasedOn}
                 onChange={setPurchasedOn}
-                description={expiresOn ? `Expires ${fmt.date(expiresOn)}` : "Never expires"}
+                description={
+                  monthEnd
+                    ? undefined
+                    : expiresOn
+                      ? `Expires ${fmt.date(expiresOn)}`
+                      : "Never expires"
+                }
               />
             </div>
+            {monthEnd ? (
+              <div className="flex flex-col gap-1.5">
+                <Segmented
+                  label="For the month of"
+                  value={startMonth}
+                  onChange={setStartMonth}
+                  options={months.map((m, i) => ({
+                    id: m,
+                    label: `${fmt.month(m)}${i === 0 ? "" : " (next)"}`,
+                  }))}
+                />
+                <p className="num text-[0.8125rem] text-ink-2">
+                  Pays for sessions from {fmt.date(firstDayOf(startMonth))}. Valid until{" "}
+                  {fmt.date(lastDayOf(startMonth))}.
+                </p>
+                {errs.startMonth ? (
+                  <p className="text-[0.8125rem] font-medium text-[#b42318]">{errs.startMonth}</p>
+                ) : null}
+              </div>
+            ) : null}
+            {template.includesUniform ? (
+              <TextField
+                label="Uniform size (optional)"
+                value={uniformSize}
+                onChange={setUniformSize}
+                placeholder="e.g. M"
+                description="It includes the training uniform. You can add the size later."
+                error={errs.uniformSize}
+                className="sm:max-w-[16rem]"
+              />
+            ) : null}
             <div className="rounded-[22px] bg-panel px-4 py-2">
               <Switch
                 isSelected={paidNow}
@@ -243,6 +296,7 @@ export function SellPackageSheet({
         {client && template ? (
           <p className="text-[0.875rem] text-ink-2">
             {fullName(client)} gets {plural(template.credits, "credit")}
+            {monthEnd ? ` for ${fmt.month(startMonth)}` : ""}
             {paidNow && paidAmount
               ? `, paying ${fmt.money(paidAmount)} by ${method.toLowerCase()}`
               : ", added to their balance"}

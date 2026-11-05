@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import {
   ArrowLeftRight,
   ArrowUpRight,
+  FileSignature,
   type LucideIcon,
   Settings,
   Share,
@@ -54,6 +55,12 @@ function LinkCard({
   );
 }
 
+function consentsBody(whose: string, missing: number): string {
+  return missing
+    ? `${missing === 1 ? "1 form" : `${missing} forms`} to sign`
+    : `${whose} waivers and consent forms`;
+}
+
 /** More: the account, the student's coaches and profile, settings, the academy, and installing. */
 export function PortalMore() {
   const account = usePortalAccount().data;
@@ -97,6 +104,19 @@ export function PortalMore() {
                       icon={UserRound}
                       title="Profile"
                       body={`${whose} details, health, and emergency contact`}
+                    />
+                  </li>
+                  <li>
+                    <LinkCard
+                      to="/my/$clientId/consents"
+                      params={{ clientId: current.clientId }}
+                      icon={FileSignature}
+                      title="Consents"
+                      body={consentsBody(
+                        whose,
+                        home?.students.find((s) => s.clientId === current.clientId)
+                          ?.consentsMissing ?? 0,
+                      )}
                     />
                   </li>
                 </>

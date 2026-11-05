@@ -169,7 +169,7 @@ export function ageText(birthDate: string | null, today: string): string | null 
 export const normPhone = (p: string | null | undefined) => (p ? p.replace(/[^\d+]/g, "") : "");
 
 export type StatusFilter = "active" | "lead" | "paused" | "archived";
-export type QuickFilter = "low" | "owes" | "new";
+export type QuickFilter = "low" | "owes" | "new" | "consents";
 
 /** Search params of the client list (/clients). */
 export interface ListSearch {
@@ -182,7 +182,10 @@ export interface ListSearch {
 }
 
 const STATUS_FILTERS: readonly string[] = ["active", "lead", "paused", "archived"];
-const QUICK_FILTERS: readonly string[] = ["low", "owes", "new"];
+const QUICK_FILTERS: readonly string[] = ["low", "owes", "new", "consents"];
+
+/** Required consent forms the student hasn't signed (or must sign again after a change). */
+export const missesConsents = (c: { consentsMissing?: number }) => (c.consentsMissing ?? 0) > 0;
 
 export function parseListSearch(s: Record<string, unknown>): ListSearch {
   const out: ListSearch = {};
@@ -226,8 +229,15 @@ export const ATTENDANCE_PILL: Record<AttendanceStatus, PillTone> = {
 export const RATING_SOURCE_LABELS: Record<RatingSource, string> = {
   dupr: "DUPR",
   coach: "Coach",
-  self: "Self",
+  self: "Self-rating",
 };
+
+/** "DUPR rating 3.52", "Coach rating 3.00", "Self-rating 3.50" (a player's own estimate). */
+export function ratingTitle(source: RatingSource, value: number): string {
+  return source === "self"
+    ? `Self-rating ${value.toFixed(2)}`
+    : `${RATING_SOURCE_LABELS[source]} rating ${value.toFixed(2)}`;
+}
 
 /** Common pickleball levels offered as suggestions; any text is still allowed. */
 export const LEVEL_SUGGESTIONS = ["2.0", "2.5", "3.0", "3.5", "4.0", "4.5", "5.0", "5.5"];

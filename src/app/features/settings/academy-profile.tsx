@@ -8,10 +8,12 @@ import {
 } from "@shared/domain";
 import { type AcademyUpdateInput, academyUpdateSchema } from "@shared/schemas";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { ImagePlus, QrCode, Trash2 } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { Copy, Eye, ImagePlus, QrCode, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { FileTrigger } from "react-aria-components";
-import { Button } from "../../components/ui/button";
+import { copyText } from "../../components/domain/invite-link";
+import { Button, buttonClass } from "../../components/ui/button";
 import { ErrorState, InlineError, RowsSkeleton } from "../../components/ui/feedback";
 import { Switch, TextAreaField, TextField } from "../../components/ui/field";
 import { api, errorMessage, fieldErrors, fileUrl } from "../../lib/api";
@@ -477,11 +479,38 @@ export function AcademyProfileSection() {
     );
   })();
 
+  // Staff can preview the page as families will see it, listed or not; the link is for sharing
+  // once it's listed.
+  const shareUrl = academy?.listed ? academy.publicUrl : null;
   return (
     <SettingsSection
       id="academy-profile"
       title="Academy profile"
       description="How your academy appears on invites, its public page, and the family portal."
+      action={
+        academy ? (
+          <>
+            <Link
+              to="/a/$slug"
+              params={{ slug: academy.slug }}
+              search={{ preview: 1 }}
+              className={buttonClass("light", "md")}
+            >
+              <Eye aria-hidden className="size-4.5" />
+              Preview public page
+            </Link>
+            {shareUrl ? (
+              <Button
+                variant="light"
+                icon={<Copy aria-hidden className="size-4.5" />}
+                onPress={() => void copyText(shareUrl, "Link")}
+              >
+                Copy link
+              </Button>
+            ) : null}
+          </>
+        ) : null
+      }
     >
       {body}
     </SettingsSection>

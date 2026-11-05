@@ -1,7 +1,7 @@
 import type { ClientListItemDto, GroupDto } from "@shared/api-types";
 import { addDays } from "@shared/time";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Archive, ArrowUpRight, CalendarClock, UsersRound } from "lucide-react";
+import { Archive, ArrowUpRight, CalendarClock, Globe, UsersRound } from "lucide-react";
 import { useMemo } from "react";
 import { SyncStatus } from "../../components/layout/app-shell";
 import { buttonClass } from "../../components/ui/button";
@@ -142,6 +142,7 @@ export function GroupTile({
           </span>
           <span className={`num block truncate text-[0.75rem] ${sub}`}>
             {archived ? "Archived" : (info?.pattern ?? "Nothing in the next two weeks")}
+            {group.isPublic && !archived ? " · Public" : ""}
           </span>
         </span>
         <ArrowUpRight aria-hidden className={`size-4 shrink-0 ${sub}`} />
@@ -307,8 +308,14 @@ export function GroupCard({
         />
       </div>
 
-      {group.level || full || archived ? (
+      {group.level || full || archived || group.isPublic ? (
         <div className="flex flex-wrap gap-1.5">
+          {group.isPublic && !archived ? (
+            <Pill tone="mint">
+              <Globe aria-hidden className="size-3" />
+              Public
+            </Pill>
+          ) : null}
           {group.level ? <Pill tone="violet">{group.level}</Pill> : null}
           {full && !archived ? <Pill tone="amber">Full</Pill> : null}
           {archived ? <Pill tone="panel">Archived</Pill> : null}

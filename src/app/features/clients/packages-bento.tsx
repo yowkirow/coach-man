@@ -1,8 +1,8 @@
 import type { ClientDetailDto, PackageBalanceDto } from "@shared/api-types";
 import { LESSON_KIND_LABELS } from "@shared/domain";
 import { addDays, daysBetween } from "@shared/time";
-import { useMutation } from "@tanstack/react-query";
-import { History, Minus, Plus, Ticket } from "lucide-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { History, Minus, Plus, Shirt, Ticket } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button, IconButton } from "../../components/ui/button";
 import { Bento, Meter } from "../../components/ui/display";
@@ -14,6 +14,7 @@ import { plural, useFormat } from "../../lib/format";
 import { useCan } from "../../lib/hooks";
 import { notify } from "../../lib/notify";
 import { useOnline } from "../../lib/offline";
+import { keys } from "../../lib/query";
 import { OfflineHint } from "./bits";
 import { EXPIRY_WINDOW_DAYS } from "./client-utils";
 import { useRefreshClient } from "./queries";
@@ -35,6 +36,14 @@ function ExpiryLine({ p }: { p: PackageBalanceDto }) {
   const kinds = p.lessonKinds.length
     ? p.lessonKinds.map((k) => LESSON_KIND_LABELS[k]).join(", ")
     : "Any session";
+  // A month-end package sold for next month pays for nothing before the 1st.
+  if (p.status === "active" && p.startsOn && p.startsOn > today)
+    return (
+      <p className="num text-[0.8125rem] text-ink/75">
+        <span className="font-medium text-ink">Starts {fmt.date(p.startsOn)}</span>
+        {p.expiresOn ? ` · expires ${fmt.date(p.expiresOn)}` : ""} · {kinds}
+      </p>
+    );
   if (p.status === "expired" && p.expiresOn)
     return (
       <p className="text-[0.8125rem] font-medium text-[#7a1212]">
@@ -71,6 +80,7 @@ export function PackagesBento({
   const can = useCan();
   const [adjusting, setAdjusting] = useState<PackageBalanceDto | null>(null);
   const [expiry, setExpiry] = useState<PackageBalanceDto | null>(null);
+  const [uniform, setUniform] = useState<PackageBalanceDto | null>(null);
   const live = livePackages(detail);
   const active = live.filter((p) => p.status === "active");
   const left = active.reduce((n, p) => n + p.remaining, 0);
@@ -110,6 +120,9 @@ export function PackagesBento({
               <div className="mt-2">
                 <ExpiryLine p={p} />
               </div>
+              {p.includesUniform ? (
+                <UniformLine p={p} online={online} onEdit={() => setUniform(p)} />
+              ) : null}
               {can.money ? (
                 <div className="mt-3 flex flex-wrap gap-2">
                   <Button
@@ -167,6 +180,7 @@ export function PackagesBento({
         onClose={() => setAdjusting(null)}
       />
       <ExpirySheet pkg={expiry} clientId={detail.client.id} onClose={() => setExpiry(null)} />
+      <UniformSheet pkg={uniform} clientId={detail.client.id} onClose={() => setUniform(null)} />
     </Bento>
   );
 }
@@ -430,6 +444,136 @@ function ExpirySheet({
           <InlineError>{errorMessage(save.error)}</InlineError>
         ) : null}
         <OfflineHint>You're offline. Reconnect to change the expiry.</OfflineHint>
+        <button type="submit" hidden />
+      </form>
+    </Sheet>
+  );
+}
+
+/** The training uniform a package came with: its size and whether it was handed out. */
+function UniformLine({
+  p,
+  online,
+  onEdit,
+}: {
+  p: PackageBalanceDto;
+  online: boolean;
+  onEdit: () => void;
+}) {
+  const fmt = useFormat();
+  const issued = p.uniformIssuedAt ?? null;
+  return (
+    <div className="mt-3 flex items-center gap-3 rounded-[16px] bg-white/55 py-1.5 pr-1.5 pl-3">
+      <Shirt aria-hidden className="size-4.5 shrink-0" />
+      <p className="min-w-0 flex-1 text-[0.8125rem]">
+        <span className="font-medium">Uniform</span>
+        {p.uniformSize ? ` · size ${p.uniformSize}` : " · size not recorded"}
+        <span className="block text-ink/75">
+          {issued ? `Handed out ${fmt.date(fmt.dayOf(issued))}` : "To hand out"}
+        </span>
+      </p>
+      <Button variant="light" size="sm" isDisabled={!online} onPress={onEdit}>
+        {issued ? "Edit" : "Update"}
+        <span className="sr-only"> uniform for {p.name}</span>
+      </Button>
+    </div>
+  );
+}
+
+function UniformSheet({
+  pkg,
+  clientId,
+  onClose,
+}: {
+  pkg: PackageBalanceDto | null;
+  clientId: string;
+  onClose: () => void;
+}) {
+  const fmt = useFormat();
+  const online = useOnline();
+  const refresh = useRefreshClient();
+  const qc = useQueryClient();
+  const [size, setSize] = useState("");
+  const [issued, setIssued] = useState(false);
+  const [shown, setShown] = useState<PackageBalanceDto | null>(pkg);
+  const save = useMutation({
+    meta: { silent: true },
+    mutationFn: (v: { id: string; uniformSize: string; issued: boolean }) =>
+      api.patch<PackageBalanceDto>(`/client-packages/${v.id}/uniform`, {
+        uniformSize: v.uniformSize,
+        issued: v.issued,
+      }),
+    onSuccess: (p) => {
+      refresh(clientId);
+      void qc.invalidateQueries({ queryKey: keys.today });
+      notify({
+        tone: "success",
+        title: p.uniformIssuedAt ? "Uniform handed out" : "Uniform saved",
+        body: p.uniformSize ? `Size ${p.uniformSize} · ${p.name}` : p.name,
+      });
+      onClose();
+    },
+  });
+  // biome-ignore lint/correctness/useExhaustiveDependencies: seed when another package opens.
+  useEffect(() => {
+    if (!pkg) return;
+    setShown(pkg);
+    setSize(pkg.uniformSize ?? "");
+    setIssued(Boolean(pkg.uniformIssuedAt));
+    save.reset();
+  }, [pkg?.id]);
+  const p = pkg ?? shown;
+  const errs = fieldErrors(save.error);
+  const submit = () => p && online && save.mutate({ id: p.id, uniformSize: size.trim(), issued });
+  return (
+    <Sheet
+      isOpen={pkg !== null}
+      onOpenChange={(o) => !o && onClose()}
+      title="Training uniform"
+      description={p ? `Comes with ${p.name}.` : undefined}
+      footer={
+        <>
+          <Button variant="light" onPress={onClose}>
+            Cancel
+          </Button>
+          <Button variant="dark" isDisabled={!online} isPending={save.isPending} onPress={submit}>
+            Save
+          </Button>
+        </>
+      }
+    >
+      <form
+        className="flex flex-col gap-5"
+        onSubmit={(e) => {
+          e.preventDefault();
+          submit();
+        }}
+      >
+        <TextField
+          label="Size"
+          value={size}
+          onChange={setSize}
+          placeholder="e.g. M, L, Youth 10"
+          error={errs.uniformSize}
+          className="sm:max-w-[16rem]"
+        />
+        <div className="rounded-[22px] bg-panel px-4 py-2">
+          <Switch
+            isSelected={issued}
+            onChange={setIssued}
+            description={
+              p?.uniformIssuedAt && issued
+                ? `Handed out ${fmt.date(fmt.dayOf(p.uniformIssuedAt))}.`
+                : "Turn on once the player has it."
+            }
+          >
+            Uniform handed out
+          </Switch>
+        </div>
+        {save.error && !errs.uniformSize ? (
+          <InlineError>{errorMessage(save.error)}</InlineError>
+        ) : null}
+        <OfflineHint>You're offline. Reconnect to update the uniform.</OfflineHint>
         <button type="submit" hidden />
       </form>
     </Sheet>

@@ -6,7 +6,14 @@ import type {
 } from "@shared/api-types";
 import { daysBetween } from "@shared/time";
 import { Link } from "@tanstack/react-router";
-import { ArrowUpRight, CalendarDays, Megaphone, MessageSquareText, UserRound } from "lucide-react";
+import {
+  ArrowUpRight,
+  CalendarDays,
+  FileSignature,
+  Megaphone,
+  MessageSquareText,
+  UserRound,
+} from "lucide-react";
 import { buttonClass } from "../../components/ui/button";
 import { Card, Meter, Pill } from "../../components/ui/display";
 import { EmptyState } from "../../components/ui/feedback";
@@ -190,8 +197,34 @@ function StudentBlock({
         <NextSession s={s} fmt={fmt} />
         <Credits s={s} fmt={fmt} />
         <Balance s={s} fmt={fmt} />
+        {s.consentsMissing ? <ConsentsDue s={s} /> : null}
       </div>
     </section>
+  );
+}
+
+/** Required consent forms still to sign (or to sign again after the academy changed them). */
+function ConsentsDue({ s }: { s: PortalHomeStudentDto }) {
+  const n = s.consentsMissing ?? 0;
+  return (
+    <Link
+      to="/my/$clientId/consents"
+      params={{ clientId: s.clientId }}
+      className={`${figureLink} group flex items-center gap-4 rounded-[28px] bg-amber-soft p-5 text-ink sm:col-span-2`}
+    >
+      <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-amber">
+        <FileSignature aria-hidden className="size-5" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-[1.125rem] font-medium">
+          {plural(n, "consent form")} to sign
+        </span>
+        <span className="block text-[0.875rem] text-ink/75">
+          The academy asks for {n === 1 ? "it" : "them"} before training. Read and sign online.
+        </span>
+      </span>
+      <ArrowUpRight aria-hidden className="size-4.5 shrink-0 text-ink/60 group-hover:text-ink" />
+    </Link>
   );
 }
 

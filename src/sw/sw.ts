@@ -14,9 +14,11 @@ declare const self: ServiceWorkerGlobalScope & {
 precacheAndRoute(self.__WB_MANIFEST);
 cleanupOutdatedCaches();
 
+// Public academy pages (/a/…) come from the Worker, which writes the academy's link-preview tags
+// and page data into the HTML; the cached shell has neither.
 registerRoute(
   new NavigationRoute(createHandlerBoundToURL("index.html"), {
-    denylist: [/^\/api\//],
+    denylist: [/^\/api\//, /^\/a\//],
   }),
 );
 

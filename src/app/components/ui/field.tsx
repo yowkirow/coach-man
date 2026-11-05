@@ -358,18 +358,22 @@ export function Switch({
   onChange,
   isDisabled,
   description,
+  "aria-label": ariaLabel,
 }: {
   children: ReactNode;
   isSelected: boolean;
   onChange: (v: boolean) => void;
   isDisabled?: boolean;
   description?: ReactNode;
+  /** A fuller name than the visible label, which it should start with (a row's "Public"). */
+  "aria-label"?: string;
 }) {
   return (
     <RACSwitch
       isSelected={isSelected}
       onChange={onChange}
       isDisabled={isDisabled}
+      aria-label={ariaLabel}
       className="group flex cursor-pointer items-start justify-between gap-4 py-2 text-ink outline-none data-[disabled]:opacity-50"
     >
       <span className="flex flex-col gap-0.5">

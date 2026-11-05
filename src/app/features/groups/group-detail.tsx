@@ -13,6 +13,7 @@ import {
   ArrowUpRight,
   CalendarPlus,
   Ellipsis,
+  Globe,
   Pencil,
   Repeat,
   UserMinus,
@@ -57,12 +58,14 @@ import {
 import { notify } from "../../lib/notify";
 import { useOnline } from "../../lib/offline";
 import { keys } from "../../lib/query";
+import { agesLabel } from "../public/text";
 import { OfflineNote } from "../schedule/choice";
 import { startOfWeek } from "../schedule/dates";
 import { NewSessionSheet } from "../schedule/new-session-sheet";
 import { whereOf } from "../sessions/session-detail";
 import { AddMembersSheet } from "./add-members-sheet";
 import { GroupSheet } from "./group-sheet";
+import { ProgramTiersCard } from "./program-tiers";
 import {
   colorName,
   groupColor,
@@ -179,7 +182,10 @@ export function GroupDetail({
             id: "details",
             label: "Details",
             content: (
-              <DetailsCard group={g} onEdit={can.catalog ? () => setSheet("edit") : undefined} />
+              <div className="flex flex-col gap-3 lg:gap-4">
+                <DetailsCard group={g} onEdit={can.catalog ? () => setSheet("edit") : undefined} />
+                <ProgramTiersCard group={g} />
+              </div>
             ),
           },
         ]}
@@ -285,6 +291,12 @@ function GroupHeader({
           <div className="mt-3 flex flex-wrap gap-1.5">
             {archived ? (
               <Pill tone="panel">Archived {fmt.date(fmt.dayOf(g.archivedAt ?? Date.now()))}</Pill>
+            ) : null}
+            {g.isPublic && !archived ? (
+              <Pill tone="mint">
+                <Globe aria-hidden className="size-3" />
+                Public
+              </Pill>
             ) : null}
             {full && !archived ? <Pill tone="amber">Full</Pill> : null}
             {live.map((s) => (
@@ -666,6 +678,24 @@ function DetailsCard({ group, onEdit }: { group: GroupDto; onEdit?: () => void }
             )}
           </KeyValue>
         </div>
+        <KeyValue label="Academy page">
+          {group.isPublic ? "Public program" : "Not on the academy page"}
+        </KeyValue>
+        <KeyValue label="Ages">
+          {agesLabel(group.ageMin ?? null, group.ageMax ?? null) ?? "Any age"}
+        </KeyValue>
+        {group.scheduleNote ? (
+          <div className="sm:col-span-2">
+            <KeyValue label="Schedule label">{group.scheduleNote}</KeyValue>
+          </div>
+        ) : null}
+        {group.publicDescription ? (
+          <div className="sm:col-span-2">
+            <KeyValue label="What families read">
+              <span className="whitespace-pre-line">{group.publicDescription}</span>
+            </KeyValue>
+          </div>
+        ) : null}
       </dl>
       {onEdit ? (
         <Button

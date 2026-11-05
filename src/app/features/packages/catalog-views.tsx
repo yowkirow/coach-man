@@ -1,13 +1,14 @@
 import type { PackageTemplateDto, RateDto } from "@shared/api-types";
 import type { RateKind } from "@shared/domain";
 import type { UseQueryResult } from "@tanstack/react-query";
-import { Pencil, Plus, ReceiptText, Ticket } from "lucide-react";
+import { Globe, Pencil, Plus, ReceiptText, Shirt, Star, Ticket } from "lucide-react";
 import { Button, IconButton } from "../../components/ui/button";
 import { Card, CardHeader, Pill } from "../../components/ui/display";
 import { EmptyState, ErrorState, Skeleton } from "../../components/ui/feedback";
 import { Switch } from "../../components/ui/field";
 import { errorMessage } from "../../lib/api";
 import { plural, useFormat } from "../../lib/format";
+import { useGroups } from "../../lib/hooks";
 import { useOnline } from "../../lib/offline";
 import {
   durationText,
@@ -19,16 +20,19 @@ import {
   rateKindsInOrder,
   SESSION_TYPE_LABELS,
   SESSION_TYPE_TONES,
-  validityText,
+  templateValidityText,
 } from "./catalog";
 
 export function PackageCard({
   template: t,
+  programName,
   onEdit,
   onSell,
   onToggle,
 }: {
   template: PackageTemplateDto;
+  /** The program the tier belongs to, when it has one. */
+  programName?: string | null;
   onEdit: () => void;
   onSell: () => void;
   onToggle: (active: boolean) => void;
@@ -37,6 +41,7 @@ export function PackageCard({
   const online = useOnline();
   const kinds = orderedKinds(t.lessonKinds);
   const headingId = `package-${t.id}`;
+  const sessions = t.sessionsLabel ? `${t.sessionsLabel} · ` : "";
   return (
     <article
       aria-labelledby={headingId}
@@ -51,7 +56,8 @@ export function PackageCard({
             {t.name}
           </h3>
           <p className="num mt-1 text-[0.875rem] text-ink-2">
-            {plural(t.credits, "credit")} · {validityText(t.validityDays)}
+            {sessions}
+            {plural(t.credits, "credit")} · {templateValidityText(t)}
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
@@ -82,7 +88,36 @@ export function PackageCard({
         <p className="mt-3 line-clamp-2 text-[0.875rem] text-ink-2">{t.description}</p>
       ) : null}
 
-      <ul aria-label="Covers" className="mt-4 flex flex-wrap gap-1.5">
+      <ul aria-label="Covers and status" className="mt-4 flex flex-wrap gap-1.5">
+        {t.isPublic ? (
+          <li>
+            <Pill tone="mint">
+              <Globe aria-hidden className="size-3" />
+              Public
+            </Pill>
+          </li>
+        ) : null}
+        {t.highlight ? (
+          <li>
+            <Pill tone="amber">
+              <Star aria-hidden className="size-3" />
+              Featured
+            </Pill>
+          </li>
+        ) : null}
+        {programName ? (
+          <li>
+            <Pill tone="outline">{programName}</Pill>
+          </li>
+        ) : null}
+        {t.includesUniform ? (
+          <li>
+            <Pill tone="outline">
+              <Shirt aria-hidden className="size-3" />
+              Uniform
+            </Pill>
+          </li>
+        ) : null}
         {kinds.length ? (
           kinds.map((k) => (
             <li key={k}>
@@ -141,6 +176,7 @@ export function PackageGrid({
   onToggle: (t: PackageTemplateDto, active: boolean) => void;
 }) {
   const online = useOnline();
+  const groups = useGroups();
   if (query.isPending) return <CardsSkeleton />;
   if (!query.data) {
     return (
@@ -153,6 +189,7 @@ export function PackageGrid({
       </Card>
     );
   }
+  const programNames = new Map((groups.data ?? []).map((g) => [g.id, g.name]));
   const onSale = query.data.filter((t) => t.active);
   const off = query.data.filter((t) => !t.active);
   if (query.data.length === 0) {
@@ -180,6 +217,7 @@ export function PackageGrid({
     <PackageCard
       key={t.id}
       template={t}
+      programName={t.programId ? programNames.get(t.programId) : null}
       onEdit={() => onEdit(t)}
       onSell={() => onSell(t)}
       onToggle={(active) => onToggle(t, active)}

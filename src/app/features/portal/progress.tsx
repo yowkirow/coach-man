@@ -227,7 +227,11 @@ function Goals({ goals, fmt, who }: { goals: PortalGoalDto[]; fmt: Format; who: 
 }
 
 function Ratings({ p, fmt }: { p: PortalProgressDto; fmt: Format }) {
-  const latest = p.ratings.at(-1);
+  // A self-rating (given when enrolling) is the player's own estimate: it never stands in for
+  // the coach's or DUPR's number when there is one, and says what it is when it's all there is.
+  const measured = p.ratings.filter((r) => r.source !== "self");
+  const latest = measured.at(-1) ?? p.ratings.at(-1);
+  const self = p.ratings.filter((r) => r.source === "self").at(-1);
   return (
     <PortalCard title="Rating">
       {latest ? (
@@ -240,6 +244,16 @@ function Ratings({ p, fmt }: { p: PortalProgressDto; fmt: Format }) {
               {RATING_SOURCE_LABELS[latest.source]} · {fmt.date(latest.recordedOn)}
             </span>
           </p>
+          {self && self !== latest ? (
+            <p className="num text-[0.8125rem] text-ink-2">
+              Self-rating {self.value.toFixed(2)} · {fmt.date(self.recordedOn)}
+            </p>
+          ) : null}
+          {latest.source === "self" ? (
+            <p className="text-[0.8125rem] text-ink-2">
+              The level given when enrolling. Coach and DUPR ratings show here as they're recorded.
+            </p>
+          ) : null}
           {p.ratings.length > 1 ? <RatingChartView ratings={p.ratings} fmt={fmt} /> : null}
         </div>
       ) : (

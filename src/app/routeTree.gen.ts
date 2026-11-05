@@ -35,8 +35,11 @@ import { Route as PortalMyIndexRouteImport } from './routes/_portal/my.index'
 import { Route as PortalMyClientIdRouteImport } from './routes/_portal/my.$clientId'
 import { Route as PortalMyMoreRouteImport } from './routes/_portal/my.more'
 import { Route as PortalMySettingsRouteImport } from './routes/_portal/my.settings'
+import { Route as ASlugIndexRouteImport } from './routes/a.$slug.index'
+import { Route as ASlugRatesRouteImport } from './routes/a.$slug.rates'
 import { Route as PortalMyClientIdIndexRouteImport } from './routes/_portal/my.$clientId.index'
 import { Route as PortalMyClientIdCoachesRouteImport } from './routes/_portal/my.$clientId.coaches'
+import { Route as PortalMyClientIdConsentsRouteImport } from './routes/_portal/my.$clientId.consents'
 import { Route as PortalMyClientIdPaymentsRouteImport } from './routes/_portal/my.$clientId.payments'
 import { Route as PortalMyClientIdProfileRouteImport } from './routes/_portal/my.$clientId.profile'
 import { Route as PortalMyClientIdProgressRouteImport } from './routes/_portal/my.$clientId.progress'
@@ -170,6 +173,16 @@ const PortalMySettingsRoute = PortalMySettingsRouteImport.update({
   path: '/my/settings',
   getParentRoute: () => PortalRoute,
 } as any)
+const ASlugIndexRoute = ASlugIndexRouteImport.update({
+  id: '/a/$slug/',
+  path: '/a/$slug/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ASlugRatesRoute = ASlugRatesRouteImport.update({
+  id: '/a/$slug/rates',
+  path: '/a/$slug/rates',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PortalMyClientIdIndexRoute = PortalMyClientIdIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -180,6 +193,12 @@ const PortalMyClientIdCoachesRoute = PortalMyClientIdCoachesRouteImport.update({
   path: '/coaches',
   getParentRoute: () => PortalMyClientIdRoute,
 } as any)
+const PortalMyClientIdConsentsRoute =
+  PortalMyClientIdConsentsRouteImport.update({
+    id: '/consents',
+    path: '/consents',
+    getParentRoute: () => PortalMyClientIdRoute,
+  } as any)
 const PortalMyClientIdPaymentsRoute =
   PortalMyClientIdPaymentsRouteImport.update({
     id: '/payments',
@@ -225,11 +244,14 @@ export interface FileRoutesByFullPath {
   '/my/$clientId': typeof PortalMyClientIdRouteWithChildren
   '/my/more': typeof PortalMyMoreRoute
   '/my/settings': typeof PortalMySettingsRoute
+  '/a/$slug/rates': typeof ASlugRatesRoute
   '/clients/': typeof AppClientsIndexRoute
   '/events/': typeof AppEventsIndexRoute
   '/groups/': typeof AppGroupsIndexRoute
   '/my/': typeof PortalMyIndexRoute
+  '/a/$slug/': typeof ASlugIndexRoute
   '/my/$clientId/coaches': typeof PortalMyClientIdCoachesRoute
+  '/my/$clientId/consents': typeof PortalMyClientIdConsentsRoute
   '/my/$clientId/payments': typeof PortalMyClientIdPaymentsRoute
   '/my/$clientId/profile': typeof PortalMyClientIdProfileRoute
   '/my/$clientId/progress': typeof PortalMyClientIdProgressRoute
@@ -256,11 +278,14 @@ export interface FileRoutesByTo {
   '/sessions/$lessonId': typeof AppSessionsLessonIdRoute
   '/my/more': typeof PortalMyMoreRoute
   '/my/settings': typeof PortalMySettingsRoute
+  '/a/$slug/rates': typeof ASlugRatesRoute
   '/clients': typeof AppClientsIndexRoute
   '/events': typeof AppEventsIndexRoute
   '/groups': typeof AppGroupsIndexRoute
   '/my': typeof PortalMyIndexRoute
+  '/a/$slug': typeof ASlugIndexRoute
   '/my/$clientId/coaches': typeof PortalMyClientIdCoachesRoute
+  '/my/$clientId/consents': typeof PortalMyClientIdConsentsRoute
   '/my/$clientId/payments': typeof PortalMyClientIdPaymentsRoute
   '/my/$clientId/profile': typeof PortalMyClientIdProfileRoute
   '/my/$clientId/progress': typeof PortalMyClientIdProgressRoute
@@ -291,11 +316,14 @@ export interface FileRoutesById {
   '/_portal/my/$clientId': typeof PortalMyClientIdRouteWithChildren
   '/_portal/my/more': typeof PortalMyMoreRoute
   '/_portal/my/settings': typeof PortalMySettingsRoute
+  '/a/$slug/rates': typeof ASlugRatesRoute
   '/_app/clients/': typeof AppClientsIndexRoute
   '/_app/events/': typeof AppEventsIndexRoute
   '/_app/groups/': typeof AppGroupsIndexRoute
   '/_portal/my/': typeof PortalMyIndexRoute
+  '/a/$slug/': typeof ASlugIndexRoute
   '/_portal/my/$clientId/coaches': typeof PortalMyClientIdCoachesRoute
+  '/_portal/my/$clientId/consents': typeof PortalMyClientIdConsentsRoute
   '/_portal/my/$clientId/payments': typeof PortalMyClientIdPaymentsRoute
   '/_portal/my/$clientId/profile': typeof PortalMyClientIdProfileRoute
   '/_portal/my/$clientId/progress': typeof PortalMyClientIdProgressRoute
@@ -325,11 +353,14 @@ export interface FileRouteTypes {
     | '/my/$clientId'
     | '/my/more'
     | '/my/settings'
+    | '/a/$slug/rates'
     | '/clients/'
     | '/events/'
     | '/groups/'
     | '/my/'
+    | '/a/$slug/'
     | '/my/$clientId/coaches'
+    | '/my/$clientId/consents'
     | '/my/$clientId/payments'
     | '/my/$clientId/profile'
     | '/my/$clientId/progress'
@@ -356,11 +387,14 @@ export interface FileRouteTypes {
     | '/sessions/$lessonId'
     | '/my/more'
     | '/my/settings'
+    | '/a/$slug/rates'
     | '/clients'
     | '/events'
     | '/groups'
     | '/my'
+    | '/a/$slug'
     | '/my/$clientId/coaches'
+    | '/my/$clientId/consents'
     | '/my/$clientId/payments'
     | '/my/$clientId/profile'
     | '/my/$clientId/progress'
@@ -390,11 +424,14 @@ export interface FileRouteTypes {
     | '/_portal/my/$clientId'
     | '/_portal/my/more'
     | '/_portal/my/settings'
+    | '/a/$slug/rates'
     | '/_app/clients/'
     | '/_app/events/'
     | '/_app/groups/'
     | '/_portal/my/'
+    | '/a/$slug/'
     | '/_portal/my/$clientId/coaches'
+    | '/_portal/my/$clientId/consents'
     | '/_portal/my/$clientId/payments'
     | '/_portal/my/$clientId/profile'
     | '/_portal/my/$clientId/progress'
@@ -409,6 +446,8 @@ export interface RootRouteChildren {
   SignInRoute: typeof SignInRoute
   WelcomeRoute: typeof WelcomeRoute
   JoinTokenRoute: typeof JoinTokenRoute
+  ASlugRatesRoute: typeof ASlugRatesRoute
+  ASlugIndexRoute: typeof ASlugIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -595,6 +634,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PortalMySettingsRouteImport
       parentRoute: typeof PortalRoute
     }
+    '/a/$slug/': {
+      id: '/a/$slug/'
+      path: '/a/$slug'
+      fullPath: '/a/$slug/'
+      preLoaderRoute: typeof ASlugIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/a/$slug/rates': {
+      id: '/a/$slug/rates'
+      path: '/a/$slug/rates'
+      fullPath: '/a/$slug/rates'
+      preLoaderRoute: typeof ASlugRatesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_portal/my/$clientId/': {
       id: '/_portal/my/$clientId/'
       path: '/'
@@ -607,6 +660,13 @@ declare module '@tanstack/react-router' {
       path: '/coaches'
       fullPath: '/my/$clientId/coaches'
       preLoaderRoute: typeof PortalMyClientIdCoachesRouteImport
+      parentRoute: typeof PortalMyClientIdRoute
+    }
+    '/_portal/my/$clientId/consents': {
+      id: '/_portal/my/$clientId/consents'
+      path: '/consents'
+      fullPath: '/my/$clientId/consents'
+      preLoaderRoute: typeof PortalMyClientIdConsentsRouteImport
       parentRoute: typeof PortalMyClientIdRoute
     }
     '/_portal/my/$clientId/payments': {
@@ -682,6 +742,7 @@ const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
 interface PortalMyClientIdRouteChildren {
   PortalMyClientIdCoachesRoute: typeof PortalMyClientIdCoachesRoute
+  PortalMyClientIdConsentsRoute: typeof PortalMyClientIdConsentsRoute
   PortalMyClientIdPaymentsRoute: typeof PortalMyClientIdPaymentsRoute
   PortalMyClientIdProfileRoute: typeof PortalMyClientIdProfileRoute
   PortalMyClientIdProgressRoute: typeof PortalMyClientIdProgressRoute
@@ -691,6 +752,7 @@ interface PortalMyClientIdRouteChildren {
 
 const PortalMyClientIdRouteChildren: PortalMyClientIdRouteChildren = {
   PortalMyClientIdCoachesRoute: PortalMyClientIdCoachesRoute,
+  PortalMyClientIdConsentsRoute: PortalMyClientIdConsentsRoute,
   PortalMyClientIdPaymentsRoute: PortalMyClientIdPaymentsRoute,
   PortalMyClientIdProfileRoute: PortalMyClientIdProfileRoute,
   PortalMyClientIdProgressRoute: PortalMyClientIdProgressRoute,
@@ -725,6 +787,8 @@ const rootRouteChildren: RootRouteChildren = {
   SignInRoute: SignInRoute,
   WelcomeRoute: WelcomeRoute,
   JoinTokenRoute: JoinTokenRoute,
+  ASlugRatesRoute: ASlugRatesRoute,
+  ASlugIndexRoute: ASlugIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

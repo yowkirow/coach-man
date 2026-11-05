@@ -12,6 +12,7 @@ import { type CatalogTab, useToggleActive } from "../../features/packages/catalo
 import { PackageGrid, RateGroups } from "../../features/packages/catalog-views";
 import { PackageTemplateSheet } from "../../features/packages/package-sheet";
 import { CatalogPanel, CreditsExplainer } from "../../features/packages/panel";
+import { PublicPageTab } from "../../features/packages/public-page-tab";
 import { RateSheet } from "../../features/packages/rate-sheet";
 import { SellPackageSheet } from "../../features/packages/sell-package-sheet";
 import { ConnectionPill } from "../../features/settings/offline";
@@ -28,7 +29,7 @@ export const Route = createFileRoute("/_app/packages")({
   // A hand-typed `?sell=1` arrives as the number 1; in-app links send the string.
   validateSearch: (s: Record<string, unknown>): PackagesSearch => ({
     sell: s.sell === "1" || s.sell === 1 ? "1" : undefined,
-    tab: s.tab === "packages" || s.tab === "rates" ? s.tab : undefined,
+    tab: s.tab === "packages" || s.tab === "rates" || s.tab === "public" ? s.tab : undefined,
   }),
   component: PackagesRoute,
 });
@@ -143,6 +144,19 @@ function PackagesPage() {
                 setRateOpen(true);
               }}
               onToggle={(r, active) => toggleRate.mutate({ id: r.id, name: r.name, active })}
+            />
+          ),
+        },
+        {
+          id: "public",
+          label: "Academy page",
+          content: (
+            <PublicPageTab
+              templates={templates.data}
+              onEdit={(t) => {
+                setTemplate(t);
+                setTemplateOpen(true);
+              }}
             />
           ),
         },

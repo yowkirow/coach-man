@@ -23,14 +23,9 @@ import { Button } from "../../components/ui/button";
 import { Card, KeyValue, Pill, Timeline, type TimelineEntry } from "../../components/ui/display";
 import { type Format, plural, useFormat } from "../../lib/format";
 import { useCan } from "../../lib/hooks";
+import { ConsentsCard } from "../consents/client-card";
 import { SectionHead } from "./bits";
-import {
-  ATTENDANCE_PILL,
-  ageText,
-  HAND_LABELS,
-  RATING_SOURCE_LABELS,
-  shortDate,
-} from "./client-utils";
+import { ATTENDANCE_PILL, ageText, HAND_LABELS, ratingTitle, shortDate } from "./client-utils";
 import { CoachesCard } from "./coaches";
 import { FamilyAccessCard } from "./family-access";
 import { NoteItem } from "./notes";
@@ -196,11 +191,7 @@ function buildActivity(
       day: r.recordedOn,
       icon: <TrendingUp className={ICON} />,
       tone: "lime",
-      title: (
-        <span className="num">
-          {RATING_SOURCE_LABELS[r.source]} rating {r.value.toFixed(2)}
-        </span>
-      ),
+      title: <span className="num">{ratingTitle(r.source, r.value)}</span>,
     });
   }
 
@@ -580,6 +571,7 @@ export function OverviewTab({
       </Card>
       <CoachesCard detail={detail} />
       {can.familyAccess ? <FamilyAccessCard detail={detail} /> : null}
+      <ConsentsCard clientId={c.id} />
       <ActivityTimeline
         detail={detail}
         statement={statement}

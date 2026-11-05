@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Page, ShellAside, useIsDesktop } from "../../components/layout/app-shell";
 import { PageHeader } from "../../components/ui/display";
 import { MyCoachProfileSection } from "../../features/coaches/profile";
+import { ConsentsSection } from "../../features/consents/settings-section";
 import { AcademySection } from "../../features/settings/academy";
 import { AcademyProfileSection } from "../../features/settings/academy-profile";
 import { AppDataSection } from "../../features/settings/app-data";
@@ -56,6 +57,7 @@ function SettingsPage() {
           <>
             <WorkspaceSection />
             <PoliciesSection />
+            <ConsentsSection />
             <PaymentMethodsSection />
             <VenuesSection />
             <RubricSection />

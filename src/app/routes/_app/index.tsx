@@ -7,6 +7,7 @@ import {
   CalendarPlus,
   CircleDollarSign,
   Radio,
+  Shirt,
   Ticket,
 } from "lucide-react";
 import { BallMark } from "../../components/brand";
@@ -316,6 +317,7 @@ const ALERT_TONES = {
   low: { icon: Ticket, cls: "bg-amber" },
   expiring: { icon: CalendarClock, cls: "bg-sky" },
   birthday: { icon: Cake, cls: "bg-lavender" },
+  uniform: { icon: Shirt, cls: "bg-mint" },
 } as const;
 
 function Attention({ alerts }: { alerts: TodayDto["alerts"] }) {
@@ -349,6 +351,14 @@ function Attention({ alerts }: { alerts: TodayDto["alerts"] }) {
       name: a.name,
       text: a.age ? `Turns ${a.age} today` : "Birthday today",
       kind: "birthday" as const,
+    })),
+    // Owners and admins: uniforms sold with a package and not handed out yet.
+    ...(alerts.uniforms ?? []).map((a) => ({
+      key: `uniform-${a.clientPackageId}`,
+      clientId: a.clientId,
+      name: a.name,
+      text: `Uniform to hand out${a.uniformSize ? ` · size ${a.uniformSize}` : ""} · ${a.packageName}`,
+      kind: "uniform" as const,
     })),
   ];
   return (

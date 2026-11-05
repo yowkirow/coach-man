@@ -3,6 +3,7 @@ import { onlineManager, useMutationState } from "@tanstack/react-query";
 import { useEffect, useSyncExternalStore } from "react";
 import { api } from "./api";
 import { switchCacheOwner } from "./cache-owner";
+import { resumeQueuedChanges } from "./outbox";
 import { keys, queryClient } from "./query";
 
 export function useOnline(): boolean {
@@ -47,14 +48,14 @@ let resumed = false;
 
 /**
  * Call once the signed-in coach is known and the cache has been restored. A different coach on
- * this device starts clean; the same coach signing back in keeps their cache, and their queued
- * offline changes resume.
+ * this device starts clean; the same coach signing back in keeps their cache, and their saved
+ * changes go out: those queued offline, and court changes that were in flight when the app closed.
  */
 export function claimCache(userId: string) {
   if (switchCacheOwner(userId, queryClient, deviceStorage())) lastPack = 0;
   if (!resumed) {
     resumed = true;
-    void queryClient.resumePausedMutations().then(() => queryClient.invalidateQueries());
+    void resumeQueuedChanges(queryClient).then(() => queryClient.invalidateQueries());
   }
 }
 

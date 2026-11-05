@@ -144,4 +144,135 @@ test.describe("offline check-in", () => {
     expect(await page.locator("body").innerText()).not.toContain("₱");
     expect(errors).toEqual([]);
   });
+
+  // A weak court signal can hold a request for seconds while the phone reports it's online. If the
+  // app reloads (or closes) then, the check-in must not be lost, nor counted twice.
+  for (const reached of [false, true]) {
+    test(`a check-in in flight when the app reloads still syncs exactly once (${reached ? "answer lost" : "never arrived"})`, async ({
+      coach: owner,
+      personas,
+    }, info) => {
+      const { api } = owner;
+      await onboard(api);
+      const email = testEmail(`inflight-coach-${reached}`, info);
+      const { userId } = await addMember(owner.request, {
+        email,
+        name: "Sam Rivera",
+        role: "coach",
+      });
+      const pack = await api.post<{ id: string }>("/packages", {
+        name: "5-session pack",
+        credits: 5,
+        priceMinor: 250000,
+        validityDays: 60,
+      });
+      const kai = await api.post<{ id: string }>("/clients", {
+        firstName: "Kai",
+        lastName: "Mendoza",
+      });
+      const sold = await api.post<{ id: string }>(`/clients/${kai.id}/packages`, {
+        packageId: pack.id,
+      });
+      const { date } = await api.get<TodayDto>("/today");
+      const created = await api.post<{ lesson: LessonDetailDto }>("/lessons", {
+        kind: "private",
+        date,
+        startTime: "06:00",
+        durationMinutes: 60,
+        clientIds: [kai.id],
+        coachUserId: userId,
+      });
+      const lessonId = created.lesson.lesson.id;
+      const attendanceId = created.lesson.roster[0]?.attendanceId ?? "";
+      const usesOf = async () =>
+        (await api.get<LedgerLineDto[]>(`/clients/${kai.id}/ledger`)).filter(
+          (l) => l.reason === "use",
+        );
+      const remaining = async () =>
+        (await api.get<ClientDetailDto>(`/clients/${kai.id}`)).packages.find(
+          (p) => p.id === sold.id,
+        )?.remaining;
+
+      const coach = await personas.open({ email, name: "Sam Rivera", persona: "none" });
+      const page = coach.page;
+      await visit(page, `/sessions/${lessonId}`);
+      const checkIn = page.getByRole("button", { name: "Check in Kai Mendoza", exact: true });
+      await expect(checkIn).toBeVisible();
+
+      // The request hangs: it never reaches the server, or the server records it and the answer
+      // never comes back. It stays held until the reload has abandoned it.
+      const route = `**/api/v1/attendance/${attendanceId}`;
+      let hold = true;
+      let held = 0;
+      let delivered = 0;
+      let release: () => void = () => undefined;
+      const released = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      await page.route(route, async (r) => {
+        if (!hold) return r.continue();
+        held += 1;
+        if (reached) {
+          await r.fetch();
+          delivered += 1;
+        }
+        await released;
+        await r.abort().catch(() => undefined);
+      });
+      await checkIn.click();
+      await expect(
+        page.getByRole("button", { name: "Kai Mendoza is checked in. Undo check-in" }),
+      ).toBeVisible();
+      await expect.poll(() => held).toBe(1);
+      if (reached) await expect.poll(() => delivered).toBe(1);
+      // The device keeps a copy of the change in flight.
+      await expect
+        .poll(() =>
+          page.evaluate(
+            () =>
+              new Promise<number>((resolve) => {
+                const open = indexedDB.open("keyval-store");
+                open.onerror = () => resolve(-1);
+                open.onsuccess = () => {
+                  const get = open.result
+                    .transaction("keyval", "readonly")
+                    .objectStore("keyval")
+                    .get("coachman-query-cache");
+                  get.onerror = () => resolve(-1);
+                  get.onsuccess = () => {
+                    const raw = get.result;
+                    const saved = typeof raw === "string" ? JSON.parse(raw) : raw;
+                    const mutations: { mutationKey?: unknown[] }[] =
+                      saved?.clientState?.mutations ?? [];
+                    resolve(mutations.filter((m) => m.mutationKey?.[0] === "attendance").length);
+                  };
+                };
+              }),
+          ),
+        )
+        .toBe(1);
+      expect(await usesOf()).toHaveLength(reached ? 1 : 0);
+
+      // The app reloads with the connection back: the saved check-in goes out by itself.
+      hold = false;
+      const synced = page.waitForResponse(
+        (r) =>
+          r.request().method() === "POST" && r.url().endsWith(`/api/v1/attendance/${attendanceId}`),
+      );
+      await visit(page, `/sessions/${lessonId}`);
+      release();
+      const answer = await synced;
+      expect(answer.status()).toBe(200);
+      // Delivered before, it's answered from the stored reply (the same change, not a new one).
+      expect(answer.headers()["idempotent-replay"]).toBe(reached ? "true" : undefined);
+      await expect(
+        page.getByRole("button", {
+          name: /^Kai Mendoza: Checked in\. 4 of 5 left · 5-session pack\./,
+        }),
+      ).toBeVisible();
+      await expect(page.getByText("Waiting to sync")).toHaveCount(0);
+      expect(await usesOf()).toHaveLength(1);
+      expect(await remaining()).toBe(4);
+    });
+  }
 });

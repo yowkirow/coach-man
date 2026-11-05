@@ -21,7 +21,7 @@ CoachMan (short for *coach manager*) is an installable web app for pickleball ac
 - **Announcements**: owners and admins post news for everyone, one program's members, or one event's players, pinned, published now or scheduled, with an optional end; families see theirs on Home and in Announcements, staff on Today.
 - **Family reminders**: students and parents turn on push notifications for each phone or computer in the portal (**Settings → Notifications**): sessions (1 hour, 2 hours, or 7pm the evening before), packages and renewals, enrollment and payments, coaches' comments and progress, and announcements, with quiet hours; iPhones get the Add to Home Screen steps first. Owners and admins get a push for each new enrollment request and payment proof.
 - **Public pages**: `/about` (what CoachMan is and how to start), `/privacy`, and `/terms`, readable signed out, linked from sign-in, enrollment, academy pages, and Settings.
-- **PWA**: installable, offline reads, offline-queued check-ins and notes that sync with idempotency keys, push reminders and a daily digest for staff, and push reminders for families.
+- **PWA**: installable, offline reads, check-ins and notes that are saved on the device (queued offline, or still in flight when the app closes) and sync once with idempotency keys, push reminders and a daily digest for staff, and push reminders for families.
 - **Import**: bring clients over from a spreadsheet (CSV with column mapping, preview, and duplicate detection).
 
 ## Academies
@@ -429,7 +429,7 @@ The academy release (roles, team invites, coach profiles and assignments, the fa
 | Auth | Better Auth: Google OAuth plus passkeys (WebAuthn); staff roles per academy, and a separate family portal |
 | Jobs | Cron triggers: scheduled announcements going live, staff reminders and digests, and family reminders (the quiet-hours queue, sessions, payments) every 5 minutes; maintenance daily (including removing abandoned passkey-only accounts, and the families' renewal, one-session-left, and package-ending sweeps) |
 | App | React 19, Vite, TanStack Router and Query, React Aria Components, Tailwind CSS 4 |
-| Offline | Workbox service worker, IndexedDB-persisted query cache, paused mutations resume on reconnect |
+| Offline | Workbox service worker, IndexedDB-persisted query cache; paused mutations, and court changes (check-ins, notes, finishing a session) still in flight when the app closes, resume on reconnect or restart (`src/app/lib/outbox.ts`) |
 
 Credits are never stored as a counter. Each package's remaining credits are derived from an append-only ledger, so every number can be traced back to the check-ins, returns, and adjustments behind it. Attendance changes run as one atomic D1 batch with a version guard, and every offline mutation carries an idempotency key, so a replay never uses a second credit.
 
@@ -557,7 +557,7 @@ The release's coverage audit (every row of "Who can do what", every key flow, ev
 - `public-data.spec.ts`: the public academy API, the page HTML's data block (`/a/<slug>`, `/rates`, `/enroll`), the trial session list, the public config, and invite previews never carry private coach profiles, unpublished or archived programs and tiers, optional or draft consents, the payment QR, students, staff, or internal notes.
 - `handoff.spec.ts`: after a coach hands a student over through the app's prompt, the parent and the student's own login see the new coach and both coaches' shared comments, never the handoff or a coaches-only note (answers, pages, pushes).
 - `invites.spec.ts`: links expire seven days after the server makes them, tokens are never shown again, two people accepting one link at once get one 200 and one 410, and a newer link replaces the last.
-- `offline-sync.spec.ts`: a coach's check-in made offline syncs with exactly one request when the connection returns, uses one credit, replays (by its idempotency key and by its mutation id) without using another, and never returns money to the coach.
+- `offline-sync.spec.ts`: a coach's check-in made offline syncs with exactly one request when the connection returns, uses one credit, replays (by its idempotency key and by its mutation id) without using another, and never returns money to the coach. A check-in still in flight when the app reloads (one that never reached the server, and one the server recorded but whose answer was lost) is kept on the device and syncs once after the reload.
 - `portal-device.spec.ts`: on a shared phone, the next family member to sign in never sees the previous family's cached portal, not even for a frame.
 - `health.spec.ts`: the Worker's health check and JSON 404s for unknown API paths.
 

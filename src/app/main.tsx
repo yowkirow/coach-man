@@ -5,6 +5,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { setNoWorkspaceHandler, setUnauthorizedHandler } from "./lib/api";
 import { onCacheRestored, requestPersistentStorage } from "./lib/offline";
+import { shouldPersistMutation } from "./lib/outbox";
 import { isEnrollPath, isInfoPath, isPublicPath, isStandalone } from "./lib/public-path";
 import {
   CACHE_BUSTER,
@@ -93,7 +94,7 @@ createRoot(document.getElementById("root") as HTMLElement).render(
         buster: CACHE_BUSTER,
         dehydrateOptions: {
           shouldDehydrateQuery: (q) => shouldPersistQuery(q.queryKey, q.state.status),
-          shouldDehydrateMutation: (m) => m.state.isPaused,
+          shouldDehydrateMutation: shouldPersistMutation,
         },
       }}
       onSuccess={onCacheRestored}

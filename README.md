@@ -11,11 +11,12 @@ CoachMan (short for *coach manager*) is an installable web app for pickleball ac
 - **Packages and rates**: a rate card, credit packages with validity (a number of days, or to the end of a chosen month), earliest-expiry-first usage, an auditable credit ledger, and manual adjustments. Packages double as the tiers of the academy's rates sheet: inclusions, "who it's for", sessions labels, uniforms, and a featured tier.
 - **Academy page**: a public, shareable page for each academy (`/a/<slug>`) with its programs, tiers, coaches, and contact details, an **Enroll** button on every tier, a printable rates sheet, and link previews for Messenger, Viber, and Facebook.
 - **Enrollment**: a phone-first wizard from the academy page or the portal (who's training, level and uniform, contact and safety, the month or trial session, consents, check and send); an **Enrollments** inbox where owners and admins approve (selling the tier in one step), waitlist, or decline; one-tap monthly renewal, and a "Not yet renewed" list with a reminder to paste.
+- **Payment proofs**: families pay outside CoachMan (GCash, a bank transfer, cash) and send the screenshot from the portal's **Pay** screen (big photos are shrunk on the phone), or say they'll pay cash at the court; owners and admins confirm it from **Payments to review** on Money (a real payment is recorded) or don't accept it with a reason the family reads. Duplicate references are flagged.
 - **Consents**: versioned waivers and consent forms (starter templates included), signed by typing a name in the family portal or recorded from paper.
 - **Groups and events**: classes with members and weekly series; camps, academies, clinics, tournaments, and socials with registrations, a waitlist, early-bird pricing, and their own sessions.
-- **Money**: charges and payments (cash, transfer, card, e-wallet), oldest-first allocation, balances, monthly summaries, and CSV exports.
+- **Money**: charges and payments (cash, transfer, card, e-wallet), oldest-first allocation, balances, monthly summaries, payment proofs to review, and CSV exports.
 - **Sign-in**: Google creates the account; passkeys give one-tap sign-in afterwards. Parents and students without Google can make a passkey-only account from their invite, or while enrolling.
-- **Family portal**: students and parents follow sessions and attendance, shared progress and coaches' comments, coaches, packages, credits, payments, and their enrollment requests (with the amount due once approved) under their academy's name and logo, on a phone or a laptop.
+- **Family portal**: students and parents follow sessions and attendance, shared progress and coaches' comments, coaches, packages, credits, payments, and their enrollment requests (with the amount due once approved, and **Pay** to send proof of payment) under their academy's name and logo, on a phone or a laptop.
 - **PWA**: installable, offline reads, offline-queued check-ins and notes that sync with idempotency keys, push reminders and a daily digest.
 - **Import**: bring clients over from a spreadsheet (CSV with column mapping, preview, and duplicate detection).
 
@@ -132,7 +133,7 @@ A parent of a 13 to 17 year old can make the teen's own login link from the port
 - **Progress**: skill bars from shared assessments (with the previous score), the overall level, goals, the rating history, and the shared comments timeline with coach names and dates.
 - **Schedule**: sessions ahead (the next one highlighted) and past ones with attendance, with venue, court, and lead coach.
 - **Coaches**: the student's coaches with photo and title; bio, certifications, specialties, and languages only when the coach's profile is public.
-- **Payments**: the balance, **To pay** (what approved requests still owe), packages with credits and expiry, the student's requests and renewal, the history of charges and payments, and **How to pay** with the academy's instructions and QR code.
+- **Payments**: the balance (with **Pay**), **To pay** (what approved requests still owe, each with **Pay** and where its payment stands), packages with credits and expiry, the student's requests and renewal, the payment proofs sent and where each stands, the history of charges and payments, and **How to pay** with the academy's instructions (numbers to copy) and QR code. **Pay** (`/my/<student>/pay`) sends proof of a payment; see Payment proofs below.
 - **Enroll** (`/my/enroll`, from Home, More, and the laptop header): the tiers of each listed academy the person's students train at, grouped by academy, each starting the enrollment wizard.
 - **Profile**: basics and the health and emergency summary, read-only (the academy updates it).
 - **Settings**: passkeys (add, remove; a passkey-only account keeps its last one), linking Google, teen logins for parents, installing the app (with iOS steps), and signing out. **More** gathers Coaches, Profile, Settings, the academy, and Coach view for staff.
@@ -152,7 +153,7 @@ Several students, in one academy or several, switch from the student pages; the 
 | `POST /api/portal/students/:clientId/teen-invite` | A parent makes their 13 to 17 year old's own-login link |
 | `DELETE /api/portal/students/:clientId/teen-invites/:inviteId` | A parent withdraws it |
 | `DELETE /api/portal/students/:clientId/access/:accessId` | A parent ends their teen's own login (only `self` access) |
-| `GET /api/portal/files/<key>` | Photos of the caller's own students, and their academies' public images; nothing else |
+| `GET /api/portal/files/<key>` | Photos of the caller's own students, their academies' public images, and screenshots of their students' payment proofs (looked up by the exact key); nothing else |
 | `GET /api/portal/enrollment-context?slug=` | The wizard's choices at a listed academy: the caller's own student record, their children there (with whether each may be enrolled), what's already signed, and open or approved requests |
 | `GET /api/portal/enroll` | The Enroll page: each linked academy's page (listed ones) with its programs and tiers |
 | `POST /api/portal/enrollments` | Sends a request from the wizard (201, or 200 for a retried send with the same `id`); 30 an hour per person |
@@ -257,6 +258,39 @@ The server checks everything again: the academy must be listed, the tier public 
 | `POST /api/v1/enrollments/:id/approve` | `{ startMonth?, lessonId?, startDate?, linkClientId?, force? }`; approving again answers the approved request |
 | `POST /api/v1/enrollments/:id/waitlist` | `{ note? }` |
 | `POST /api/v1/enrollments/:id/decline` | `{ reason }` |
+
+### Payment proofs
+
+Payment happens outside CoachMan (GCash, a bank transfer, cash); the family sends proof and the academy confirms it.
+
+**The family** opens **Pay** (`/my/<student>/pay`) from an approved request's **Pay** button (on Home and Payments), from **To pay**, from the balance on Payments, or from **Send a payment proof** under How to pay. The screen shows what's due (that request's charge, or the student's balance), the academy's payment instructions with a copy button for each account or mobile number in them (runs of 8 to 24 digits; anything less clear stays plain text), its QR code, and the ways it takes payments (the academy's own names for them, set in Settings: "GCash", say). Then the proof:
+
+- **Online**: the screenshot (JPEG, PNG, or WebP; a picture over 1.5 MB, or in another format such as HEIC, is redrawn on the phone as a JPEG until it fits, so typical screenshots and photos just work), the amount (the amount due, editable), how it was paid (one of the academy's methods), the reference number (optional, encouraged: GCash and bank apps show one), the date paid (today in the academy's time zone), and a note.
+- **Cash at the court** (when the academy takes cash): no screenshot; the academy confirms it when the money is handed over.
+
+Sending makes a proof waiting for review (`payment_submission`, `pending`), linked to the request it pays when it came from one. Payments lists every proof with its screenshot: **Pending review** (the person who sent it can **Withdraw** it), **Confirmed** (with what the academy recorded, if that differs), **Not accepted** with the academy's reason and **Send a new proof** (a new proof, linked to the refused one), **Withdrawn**, or **Payment voided**. A request's card says **Unpaid**, **Proof pending**, **Partly paid**, or **Paid**, and the reason when a proof wasn't accepted.
+
+**Owners and admins** review on **Money → Payments to review** (oldest first; a badge on Money counts what's waiting), on a request's **Payment** card in Enrollments, and on the student's **Money** tab. Each proof shows the student, who sent it, the amount, method, reference, date, note, the screenshot (tap to open it large, at actual size, or in full in a new tab), what the student owes, and the request it pays. A **Possible duplicate** warning lists any other proof or recorded payment of the academy with the same reference number (compared without spaces, dashes, or case) or the same student, amount, and date (withdrawn proofs, voided payments, and the proof being resent are left out).
+
+- **Confirm** records a real payment through the money service (the amount, method, date, and reference as sent, each editable when the screenshot shows otherwise, and a note pointing at the proof plus an optional note for staff), so allocations and balances follow the usual oldest-first rule; the proof is marked confirmed with who and when. The proof is claimed in the same D1 batch as the payment, so confirming twice (even at once) never records twice.
+- **Not accepted** takes a reason the family reads (common reasons are one tap away).
+- Voiding a payment a proof recorded marks the proof **Payment voided** (never "Confirmed" without a live payment); staff can **Confirm again** (a new payment) or mark it not accepted.
+
+Every step is in the audit log (`submit`, `withdraw`, `confirm`, `reject`, `void` on `payment_submission`, and the payment's own `create`).
+
+**Access.** Reviewing takes `enrollment` and confirming also `money` (owners and admins have both; coaches get 403 on every proof route and never see the badge). Screenshots are private: R2 keys `ws/<academy>/clients/<student>/payments/<uuid>.<ext>`, served to staff through `/api/v1/files` only with `money` or `enrollment`, and to families through `/api/portal/files` only when a proof of one of their linked students has exactly that key (both parents of a student see it; another family, a guessed key, or the public file route get 404). The family's answers never carry who reviewed a proof or the payment's internal note. The server checks everything again: an amount above zero, one of the academy's methods, a real date no later than a day after the academy's today and no more than a year back, a reference of 3 to 64 characters, a screenshot by its bytes (not its declared type) of at most 1.5 MB unless it's cash, the request approved and the student's own, and at most 10 proofs waiting per student; sending is limited to 30 an hour per person.
+
+| Endpoint | Does |
+| --- | --- |
+| `GET /api/portal/students/:clientId/payment-proofs` | The student's proofs, newest first |
+| `POST /api/portal/students/:clientId/payment-proofs` | Multipart: `data` (JSON: `{ id?, amountMinor, method, reference?, paidOn, note?, enrollmentId?, resubmitOf? }`) and `proof` (the screenshot); or JSON alone for cash. 201, or 200 for a retried send with the same `id` |
+| `POST /api/portal/students/:clientId/payment-proofs/:id/withdraw` | The sender withdraws a waiting proof (403 for anyone else linked; 409 once reviewed) |
+| `GET /api/v1/payment-proofs?status=` | `pending` (default), `confirmed`, `rejected`, `withdrawn`, `voided`, or `all`, with counts per status (`enrollment`) |
+| `GET /api/v1/payment-proofs/count` | Proofs waiting (the badge) |
+| `GET /api/v1/payment-proofs/:id` | One proof with its duplicates, the request it pays, and the payment it recorded |
+| `POST /api/v1/payment-proofs/:id/confirm` | `{ amountMinor?, method?, paidOn?, reference?, note? }`: records the payment (`enrollment` and `money`); confirming again answers the confirmed proof |
+| `POST /api/v1/payment-proofs/:id/reject` | `{ reason }` |
+| `GET /api/v1/clients/:id/payment-proofs` | A student's proofs (their Money tab) |
 ## Suggested next steps
 
 The academy release (roles, team invites, coach profiles and assignments, the family portal, the public academy page, enrollment, payment proofs, consents, kids' safety info, announcements, and family reminders) is being built in workstreams; see `PRODUCT.md`. After it:
@@ -277,7 +311,7 @@ The academy release (roles, team invites, coach profiles and assignments, the fa
 | --- | --- |
 | Hosting | One Cloudflare Worker serves the SPA (static assets) and the API under `/api/*` |
 | API | Hono, Zod validation, typed DTOs shared with the app (`src/shared`) |
-| Data | Cloudflare D1 (SQLite) with Drizzle; R2 for client photos and academy images (logos, payment QR codes, coach photos) |
+| Data | Cloudflare D1 (SQLite) with Drizzle; R2 for client photos, payment proof screenshots (private), and academy images (logos, payment QR codes, coach photos) |
 | Auth | Better Auth: Google OAuth plus passkeys (WebAuthn); staff roles per academy, and a separate family portal |
 | Jobs | Cron triggers: reminders and digests every 5 minutes, maintenance daily (including removing abandoned passkey-only accounts) |
 | App | React 19, Vite, TanStack Router and Query, React Aria Components, Tailwind CSS 4 |
@@ -319,7 +353,7 @@ npx drizzle-kit generate --name <what-changed>   # writes migrations/NNNN_<name>
 npm run db:migrate:local                         # apply to the local D1 (Miniflare)
 ```
 
-Wrangler asks before applying; in scripts and on Windows PowerShell set `CI=1` to accept (`$env:CI='1'; npx wrangler d1 migrations apply DB --local`). Read every generated file before applying it: new columns on existing tables must be nullable or have a default, so the SQL stays `ALTER TABLE … ADD` and never rebuilds a table. `0001_academy` adds the academy tables and columns and ends with a hand-written, idempotent backfill: each workspace's owner becomes the lead coach of its sessions, series, groups, and events and the primary coach of its clients, and every member gets a coach profile. `0002_coaching` adds who set each goal (`goal.created_by`, backfilled with the owner) and an academy profile row for every workspace. `0003_offerings` adds `client_package.includes_uniform`, the `consent_document_version` table (the text of every signed version), and an index on consent signatures. `0004_enrollment` adds an index on `enrollment_request.requested_by` (the portal's and the cleanup's lookups). Remote databases use `npm run db:migrate:staging` and `npm run db:migrate:production`.
+Wrangler asks before applying; in scripts and on Windows PowerShell set `CI=1` to accept (`$env:CI='1'; npx wrangler d1 migrations apply DB --local`). Read every generated file before applying it: new columns on existing tables must be nullable or have a default, so the SQL stays `ALTER TABLE … ADD` and never rebuilds a table. `0001_academy` adds the academy tables and columns and ends with a hand-written, idempotent backfill: each workspace's owner becomes the lead coach of its sessions, series, groups, and events and the primary coach of its clients, and every member gets a coach profile. `0002_coaching` adds who set each goal (`goal.created_by`, backfilled with the owner) and an academy profile row for every workspace. `0003_offerings` adds `client_package.includes_uniform`, the `consent_document_version` table (the text of every signed version), and an index on consent signatures. `0004_enrollment` adds an index on `enrollment_request.requested_by` (the portal's and the cleanup's lookups). `0005_payment_proofs` adds `payment_submission.resubmit_of` (the refused proof a new one resends), a unique index on `payment_submission.proof_key` (the family's file reads look a proof up by its key), and indexes on its `payment_id` and `enrollment_id`. Remote databases use `npm run db:migrate:staging` and `npm run db:migrate:production`.
 
 ### Environment variables
 
@@ -340,8 +374,8 @@ Vars live in `wrangler.jsonc` per environment; secrets go in `.dev.vars` locally
 ```bash
 npm run lint          # Biome
 npm run typecheck     # tsc -b (app, service worker, worker, tooling)
-npm run test:unit     # Vitest: credits, allocation, recurrence, money/time, bypass gate, roles, redaction, tokens, age rules, invites (staff and family), passkey-only accounts and their cleanup, Google linking, portal DTOs and scoping, team rules, coach changes, notes, reminders, month-end validity and credit eligibility, consent versions and signers, public DTOs, link-preview tags, the enrollment state machine, modes and periods, renewal eligibility, who may enroll whom, duplicates, capacity
-npm run test:e2e      # Playwright: API golden paths, roles and routing, team and invites, family invites and age rules, the family portal and what it never shows, passkey-only accounts, coaching, Today check-in/undo, offline sync, passkeys, programs and tiers, consents, the public academy page, enrollment (wizard, inbox, renewals, passkey enrollment, access and leaks), axe
+npm run test:unit     # Vitest: credits, allocation, recurrence, money/time, bypass gate, roles, redaction, tokens, age rules, invites (staff and family), passkey-only accounts and their cleanup, Google linking, portal DTOs and scoping, team rules, coach changes, notes, reminders, month-end validity and credit eligibility, consent versions and signers, public DTOs, link-preview tags, the enrollment state machine, modes and periods, renewal eligibility, who may enroll whom, duplicates, capacity, the payment proof state machine, proof checks and duplicate warnings, who may read a proof, a request's payment state, numbers to copy
+npm run test:e2e      # Playwright: API golden paths, roles and routing, team and invites, family invites and age rules, the family portal and what it never shows, passkey-only accounts, coaching, Today check-in/undo, offline sync, passkeys, programs and tiers, consents, the public academy page, enrollment (wizard, inbox, renewals, passkey enrollment, access and leaks), payment proofs (pay, review, not accepted and resend, withdraw, cash, duplicates, double confirm, voided payments, access and leaks), axe
 ```
 
 ### The Playwright auth bypass
@@ -383,6 +417,8 @@ For the fastest, most realistic local run, test the production build: `npm run b
 The WS4a specs (`offerings`, `consents`, `public-page`) also use `listAcademy` (a unique public address, listed), `shiftMonth`/`lastDayOfMonth`, `toggle` (flips a React Aria switch, checkbox, or radio by its label, which works inside scrolling sheets), and `submitSheet` (saves a sheet and, like `visit`, presses again if the local server dropped the request).
 
 The enrollment specs (`enrollment`, `enrollment-renewal`, `enrollment-access`, `enrollment-passkey`, and the enrollment part of `a11y`) share `e2e/enroll-support.ts`: `openEnrollment` (lists a seeded academy with enrollment open and returns its program, its Trial, Monthly, and Monthly plus tiers, and this and next month), `addConsents`, `publicSessions`, `newChildBody`/`answersFor`/`sendOk`/`sendRequest` (requests straight to the portal API), and the wizard steps as a person drives them (`chooseNewChild`, `pickLevel`, `fillContact`, `continueTo`). The passkey enrollment spec uses Chromium's virtual authenticator and runs on desktop only.
+
+The payment proof specs (`payment-proofs`, `payment-proofs-access`, and the proofs part of `a11y`) share `e2e/proof-support.ts`: `approvedEnrollment` (an academy with payment instructions and its own method names, a parent whose new child's Monthly request was approved: ₱6,000 to pay), `sendProof`/`sendProofOk` (multipart with a screenshot, or JSON for cash, straight to the portal API), `screenshot()` (a small PNG), and `noisePng(width, height)` (random pixels that don't compress: a picture over 1.5 MB the app must shrink before sending).
 
 `npm run screenshots` captures desktop (1440) and phone (390) screenshots into `.impeccable/review/` using the same bypass.
 

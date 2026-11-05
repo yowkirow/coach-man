@@ -14,6 +14,7 @@ import {
   pickLevel,
   sendOk,
 } from "./enroll-support";
+import { approvedEnrollment, screenshot, sendProofOk } from "./proof-support";
 import {
   bornYearsAgo,
   expect,
@@ -457,6 +458,112 @@ test.describe("accessibility of enrolling", () => {
     await expect(parent.page.getByRole("region", { name: /^Renew for/ })).toBeVisible();
     const portal = await seriousViolations(parent.page);
     if (portal.length) found.portal = portal;
+    expect(found).toEqual({});
+  });
+});
+
+test.describe("accessibility of payment proofs", () => {
+  test.use({ serviceWorkers: "block" });
+
+  test("the Pay screen, the review queue, and a request's payment have no serious violations", async ({
+    page,
+    seeded,
+    personas,
+  }, info) => {
+    test.setTimeout(180_000);
+    const { parent, requestId, clientId, today } = await approvedEnrollment(seeded, personas, info);
+    const found: Record<string, unknown> = {};
+    const check = async (on: import("@playwright/test").Page, where: string) => {
+      const violations = await seriousViolations(on);
+      if (violations.length) found[where] = violations;
+    };
+
+    // The family's Pay screen: the form, a screenshot ready to send, and cash at the court.
+    const w = parent.page;
+    await visit(w, `/my/${clientId}/pay?request=${requestId}`);
+    await expect(w.getByRole("heading", { name: "Pay", level: 1 })).toBeVisible();
+    await w.getByRole("button", { name: "Send proof" }).click();
+    await expect(
+      w.getByText("Add a screenshot of the payment, or choose cash at the court."),
+    ).toBeVisible();
+    await check(w, "pay (with an error)");
+    await w.getByLabel("Screenshot of the payment").setInputFiles({
+      name: "gcash.png",
+      mimeType: "image/png",
+      buffer: screenshot(),
+    });
+    await expect(w.getByText("Ready to send")).toBeVisible();
+    await check(w, "pay with a screenshot");
+    await toggle(w.getByRole("radio", { name: /Cash at the court/ }));
+    await expect(w.getByRole("button", { name: "Tell the academy" })).toBeVisible();
+    await check(w, "pay cash");
+
+    // Proofs sent: one waiting (flagged as a possible duplicate), one not accepted.
+    const waiting = await sendProofOk(parent.context.request, clientId, {
+      amountMinor: 600000,
+      method: "GCash",
+      reference: "GC-4242",
+      paidOn: today,
+      enrollmentId: requestId,
+    });
+    await sendProofOk(parent.context.request, clientId, {
+      amountMinor: 600000,
+      method: "GCash",
+      reference: "GC-4243",
+      paidOn: today,
+    });
+    const refused = await sendProofOk(parent.context.request, clientId, {
+      amountMinor: 1000,
+      method: "Bank transfer",
+      reference: "BPI-77",
+      paidOn: today,
+    });
+    await seeded.api.post(`/payment-proofs/${refused.id}/reject`, {
+      reason: "We can't find this payment in our account yet.",
+    });
+    await visit(w, `/my/${clientId}/payments`);
+    await expect(w.getByRole("region", { name: "Payment proofs" })).toContainText("Not accepted");
+    await check(w, "portal payments with proofs");
+    await visit(w, "/my");
+    await expect(w.getByRole("article", { name: /^Monthly/ }).first()).toContainText(
+      "Proof pending",
+    );
+    await check(w, "portal home with a proof pending");
+
+    // Staff: the queue on Money, the screenshot viewer, and the two decision sheets.
+    await visit(page, "/money");
+    const item = page
+      .getByRole("region", { name: "Payments to review" })
+      .getByRole("article", { name: /Mia Santos/ })
+      .filter({ hasText: "Ref GC-4242 · Paid" });
+    await expect(item).toContainText("Possible duplicate");
+    await check(page, "review queue");
+    await item.getByRole("button", { name: "View Mia Santos's payment screenshot" }).click();
+    await expect(
+      page.getByRole("dialog", { name: "Mia Santos's payment screenshot" }),
+    ).toBeVisible();
+    await check(page, "screenshot viewer");
+    await page.keyboard.press("Escape");
+    await item.getByRole("button", { name: "Confirm" }).click();
+    await expect(page.getByRole("dialog", { name: "Confirm Mia's payment" })).toBeVisible();
+    await check(page, "confirm sheet");
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await item.getByRole("button", { name: "Not accepted" }).click();
+    await expect(page.getByRole("dialog", { name: "Not accepted" })).toBeVisible();
+    await check(page, "not accepted sheet");
+    await page.keyboard.press("Escape");
+
+    // The request's payment card with its proof, and the student's proofs on their Money tab.
+    await visit(page, `/enrollments/${requestId}`);
+    await expect(page.getByRole("region", { name: "Payment", exact: true })).toContainText(
+      "Proof pending",
+    );
+    await check(page, "request payment card");
+    await visit(page, `/clients/${clientId}?tab=money`);
+    await expect(page.getByRole("region", { name: "Payment proofs" })).toContainText("GC-4242");
+    await check(page, "client payment proofs");
+    expect(waiting.status).toBe("pending");
     expect(found).toEqual({});
   });
 });

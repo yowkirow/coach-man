@@ -3,6 +3,7 @@ import type { Context } from "hono";
 import { Hono } from "hono";
 import type {
   PortalAcademyDto,
+  PortalAnnouncementsDto,
   PortalConsentsDto,
   PortalHomeDto,
   PortalHomeStudentDto,
@@ -17,11 +18,20 @@ import { checkTeenInvite } from "../../shared/family";
 import { consentSignSchema, portalRangeQuerySchema } from "../../shared/schemas";
 import { addDays, daysBetween, startOfLocalDay, todayIn } from "../../shared/time";
 import type { Db } from "../db/client";
-import { client, clientAccess, consentDocument, invite, paymentSubmission } from "../db/schema";
+import {
+  authorizedPickup,
+  client,
+  clientAccess,
+  consentDocument,
+  invite,
+  paymentSubmission,
+} from "../db/schema";
 import { ApiError, badRequest, conflict, forbidden, notFound } from "../lib/errors";
-import { toPortalSafety, toPortalStudent, toPortalStudentRef } from "../lib/portal-dto";
+import { toPortalStudentRef } from "../lib/portal-dto";
 import {
   canReadPortalFile,
+  type FileOwner,
+  isPickupKey,
   isProofKey,
   linkFor,
   type PortalLink,
@@ -30,6 +40,7 @@ import {
 import { clientIp } from "../lib/rate-limit";
 import { v } from "../lib/validate";
 import { originGuard, requirePortal } from "../middleware";
+import { familyAnnouncements } from "../services/announcements";
 import {
   missingByClient,
   portalConsentDocuments,
@@ -43,23 +54,25 @@ import {
   academyRefFor,
   academyTimezone,
   balancesOf,
-  coachesFor,
   commentsFor,
   creditsFor,
   latestAssessmentFor,
   moneyFor,
   nextSessionFor,
-  programsFor,
+  portalStudentDto,
   progressFor,
   sessionsFor,
   studentsFor,
-  teenAccessFor,
 } from "../services/portal";
 import type { AppBindings } from "../types";
 import { portalEnrollmentRoutes } from "./portal-enrollment";
 import { portalPaymentRoutes } from "./portal-payments";
+import { portalSafetyRoutes } from "./portal-safety";
 
 const studentNotFound = () => notFound("Student");
+
+/** Home shows the latest few; the Announcements page shows them all. */
+const HOME_ANNOUNCEMENTS = 5;
 
 /** The family's view of a student's consent forms (GET, and the answer to signing). */
 async function portalConsents(
@@ -141,17 +154,18 @@ export const portalRoutes = new Hono<AppBindings>()
         consentsMissing: consents.get(row.id) ?? 0,
       });
     }
-    const [enrollments, renewals] = await Promise.all([
+    const [enrollments, renewals, announcements] = await Promise.all([
       familyEnrollments(db, c.var.user.id, scope.links),
       renewalOffers(db, scope.links, students),
+      familyAnnouncements(db, scope.links, now, HOME_ANNOUNCEMENTS),
     ]);
     const body: PortalHomeDto = {
       user: { name: c.var.user.name, firstName: firstNameOf(c.var.user.name) },
       academies: [...academies.values()],
       students: home,
       comments,
-      // Announcements arrive with WS5; the home page already has their place.
-      announcements: [],
+      // Live announcements that reach these students, pinned first then newest.
+      announcements,
       // Only when there are some (the home of someone linked to nobody stays as it was).
       ...(enrollments.length ? { enrollments } : {}),
       ...(renewals.length ? { renewals } : {}),
@@ -159,8 +173,21 @@ export const portalRoutes = new Hono<AppBindings>()
     return c.json(body);
   })
 
+  /** Every live announcement that reaches the caller's students (the Announcements page). */
+  .get("/announcements", async (c) => {
+    const { db } = c.var;
+    const scope = c.var.portal;
+    const workspaces = workspacesOf(scope);
+    const [items, academies] = await Promise.all([
+      familyAnnouncements(db, scope.links, Date.now()),
+      Promise.all(workspaces.map((ws) => academyRefFor(db, ws))),
+    ]);
+    return c.json<PortalAnnouncementsDto>({ academies, items });
+  })
+
   .route("/", portalEnrollmentRoutes)
   .route("/", portalPaymentRoutes)
+  .route("/", portalSafetyRoutes)
 
   .get("/academies/:workspaceId", async (c) => {
     const workspaceId = c.req.param("workspaceId");
@@ -172,23 +199,9 @@ export const portalRoutes = new Hono<AppBindings>()
 
   .get("/students/:clientId", async (c) => {
     const { link, row, today } = await student(c);
-    const db = c.var.db;
-    const [academy, coaches, programs, teenAccess, latest] = await Promise.all([
-      academyRefFor(db, link.workspaceId),
-      coachesFor(db, link),
-      programsFor(db, link),
-      link.relation === "guardian" ? teenAccessFor(db, row, today) : Promise.resolve(null),
-      latestAssessmentFor(db, link),
-    ]);
-    const body: PortalStudentDto = {
-      academy,
-      student: toPortalStudent(row, link, latest?.overallLevel ?? null),
-      safety: toPortalSafety(row),
-      coaches,
-      programs,
-      teenAccess,
-    };
-    return c.json(body);
+    return c.json<PortalStudentDto>(
+      await portalStudentDto(c.var.db, link, row, today, c.var.user.id),
+    );
   })
 
   .get("/students/:clientId/schedule", v("query", portalRangeQuerySchema), async (c) => {
@@ -367,8 +380,9 @@ export const portalRoutes = new Hono<AppBindings>()
 
   /**
    * Files: the caller's own students' photos, their academies' public images (logo, payment QR,
-   * coach photos), and their students' payment proofs (looked up by the exact key: the proof must
-   * belong to a student the caller is linked to). Anything else answers 404.
+   * coach photos), their students' payment proofs, and the photos of their students' pickup
+   * people. Proofs and pickup photos are looked up by the exact key: the row it belongs to must be
+   * of a student the caller is linked to. Anything else answers 404.
    */
   .get("/files/*", async (c) => {
     let key: string;
@@ -377,13 +391,20 @@ export const portalRoutes = new Hono<AppBindings>()
     } catch {
       throw notFound("File");
     }
-    const proof = isProofKey(key)
+    const owner: FileOwner | null = isProofKey(key)
       ? ((await c.var.db.query.paymentSubmission.findFirst({
           where: eq(paymentSubmission.proofKey, key),
           columns: { workspaceId: true, clientId: true },
         })) ?? null)
-      : null;
-    if (!canReadPortalFile(c.var.portal, key, proof)) throw notFound("File");
+      : isPickupKey(key)
+        ? await c.var.db.query.authorizedPickup
+            .findFirst({
+              where: eq(authorizedPickup.photoKey, key),
+              columns: { workspaceId: true, clientId: true },
+            })
+            .then((r) => (r ? { ...r, kind: "pickup" as const } : null))
+        : null;
+    if (!canReadPortalFile(c.var.portal, key, owner)) throw notFound("File");
     const obj = await c.env.FILES.get(key);
     if (!obj) throw notFound("File");
     return new Response(obj.body, {

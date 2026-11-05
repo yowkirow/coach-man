@@ -67,6 +67,9 @@ const clientRow: typeof client.$inferSelect = {
   photoKey: "ws/ws1/clients/c1/0192.jpg",
   joinedOn: "2026-01-10",
   shirtSize: "YM",
+  safetyUpdatedAt: 5,
+  safetyUpdatedBy: STAFF_ID,
+  safetyUpdatedRelation: "staff",
   createdAt: 1,
   updatedAt: 2,
 };

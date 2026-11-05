@@ -11,6 +11,7 @@ import {
 } from "./middleware";
 import { academyRoutes } from "./routes/academy";
 import { accountRoutes } from "./routes/account";
+import { announcementRoutes } from "./routes/announcements";
 import { catalogRoutes } from "./routes/catalog";
 import { clientRoutes } from "./routes/clients";
 import { coachRoutes } from "./routes/coaches";
@@ -27,6 +28,7 @@ import { meRoutes } from "./routes/me";
 import { moneyRoutes } from "./routes/money";
 import { packageRoutes } from "./routes/packages";
 import { paymentProofRoutes } from "./routes/payment-proofs";
+import { pickupRoutes } from "./routes/pickups";
 import { portalRoutes } from "./routes/portal";
 import { progressRoutes } from "./routes/progress";
 import { publicRoutes } from "./routes/public";
@@ -44,9 +46,11 @@ const v1 = new Hono<AppBindings>()
   .route("/", teamRoutes)
   .route("/", coachRoutes)
   .route("/", clientRoutes)
+  .route("/", pickupRoutes)
   .route("/", familyRoutes)
   .route("/", consentRoutes)
   .route("/", enrollmentRoutes)
+  .route("/", announcementRoutes)
   .route("/", groupRoutes)
   .route("/", catalogRoutes)
   .route("/", packageRoutes)

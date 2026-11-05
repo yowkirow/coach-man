@@ -7,11 +7,12 @@
   // Better Auth needs AsyncLocalStorage.
   "compatibility_flags": ["nodejs_compat"],
   // /a/* (the public academy page) runs the Worker too: it writes the academy's link-preview
-  // tags into the app shell, which it reads through the ASSETS binding.
+  // tags into the app shell, which it reads through the ASSETS binding. So do CoachMan's own
+  // public pages (/about, /privacy, /terms): their own tags and the public contact address.
   "assets": {
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*", "/a/*"]
+    "run_worker_first": ["/api/*", "/a/*", "/about", "/privacy", "/terms"]
   },
   "observability": { "enabled": true },
   "d1_databases": [
@@ -30,7 +31,9 @@
     "APP_ENV": "development",
     "APP_URL": "http://localhost:5173",
     "PASSKEY_RP_ID": "localhost",
-    "PASSKEY_RP_NAME": "CoachMan"
+    "PASSKEY_RP_NAME": "CoachMan",
+    // Shown on /privacy, /terms, and /about as the address for privacy and data requests.
+    "PUBLIC_CONTACT_EMAIL": "privacy@coachman.cloud"
   },
   "env": {
     "staging": {
@@ -41,7 +44,8 @@
         "APP_ENV": "staging",
         "APP_URL": "https://coachman-staging.jerrosyap05.workers.dev",
         "PASSKEY_RP_ID": "coachman-staging.jerrosyap05.workers.dev",
-        "PASSKEY_RP_NAME": "CoachMan (staging)"
+        "PASSKEY_RP_NAME": "CoachMan (staging)",
+        "PUBLIC_CONTACT_EMAIL": "privacy@coachman.cloud"
       },
       "d1_databases": [
         {
@@ -66,7 +70,8 @@
         "APP_ENV": "production",
         "APP_URL": "https://coachman.cloud",
         "PASSKEY_RP_ID": "coachman.cloud",
-        "PASSKEY_RP_NAME": "CoachMan"
+        "PASSKEY_RP_NAME": "CoachMan",
+        "PUBLIC_CONTACT_EMAIL": "privacy@coachman.cloud"
       },
       "d1_databases": [
         {

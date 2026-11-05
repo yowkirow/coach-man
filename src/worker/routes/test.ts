@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, gt, inArray, isNotNull, isNull } from "drizzle-orm";
 import type { Context } from "hono";
 import { Hono } from "hono";
 import { z } from "zod";
@@ -9,6 +9,7 @@ import { normalizeRole, STAFF_ROLES } from "../../shared/roles";
 import { todayIn } from "../../shared/time";
 import { getDb } from "../db/client";
 import {
+  announcement,
   auditLog,
   client,
   clientAccess,
@@ -28,6 +29,7 @@ import {
   membershipsForUser,
   provisionWorkspace,
 } from "../lib/workspace";
+import { runAnnouncements } from "../services/announcements";
 import { seedSampleData } from "../services/sample-data";
 import type { AppBindings } from "../types";
 
@@ -89,6 +91,8 @@ const familySchema = z.object({
  * - POST /family { clientId, email, name, relation, force? } links a user to a student.
  * - POST /expire-invite { inviteId } makes one of the caller's academy's invites expire now.
  * - POST /audit lists the caller's academy's audit log, newest first.
+ * - POST /run-announcements { id? } runs the cron's announcements step (moving a scheduled one's
+ *   time to a moment ago first).
  * - POST /user-exists { userId } says whether an account still exists.
  * - POST /cleanup-accounts { userId, hours } ages a passkey-only account, then runs the daily
  *   cleanup of abandoned ones.
@@ -215,6 +219,55 @@ export const testRoutes = new Hono<AppBindings>()
       .limit(200);
     return c.json({ entries: rows });
   })
+
+  /**
+   * The 5-minute cron's announcements step, on demand. With `id` (one of the caller's academy's
+   * scheduled announcements), its time is moved to a moment ago first, as if it had come. Answers
+   * which of the caller's announcements this run announced, and the target's `notifiedAt` (another
+   * test's run may have announced it first: it's announced once either way).
+   */
+  .post(
+    "/run-announcements",
+    v("json", z.object({ id: z.string().min(1).optional() })),
+    async (c) => {
+      const db = getDb(c.env.DB);
+      const { workspaceId } = await callerWorkspace(c);
+      const { id } = c.req.valid("json");
+      const now = Date.now();
+      if (id) {
+        const moved = await db
+          .update(announcement)
+          .set({ publishedAt: now - 1000 })
+          .where(
+            and(
+              eq(announcement.id, id),
+              eq(announcement.workspaceId, workspaceId),
+              isNotNull(announcement.publishedAt),
+              gt(announcement.publishedAt, now),
+            ),
+          )
+          .returning({ id: announcement.id });
+        if (!moved.length) throw notFound("Scheduled announcement");
+      }
+      const fired = await runAnnouncements(db, c.env, Date.now());
+      const mine = fired.length
+        ? await db
+            .select({ id: announcement.id })
+            .from(announcement)
+            .where(and(eq(announcement.workspaceId, workspaceId), inArray(announcement.id, fired)))
+        : [];
+      const target = id
+        ? await db.query.announcement.findFirst({
+            where: eq(announcement.id, id),
+            columns: { notifiedAt: true, publishedAt: true },
+          })
+        : undefined;
+      return c.json({
+        fired: mine.map((r) => r.id),
+        ...(target ? { notifiedAt: target.notifiedAt, publishedAt: target.publishedAt } : {}),
+      });
+    },
+  )
 
   /** Whether an account still exists (passkey-only accounts are removed when abandoned). */
   .post("/user-exists", v("json", z.object({ userId: z.string().min(1) })), async (c) => {

@@ -9,9 +9,11 @@ import type {
   PortalMoneyDto,
   PortalProgressDto,
   PortalSessionDto,
+  PortalStudentDto,
   PortalTeenAccessDto,
 } from "../../shared/api-types";
 import { checkTeenInvite } from "../../shared/family";
+import { familySafetyRights, pickupsApply } from "../../shared/safety";
 import type { Db } from "../db/client";
 import {
   academyProfile,
@@ -47,7 +49,10 @@ import {
   toPortalPackage,
   toPortalPayment,
   toPortalRating,
+  toPortalSafety,
+  toPortalSafetyUpdate,
   toPortalSession,
+  toPortalStudent,
 } from "../lib/portal-dto";
 import type { PortalLink } from "../lib/portal-scope";
 import { inList, unique } from "../lib/sql";
@@ -56,6 +61,7 @@ import { coachName, coachRefs, staffRows } from "./coaches";
 import { packagesForClients } from "./credits";
 import { familyInvites, familyLinks, toFamilyInviteDto } from "./family";
 import { balancesFor, statementFor } from "./money";
+import { pickupsOf } from "./safety";
 
 type ClientRow = typeof client.$inferSelect;
 
@@ -527,4 +533,44 @@ export async function latestAssessmentFor(db: Db, link: PortalLink) {
     overallLevel: row.overallLevel,
     author: row.createdBy ? toPortalCoachRef(authors.get(row.createdBy)) : null,
   } satisfies { assessedOn: string; overallLevel: string | null; author: PortalCoachRefDto | null };
+}
+
+/**
+ * GET /api/portal/students/:clientId (and the answer to the Profile's edits): basics, health and
+ * emergency details with when they last changed, current coaches, programs, the teen-login state
+ * (parents), the pickup people (juniors), and what the caller may change.
+ */
+export async function portalStudentDto(
+  db: Db,
+  link: PortalLink,
+  row: ClientRow,
+  today: string,
+  viewerUserId: string,
+): Promise<PortalStudentDto> {
+  const apply = pickupsApply({ birthDate: row.birthDate, isJunior: row.isJunior, today });
+  const [academy, coaches, programs, teenAccess, latest, pickups] = await Promise.all([
+    academyRefFor(db, link.workspaceId),
+    coachesFor(db, link),
+    programsFor(db, link),
+    link.relation === "guardian" ? teenAccessFor(db, row, today) : Promise.resolve(null),
+    latestAssessmentFor(db, link),
+    pickupsOf(db, link.workspaceId, [row.id]),
+  ]);
+  return {
+    academy,
+    student: toPortalStudent(row, link, latest?.overallLevel ?? null),
+    safety: { ...toPortalSafety(row), guardianEmailOnFile: Boolean(row.guardianEmail?.trim()) },
+    coaches,
+    programs,
+    teenAccess,
+    pickups: pickups.get(row.id) ?? [],
+    pickupsApply: apply,
+    editable: familySafetyRights({
+      relation: link.relation,
+      birthDate: row.birthDate,
+      isJunior: row.isJunior,
+      today,
+    }),
+    safetyUpdate: toPortalSafetyUpdate(row, viewerUserId),
+  };
 }

@@ -5,8 +5,10 @@
 
 import type {
   CoachRefDto,
+  PickupDto,
   PortalAcademyDto,
   PortalAcademyRefDto,
+  PortalAnnouncementDto,
   PortalAssessmentDto,
   PortalChargeDto,
   PortalCoachDto,
@@ -16,6 +18,7 @@ import type {
   PortalPackageDto,
   PortalPaymentDto,
   PortalPaymentProofDto,
+  PortalSafetyUpdateDto,
   PortalSessionDto,
   PortalStudentDto,
   PortalStudentRefDto,
@@ -31,7 +34,9 @@ import {
 import { isFamilyVisible } from "../../shared/notes";
 import type {
   academyProfile,
+  announcement,
   assessment,
+  authorizedPickup,
   client,
   clientCoach,
   goal,
@@ -44,6 +49,8 @@ import type {
 import type { PortalLink } from "./portal-scope";
 
 type ClientRow = typeof client.$inferSelect;
+type PickupRow = typeof authorizedPickup.$inferSelect;
+type AnnouncementRow = typeof announcement.$inferSelect;
 type ProofRow = typeof paymentSubmission.$inferSelect;
 type ProfileRow = typeof academyProfile.$inferSelect;
 type SettingsRow = typeof workspaceSettings.$inferSelect;
@@ -98,6 +105,55 @@ export function toPortalSafety(c: ClientRow): PortalStudentDto["safety"] {
     emergencyPhone: c.emergencyPhone,
     guardianName: c.guardianName,
     guardianPhone: c.guardianPhone,
+  };
+}
+
+/**
+ * When the health and emergency details last changed, as the family reads it: whether it was them
+ * or the academy, never who on either side (no names or user ids of other family members or
+ * staff).
+ */
+export function toPortalSafetyUpdate(
+  c: Pick<ClientRow, "safetyUpdatedAt" | "safetyUpdatedBy" | "safetyUpdatedRelation">,
+  viewerUserId: string,
+): PortalSafetyUpdateDto | null {
+  if (!c.safetyUpdatedAt) return null;
+  return {
+    at: c.safetyUpdatedAt,
+    byYou: Boolean(c.safetyUpdatedBy) && c.safetyUpdatedBy === viewerUserId,
+    byAcademy: c.safetyUpdatedRelation === "staff",
+  };
+}
+
+/** An authorized pickup person (the same for staff and family: never who added them). */
+export function toPickupDto(p: PickupRow): PickupDto {
+  return {
+    id: p.id,
+    name: p.name,
+    relationship: p.relationship,
+    phone: p.phone,
+    notes: p.notes,
+    photoKey: p.photoKey,
+    updatedAt: p.updatedAt,
+  };
+}
+
+/** A live announcement for a family: what it says and who it's for, never who wrote it. */
+export function toPortalAnnouncement(
+  a: AnnouncementRow,
+  audienceName: string | null,
+): PortalAnnouncementDto | null {
+  if (a.publishedAt === null) return null;
+  return {
+    id: a.id,
+    workspaceId: a.workspaceId,
+    title: a.title,
+    body: a.body,
+    pinned: a.pinned,
+    publishedAt: a.publishedAt,
+    audience: a.audience,
+    audienceName: a.audience === "all" ? null : audienceName,
+    expiresAt: a.expiresAt,
   };
 }
 

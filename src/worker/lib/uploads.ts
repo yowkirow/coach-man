@@ -39,21 +39,22 @@ export function sniffImageType(
 }
 
 /**
- * A file part of a multipart upload (payment proofs): JPEG, PNG, or WebP by its bytes (the type
- * the browser declared doesn't count), 1.5 MB at most, not empty.
+ * A file part of a multipart upload (payment proofs, pickup photos): JPEG, PNG, or WebP by its
+ * bytes (the type the browser declared doesn't count), 1.5 MB at most, not empty. Errors name the
+ * form field (`field`) so the app can show them beside it.
  */
-export async function readImageFile(file: File, noun = "screenshot") {
-  if (file.size === 0) throw badRequest(`The ${noun} is empty.`, { fields: { proof: "Empty" } });
+export async function readImageFile(file: File, noun = "screenshot", field = "proof") {
+  if (file.size === 0) throw badRequest(`The ${noun} is empty.`, { fields: { [field]: "Empty" } });
   if (file.size > MAX_IMAGE_BYTES) {
     throw badRequest(`That ${noun} is too large (1.5 MB max).`, {
-      fields: { proof: "Too large" },
+      fields: { [field]: "Too large" },
     });
   }
   const body = await file.arrayBuffer();
   const type = sniffImageType(new Uint8Array(body, 0, Math.min(body.byteLength, 16)));
   if (!type) {
     throw badRequest(`That file isn't a JPEG, PNG, or WebP ${noun}.`, {
-      fields: { proof: "Not an image" },
+      fields: { [field]: "Not an image" },
     });
   }
   return { body, type, ext: TYPES[type] as string };
@@ -62,6 +63,59 @@ export async function readImageFile(file: File, noun = "screenshot") {
 /** Payment proofs (spec §8): private, under the student's own folder. */
 export const proofKeyFor = (workspaceId: string, clientId: string, ext: string) =>
   `ws/${workspaceId}/clients/${clientId}/payments/${uuidv7()}.${ext}`;
+
+/** Authorized pickup people's photos (spec §8): private, under the student's own folder. */
+export const pickupKeyFor = (workspaceId: string, clientId: string, ext: string) =>
+  `ws/${workspaceId}/clients/${clientId}/pickups/${uuidv7()}.${ext}`;
+
+/**
+ * A form that may carry one image (a pickup person's photo): multipart/form-data with the fields
+ * as JSON in `data` and the image in `fileField`, or JSON alone. The image is checked by its
+ * bytes; a declared size well over the limit is refused before the body is parsed.
+ */
+export async function readFormWithImage(
+  c: Context<AppBindings>,
+  { fileField, noun }: { fileField: string; noun: string },
+): Promise<{
+  data: unknown;
+  image: { body: ArrayBuffer; type: string; ext: string } | null;
+}> {
+  const type = (c.req.header("Content-Type") ?? "").toLowerCase();
+  if (type.startsWith("multipart/form-data")) {
+    const declared = Number(c.req.header("Content-Length") ?? Number.NaN);
+    if (declared > MAX_IMAGE_BYTES + 200_000) {
+      // Drain the body first: Miniflare's local proxy can fail a request answered unread.
+      await c.req.raw.arrayBuffer().catch(() => undefined);
+      throw badRequest(`That ${noun} is too large (1.5 MB max).`, {
+        fields: { [fileField]: "Too large" },
+      });
+    }
+    let form: FormData;
+    try {
+      form = await c.req.raw.formData();
+    } catch {
+      throw badRequest("Couldn't read the upload. Try again.");
+    }
+    const raw = form.get("data");
+    let data: unknown;
+    try {
+      data = JSON.parse(typeof raw === "string" ? raw : "");
+    } catch {
+      throw badRequest("Some fields need attention.");
+    }
+    const file = form.get(fileField);
+    const image =
+      file instanceof File && file.size > 0 ? await readImageFile(file, noun, fileField) : null;
+    return { data, image };
+  }
+  let data: unknown;
+  try {
+    data = await c.req.json();
+  } catch {
+    throw badRequest(`Send the details as JSON, or as a form with the ${noun}.`);
+  }
+  return { data, image: null };
+}
 
 /**
  * Reads an image request body (PUT with the image as the body) and checks its type, its file

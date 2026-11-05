@@ -1,11 +1,13 @@
 import { Hono } from "hono";
 import type {
   PublicAcademyDto,
+  PublicConfigDto,
   PublicConsentDocumentDto,
   PublicSessionDto,
 } from "../../shared/api-types";
 import { publicSessionsQuerySchema } from "../../shared/schemas";
 import { notFound } from "../lib/errors";
+import { publicConfig } from "../lib/page-meta";
 import { limitByIp } from "../lib/rate-limit";
 import { PUBLIC_KEY_RE } from "../lib/uploads";
 import { v } from "../lib/validate";
@@ -26,6 +28,12 @@ const PUBLIC_DATA_CACHE = "public, max-age=60";
  */
 export const publicRoutes = new Hono<AppBindings>()
   .use("*", limitByIp("public", { windowMs: 60_000, max: 300 }))
+
+  /** What CoachMan's own public pages (/about, /privacy, /terms) need: the contact address. */
+  .get("/config", (c) => {
+    c.header("Cache-Control", "public, max-age=300");
+    return c.json<PublicConfigDto>(publicConfig(c.env));
+  })
 
   .get("/files/*", async (c) => {
     let key: string;

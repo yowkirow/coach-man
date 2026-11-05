@@ -9,6 +9,7 @@ import type {
 } from "../../shared/api-types";
 import { LESSON_KIND_LABELS, type LessonKind } from "../../shared/domain";
 import { isLastWeekOfMonth } from "../../shared/enrollment";
+import { isMinor } from "../../shared/family";
 import { uuidv7 } from "../../shared/ids";
 import { can } from "../../shared/roles";
 import type { LessonCreateInput } from "../../shared/schemas";
@@ -43,6 +44,7 @@ import {
 import { badRequest, notFound } from "../lib/errors";
 import { inList, unique } from "../lib/sql";
 import type { Ctx } from "../types";
+import { liveAnnouncements } from "./announcements";
 import { cleanCoaches, coachRefs, staffIds } from "./coaches";
 import {
   effectivePrice,
@@ -53,6 +55,7 @@ import {
 } from "./credits";
 import { renewalsDue, requestedCount } from "./enrollment-staff";
 import { balancesDue, balancesFor } from "./money";
+import { pickupsOf } from "./safety";
 
 /** How far ahead recurring series are materialized into concrete lessons. */
 export const MATERIALIZE_DAYS = 56;
@@ -140,7 +143,12 @@ export async function rostersFor(
       lastName: client.lastName,
       photoKey: client.photoKey,
       isJunior: client.isJunior,
+      birthDate: client.birthDate,
       medical: client.medicalNotes,
+      guardianName: client.guardianName,
+      guardianPhone: client.guardianPhone,
+      emergencyName: client.emergencyName,
+      emergencyPhone: client.emergencyPhone,
     })
     .from(attendance)
     .innerJoin(client, eq(client.id, attendance.clientId))
@@ -156,12 +164,20 @@ export async function rostersFor(
     .orderBy(asc(client.firstName), asc(client.lastName));
 
   const clientIds = unique(rows.map((r) => r.a.clientId));
+  // Juniors' pickup people come along, so check-in can show who may collect them.
+  const localToday = todayIn(settings.timezone);
+  const juniors = unique(
+    rows
+      .filter((r) => isMinor({ birthDate: r.birthDate, isJunior: r.isJunior, today: localToday }))
+      .map((r) => r.a.clientId),
+  );
+  const juniorSet = new Set(juniors);
   // Coaches never get money (the API strips it anyway), so don't look it up for them.
   const money = can(ctx.role, "money");
   const chargeIds = money
     ? rows.map((r) => r.a.chargeId).filter((v): v is string => Boolean(v))
     : [];
-  const [pkgs, balances, charges] = await Promise.all([
+  const [pkgs, balances, charges, pickups] = await Promise.all([
     packagesForClients(ctx, clientIds),
     money ? balancesFor(ctx, clientIds) : Promise.resolve(new Map<string, number>()),
     chargeIds.length
@@ -170,6 +186,7 @@ export async function rostersFor(
           .from(charge)
           .where(and(eq(charge.workspaceId, workspaceId), inList(charge.id, chargeIds)))
       : Promise.resolve([]),
+    pickupsOf(db, workspaceId, juniors),
   ]);
   const chargeAmount = new Map(charges.map((c) => [c.id, c.amountMinor]));
   const lessonById = new Map(lessons.map((l) => [l.id, l]));
@@ -210,6 +227,15 @@ export async function rostersFor(
       balanceMinor: balances.get(r.a.clientId) ?? 0,
       isJunior: r.isJunior,
       medicalFlag: Boolean(r.medical?.trim()),
+      safety: {
+        junior: juniorSet.has(r.a.clientId),
+        medicalNotes: r.medical?.trim() ? r.medical : null,
+        guardianName: r.guardianName,
+        guardianPhone: r.guardianPhone,
+        emergencyName: r.emergencyName,
+        emergencyPhone: r.emergencyPhone,
+        pickups: pickups.get(r.a.clientId) ?? [],
+      },
     };
     const list = result.get(r.a.lessonId);
     if (list) list.push(entry);
@@ -315,10 +341,13 @@ export async function today(ctx: Ctx): Promise<TodayDto> {
   const { db, workspaceId, settings } = ctx;
   const date = todayIn(settings.timezone);
   const items = await lessonsBetween(ctx, date, date);
-  const rosters = await rostersFor(
-    ctx,
-    items.map((i) => i.row),
-  );
+  const [rosters, announcements] = await Promise.all([
+    rostersFor(
+      ctx,
+      items.map((i) => i.row),
+    ),
+    liveAnnouncements(ctx, Date.now()),
+  ]);
 
   const pref = await db.query.notificationPref.findFirst({
     where: eq(notificationPref.userId, ctx.userId),
@@ -442,6 +471,7 @@ export async function today(ctx: Ctx): Promise<TodayDto> {
       })),
       ...(enrollments ? { enrollments } : {}),
     },
+    announcements,
   };
 }
 

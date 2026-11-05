@@ -49,7 +49,7 @@ const PUBLIC_RE = new RegExp(`^ws/(${SEGMENT})/public/(?:coaches/)?(${FILE})$`);
 /** An R2 key a family might ask for, by what it is (spec §8). */
 export type PortalFileKey =
   | { kind: "student-photo"; workspaceId: string; clientId: string }
-  /** `payments/` (proofs, WS4c) and `pickups/` (WS5) under a student's folder. */
+  /** `payments/` (proofs, WS4c) and `pickups/` (pickup photos, WS5a) under a student's folder. */
   | { kind: "student-folder"; workspaceId: string; clientId: string; folder: string }
   | { kind: "public"; workspaceId: string };
 
@@ -74,24 +74,37 @@ export function parsePortalFileKey(key: string): PortalFileKey | null {
   return null;
 }
 
-/** The payment proof a `payments/` key belongs to: the payment_submission row with that proof key. */
+/**
+ * The row an exact private key belongs to: the payment_submission with that `proof_key` (a proof,
+ * the default) or the authorized_pickup with that `photo_key` (a pickup person's photo).
+ */
 export interface ProofOwner {
   workspaceId: string;
   clientId: string;
+  /** Which table the row came from; a proof unless said otherwise. */
+  kind?: "proof" | "pickup";
 }
+export type FileOwner = ProofOwner;
+
+/** The table that owns the files of each private student subfolder. */
+const FOLDER_OWNER: Record<string, NonNullable<ProofOwner["kind"]>> = {
+  payments: "proof",
+  pickups: "pickup",
+};
 
 /**
  * Whether the caller may read a file: their own students' photos, the public images (logos,
- * payment QR codes, coach photos) of the academies they belong to, and payment proofs of their
- * students. A proof is checked against the payment_submission row its key belongs to (`proof`, the
- * row found by that exact key), never by its folder alone: a key with no proof, a proof of someone
- * else's student, or one from another academy is refused. Any other file in a student's
- * subfolders (pickup photos, `pickups/`, arrive with WS5) is refused.
+ * payment QR codes, coach photos) of the academies they belong to, payment proofs of their
+ * students, and photos of their students' authorized pickup people. A file in a student's
+ * subfolder is checked against the row its key belongs to (`owner`: the payment_submission or
+ * authorized_pickup found by that exact key), never by its folder alone: a key with no row, a row
+ * from the other table, a row of someone else's student, or one from another academy is refused.
+ * Any other subfolder is refused.
  */
 export function canReadPortalFile(
   scope: PortalScope,
   key: string,
-  proof?: ProofOwner | null,
+  owner?: FileOwner | null,
 ): boolean {
   const parsed = parsePortalFileKey(key);
   if (!parsed) return false;
@@ -100,9 +113,11 @@ export function canReadPortalFile(
       return ownsRow(scope, parsed);
     case "public":
       return inWorkspace(scope, parsed.workspaceId);
-    case "student-folder":
-      if (parsed.folder !== "payments" || !proof) return false;
-      return proof.workspaceId === parsed.workspaceId && ownsRow(scope, proof);
+    case "student-folder": {
+      const wanted = FOLDER_OWNER[parsed.folder];
+      if (!wanted || !owner || (owner.kind ?? "proof") !== wanted) return false;
+      return owner.workspaceId === parsed.workspaceId && ownsRow(scope, owner);
+    }
   }
 }
 
@@ -110,4 +125,10 @@ export function canReadPortalFile(
 export function isProofKey(key: string): boolean {
   const parsed = parsePortalFileKey(key);
   return parsed?.kind === "student-folder" && parsed.folder === "payments";
+}
+
+/** A key in a student's `pickups/` folder: its pickup person must be looked up before reading it. */
+export function isPickupKey(key: string): boolean {
+  const parsed = parsePortalFileKey(key);
+  return parsed?.kind === "student-folder" && parsed.folder === "pickups";
 }

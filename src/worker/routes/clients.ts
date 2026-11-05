@@ -47,6 +47,12 @@ import {
 } from "../services/lessons";
 import { balancesFor } from "../services/money";
 import { proofKeysOf } from "../services/payment-proofs";
+import {
+  pickupPhotoKeysOf,
+  pickupsOf,
+  staffSafetyChange,
+  staffSafetyUpdate,
+} from "../services/safety";
 import type { AppBindings, Ctx } from "../types";
 
 type ClientRow = typeof client.$inferSelect;
@@ -150,6 +156,7 @@ function toClientDto(base: ClientListItemDto, c: ClientRow): ClientDto {
     source: c.source,
     joinedOn: c.joinedOn,
     createdAt: c.createdAt,
+    shirtSize: c.shirtSize,
   };
 }
 
@@ -362,6 +369,13 @@ export const clientRoutes = new Hono<AppBindings>()
         .orderBy(desc(event.startsOn)),
       loadClientCoaches(ctx, id),
     ]);
+    const [pickups, safetyRow] = await Promise.all([
+      pickupsOf(db, workspaceId, [id]),
+      db.query.client.findFirst({
+        where: and(eq(client.id, id), eq(client.workspaceId, workspaceId)),
+        columns: { safetyUpdatedAt: true, safetyUpdatedBy: true, safetyUpdatedRelation: true },
+      }),
+    ]);
     const today = todayIn(settings.timezone);
     const body: ClientDetailDto = {
       client: dto,
@@ -378,6 +392,8 @@ export const clientRoutes = new Hono<AppBindings>()
       })),
       registrations,
       coaches,
+      pickups: pickups.get(id) ?? [],
+      safetyUpdate: safetyRow ? await staffSafetyUpdate(db, safetyRow) : null,
     };
     return c.json(body);
   })
@@ -467,12 +483,23 @@ export const clientRoutes = new Hono<AppBindings>()
     const ctx = ctxOf(c);
     const id = c.req.param("id");
     const { groupIds, ...input } = c.req.valid("json");
-    const res = await ctx.db
-      .update(client)
-      .set(input)
-      .where(and(eq(client.id, id), eq(client.workspaceId, ctx.workspaceId)))
-      .returning({ id: client.id });
-    if (!res[0]) throw notFound("Client");
+    const row = await ctx.db.query.client.findFirst({
+      where: and(eq(client.id, id), eq(client.workspaceId, ctx.workspaceId)),
+    });
+    if (!row) throw notFound("Client");
+    // Health and emergency details: who changed them goes on the student (staff read "Updated by")
+    // and in the audit log, by field name only.
+    const safety = staffSafetyChange(ctx.db, row, input, { userId: ctx.userId });
+    const values = { ...input, ...safety.set };
+    // Only the programs may be changing (`groupIds`): there's nothing to write on the row then.
+    const update = Object.values(values).some((v) => v !== undefined)
+      ? ctx.db
+          .update(client)
+          .set(values)
+          .where(and(eq(client.id, id), eq(client.workspaceId, ctx.workspaceId)))
+      : null;
+    if (update && safety.audit) await runBatch(ctx, [update, safety.audit]);
+    else if (update) await update;
     if (groupIds) await setGroups(ctx, id, groupIds);
     return c.json(await loadClient(ctx, id));
   })
@@ -520,8 +547,12 @@ export const clientRoutes = new Hono<AppBindings>()
       );
     }
     if (existing.photoKey) await ctx.env.FILES.delete(existing.photoKey);
-    // Payment proofs go with the student (the rows cascade; their private screenshots too).
-    const proofKeys = await proofKeysOf(ctx.db, ctx.workspaceId, id);
+    // Payment proofs and pickup photos go with the student (the rows cascade; their private
+    // images too).
+    const proofKeys = [
+      ...(await proofKeysOf(ctx.db, ctx.workspaceId, id)),
+      ...(await pickupPhotoKeysOf(ctx.db, ctx.workspaceId, id)),
+    ];
     if (proofKeys.length) await ctx.env.FILES.delete(proofKeys);
     await runBatch(ctx, [
       ctx.db.delete(client).where(and(eq(client.id, id), eq(client.workspaceId, ctx.workspaceId))),

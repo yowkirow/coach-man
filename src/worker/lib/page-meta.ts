@@ -2,7 +2,7 @@
 // shared link (they never run the app), so the Worker answers /a/* with the app's index.html plus
 // these tags. Everything here is pure and escapes every value it writes.
 
-import type { PublicAcademyDto } from "../../shared/api-types";
+import type { PublicAcademyDto, PublicConfigDto } from "../../shared/api-types";
 
 /** The app shell's own tags (index.html), used for unknown and unlisted academies. */
 export const DEFAULT_TITLE = "CoachMan";
@@ -132,17 +132,68 @@ export function renderMetaTags(meta: PageMeta): string {
 
 /** The id of the JSON block holding a page's data, which the app reads instead of refetching. */
 export const PUBLIC_DATA_ID = "cm-public-academy";
+/** The id of the JSON block with the public pages' settings (`PublicConfigDto`). */
+export const PUBLIC_CONFIG_ID = "cm-public-config";
 
 /**
  * A JSON data block (never executed, so the page's script policy allows it). `<`, `>`, `&`, and
  * the line separators are escaped, so no value can close the tag or start markup.
  */
-export function renderDataIsland(data: unknown): string {
+export function renderDataIsland(data: unknown, id = PUBLIC_DATA_ID): string {
   const json = JSON.stringify(data)
     .replace(/</g, "\\u003c")
     .replace(/>/g, "\\u003e")
     .replace(/&/g, "\\u0026")
     .replace(/\u2028/g, "\\u2028")
     .replace(/\u2029/g, "\\u2029");
-  return `<script type="application/json" id="${PUBLIC_DATA_ID}">${json}</script>`;
+  return `<script type="application/json" id="${escapeHtml(id)}">${json}</script>`;
+}
+
+// --- CoachMan's own public pages: /about, /privacy, /terms -----------------------------------------
+
+/** Where people write about privacy, their data, or the terms, unless the Worker says otherwise. */
+export const DEFAULT_CONTACT_EMAIL = "privacy@coachman.cloud";
+
+/** The public pages' settings (`GET /api/public/config`, and the pages' data block). */
+export function publicConfig(env: { PUBLIC_CONTACT_EMAIL?: string }): PublicConfigDto {
+  return { contactEmail: env.PUBLIC_CONTACT_EMAIL?.trim() || DEFAULT_CONTACT_EMAIL };
+}
+
+export type InfoPageKind = "about" | "privacy" | "terms";
+
+/** Which of CoachMan's own public pages a path is (exactly /about, /privacy, or /terms). */
+export function infoPageOf(pathname: string): InfoPageKind | null {
+  const match = /^\/(about|privacy|terms)\/?$/.exec(pathname);
+  return (match?.[1] as InfoPageKind | undefined) ?? null;
+}
+
+const INFO_PAGES: Record<InfoPageKind, { title: string; description: string }> = {
+  about: {
+    title: "CoachMan: for pickleball academies, coaches, students, and parents",
+    description:
+      "CoachMan is an app for pickleball academies and coaches: a schedule and check-in that work offline, packages and credits, progress and coach comments, a family portal, and enrollment with payment proofs.",
+  },
+  privacy: {
+    title: "Privacy policy · CoachMan",
+    description:
+      "What CoachMan collects, why, who it shares it with, how long it keeps it, and your rights under the Philippine Data Privacy Act of 2012.",
+  },
+  terms: {
+    title: "Terms of use · CoachMan",
+    description:
+      "The terms for using CoachMan, for academies and coaches, and for students and parents.",
+  },
+};
+
+/** The link-preview tags of /about, /privacy, and /terms. */
+export function infoPageMeta(kind: InfoPageKind, appUrl: string): PageMeta {
+  const base = origin(appUrl);
+  const page = INFO_PAGES[kind];
+  return {
+    title: page.title,
+    description: page.description,
+    image: `${base}/icons/icon-512.png`,
+    twitterCard: "summary",
+    url: `${base}/${kind}`,
+  };
 }

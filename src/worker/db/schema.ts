@@ -30,6 +30,7 @@ import type {
   ValidityMode,
 } from "../../shared/domain";
 import type { StaffRole } from "../../shared/roles";
+import type { SafetyEditor } from "../../shared/safety";
 
 // Column names are snake_case via drizzle's `casing: "snake_case"` (see drizzle.config.ts and db/client.ts).
 // Auth tables use Date timestamps (Better Auth expects Date objects); app tables use epoch-ms numbers.
@@ -278,6 +279,14 @@ export const client = sqliteTable(
     photoKey: text(),
     joinedOn: text(),
     shirtSize: text(),
+    /**
+     * The last change to the health and emergency details (medical notes, emergency contact,
+     * parent contact): when, by whom (a user id), and as what (`guardian` or `self` from the family
+     * portal, `staff` from the staff app). Staff pages show "Updated by <name> on <date>".
+     */
+    safetyUpdatedAt: integer(),
+    safetyUpdatedBy: text(),
+    safetyUpdatedRelation: text().$type<SafetyEditor>(),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -1107,7 +1116,11 @@ export const authorizedPickup = sqliteTable(
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (t) => [index("authorized_pickup_client_idx").on(t.clientId)],
+  (t) => [
+    index("authorized_pickup_client_idx").on(t.clientId),
+    // The family portal's file reads look a pickup photo up by its exact key.
+    uniqueIndex("authorized_pickup_photo_key_idx").on(t.photoKey),
+  ],
 );
 
 export const announcement = sqliteTable(
@@ -1124,11 +1137,20 @@ export const announcement = sqliteTable(
     /** Null = draft. */
     publishedAt: integer(),
     expiresAt: integer(),
+    /**
+     * When it went live and the publish hook (`announcementPublished`, family push in WS5b) ran:
+     * set once, by whichever claims it first (publishing now, or the 5-minute cron for scheduled
+     * ones), so each announcement is announced once even if it's unpublished and published again.
+     */
+    notifiedAt: integer(),
     createdBy: text(),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (t) => [index("announcement_ws_published_idx").on(t.workspaceId, t.publishedAt)],
+  (t) => [
+    index("announcement_ws_published_idx").on(t.workspaceId, t.publishedAt),
+    index("announcement_due_idx").on(t.notifiedAt, t.publishedAt),
+  ],
 );
 
 // ---------------------------------------------------------------------------

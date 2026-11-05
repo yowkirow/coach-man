@@ -1,6 +1,8 @@
+import type { AnnouncementState } from "./announcements";
 import type { ConsentStatus } from "./consents";
 import type {
   AcademySocial,
+  AnnouncementAudience,
   AttendanceStatus,
   ChargeKind,
   ClientCoachRole,
@@ -30,6 +32,7 @@ import type {
 } from "./domain";
 import type { EnrollmentMode } from "./enrollment";
 import type { Capabilities, StaffRole } from "./roles";
+import type { SafetyEditor, SafetyRights } from "./safety";
 
 // Response shapes returned by /api/v1 (staff) and /api/account. Instants are epoch ms; dates are
 // YYYY-MM-DD.
@@ -374,6 +377,8 @@ export interface ClientDto extends ClientListItemDto {
   source: string | null;
   joinedOn: string | null;
   createdAt: number;
+  /** Training shirt size (optional for profiles cached before WS5a). */
+  shirtSize?: string | null;
 }
 
 export interface ClientDetailDto {
@@ -398,6 +403,10 @@ export interface ClientDetailDto {
   }[];
   /** Optional for profiles cached before coaches existed. */
   coaches?: ClientCoachesDto;
+  /** Authorized pickup people (optional for profiles cached before WS5a). */
+  pickups?: PickupDto[];
+  /** The last change to the health and emergency details, when known. */
+  safetyUpdate?: SafetyUpdateDto | null;
 }
 
 export interface LedgerLineDto {
@@ -559,6 +568,11 @@ export interface RosterEntryDto {
   balanceMinor: number;
   isJunior: boolean;
   medicalFlag: boolean;
+  /**
+   * What a coach needs at the court: the medical note itself, the contacts, and for juniors who
+   * may pick them up (optional for rosters cached before WS5a).
+   */
+  safety?: RosterSafetyDto;
   /** Client-only: set while an offline/optimistic change is waiting to sync. */
   pending?: boolean;
 }
@@ -612,6 +626,8 @@ export interface TodayDto {
      */
     enrollments?: { requested: number; notRenewed: number | null };
   };
+  /** Live announcements, pinned first then newest (every staff role reads them; WS5a). */
+  announcements?: AnnouncementDto[];
 }
 
 export interface OfflinePackDto {
@@ -927,7 +943,7 @@ export interface PortalHomeStudentDto extends PortalStudentRefDto {
   consentsMissing?: number;
 }
 
-/** Published news from the academy (filled by announcements, WS5). */
+/** Published news from the academy (announcements, WS5a). */
 export interface PortalAnnouncementDto {
   id: string;
   workspaceId: string;
@@ -935,6 +951,10 @@ export interface PortalAnnouncementDto {
   body: string;
   pinned: boolean;
   publishedAt: number;
+  /** Who it's for, and the program's or event's name (optional for homes cached before WS5a). */
+  audience?: AnnouncementAudience;
+  audienceName?: string | null;
+  expiresAt?: number | null;
 }
 
 /** GET /api/portal/home: everything a family sees first. Empty lists when nothing is linked. */
@@ -983,11 +1003,24 @@ export interface PortalStudentDto {
     emergencyPhone: string | null;
     guardianName: string | null;
     guardianPhone: string | null;
+    /**
+     * Whether the academy has a parent's email on file. The address itself never goes to the
+     * portal (one guardian email serves every parent of the student); a parent can replace it.
+     */
+    guardianEmailOnFile?: boolean;
   };
   coaches: PortalCoachDto[];
   programs: { name: string }[];
   /** Guardians only; null for the student's own login. */
   teenAccess: PortalTeenAccessDto | null;
+  /** Authorized pickup people (juniors; optional for students cached before WS5a). */
+  pickups?: PickupDto[];
+  /** Whether pickup people apply to this student (under 18, or marked junior). */
+  pickupsApply?: boolean;
+  /** What the signed-in person may change here (a teen's own login: nothing). */
+  editable?: SafetyRights;
+  /** When the health and emergency details last changed, and whether by the viewer or the academy. */
+  safetyUpdate?: PortalSafetyUpdateDto | null;
 }
 
 /** GET /api/portal/students/:clientId/schedule?from&to. */
@@ -1803,4 +1836,96 @@ export interface PortalPaymentProofDto {
 export interface PortalPaymentProofsDto {
   academy: PortalAcademyRefDto;
   proofs: PortalPaymentProofDto[];
+}
+
+// --- Kids' safety, announcements, and public pages (WS5a) ----------------------------------------
+
+/**
+ * An authorized pickup person: who may collect a junior after training. Never who added them (no
+ * user ids): the same shape goes to staff and to the student's family.
+ */
+export interface PickupDto {
+  id: string;
+  name: string;
+  relationship: string | null;
+  phone: string | null;
+  notes: string | null;
+  /**
+   * Private R2 key `ws/<id>/clients/<clientId>/pickups/<uuid>.<ext>`: staff read it through
+   * /api/v1/files, the student's family through /api/portal/files (checked against this row).
+   */
+  photoKey: string | null;
+  updatedAt: number;
+}
+
+/** Staff: who last changed a student's health and emergency details, and when. */
+export interface SafetyUpdateDto {
+  at: number;
+  /** As a parent or guardian or the student (family portal), or as academy staff. */
+  relation: SafetyEditor;
+  /** The person's name (null when their account is gone). */
+  byName: string | null;
+}
+
+/** Family: when the details last changed, and whether it was the viewer or the academy. */
+export interface PortalSafetyUpdateDto {
+  at: number;
+  byYou: boolean;
+  byAcademy: boolean;
+}
+
+/** A roster entry's safety details: what a coach needs at the court. */
+export interface RosterSafetyDto {
+  /** Under 18 by birth date, or marked junior: pickup people apply. */
+  junior: boolean;
+  medicalNotes: string | null;
+  guardianName: string | null;
+  guardianPhone: string | null;
+  emergencyName: string | null;
+  emergencyPhone: string | null;
+  /** Juniors only (empty for adults). */
+  pickups: PickupDto[];
+}
+
+/** An announcement as staff see it (the composer, the list's tabs, and Today). */
+export interface AnnouncementDto {
+  id: string;
+  title: string;
+  /** Plain text: paragraphs (a blank line) and links are shown, never HTML. */
+  body: string;
+  audience: AnnouncementAudience;
+  /** The program (group) or event it's for. */
+  audienceId: string | null;
+  /** That program's or event's name (null for everyone, or when it no longer exists). */
+  audienceName: string | null;
+  pinned: boolean;
+  /** Null while a draft; ahead of now while scheduled. */
+  publishedAt: number | null;
+  expiresAt: number | null;
+  state: AnnouncementState;
+  /** When it went live and the publish hook ran (null until then). */
+  notifiedAt: number | null;
+  author: CoachRefDto | null;
+  createdAt: number;
+  updatedAt: number;
+}
+
+/** GET /api/v1/announcements?status=. */
+export interface AnnouncementListDto {
+  /** The server's clock, so "goes live in…" reads right on a phone whose clock is off. */
+  now: number;
+  counts: Record<AnnouncementState, number>;
+  items: AnnouncementDto[];
+}
+
+/** GET /api/portal/announcements: everything live for the caller's students, pinned first. */
+export interface PortalAnnouncementsDto {
+  academies: PortalAcademyRefDto[];
+  items: PortalAnnouncementDto[];
+}
+
+/** GET /api/public/config: what the public pages need from the server's settings. */
+export interface PublicConfigDto {
+  /** Where people write about privacy, their data, or the terms (`PUBLIC_CONTACT_EMAIL`). */
+  contactEmail: string;
 }

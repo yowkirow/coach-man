@@ -1,5 +1,5 @@
 import { buildPushHTTPRequest } from "@pushforge/builder";
-import { and, eq, gte, isNotNull, isNull, like, lt, sql } from "drizzle-orm";
+import { and, eq, gte, isNotNull, isNull, lt, sql } from "drizzle-orm";
 import { LESSON_KIND_LABELS } from "../../shared/domain";
 import { uuidv7 } from "../../shared/ids";
 import { can } from "../../shared/roles";
@@ -306,12 +306,9 @@ export async function runMaintenance(
   await db
     .delete(notificationLog)
     .where(lt(notificationLog.sentAt, now.getTime() - 90 * 86_400_000));
-  // Our own rate-limit counters (lib/rate-limit.ts) last a minute; a day-old one is clutter.
-  await db
-    .delete(rateLimit)
-    .where(
-      and(like(rateLimit.key, "coachman:%"), lt(rateLimit.lastRequest, now.getTime() - 86_400_000)),
-    );
+  // Rate-limit counters (ours in lib/rate-limit.ts, and Better Auth's sign-in limits) last a minute
+  // or an hour; a day-old one is clutter, and it holds an IP address (the privacy policy says so).
+  await db.delete(rateLimit).where(lt(rateLimit.lastRequest, now.getTime() - 86_400_000));
   // Passkey-only accounts whose passkey never arrived can't be signed into: remove them after a day.
   await deleteAbandonedPasskeyAccounts(db, now.getTime());
 }

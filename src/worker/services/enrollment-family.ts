@@ -631,6 +631,10 @@ export async function submitEnrollment(
         emergencyPhone: a.emergencyPhone,
         medicalNotes: a.medicalNotes ?? null,
         shirtSize: a.shirtSize ?? null,
+        // The family entered the health and emergency details: staff read who and when.
+        safetyUpdatedAt: Date.now(),
+        safetyUpdatedBy: actor.userId,
+        safetyUpdatedRelation: relation,
         status: "lead",
         source: "Enrollment",
         tags: [],

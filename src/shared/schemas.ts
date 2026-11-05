@@ -1,7 +1,13 @@
 import { z } from "zod";
+import {
+  ANNOUNCEMENT_BODY_MAX,
+  ANNOUNCEMENT_STATES,
+  ANNOUNCEMENT_TITLE_MAX,
+} from "./announcements";
 import { CONSENT_TEMPLATE_KINDS } from "./consent-templates";
 import {
   ACADEMY_SOCIALS,
+  ANNOUNCEMENT_AUDIENCES,
   ATTENDANCE_STATUSES,
   CLIENT_STATUSES,
   CONSENT_APPLIES_TO,
@@ -67,6 +73,14 @@ const optionalLink = (max: number) =>
     .optional();
 const money = z.number().int().min(0).max(1_000_000_000);
 const signedMoney = z.number().int().min(-1_000_000_000).max(1_000_000_000);
+/** A training shirt size from the list (kids' and adults'); "" clears it. */
+const shirtSize = z
+  .string()
+  .trim()
+  .refine((v) => v === "" || ALL_UNIFORM_SIZES.includes(v), "Pick a size from the list.")
+  .transform((v) => (v === "" ? null : v))
+  .nullable()
+  .optional();
 
 // --- Workspace -------------------------------------------------------------
 
@@ -225,6 +239,7 @@ export const clientSchema = z.object({
   source: optionalText(80),
   tags: z.array(trimmed(30).min(1)).max(20).optional(),
   joinedOn: date.nullable().optional(),
+  shirtSize,
   groupIds: z.array(id).max(50).optional(),
   /** New clients only: their primary coach. Omitted = whoever adds them; null = no coach yet. */
   primaryCoachUserId: userId.nullable().optional(),
@@ -247,6 +262,39 @@ export const clientImportSchema = z.object({
   skipDuplicates: z.boolean().default(true),
 });
 export type ClientImportInput = z.infer<typeof clientImportSchema>;
+
+// --- Kids' safety ------------------------------------------------------------------------------
+
+/**
+ * PATCH /api/portal/students/:clientId/safety: what a family keeps up to date. Omitted fields stay;
+ * "" clears one. Which fields this person may change is checked by the server
+ * (`familySafetyRights`): a parent of a minor all of them, an adult student their own medical,
+ * emergency, and shirt size, a teen's own login none.
+ */
+export const familySafetySchema = z.object({
+  medicalNotes: optionalText(1000),
+  emergencyName: optionalText(80),
+  emergencyPhone: optionalText(40),
+  guardianPhone: optionalText(40),
+  guardianEmail: optionalEmail,
+  shirtSize,
+});
+export type FamilySafetyInput = z.infer<typeof familySafetySchema>;
+
+/**
+ * An authorized pickup person (staff: POST/PATCH /api/v1/clients/:id/pickups[/:pickupId]; family:
+ * POST/PATCH /api/portal/students/:clientId/pickups[/:pickupId]). The photo travels in the same
+ * multipart request (`photo`), with these fields as JSON in `data`; without a photo, JSON alone.
+ */
+export const pickupInputSchema = z.object({
+  name: trimmed(80).min(1, "Add the person's name."),
+  relationship: optionalText(40),
+  phone: optionalText(40),
+  notes: optionalText(300),
+  /** Edits: drop the current photo (a new one in the same request replaces it anyway). */
+  removePhoto: z.boolean().optional(),
+});
+export type PickupInput = z.infer<typeof pickupInputSchema>;
 
 // --- Groups ----------------------------------------------------------------
 
@@ -786,6 +834,52 @@ export const paymentProofRejectSchema = z.object({
 /** GET /api/v1/payment-proofs?status= (pending by default). */
 export const paymentProofListQuerySchema = z.object({
   status: z.enum([...PAYMENT_SUBMISSION_STATUSES, "all"]).optional(),
+});
+
+// --- Announcements -------------------------------------------------------------------------------
+
+/**
+ * POST /api/v1/announcements and PATCH /api/v1/announcements/:id (the composer sends every field):
+ * plain text (paragraphs and links are shown, never HTML), who it's for (everyone, a program, or
+ * an event of this academy), pinned, and when it goes live: kept as a draft, published now, or
+ * scheduled for a time ahead (`publishAt`, epoch ms), with an optional end (`expiresAt`).
+ */
+export const announcementSchema = z
+  .object({
+    title: trimmed(ANNOUNCEMENT_TITLE_MAX).min(1, "Give it a title."),
+    body: z
+      .string()
+      .max(ANNOUNCEMENT_BODY_MAX, `Keep it under ${ANNOUNCEMENT_BODY_MAX} characters.`)
+      .transform((v) => v.replace(/\r\n?/g, "\n").trim())
+      .pipe(z.string().min(1, "Write the announcement.")),
+    audience: z.enum(ANNOUNCEMENT_AUDIENCES),
+    audienceId: id.nullable().optional(),
+    pinned: z.boolean().default(false),
+    publish: z.enum(["draft", "now", "schedule"]),
+    publishAt: z.number().int().positive().nullable().optional(),
+    expiresAt: z.number().int().positive().nullable().optional(),
+  })
+  .superRefine((v, ctx) => {
+    if (v.audience !== "all" && !v.audienceId) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["audienceId"],
+        message: v.audience === "program" ? "Pick the program." : "Pick the event.",
+      });
+    }
+    if (v.publish === "schedule" && !v.publishAt) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["publishAt"],
+        message: "Pick when it should go live.",
+      });
+    }
+  });
+export type AnnouncementInput = z.infer<typeof announcementSchema>;
+
+/** GET /api/v1/announcements?status= (live by default; other tabs need `announcements`). */
+export const announcementListQuerySchema = z.object({
+  status: z.enum([...ANNOUNCEMENT_STATES, "all"]).optional(),
 });
 
 // --- Push ------------------------------------------------------------------

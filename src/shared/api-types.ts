@@ -1,15 +1,21 @@
 import type {
+  AcademySocial,
   AttendanceStatus,
   ChargeKind,
+  ClientCoachRole,
   ClientPackageStatus,
   ClientStatus,
   EventKind,
   EventStatus,
   FamilyRelation,
   GoalStatus,
+  InviteKind,
+  InviteStatus,
   LedgerReason,
   LessonKind,
   LessonStatus,
+  NoteKind,
+  NoteVisibility,
   RateKind,
   RateUnit,
   RatingSource,
@@ -86,6 +92,151 @@ export interface VenueDto {
   notes: string | null;
 }
 
+// --- Academy, team, and coaches (WS2) -----------------------------------------------------------
+
+/** GET/PATCH /api/v1/academy: the academy's identity and public profile. */
+export interface AcademyDto {
+  workspaceId: string;
+  name: string;
+  /** organization.slug; legacy `ws-<id>` slugs are not public addresses. */
+  slug: string;
+  /** `${APP_URL}/a/` (the address prefix the slug completes). */
+  publicBaseUrl: string;
+  /** `${APP_URL}/a/<slug>` when the slug is a real public address, else null. */
+  publicUrl: string | null;
+  tagline: string | null;
+  about: string | null;
+  contactPhone: string | null;
+  contactEmail: string | null;
+  address: string | null;
+  mapUrl: string | null;
+  socials: Partial<Record<AcademySocial, string>>;
+  /** Public R2 keys (`ws/<id>/public/…`): staff read them through /api/v1/files, anyone through /api/public/files. */
+  logoKey: string | null;
+  paymentInstructions: string | null;
+  paymentQrKey: string | null;
+  policies: string | null;
+  enrollmentOpen: boolean;
+  listed: boolean;
+  updatedAt: number;
+}
+
+/** A staff member as pickers and avatars need them (GET /api/v1/coaches, current staff only). */
+export interface CoachSummaryDto {
+  userId: string;
+  /** The coach profile's display name, else the account name. */
+  name: string;
+  title: string | null;
+  photoKey: string | null;
+  role: StaffRole;
+}
+
+/** GET/PATCH /api/v1/coaches/:userId (yourself, or anyone with `team`). */
+export interface CoachProfileDto extends CoachSummaryDto {
+  /** The name on the person's account (Google). */
+  accountName: string;
+  email: string;
+  /** What they set; null = use the account name. */
+  displayName: string | null;
+  bio: string | null;
+  certifications: string[];
+  duprRating: number | null;
+  specialties: string[];
+  languages: string[];
+  yearsCoaching: number | null;
+  /** Shown on the academy's public page. */
+  isPublic: boolean;
+  sortOrder: number;
+}
+
+/** Someone who coached (or coaches) here, resolved for display even after they left the team. */
+export interface CoachRefDto {
+  userId: string;
+  name: string;
+  photoKey: string | null;
+}
+
+export interface TeamMemberDto extends CoachSummaryDto {
+  accountName: string;
+  /** Their sign-in email: for people with `team`, and for yourself; null otherwise. */
+  email: string | null;
+  /** When they joined the academy (epoch ms). */
+  joinedAt: number;
+  isPublic: boolean;
+  /** Students they currently coach (primary or assistant). */
+  students: number;
+}
+
+export interface StaffInviteDto {
+  id: string;
+  email: string;
+  role: StaffRole;
+  status: InviteStatus;
+  createdAt: number;
+  expiresAt: number;
+  invitedBy: string | null;
+}
+
+/** GET /api/v1/team. Invites are listed only for roles with `team`. */
+export interface TeamDto {
+  members: TeamMemberDto[];
+  invites: StaffInviteDto[];
+}
+
+/** POST /api/v1/team/invites: the link carries the only copy of the token; it is never shown again. */
+export interface StaffInviteCreatedDto {
+  invite: StaffInviteDto;
+  link: string;
+}
+
+/** GET /api/invites/:token (public): just enough to say who invited whom, no other personal data. */
+export interface InvitePreviewDto {
+  kind: InviteKind;
+  academy: { name: string; logoKey: string | null };
+  role?: StaffRole;
+  student?: { firstName: string };
+  relation?: FamilyRelation;
+  status: InviteStatus;
+  /** Only when the request is signed in: whether this account's email is the one invited. */
+  forYou?: boolean;
+  /**
+   * Only when the signed-in person is already on this academy's team (for example, they used the
+   * link earlier): the page offers to open the academy instead.
+   */
+  alreadyMember?: boolean;
+  workspaceId?: string;
+}
+
+/** POST /api/invites/:token/accept. */
+export type InviteAcceptedDto =
+  | { kind: "staff"; workspaceId: string }
+  | { kind: "family"; clientId: string };
+
+export interface ClientCoachDto {
+  id: string;
+  coach: CoachRefDto;
+  role: ClientCoachRole;
+  startedOn: string;
+  /** Null = current. */
+  endedOn: string | null;
+  assignedBy: CoachRefDto | null;
+}
+
+/** A student's coaches now, and who coached them when (newest first). */
+export interface ClientCoachesDto {
+  primary: ClientCoachDto | null;
+  assistants: ClientCoachDto[];
+  history: ClientCoachDto[];
+}
+
+/** PUT /api/v1/clients/:id/coaches. */
+export interface ClientCoachesSavedDto {
+  coaches: ClientCoachesDto;
+  /** The primary coach changed: the app offers to write a handoff note. */
+  primaryChanged: boolean;
+  previousPrimary: CoachRefDto | null;
+}
+
 export interface PackageBalanceDto {
   id: string;
   name: string;
@@ -119,6 +270,9 @@ export interface ClientListItemDto {
   /** Start (epoch ms) of the next booked session that hasn't ended yet. */
   nextSessionAt?: number | null;
   joinedOn?: string | null;
+  /** Current coaches (user ids); powers "My students". */
+  primaryCoachUserId?: string | null;
+  assistantCoachIds?: string[];
 }
 
 export interface ClientDto extends ClientListItemDto {
@@ -160,6 +314,8 @@ export interface ClientDetailDto {
     status: RegistrationStatus;
     startsOn: string;
   }[];
+  /** Optional for profiles cached before coaches existed. */
+  coaches?: ClientCoachesDto;
 }
 
 export interface LedgerLineDto {
@@ -187,6 +343,9 @@ export interface GroupDto {
   defaultVenueId: string | null;
   memberCount: number;
   archivedAt: number | null;
+  /** The program's lead coach and assistants. */
+  coachUserId: string | null;
+  assistantCoachIds: string[];
 }
 
 export interface GroupDetailDto {
@@ -214,6 +373,8 @@ export interface SeriesDto {
   venueId: string | null;
   court: string | null;
   active: boolean;
+  coachUserId: string | null;
+  assistantCoachIds: string[];
 }
 
 export interface RateDto {
@@ -254,6 +415,9 @@ export interface LessonSummaryDto {
   bookedCount: number;
   checkedInCount: number;
   capacity: number | null;
+  /** Lead coach and assistants (user ids). Reminders go to them; "My schedule" filters on them. */
+  coachUserId: string | null;
+  assistantCoachIds: string[];
 }
 
 export interface RosterEntryDto {
@@ -344,6 +508,8 @@ export interface EventDto {
   waitlistCount: number;
   paidMinor: number;
   dueMinor: number;
+  coachUserId: string | null;
+  assistantCoachIds: string[];
 }
 
 export interface EventDetailDto {
@@ -434,6 +600,11 @@ export interface AssessmentDto {
   notes: string | null;
   lessonId: string | null;
   scores: { skillId: string; score: number; note: string | null }[];
+  /** Shown to the student and parents in the family portal (on by default). */
+  sharedWithFamily: boolean;
+  createdBy: string | null;
+  author: CoachRefDto | null;
+  createdAt: number;
 }
 
 export interface GoalDto {
@@ -444,6 +615,8 @@ export interface GoalDto {
   status: GoalStatus;
   achievedOn: string | null;
   createdAt: number;
+  createdBy: string | null;
+  author: CoachRefDto | null;
 }
 
 export interface RatingDto {
@@ -461,6 +634,15 @@ export interface NoteDto {
   pinned: boolean;
   createdAt: number;
   updatedAt: number;
+  /** Who wrote it. Only they may change its text or visibility. */
+  createdBy: string | null;
+  author: CoachRefDto | null;
+  /** `staff` = coaches only (default); `shared` = also the student and their parents. */
+  visibility: NoteVisibility;
+  /** Handoff notes are written when the primary coach changes; always coaches only. */
+  kind: NoteKind;
+  /** Set when the author changed the text or visibility. */
+  editedAt: number | null;
   /** Client-only: set while waiting to sync. */
   pending?: boolean;
 }

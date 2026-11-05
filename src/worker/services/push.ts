@@ -1,11 +1,12 @@
 import { buildPushHTTPRequest } from "@pushforge/builder";
-import { and, eq, gte, isNotNull, lt, sql } from "drizzle-orm";
+import { and, eq, gte, isNotNull, isNull, like, lt, sql } from "drizzle-orm";
 import { LESSON_KIND_LABELS } from "../../shared/domain";
 import { uuidv7 } from "../../shared/ids";
 import { can } from "../../shared/roles";
 import { addDays, localDate, localTime, todayIn } from "../../shared/time";
 import type { Db } from "../db/client";
 import {
+  clientCoach,
   clientPackage,
   idempotencyKey,
   lesson,
@@ -13,11 +14,13 @@ import {
   notificationLog,
   notificationPref,
   pushSubscription,
+  rateLimit,
   workspaceSettings,
 } from "../db/schema";
 import { remainingExpr } from "./credits";
 import { lessonSummaries } from "./lessons";
 import { balancesFor } from "./money";
+import { digestScope, digestSessions, isRecipient, type StaffRef } from "./reminders";
 
 export interface PushPayload {
   title: string;
@@ -118,7 +121,7 @@ function inWindow(localHHMM: string, targetHHMM: string, windowMinutes: number):
   return diff >= 0 && diff < windowMinutes;
 }
 
-/** Every 5 minutes: session reminders and per-coach daily digests. */
+/** Every 5 minutes: session reminders and per-person daily digests. */
 export async function runReminders(db: Db, env: Env, now: Date) {
   if (!pushConfigured(env)) return;
   const targets = await db
@@ -146,9 +149,24 @@ export async function runReminders(db: Db, env: Env, now: Date) {
       sql`exists (select 1 from push_subscription ps where ps.user_id = "notification_pref"."user_id")`,
     );
 
+  // Who is on each academy's team, for working out who hears about which session.
+  const teams = new Map<string, StaffRef[]>();
+  const teamOf = async (workspaceId: string) => {
+    let team = teams.get(workspaceId);
+    if (!team) {
+      team = await db
+        .select({ userId: member.userId, role: member.role })
+        .from(member)
+        .where(eq(member.organizationId, workspaceId));
+      teams.set(workspaceId, team);
+    }
+    return team;
+  };
+
   const t = now.getTime();
   for (const target of targets) {
     const scope = { db, workspaceId: target.workspaceId };
+    const team = await teamOf(target.workspaceId);
     if (target.lead) {
       const from = t + (target.lead - 5) * 60_000;
       const to = t + target.lead * 60_000;
@@ -156,7 +174,10 @@ export async function runReminders(db: Db, env: Env, now: Date) {
         scope,
         and(eq(lesson.status, "scheduled"), gte(lesson.startsAt, from), lt(lesson.startsAt, to)),
       );
-      for (const { summary, row } of upcoming) {
+      // A session's lead and assistants hear about it; one without a coach goes to owners/admins.
+      for (const { summary, row } of upcoming.filter((u) =>
+        isRecipient(u.row, target.userId, team),
+      )) {
         const title =
           row.kind === "private" || row.kind === "semi_private"
             ? LESSON_KIND_LABELS[row.kind]
@@ -181,7 +202,10 @@ export async function runReminders(db: Db, env: Env, now: Date) {
 
     if (target.digest && inWindow(localTime(t, target.timezone), target.digest, 5)) {
       const date = todayIn(target.timezone, t);
-      const [lessonsToday, expiring, balances] = await Promise.all([
+      const me = { userId: target.userId, role: target.role };
+      // Owners and admins get the whole academy; a coach gets their sessions and students.
+      const academyWide = digestScope(target.role) === "academy";
+      const [lessonsToday, expiring, balances, students] = await Promise.all([
         lessonSummaries(
           scope,
           and(
@@ -191,7 +215,11 @@ export async function runReminders(db: Db, env: Env, now: Date) {
           ),
         ),
         db
-          .select({ id: clientPackage.id, remaining: remainingExpr })
+          .select({
+            id: clientPackage.id,
+            clientId: clientPackage.clientId,
+            remaining: remainingExpr,
+          })
           .from(clientPackage)
           .where(
             and(
@@ -203,15 +231,34 @@ export async function runReminders(db: Db, env: Env, now: Date) {
           ),
         // Who owes is money: only in the digest of roles that may see it.
         can(target.role, "money") ? balancesFor(scope) : Promise.resolve(new Map<string, number>()),
+        academyWide
+          ? Promise.resolve(null)
+          : db
+              .select({ clientId: clientCoach.clientId })
+              .from(clientCoach)
+              .where(
+                and(
+                  eq(clientCoach.workspaceId, target.workspaceId),
+                  eq(clientCoach.coachUserId, target.userId),
+                  isNull(clientCoach.endedOn),
+                ),
+              ),
       ]);
-      const todays = lessonsToday.filter(
-        (l) => localDate(l.summary.startsAt, target.timezone) === date,
+      const mine = students ? new Set(students.map((s) => s.clientId)) : null;
+      const todays = digestSessions(
+        lessonsToday
+          .filter((l) => localDate(l.summary.startsAt, target.timezone) === date)
+          .map((l) => ({ ...l.summary })),
+        me,
+        team,
       );
-      const expiringCount = expiring.filter((p) => Number(p.remaining) > 0).length;
+      const expiringCount = expiring.filter(
+        (p) => Number(p.remaining) > 0 && (!mine || mine.has(p.clientId)),
+      ).length;
       const owing = [...balances.values()].filter((b) => b > 0).length;
       const parts = [
         todays.length
-          ? `${todays.length} ${todays.length === 1 ? "session" : "sessions"}, first at ${localTime(todays[0]?.summary.startsAt ?? t, target.timezone)}`
+          ? `${todays.length} ${todays.length === 1 ? "session" : "sessions"}, first at ${localTime(todays[0]?.startsAt ?? t, target.timezone)}`
           : "No sessions today",
         expiringCount
           ? `${expiringCount} ${expiringCount === 1 ? "package expires" : "packages expire"} soon`
@@ -258,4 +305,10 @@ export async function runMaintenance(
   await db
     .delete(notificationLog)
     .where(lt(notificationLog.sentAt, now.getTime() - 90 * 86_400_000));
+  // Our own rate-limit counters (lib/rate-limit.ts) last a minute; a day-old one is clutter.
+  await db
+    .delete(rateLimit)
+    .where(
+      and(like(rateLimit.key, "coachman:%"), lt(rateLimit.lastRequest, now.getTime() - 86_400_000)),
+    );
 }

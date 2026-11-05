@@ -1,0 +1,88 @@
+import { and, eq } from "drizzle-orm";
+import type { Context } from "hono";
+import { Hono } from "hono";
+import { can } from "../../shared/roles";
+import { coachProfileUpdateSchema } from "../../shared/schemas";
+import { coachProfile } from "../db/schema";
+import { auditEntry } from "../lib/audit";
+import { notFound } from "../lib/errors";
+import { publicKey, readImage } from "../lib/uploads";
+import { v } from "../lib/validate";
+import { assertCan, ctxOf } from "../middleware";
+import { ensureCoachProfile, staffRows, toCoachProfile, toCoachSummary } from "../services/coaches";
+import { runBatch } from "../services/credits";
+import type { AppBindings, Ctx } from "../types";
+
+/** Yourself, or anyone on the team when you manage it (`team`). */
+async function targetCoach(c: Context<AppBindings>) {
+  const ctx = ctxOf(c);
+  const userId = c.req.param("userId") ?? "";
+  if (userId !== ctx.userId && !can(ctx.role, "team")) {
+    // Drain the body first: Miniflare's local proxy can fail a request answered unread.
+    if (c.req.method !== "GET") await c.req.raw.arrayBuffer().catch(() => undefined);
+    assertCan(ctx.role, "team");
+  }
+  const row = (await staffRows(ctx.db, ctx.workspaceId)).find((s) => s.userId === userId);
+  if (!row) throw notFound("Coach");
+  // Members from before profiles existed get one before their first change (reads use defaults).
+  if (c.req.method !== "GET") await ensureCoachProfile(ctx.db, ctx.workspaceId, userId);
+  return { ctx, row };
+}
+
+async function loadProfile(ctx: Ctx, userId: string) {
+  const row = (await staffRows(ctx.db, ctx.workspaceId)).find((s) => s.userId === userId);
+  if (!row) throw notFound("Coach");
+  return toCoachProfile(row);
+}
+
+const profileWhere = (ctx: Ctx, userId: string) =>
+  and(eq(coachProfile.workspaceId, ctx.workspaceId), eq(coachProfile.userId, userId));
+
+/**
+ * Coach profiles (staff API). Everyone on the team lists the coaches (pickers, avatars); each person
+ * edits their own profile, and people who manage the team (`team`) edit anyone's. Photos are public
+ * R2 keys (ws/<id>/public/coaches/…) because the academy page shows them.
+ */
+export const coachRoutes = new Hono<AppBindings>()
+  .get("/coaches", async (c) => {
+    const rows = await staffRows(c.var.db, c.var.workspaceId);
+    return c.json(rows.map(toCoachSummary));
+  })
+
+  .get("/coaches/:userId", async (c) => {
+    const { ctx, row } = await targetCoach(c);
+    return c.json(await loadProfile(ctx, row.userId));
+  })
+
+  .patch("/coaches/:userId", v("json", coachProfileUpdateSchema), async (c) => {
+    const { ctx, row } = await targetCoach(c);
+    const input = c.req.valid("json");
+    // The order coaches appear in on the academy page is the academy's call.
+    if (input.sortOrder !== undefined) assertCan(ctx.role, "team");
+    const set: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(input)) if (value !== undefined) set[key] = value;
+    if (Object.keys(set).length) {
+      await runBatch(ctx, [
+        ctx.db.update(coachProfile).set(set).where(profileWhere(ctx, row.userId)),
+        auditEntry(ctx, "update", "coach_profile", row.userId, { fields: Object.keys(set) }),
+      ]);
+    }
+    return c.json(await loadProfile(ctx, row.userId));
+  })
+
+  .put("/coaches/:userId/photo", async (c) => {
+    const { ctx, row } = await targetCoach(c);
+    const image = await readImage(c, "photo");
+    const key = publicKey.coachPhoto(ctx.workspaceId, row.userId, image.ext);
+    await ctx.env.FILES.put(key, image.body, { httpMetadata: { contentType: image.type } });
+    await ctx.db.update(coachProfile).set({ photoKey: key }).where(profileWhere(ctx, row.userId));
+    if (row.photoKey) await ctx.env.FILES.delete(row.photoKey);
+    return c.json({ photoKey: key });
+  })
+
+  .delete("/coaches/:userId/photo", async (c) => {
+    const { ctx, row } = await targetCoach(c);
+    await ctx.db.update(coachProfile).set({ photoKey: null }).where(profileWhere(ctx, row.userId));
+    if (row.photoKey) await ctx.env.FILES.delete(row.photoKey);
+    return c.body(null, 204);
+  });

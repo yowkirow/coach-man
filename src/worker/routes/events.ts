@@ -13,6 +13,7 @@ import { auditEntry } from "../lib/audit";
 import { badRequest, conflict, notFound } from "../lib/errors";
 import { v } from "../lib/validate";
 import { assertCan, ctxOf, requireCap } from "../middleware";
+import { programCoaches } from "../services/coaches";
 import { runBatch } from "../services/credits";
 import { bookClientsIntoLessons, lessonSummaries } from "../services/lessons";
 import { rebuildAllocations } from "../services/money";
@@ -58,6 +59,8 @@ function toEventDto(r: {
     waitlistCount: Number(r.waitlisted),
     paidMinor: Number(r.paid),
     dueMinor: Math.max(0, Number(r.billed) - Number(r.paid)),
+    coachUserId: e.coachUserId,
+    assistantCoachIds: e.assistantCoachIds ?? [],
   };
 }
 
@@ -181,10 +184,19 @@ export const eventRoutes = new Hono<AppBindings>()
     if (compareDates(input.endsOn, input.startsOn) < 0)
       throw badRequest("The event ends before it starts.");
     const id = input.id ?? uuidv7();
+    // Whoever creates the event leads it unless the request names someone (or nobody).
+    const coaches = await programCoaches(ctx, {
+      coachUserId: input.coachUserId === undefined ? ctx.userId : input.coachUserId,
+      assistantCoachIds: input.assistantCoachIds,
+    });
     await runBatch(ctx, [
-      ctx.db
-        .insert(event)
-        .values({ ...input, id, workspaceId: ctx.workspaceId, status: input.status ?? "open" }),
+      ctx.db.insert(event).values({
+        ...input,
+        ...coaches,
+        id,
+        workspaceId: ctx.workspaceId,
+        status: input.status ?? "open",
+      }),
       auditEntry(ctx, "create", "event", id),
     ]);
     return c.json(toEventDto(await loadEvent(ctx, id)), 201);
@@ -233,7 +245,11 @@ export const eventRoutes = new Hono<AppBindings>()
     const startsOn = input.startsOn ?? before.e.startsOn;
     const endsOn = input.endsOn ?? before.e.endsOn;
     if (compareDates(endsOn, startsOn) < 0) throw badRequest("The event ends before it starts.");
-    await ctx.db.update(event).set(input).where(eq(event.id, before.e.id));
+    const coaches = await programCoaches(ctx, input, before.e);
+    await ctx.db
+      .update(event)
+      .set({ ...input, ...coaches })
+      .where(eq(event.id, before.e.id));
     const after = await loadEvent(ctx, before.e.id);
     if (
       (after.e.capacity ?? Infinity) > (before.e.capacity ?? Infinity) ||

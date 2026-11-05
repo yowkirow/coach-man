@@ -1,5 +1,6 @@
 import { and, asc, eq, gte, inArray, isNull, lt, ne, type SQL, sql } from "drizzle-orm";
 import type {
+  CoachRefDto,
   LessonDetailDto,
   LessonSummaryDto,
   NoteDto,
@@ -41,6 +42,7 @@ import {
 import { badRequest, notFound } from "../lib/errors";
 import { inList, unique } from "../lib/sql";
 import type { Ctx } from "../types";
+import { cleanCoaches, coachRefs, staffIds } from "./coaches";
 import {
   effectivePrice,
   packagesForClients,
@@ -101,6 +103,8 @@ export async function lessonSummaries(
       bookedCount: Number(r.bookedCount),
       checkedInCount: Number(r.checkedInCount),
       capacity: r.lesson.capacity,
+      coachUserId: r.lesson.coachUserId,
+      assistantCoachIds: r.lesson.assistantCoachIds ?? [],
     } satisfies LessonSummaryDto,
   }));
 }
@@ -243,6 +247,11 @@ async function lessonDetails(
           .where(and(eq(rate.workspaceId, workspaceId), inList(rate.id, rateIds)))
       : Promise.resolve([]),
   ]);
+  const authors = await coachRefs(
+    db,
+    workspaceId,
+    notes.map((n) => n.createdBy),
+  );
   const rateById = new Map(rates.map((r) => [r.id, r]));
   return items.map((i) => ({
     lesson: {
@@ -258,11 +267,14 @@ async function lessonDetails(
       occurrenceDate: i.row.occurrenceDate,
     },
     roster: rosters.get(i.row.id) ?? [],
-    notes: notes.filter((n) => n.lessonId === i.row.id).map(toNoteDto),
+    notes: notes.filter((n) => n.lessonId === i.row.id).map((n) => toNoteDto(n, authors)),
   }));
 }
 
-export function toNoteDto(n: typeof note.$inferSelect): NoteDto {
+export function toNoteDto(
+  n: typeof note.$inferSelect,
+  authors: Map<string, CoachRefDto> = new Map(),
+): NoteDto {
   return {
     id: n.id,
     clientId: n.clientId,
@@ -271,6 +283,11 @@ export function toNoteDto(n: typeof note.$inferSelect): NoteDto {
     pinned: n.pinned,
     createdAt: n.createdAt,
     updatedAt: n.updatedAt,
+    createdBy: n.createdBy,
+    author: n.createdBy ? (authors.get(n.createdBy) ?? null) : null,
+    visibility: n.visibility,
+    kind: n.kind,
+    editedAt: n.editedAt,
   };
 }
 
@@ -501,6 +518,8 @@ export async function materializeSeries(
       seriesId: s.id,
       occurrenceDate: d,
       detached: false,
+      coachUserId: s.coachUserId,
+      assistantCoachIds: s.assistantCoachIds ?? [],
       createdAt: now,
       updatedAt: now,
     });
@@ -520,17 +539,44 @@ export async function materializeSeries(
   return lessons.map((l) => l.id as string);
 }
 
+/**
+ * Lead and assistant coaches for new sessions: what the request says, else the group's or event's
+ * coaches (those still on the team), else whoever schedules them as the lead.
+ */
+async function sessionCoaches(
+  ctx: Ctx,
+  input: Pick<LessonCreateInput, "coachUserId" | "assistantCoachIds">,
+  source: { coachUserId: string | null; assistantCoachIds: string[] } | undefined,
+) {
+  const team = await staffIds(ctx.db, ctx.workspaceId);
+  const explicit = [input.coachUserId, ...(input.assistantCoachIds ?? [])].filter(
+    (id): id is string => Boolean(id),
+  );
+  if (explicit.some((id) => !team.has(id))) {
+    throw badRequest("Pick coaches from your team.", {
+      fields: { coachUserId: "That person isn't on your team." },
+    });
+  }
+  const fromSource =
+    source?.coachUserId && team.has(source.coachUserId) ? source.coachUserId : null;
+  const lead = input.coachUserId !== undefined ? input.coachUserId : (fromSource ?? ctx.userId);
+  const assistants =
+    input.assistantCoachIds ?? (source?.assistantCoachIds ?? []).filter((id) => team.has(id));
+  return cleanCoaches(lead, assistants);
+}
+
 export async function createLessons(
   ctx: Ctx,
   input: LessonCreateInput,
 ): Promise<{ lessonIds: string[]; seriesId: string | null }> {
   const { db, workspaceId, settings } = ctx;
   const tz = settings.timezone;
+  let grp: typeof trainingGroup.$inferSelect | undefined;
   if (input.groupId) {
-    const g = await db.query.trainingGroup.findFirst({
+    grp = await db.query.trainingGroup.findFirst({
       where: and(eq(trainingGroup.id, input.groupId), eq(trainingGroup.workspaceId, workspaceId)),
     });
-    if (!g) throw notFound("Group");
+    if (!grp) throw notFound("Group");
   }
   let ev: typeof event.$inferSelect | undefined;
   if (input.eventId) {
@@ -547,13 +593,14 @@ export async function createLessons(
       .where(and(eq(client.workspaceId, workspaceId), inList(client.id, clientIds)));
     if (found.length !== clientIds.length) throw badRequest("Some clients were not found.");
   }
+  const coaches = await sessionCoaches(ctx, input, grp ?? ev);
 
   if (input.recurrence) {
     if (input.recurrence.endsOn && compareDates(input.recurrence.endsOn, input.date) < 0) {
       throw badRequest("The repeat end date is before the first session.");
     }
     // A series can't carry its event, so event sessions are added one by one instead.
-    if (ev) return createEventSessions(ctx, input, input.recurrence, ev, clientIds);
+    if (ev) return createEventSessions(ctx, input, input.recurrence, ev, clientIds, coaches);
     const seriesId = input.id ?? uuidv7();
     const row: typeof lessonSeries.$inferInsert = {
       id: seriesId,
@@ -575,6 +622,7 @@ export async function createLessons(
       participantIds: input.groupId ? [] : clientIds,
       materializedThrough: null,
       active: true,
+      ...coaches,
     };
     await db.insert(lessonSeries).values(row);
     const created = await db.query.lessonSeries.findFirst({ where: eq(lessonSeries.id, seriesId) });
@@ -623,6 +671,7 @@ export async function createLessons(
       capacity: input.capacity ?? null,
       notes: input.notes ?? null,
       status: "scheduled",
+      ...coaches,
     }),
     ...chunkRows(attendanceRows(ctx, id, participants), 9).map((rows) =>
       db.insert(attendance).values(rows).onConflictDoNothing(),
@@ -641,6 +690,7 @@ async function createEventSessions(
   recurrence: NonNullable<LessonCreateInput["recurrence"]>,
   ev: typeof event.$inferSelect,
   clientIds: readonly string[],
+  coaches: { coachUserId: string | null; assistantCoachIds: string[] },
 ): Promise<{ lessonIds: string[]; seriesId: null }> {
   const { db, workspaceId, settings } = ctx;
   const from = compareDates(input.date, ev.startsOn) < 0 ? ev.startsOn : input.date;
@@ -694,6 +744,8 @@ async function createEventSessions(
       notes: i === 0 ? (input.notes ?? null) : null,
       status: "scheduled" as const,
       detached: false,
+      coachUserId: coaches.coachUserId,
+      assistantCoachIds: coaches.assistantCoachIds,
       createdAt: now,
       updatedAt: now,
     } satisfies typeof lesson.$inferInsert;

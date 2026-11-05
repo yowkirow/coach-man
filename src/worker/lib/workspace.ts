@@ -5,6 +5,7 @@ import { normalizeRole, type StaffRole } from "../../shared/roles";
 import { rubricFor } from "../../shared/rubric";
 import { chunkRows, type Db } from "../db/client";
 import {
+  academyProfile,
   coachProfile,
   member,
   notificationPref,
@@ -69,9 +70,9 @@ export function skillRows(workspaceId: string, sport: string) {
 
 /**
  * Creates a workspace (a one-person academy) owned by the user: organization + owner membership,
- * their coach profile, settings, notification preferences, and the default pickleball rubric.
- * Idempotent per user: returns the workspace they already own, if any. Joining someone else's
- * academy as staff doesn't count.
+ * their coach profile, the academy profile, settings, notification preferences, and the default
+ * pickleball rubric. Idempotent per user: returns the workspace they already own, if any. Joining
+ * someone else's academy as staff doesn't count.
  */
 export async function provisionWorkspace(
   db: Db,
@@ -106,6 +107,7 @@ export async function provisionWorkspace(
         createdAt: now,
       }),
       db.insert(coachProfile).values({ id: uuidv7(), workspaceId, userId: user.id }),
+      db.insert(academyProfile).values({ workspaceId }),
       db.insert(workspaceSettings).values({ workspaceId, paymentMethods: DEFAULT_PAYMENT_METHODS }),
       ...(hasPrefs ? [] : [db.insert(notificationPref).values({ userId: user.id, workspaceId })]),
       ...chunkRows(skills, 9).map((rows) => db.insert(skill).values(rows)),

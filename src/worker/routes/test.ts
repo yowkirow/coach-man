@@ -8,7 +8,7 @@ import { uuidv7 } from "../../shared/ids";
 import { normalizeRole, STAFF_ROLES } from "../../shared/roles";
 import { todayIn } from "../../shared/time";
 import { getDb } from "../db/client";
-import { client, clientAccess, organization, workspaceSettings } from "../db/schema";
+import { client, clientAccess, invite, organization, workspaceSettings } from "../db/schema";
 import { E2E_HEADER, isBypassRequestAllowed } from "../lib/bypass";
 import { ApiError, notFound, noWorkspace, unauthorized } from "../lib/errors";
 import { v } from "../lib/validate";
@@ -70,6 +70,7 @@ const familySchema = z.object({
  * - POST /sign-in { email, name, persona?: "coach" | "none" } signs in (see auth.ts e2eSignIn).
  * - POST /member { email, name, role } adds a user to the caller's workspace as staff.
  * - POST /family { clientId, email, name, relation, force? } links a user to a student.
+ * - POST /expire-invite { inviteId } makes one of the caller's academy's invites expire now.
  * - POST /seed fills the caller's workspace with the sample data; POST /reset deletes the
  *   workspaces the caller owns.
  */
@@ -160,6 +161,19 @@ export const testRoutes = new Hono<AppBindings>()
       if (normalizeRole(m.role) !== "owner") continue;
       await db.delete(organization).where(eq(organization.id, m.workspaceId));
     }
+    return c.body(null, 204);
+  })
+
+  /** Makes one of the caller's academy's invites expire now (invites otherwise last 7 days). */
+  .post("/expire-invite", v("json", z.object({ inviteId: z.string().min(1) })), async (c) => {
+    const { workspaceId } = await callerWorkspace(c);
+    const { inviteId } = c.req.valid("json");
+    const res = await getDb(c.env.DB)
+      .update(invite)
+      .set({ expiresAt: Date.now() - 1000 })
+      .where(and(eq(invite.id, inviteId), eq(invite.workspaceId, workspaceId)))
+      .returning({ id: invite.id });
+    if (!res.length) throw notFound("Invite");
     return c.body(null, 204);
   })
 

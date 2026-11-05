@@ -2,14 +2,17 @@ import { and, asc, desc, eq, max } from "drizzle-orm";
 import { Hono } from "hono";
 import type {
   AssessmentDto,
+  CoachRefDto,
   GoalDto,
   ProgressDto,
   RatingDto,
   SkillDto,
 } from "../../shared/api-types";
 import { uuidv7 } from "../../shared/ids";
+import { canDeleteNote, noteVisibilityFor, planNoteUpdate } from "../../shared/notes";
 import {
   assessmentSchema,
+  assessmentUpdateSchema,
   goalSchema,
   noteSchema,
   noteUpdateSchema,
@@ -29,14 +32,18 @@ import {
   ratingSnapshot,
   skill,
 } from "../db/schema";
-import { badRequest, notFound } from "../lib/errors";
+import { ApiError, badRequest, notFound } from "../lib/errors";
 import { idempotent } from "../lib/idempotency";
 import { inList, unique } from "../lib/sql";
 import { v } from "../lib/validate";
 import { ctxOf, requireCap } from "../middleware";
+import { coachRefs } from "../services/coaches";
 import { runBatch } from "../services/credits";
 import { toNoteDto } from "../services/lessons";
 import type { AppBindings, Ctx } from "../types";
+
+type Authors = Map<string, CoachRefDto>;
+const authorOf = (id: string | null, authors: Authors) => (id ? (authors.get(id) ?? null) : null);
 
 const toSkillDto = (s: typeof skill.$inferSelect): SkillDto => ({
   id: s.id,
@@ -47,7 +54,7 @@ const toSkillDto = (s: typeof skill.$inferSelect): SkillDto => ({
   active: s.active,
 });
 
-const toGoalDto = (g: typeof goal.$inferSelect): GoalDto => ({
+const toGoalDto = (g: typeof goal.$inferSelect, authors: Authors): GoalDto => ({
   id: g.id,
   title: g.title,
   detail: g.detail,
@@ -55,6 +62,8 @@ const toGoalDto = (g: typeof goal.$inferSelect): GoalDto => ({
   status: g.status,
   achievedOn: g.achievedOn,
   createdAt: g.createdAt,
+  createdBy: g.createdBy,
+  author: authorOf(g.createdBy, authors),
 });
 
 const toRatingDto = (r: typeof ratingSnapshot.$inferSelect): RatingDto => ({
@@ -130,6 +139,11 @@ async function loadProgress(ctx: Ctx, clientId: string): Promise<ProgressDto> {
       .orderBy(desc(note.pinned), desc(note.createdAt))
       .limit(200),
   ]);
+  const authors = await coachRefs(db, workspaceId, [
+    ...assessments.map((a) => a.createdBy),
+    ...goals.map((g) => g.createdBy),
+    ...notes.map((n) => n.createdBy),
+  ]);
   return {
     skills: skills.map(toSkillDto),
     assessments: assessments.map(
@@ -142,12 +156,28 @@ async function loadProgress(ctx: Ctx, clientId: string): Promise<ProgressDto> {
         scores: scores
           .filter((s) => s.s.assessmentId === a.id)
           .map((s) => ({ skillId: s.s.skillId, score: s.s.score, note: s.s.note })),
+        sharedWithFamily: a.sharedWithFamily,
+        createdBy: a.createdBy,
+        author: authorOf(a.createdBy, authors),
+        createdAt: a.createdAt,
       }),
     ),
-    goals: goals.map(toGoalDto),
+    goals: goals.map((g) => toGoalDto(g, authors)),
     ratings: ratings.map(toRatingDto),
-    notes: notes.map(toNoteDto),
+    notes: notes.map((n) => toNoteDto(n, authors)),
   };
+}
+
+async function loadNote(ctx: Ctx, id: string) {
+  const row = await ctx.db.query.note.findFirst({
+    where: and(eq(note.id, id), eq(note.workspaceId, ctx.workspaceId)),
+  });
+  if (!row) throw notFound("Note");
+  return row;
+}
+
+async function noteDto(ctx: Ctx, row: typeof note.$inferSelect) {
+  return toNoteDto(row, await coachRefs(ctx.db, ctx.workspaceId, [row.createdBy]));
 }
 
 export const progressRoutes = new Hono<AppBindings>()
@@ -234,6 +264,7 @@ export const progressRoutes = new Hono<AppBindings>()
         notes: input.notes ?? null,
         lessonId: input.lessonId ?? null,
         createdBy: ctx.userId,
+        sharedWithFamily: input.sharedWithFamily ?? true,
       }),
       ...chunkRows(scoreRows(ctx, id, input.scores), 6).map((rows) =>
         ctx.db.insert(assessmentScore).values(rows),
@@ -245,30 +276,36 @@ export const progressRoutes = new Hono<AppBindings>()
     return c.json(await loadProgress(ctx, clientId), 201);
   })
 
-  .patch("/assessments/:id", v("json", assessmentSchema), async (c) => {
+  .patch("/assessments/:id", v("json", assessmentUpdateSchema), async (c) => {
     const ctx = ctxOf(c);
     const row = await ctx.db.query.assessment.findFirst({
       where: and(eq(assessment.id, c.req.param("id")), eq(assessment.workspaceId, ctx.workspaceId)),
     });
     if (!row) throw notFound("Assessment");
     const input = c.req.valid("json");
-    await validateSkills(
-      ctx,
-      input.scores.map((s) => s.skillId),
-    );
+    if (input.scores) {
+      await validateSkills(
+        ctx,
+        input.scores.map((s) => s.skillId),
+      );
+    }
+    const set: Partial<typeof assessment.$inferInsert> = {};
+    if (input.assessedOn !== undefined) set.assessedOn = input.assessedOn;
+    if (input.overallLevel !== undefined) set.overallLevel = input.overallLevel ?? null;
+    if (input.notes !== undefined) set.notes = input.notes ?? null;
+    if (input.sharedWithFamily !== undefined) set.sharedWithFamily = input.sharedWithFamily;
     await runBatch(ctx, [
-      ctx.db
-        .update(assessment)
-        .set({
-          assessedOn: input.assessedOn,
-          overallLevel: input.overallLevel ?? null,
-          notes: input.notes ?? null,
-        })
-        .where(eq(assessment.id, row.id)),
-      ctx.db.delete(assessmentScore).where(eq(assessmentScore.assessmentId, row.id)),
-      ...chunkRows(scoreRows(ctx, row.id, input.scores), 6).map((rows) =>
-        ctx.db.insert(assessmentScore).values(rows),
-      ),
+      ...(Object.keys(set).length
+        ? [ctx.db.update(assessment).set(set).where(eq(assessment.id, row.id))]
+        : []),
+      ...(input.scores
+        ? [
+            ctx.db.delete(assessmentScore).where(eq(assessmentScore.assessmentId, row.id)),
+            ...chunkRows(scoreRows(ctx, row.id, input.scores), 6).map((rows) =>
+              ctx.db.insert(assessmentScore).values(rows),
+            ),
+          ]
+        : []),
     ]);
     return c.json(await loadProgress(ctx, row.clientId));
   })
@@ -296,6 +333,7 @@ export const progressRoutes = new Hono<AppBindings>()
       detail: input.detail ?? null,
       targetDate: input.targetDate ?? null,
       status: input.status ?? "active",
+      createdBy: ctx.userId,
     });
     return c.json(await loadProgress(ctx, clientId), 201);
   })
@@ -378,6 +416,7 @@ export const progressRoutes = new Hono<AppBindings>()
       const id = input.id ?? uuidv7();
       const existing = await ctx.db.query.note.findFirst({ where: eq(note.id, id) });
       if (!existing) {
+        const kind = input.kind ?? "comment";
         await ctx.db.insert(note).values({
           id,
           workspaceId: ctx.workspaceId,
@@ -386,28 +425,43 @@ export const progressRoutes = new Hono<AppBindings>()
           body: input.body,
           pinned: input.pinned ?? false,
           createdBy: ctx.userId,
+          kind,
+          // Handoff notes stay among coaches whatever the request says.
+          visibility: noteVisibilityFor(kind, input.visibility),
         });
       }
-      const row = await ctx.db.query.note.findFirst({ where: eq(note.id, id) });
-      return c.json(toNoteDto(row as typeof note.$inferSelect), 201);
+      const row = await ctx.db.query.note.findFirst({
+        where: and(eq(note.id, id), eq(note.workspaceId, ctx.workspaceId)),
+      });
+      if (!row) throw notFound("Note");
+      return c.json(await noteDto(ctx, row), 201);
     });
   })
 
   .patch("/notes/:id", v("json", noteUpdateSchema), async (c) => {
-    const res = await c.var.db
+    const ctx = ctxOf(c);
+    const row = await loadNote(ctx, c.req.param("id"));
+    const plan = planNoteUpdate(ctx.userId, row, c.req.valid("json"), Date.now());
+    if (!plan.ok) throw new ApiError(403, "forbidden", plan.message);
+    if (!Object.keys(plan.set).length) return c.json(await noteDto(ctx, row));
+    const [updated] = await ctx.db
       .update(note)
-      .set(c.req.valid("json"))
-      .where(and(eq(note.id, c.req.param("id")), eq(note.workspaceId, c.var.workspaceId)))
+      .set(plan.set)
+      .where(eq(note.id, row.id))
       .returning();
-    if (!res[0]) throw notFound("Note");
-    return c.json(toNoteDto(res[0]));
+    return c.json(await noteDto(ctx, updated ?? row));
   })
 
   .delete("/notes/:id", async (c) => {
-    const res = await c.var.db
-      .delete(note)
-      .where(and(eq(note.id, c.req.param("id")), eq(note.workspaceId, c.var.workspaceId)))
-      .returning({ id: note.id });
-    if (!res[0]) throw notFound("Note");
+    const ctx = ctxOf(c);
+    const row = await loadNote(ctx, c.req.param("id"));
+    if (!canDeleteNote({ userId: ctx.userId, role: ctx.role }, row)) {
+      throw new ApiError(
+        403,
+        "forbidden",
+        "Only the coach who wrote this note, or the academy's owner and admins, can delete it.",
+      );
+    }
+    await ctx.db.delete(note).where(eq(note.id, row.id));
     return c.body(null, 204);
   });

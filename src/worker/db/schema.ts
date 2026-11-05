@@ -775,6 +775,8 @@ export const goal = sqliteTable(
     targetDate: text(),
     status: text().$type<GoalStatus>().notNull().default("active"),
     achievedOn: text(),
+    /** The coach who set the goal (null on goals from before coaches were tracked). */
+    createdBy: text(),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },

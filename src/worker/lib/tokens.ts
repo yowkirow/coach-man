@@ -4,6 +4,8 @@
  * turned back into working links.
  */
 
+import type { InviteStatus } from "../../shared/domain";
+
 export const TOKEN_BYTES = 32;
 /** Invite links work for seven days. */
 export const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -30,7 +32,7 @@ export async function newToken(): Promise<{ token: string; hash: string }> {
 
 export const isTokenShaped = (value: string) => TOKEN_RE.test(value);
 
-export type InviteStatus = "valid" | "expired" | "used" | "revoked";
+export type { InviteStatus };
 
 /** Where an invite stands at `now`. Revoked and used win over expired. */
 export function inviteStatus(

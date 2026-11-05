@@ -1,11 +1,16 @@
 import { z } from "zod";
 import {
+  ACADEMY_SOCIALS,
   ATTENDANCE_STATUSES,
   CLIENT_STATUSES,
   EVENT_KINDS,
   EVENT_STATUSES,
   GOAL_STATUSES,
+  isAcademySlug,
+  isHttpUrl,
   LESSON_KINDS,
+  NOTE_KINDS,
+  NOTE_VISIBILITIES,
   RATE_KINDS,
   RATE_UNITS,
   RATING_SOURCES,
@@ -14,9 +19,13 @@ import {
   SCORE_MIN,
 } from "./domain";
 import { UUID_RE } from "./ids";
+import { STAFF_ROLES } from "./roles";
 import { DATE_RE, isValidTimeZone, TIME_RE } from "./time";
 
 const id = z.string().regex(UUID_RE, "Invalid id");
+/** A Better Auth user id (a staff member's); membership is checked by the server. */
+const userId = z.string().trim().min(1).max(64);
+const coachIds = z.array(userId).max(10);
 const date = z.string().regex(DATE_RE, "Use YYYY-MM-DD");
 const time = z.string().regex(TIME_RE, "Use HH:MM");
 const trimmed = (max: number) => z.string().trim().max(max);
@@ -25,6 +34,23 @@ const optionalText = (max: number) =>
     .string()
     .trim()
     .max(max)
+    .transform((v) => (v === "" ? null : v))
+    .nullable()
+    .optional();
+const optionalEmail = z
+  .string()
+  .trim()
+  .max(120)
+  .transform((v) => (v === "" ? null : v.toLowerCase()))
+  .pipe(z.email("That email doesn't look complete.").nullable())
+  .nullable()
+  .optional();
+const optionalLink = (max: number) =>
+  z
+    .string()
+    .trim()
+    .max(max)
+    .refine((v) => v === "" || isHttpUrl(v), "Use a full link that starts with https://")
     .transform((v) => (v === "" ? null : v))
     .nullable()
     .optional();
@@ -69,6 +95,76 @@ export const venueSchema = z.object({
 });
 export type VenueInput = z.infer<typeof venueSchema>;
 
+// --- Academy profile, team, and coaches ---------------------------------------
+
+/** PATCH /academy: the academy's name, public address (slug), and public profile. */
+export const academyUpdateSchema = z.object({
+  name: trimmed(80).min(1, "Give your academy a name.").optional(),
+  slug: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .refine(
+      isAcademySlug,
+      "Use 3 to 40 lowercase letters and numbers, with single hyphens between words.",
+    )
+    .optional(),
+  tagline: optionalText(120),
+  about: optionalText(2000),
+  contactPhone: optionalText(40),
+  contactEmail: optionalEmail,
+  address: optionalText(200),
+  mapUrl: optionalLink(500),
+  /** Missing or empty links are removed. */
+  socials: z
+    .partialRecord(
+      z.enum(ACADEMY_SOCIALS),
+      trimmed(300).refine(
+        (v) => v === "" || isHttpUrl(v),
+        "Use a full link that starts with https://",
+      ),
+    )
+    .optional(),
+  paymentInstructions: optionalText(2000),
+  policies: optionalText(4000),
+  enrollmentOpen: z.boolean().optional(),
+  listed: z.boolean().optional(),
+});
+export type AcademyUpdateInput = z.infer<typeof academyUpdateSchema>;
+
+/** POST /team/invites: owners are made from inside the team, so invites are for admins and coaches. */
+export const staffInviteSchema = z.object({
+  email: z.string().trim().toLowerCase().pipe(z.email("That email doesn't look complete.")),
+  role: z.enum(["admin", "coach"]),
+});
+export type StaffInviteInput = z.infer<typeof staffInviteSchema>;
+
+export const memberRoleSchema = z.object({ role: z.enum(STAFF_ROLES) });
+
+export const transferOwnershipSchema = z.object({ userId });
+
+export const coachProfileUpdateSchema = z.object({
+  /** Empty = use the account's name. */
+  displayName: optionalText(80),
+  title: optionalText(80),
+  bio: optionalText(2000),
+  certifications: z.array(trimmed(80).min(1)).max(20).optional(),
+  duprRating: z.number().min(1).max(8).nullable().optional(),
+  specialties: z.array(trimmed(60).min(1)).max(20).optional(),
+  languages: z.array(trimmed(40).min(1)).max(10).optional(),
+  yearsCoaching: z.number().int().min(0).max(80).nullable().optional(),
+  isPublic: z.boolean().optional(),
+  sortOrder: z.number().int().min(0).max(1000).optional(),
+});
+export type CoachProfileUpdateInput = z.infer<typeof coachProfileUpdateSchema>;
+
+/** PUT /clients/:id/coaches: the student's current coaches; history is kept by the server. */
+export const clientCoachesSchema = z.object({
+  primaryCoachUserId: userId.nullable(),
+  assistantCoachIds: coachIds,
+});
+export type ClientCoachesInput = z.infer<typeof clientCoachesSchema>;
+
 // --- Clients -----------------------------------------------------------------
 
 export const clientSchema = z.object({
@@ -104,19 +200,22 @@ export const clientSchema = z.object({
   tags: z.array(trimmed(30).min(1)).max(20).optional(),
   joinedOn: date.nullable().optional(),
   groupIds: z.array(id).max(50).optional(),
+  /** New clients only: their primary coach. Omitted = whoever adds them; null = no coach yet. */
+  primaryCoachUserId: userId.nullable().optional(),
 });
 export type ClientInput = z.infer<typeof clientSchema>;
 // Zod 4's .partial() still applies inner .default()s, so a PATCH without lastName would reset it
-// to "". Update schemas re-declare defaulted fields as plain optionals.
+// to "". Update schemas re-declare defaulted fields as plain optionals. Coaches change through
+// PUT /clients/:id/coaches, which keeps their history.
 export const clientUpdateSchema = clientSchema
   .extend({ lastName: trimmed(60).optional() })
   .partial()
-  .omit({ id: true });
+  .omit({ id: true, primaryCoachUserId: true });
 export type ClientUpdateInput = z.infer<typeof clientUpdateSchema>;
 
 export const clientImportSchema = z.object({
   rows: z
-    .array(clientSchema.omit({ id: true, groupIds: true }))
+    .array(clientSchema.omit({ id: true, groupIds: true, primaryCoachUserId: true }))
     .min(1)
     .max(2000),
   skipDuplicates: z.boolean().default(true),
@@ -138,6 +237,9 @@ export const groupSchema = z.object({
   capacity: z.number().int().min(1).max(500).nullable().optional(),
   defaultRateId: id.nullable().optional(),
   defaultVenueId: id.nullable().optional(),
+  /** The program's lead coach; new sessions of the group start with it. */
+  coachUserId: userId.nullable().optional(),
+  assistantCoachIds: coachIds.optional(),
 });
 export type GroupInput = z.infer<typeof groupSchema>;
 
@@ -241,6 +343,10 @@ export const lessonCreateSchema = z.object({
   notes: optionalText(2000),
   clientIds: z.array(id).max(200).default([]),
   recurrence: recurrenceSchema.nullable().optional(),
+  /** Lead coach. Omitted = the group's or event's lead coach, else whoever schedules it. */
+  coachUserId: userId.nullable().optional(),
+  /** Omitted = the group's or event's assistants. */
+  assistantCoachIds: coachIds.optional(),
 });
 export type LessonCreateInput = z.infer<typeof lessonCreateSchema>;
 
@@ -255,6 +361,8 @@ export const lessonUpdateSchema = z.object({
   priceMinor: money.nullable().optional(),
   capacity: z.number().int().min(1).max(500).nullable().optional(),
   notes: optionalText(2000),
+  coachUserId: userId.nullable().optional(),
+  assistantCoachIds: coachIds.optional(),
   scope: z.enum(["this", "following"]).default("this"),
 });
 export type LessonUpdateInput = z.infer<typeof lessonUpdateSchema>;
@@ -302,6 +410,8 @@ export const eventSchema = z.object({
   ageMin: z.number().int().min(3).max(100).nullable().optional(),
   ageMax: z.number().int().min(3).max(100).nullable().optional(),
   status: z.enum(EVENT_STATUSES).optional(),
+  coachUserId: userId.nullable().optional(),
+  assistantCoachIds: coachIds.optional(),
 });
 export type EventInput = z.infer<typeof eventSchema>;
 
@@ -367,8 +477,12 @@ export const assessmentSchema = z.object({
       }),
     )
     .max(200),
+  /** Shown to the student and their parents in the family portal. Defaults to true. */
+  sharedWithFamily: z.boolean().optional(),
 });
 export type AssessmentInput = z.infer<typeof assessmentSchema>;
+/** PATCH /assessments/:id: omitted fields stay as they are; scores, when sent, replace them all. */
+export const assessmentUpdateSchema = assessmentSchema.omit({ id: true }).partial();
 
 export const goalSchema = z.object({
   id: id.optional(),
@@ -392,14 +506,23 @@ export const noteSchema = z
     lessonId: id.nullable().optional(),
     body: trimmed(4000).min(1, "Write something first"),
     pinned: z.boolean().optional(),
+    /** Coaches only unless set to "shared"; handoff notes are always coaches only. */
+    visibility: z.enum(NOTE_VISIBILITIES).optional(),
+    kind: z.enum(NOTE_KINDS).optional(),
   })
-  .refine((v) => v.clientId || v.lessonId, { message: "A note needs a client or a session" });
+  .refine((v) => v.clientId || v.lessonId, { message: "A note needs a client or a session" })
+  .refine((v) => v.kind !== "handoff" || v.clientId, {
+    message: "A handoff note is about a student",
+    path: ["clientId"],
+  });
 export type NoteInput = z.infer<typeof noteSchema>;
 
 export const noteUpdateSchema = z.object({
   body: trimmed(4000).min(1).optional(),
   pinned: z.boolean().optional(),
+  visibility: z.enum(NOTE_VISIBILITIES).optional(),
 });
+export type NoteUpdateInput = z.infer<typeof noteUpdateSchema>;
 
 // --- Push ------------------------------------------------------------------
 

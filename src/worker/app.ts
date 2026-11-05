@@ -9,19 +9,24 @@ import {
   requireWorkspace,
   withServices,
 } from "./middleware";
+import { academyRoutes } from "./routes/academy";
 import { accountRoutes } from "./routes/account";
 import { catalogRoutes } from "./routes/catalog";
 import { clientRoutes } from "./routes/clients";
+import { coachRoutes } from "./routes/coaches";
 import { dataRoutes } from "./routes/data";
 import { eventRoutes } from "./routes/events";
 import { fileRoutes } from "./routes/files";
 import { groupRoutes } from "./routes/groups";
+import { inviteRoutes } from "./routes/invites";
 import { lessonRoutes } from "./routes/lessons";
 import { meRoutes } from "./routes/me";
 import { moneyRoutes } from "./routes/money";
 import { packageRoutes } from "./routes/packages";
 import { progressRoutes } from "./routes/progress";
+import { publicRoutes } from "./routes/public";
 import { pushRoutes } from "./routes/push";
+import { teamRoutes } from "./routes/team";
 import { testRoutes } from "./routes/test";
 import type { AppBindings } from "./types";
 
@@ -30,6 +35,9 @@ import type { AppBindings } from "./types";
 const v1 = new Hono<AppBindings>()
   .use("*", originGuard, requireWorkspace, redactMoneyForRole)
   .route("/", meRoutes)
+  .route("/", academyRoutes)
+  .route("/", teamRoutes)
+  .route("/", coachRoutes)
   .route("/", clientRoutes)
   .route("/", groupRoutes)
   .route("/", catalogRoutes)
@@ -58,6 +66,8 @@ export const app = new Hono<AppBindings>()
   .get("/health", (c) => c.json({ ok: true, env: c.env.APP_ENV }))
   .route("/test", testRoutes)
   .route("/account", accountRoutes)
+  .route("/invites", inviteRoutes)
+  .route("/public", publicRoutes)
   .route("/v1", v1);
 
 app.notFound((c) =>

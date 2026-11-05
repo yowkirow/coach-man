@@ -10,6 +10,7 @@ import { badRequest, notFound } from "../lib/errors";
 import { inList, unique } from "../lib/sql";
 import { v } from "../lib/validate";
 import { ctxOf, requireCap } from "../middleware";
+import { programCoaches } from "../services/coaches";
 import { packagesForClients, runBatch } from "../services/credits";
 import {
   lessonSummaries,
@@ -32,6 +33,8 @@ function toGroupDto(g: typeof trainingGroup.$inferSelect, members: number): Grou
     defaultVenueId: g.defaultVenueId,
     memberCount: Number(members),
     archivedAt: g.archivedAt,
+    coachUserId: g.coachUserId,
+    assistantCoachIds: g.assistantCoachIds ?? [],
   };
 }
 
@@ -48,6 +51,8 @@ export function toSeriesDto(s: typeof lessonSeries.$inferSelect): SeriesDto {
     venueId: s.venueId,
     court: s.court,
     active: s.active,
+    coachUserId: s.coachUserId,
+    assistantCoachIds: s.assistantCoachIds ?? [],
   };
 }
 
@@ -80,8 +85,15 @@ export const groupRoutes = new Hono<AppBindings>()
     const ctx = ctxOf(c);
     const input = c.req.valid("json");
     const id = input.id ?? uuidv7();
+    // Whoever creates the group leads it unless the request names someone (or nobody).
+    const coaches = await programCoaches(ctx, {
+      coachUserId: input.coachUserId === undefined ? ctx.userId : input.coachUserId,
+      assistantCoachIds: input.assistantCoachIds,
+    });
     await runBatch(ctx, [
-      ctx.db.insert(trainingGroup).values({ ...input, id, workspaceId: ctx.workspaceId }),
+      ctx.db
+        .insert(trainingGroup)
+        .values({ ...input, ...coaches, id, workspaceId: ctx.workspaceId }),
       auditEntry(ctx, "create", "group", id),
     ]);
     return c.json(await loadGroup(ctx, id), 201);
@@ -141,9 +153,17 @@ export const groupRoutes = new Hono<AppBindings>()
   .patch("/groups/:id", requireCap("catalog"), v("json", groupSchema.partial()), async (c) => {
     const ctx = ctxOf(c);
     const { id: _ignored, ...input } = c.req.valid("json");
+    const before = await ctx.db.query.trainingGroup.findFirst({
+      where: and(
+        eq(trainingGroup.id, c.req.param("id")),
+        eq(trainingGroup.workspaceId, ctx.workspaceId),
+      ),
+    });
+    if (!before) throw notFound("Group");
+    const coaches = await programCoaches(ctx, input, before);
     const res = await ctx.db
       .update(trainingGroup)
-      .set(input)
+      .set({ ...input, ...coaches })
       .where(
         and(
           eq(trainingGroup.id, c.req.param("id")),

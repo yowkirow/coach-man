@@ -17,10 +17,15 @@ export const withServices = createMiddleware<AppBindings>(async (c, next) => {
   await next();
 });
 
-/** API responses are private and never cached by intermediaries. */
+/**
+ * API responses are private and never cached by intermediaries, unless a route says otherwise
+ * (public academy images under /api/public/files).
+ */
 export const apiHeaders = createMiddleware<AppBindings>(async (c, next) => {
   await next();
-  c.header("Cache-Control", "no-store");
+  if (!c.res.headers.has("Cache-Control") || !c.req.path.startsWith("/api/public/")) {
+    c.header("Cache-Control", "no-store");
+  }
   c.header("X-Content-Type-Options", "nosniff");
   c.header("Referrer-Policy", "strict-origin-when-cross-origin");
 });

@@ -101,6 +101,11 @@ export const SCORE_MAX = 5;
 export const CLIENT_COACH_ROLES = ["primary", "assistant"] as const;
 export type ClientCoachRole = (typeof CLIENT_COACH_ROLES)[number];
 
+export const CLIENT_COACH_ROLE_LABELS: Record<ClientCoachRole, string> = {
+  primary: "Primary coach",
+  assistant: "Assistant coach",
+};
+
 /** How a signed-in person is linked to a student: the student themself, or a parent/guardian. */
 export const FAMILY_RELATIONS = ["self", "guardian"] as const;
 export type FamilyRelation = (typeof FAMILY_RELATIONS)[number];
@@ -112,6 +117,10 @@ export const FAMILY_RELATION_LABELS: Record<FamilyRelation, string> = {
 
 export const INVITE_KINDS = ["staff", "family"] as const;
 export type InviteKind = (typeof INVITE_KINDS)[number];
+
+/** Where an invite link stands. Revoked wins over used, used over expired. */
+export const INVITE_STATUSES = ["valid", "expired", "used", "revoked"] as const;
+export type InviteStatus = (typeof INVITE_STATUSES)[number];
 
 export const ENROLLMENT_STATUSES = [
   "requested",
@@ -169,6 +178,45 @@ export function isAcademySlug(slug: string): boolean {
   return (
     slug.length >= 3 && slug.length <= 40 && ACADEMY_SLUG_RE.test(slug) && !slug.startsWith("ws-")
   );
+}
+
+/**
+ * A public address suggested from an academy's name ("The Pickle Spot Academy" becomes
+ * "the-pickle-spot-academy"), or "" when the name has too few usable characters.
+ */
+export function slugify(name: string): string {
+  let slug = name
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40)
+    .replace(/-+$/, "");
+  if (slug.startsWith("ws-")) slug = `academy-${slug.slice(3)}`.slice(0, 40).replace(/-+$/, "");
+  return isAcademySlug(slug) ? slug : "";
+}
+
+/** Social links an academy can show, in display order. */
+export const ACADEMY_SOCIALS = ["facebook", "instagram", "tiktok", "youtube", "website"] as const;
+export type AcademySocial = (typeof ACADEMY_SOCIALS)[number];
+
+export const ACADEMY_SOCIAL_LABELS: Record<AcademySocial, string> = {
+  facebook: "Facebook",
+  instagram: "Instagram",
+  tiktok: "TikTok",
+  youtube: "YouTube",
+  website: "Website",
+};
+
+/** A full http(s) link, the only kind of URL an academy profile stores. */
+export function isHttpUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return (url.protocol === "https:" || url.protocol === "http:") && Boolean(url.hostname);
+  } catch {
+    return false;
+  }
 }
 
 /** Passkey-only family accounts get an address here, so no email can ever link to them. */

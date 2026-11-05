@@ -1,0 +1,66 @@
+import type { Context } from "hono";
+import { uuidv7 } from "../../shared/ids";
+import type { AppBindings } from "../types";
+import { badRequest } from "./errors";
+
+const TYPES: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+};
+
+/** Images only (JPEG, PNG, WebP), 1.5 MB at most. */
+export const MAX_IMAGE_BYTES = 1_500_000;
+
+/** Whether the bytes really are the image type claimed (its file signature). */
+export function hasImageSignature(bytes: Uint8Array, type: string): boolean {
+  const starts = (sig: readonly number[], at = 0) => sig.every((b, i) => bytes[at + i] === b);
+  switch (type) {
+    case "image/jpeg":
+      return starts([0xff, 0xd8, 0xff]);
+    case "image/png":
+      return starts([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    case "image/webp":
+      // "RIFF" <size> "WEBP"
+      return starts([0x52, 0x49, 0x46, 0x46]) && starts([0x57, 0x45, 0x42, 0x50], 8);
+    default:
+      return false;
+  }
+}
+
+/**
+ * Reads an image request body (PUT with the image as the body) and checks its type, its file
+ * signature, and its size. `noun` names it in errors ("photo", "logo", "QR code").
+ */
+export async function readImage(c: Context<AppBindings>, noun = "photo") {
+  const type = (c.req.header("Content-Type") ?? "").split(";")[0]?.trim().toLowerCase() ?? "";
+  const ext = TYPES[type];
+  const declared = Number(c.req.header("Content-Length") ?? Number.NaN);
+  if (!ext || declared > MAX_IMAGE_BYTES) {
+    // Drain the body first: Miniflare's local proxy can fail a request answered unread.
+    await c.req.raw.arrayBuffer().catch(() => undefined);
+    throw badRequest(
+      ext ? `That ${noun} is too large (1.5 MB max).` : `Use a JPEG, PNG, or WebP ${noun}.`,
+    );
+  }
+  const body = await c.req.arrayBuffer();
+  if (body.byteLength === 0) throw badRequest(`The ${noun} is empty.`);
+  if (body.byteLength > MAX_IMAGE_BYTES)
+    throw badRequest(`That ${noun} is too large (1.5 MB max).`);
+  if (!hasImageSignature(new Uint8Array(body, 0, Math.min(body.byteLength, 16)), type)) {
+    throw badRequest(`That file isn't a JPEG, PNG, or WebP ${noun}.`);
+  }
+  return { body, type, ext };
+}
+
+/** Public R2 keys (spec §8): anything under ws/<id>/public/ may be shown to anyone. */
+export const publicKey = {
+  logo: (workspaceId: string, ext: string) => `ws/${workspaceId}/public/logo-${uuidv7()}.${ext}`,
+  paymentQr: (workspaceId: string, ext: string) =>
+    `ws/${workspaceId}/public/payment-qr-${uuidv7()}.${ext}`,
+  coachPhoto: (workspaceId: string, userId: string, ext: string) =>
+    `ws/${workspaceId}/public/coaches/${userId}-${uuidv7()}.${ext}`,
+};
+
+/** ws/<workspaceId>/public/<file> or ws/<workspaceId>/public/coaches/<file>. */
+export const PUBLIC_KEY_RE = /^ws\/[A-Za-z0-9-]+\/public\/(coaches\/)?[A-Za-z0-9._-]+$/;

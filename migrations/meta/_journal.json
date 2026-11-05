@@ -15,6 +15,13 @@
       "when": 1793685894395,
       "tag": "0001_academy",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1793695976130,
+      "tag": "0002_coaching",
+      "breakpoints": true
     }
   ]
 }

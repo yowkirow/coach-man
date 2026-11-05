@@ -9,6 +9,7 @@ import {
   assessmentScore,
   charge,
   client,
+  clientCoach,
   clientPackage,
   creditLedger,
   event,
@@ -312,6 +313,7 @@ export async function seedSampleData(ctx: Ctx): Promise<SampleIds> {
         defaultRateId: rGroup,
         defaultVenueId: riverside,
         description: "Fundamentals: serve, return, dinks, and kitchen-line basics.",
+        coachUserId: ctx.userId,
       },
       {
         id: gIntermediate,
@@ -323,6 +325,7 @@ export async function seedSampleData(ctx: Ctx): Promise<SampleIds> {
         defaultRateId: rGroup,
         defaultVenueId: riverside,
         description: "Third-shot drops, resets, and transition-zone work.",
+        coachUserId: ctx.userId,
       },
       {
         id: gJuniors,
@@ -334,6 +337,7 @@ export async function seedSampleData(ctx: Ctx): Promise<SampleIds> {
         defaultRateId: rGroup,
         defaultVenueId: northside,
         description: "Weekend juniors program.",
+        coachUserId: ctx.userId,
       },
     ]),
     ...chunkRows(
@@ -368,6 +372,20 @@ export async function seedSampleData(ctx: Ctx): Promise<SampleIds> {
       })),
       30,
     ).map((rows) => db.insert(client).values(rows)),
+    // The person who adds the sample coaches it, like any student they add.
+    ...chunkRows(
+      clientIds.map((clientId, i) => ({
+        id: uuidv7(),
+        workspaceId,
+        clientId,
+        coachUserId: ctx.userId,
+        role: "primary" as const,
+        startedOn: addDays(today, -120 + i * 5),
+        assignedBy: ctx.userId,
+        createdAt: now,
+      })),
+      9,
+    ).map((rows) => db.insert(clientCoach).values(rows)),
   ]);
 
   const membership = (groupId: string, names: string[]) =>
@@ -644,6 +662,7 @@ export async function seedSampleData(ctx: Ctx): Promise<SampleIds> {
     ageMin: 9,
     ageMax: 14,
     status: "open",
+    coachUserId: ctx.userId,
   });
   const campSession = track(
     await createLessons(ctx, {
@@ -749,6 +768,7 @@ export async function seedSampleData(ctx: Ctx): Promise<SampleIds> {
         title: "Land 7 of 10 third-shot drops in the kitchen",
         targetDate: addDays(today, 45),
         status: "active",
+        createdBy: ctx.userId,
       },
       {
         id: uuidv7(),
@@ -757,6 +777,7 @@ export async function seedSampleData(ctx: Ctx): Promise<SampleIds> {
         title: "Play a full round-robin at the 2.5 social",
         status: "achieved",
         achievedOn: addDays(today, -10),
+        createdBy: ctx.userId,
       },
       {
         id: uuidv7(),
@@ -765,6 +786,7 @@ export async function seedSampleData(ctx: Ctx): Promise<SampleIds> {
         title: "Reach a 3.75 DUPR rating",
         targetDate: addDays(today, 90),
         status: "active",
+        createdBy: ctx.userId,
       },
     ]),
     db.insert(ratingSnapshot).values([

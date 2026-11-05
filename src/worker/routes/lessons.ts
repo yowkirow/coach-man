@@ -1,4 +1,4 @@
-import { and, eq, gte, inArray, lt, sql } from "drizzle-orm";
+import { and, eq, gte, inArray, lt, or, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import type { LessonSummaryDto } from "../../shared/api-types";
 import { uuidv7 } from "../../shared/ids";
@@ -27,6 +27,7 @@ import { badRequest, conflict, notFound } from "../lib/errors";
 import { idempotent } from "../lib/idempotency";
 import { v } from "../lib/validate";
 import { assertCan, ctxOf } from "../middleware";
+import { assertStaff, cleanCoaches } from "../services/coaches";
 import { changeAttendance, releaseLessonFunding, runBatch } from "../services/credits";
 import {
   createLessons,
@@ -145,8 +146,8 @@ export const lessonRoutes = new Hono<AppBindings>()
     const tz = ctx.settings.timezone;
     const date = input.date ?? localDate(current.startsAt, tz);
     const startTime = input.startTime ?? localTime(current.startsAt, tz);
-    const duration =
-      input.durationMinutes ?? Math.round((current.endsAt - current.startsAt) / 60_000);
+    const currentDuration = Math.round((current.endsAt - current.startsAt) / 60_000);
+    const duration = input.durationMinutes ?? currentDuration;
     const fields = {
       title: input.title === undefined ? current.title : input.title,
       venueId: input.venueId === undefined ? current.venueId : input.venueId,
@@ -155,6 +156,20 @@ export const lessonRoutes = new Hono<AppBindings>()
       priceMinor: input.priceMinor === undefined ? current.priceMinor : input.priceMinor,
       capacity: input.capacity === undefined ? current.capacity : input.capacity,
     };
+    const coaches = cleanCoaches(
+      input.coachUserId === undefined ? current.coachUserId : input.coachUserId,
+      input.assistantCoachIds ?? current.assistantCoachIds ?? [],
+    );
+    // Only coaches new to this session must be on the team (one who left can stay on its record).
+    await assertStaff(
+      ctx,
+      [coaches.coachUserId, ...coaches.assistantCoachIds].filter(
+        (id) => id !== current.coachUserId && !(current.assistantCoachIds ?? []).includes(id ?? ""),
+      ),
+    );
+    const coachesChanged =
+      coaches.coachUserId !== current.coachUserId ||
+      JSON.stringify(coaches.assistantCoachIds) !== JSON.stringify(current.assistantCoachIds ?? []);
 
     if (input.scope === "following" && current.seriesId && current.occurrenceDate) {
       const series = await ctx.db.query.lessonSeries.findFirst({
@@ -164,6 +179,48 @@ export const lessonRoutes = new Hono<AppBindings>()
         ),
       });
       if (!series) throw notFound("Series");
+      const sameTime =
+        date === localDate(current.startsAt, tz) &&
+        startTime === localTime(current.startsAt, tz) &&
+        duration === currentDuration;
+      const sameFields = (Object.keys(fields) as (keyof typeof fields)[]).every(
+        (k) => fields[k] === current[k],
+      );
+      if (sameTime && sameFields) {
+        // Only the coaches (or the plan) changed: update the series and this session and the ones
+        // after it in place, instead of starting a new series. Sessions already held keep the
+        // coaches who ran them.
+        const plan = input.notes === undefined ? current.notes : input.notes;
+        await runBatch(ctx, [
+          ...(coachesChanged
+            ? [
+                ctx.db.update(lessonSeries).set(coaches).where(eq(lessonSeries.id, series.id)),
+                ctx.db
+                  .update(lesson)
+                  .set(coaches)
+                  .where(
+                    and(
+                      eq(lesson.workspaceId, ctx.workspaceId),
+                      eq(lesson.seriesId, series.id),
+                      or(
+                        eq(lesson.id, current.id),
+                        and(
+                          eq(lesson.detached, false),
+                          sql`${lesson.occurrenceDate} >= ${current.occurrenceDate}`,
+                          gte(lesson.startsAt, Date.now()),
+                        ),
+                      ),
+                    ),
+                  ),
+                auditEntry(ctx, "coaches", "lesson_series", series.id, coaches),
+              ]
+            : []),
+          ...(plan !== current.notes
+            ? [ctx.db.update(lesson).set({ notes: plan }).where(eq(lesson.id, current.id))]
+            : []),
+        ]);
+        return c.json(await lessonDetail(ctx, current.id));
+      }
       const oldDay = weekdayOf(current.occurrenceDate);
       const newDay = weekdayOf(date);
       const weekdays =
@@ -175,6 +232,7 @@ export const lessonRoutes = new Hono<AppBindings>()
       await ctx.db.insert(lessonSeries).values({
         ...series,
         ...fields,
+        ...coaches,
         id: newId,
         weekdays,
         startTime,
@@ -202,6 +260,7 @@ export const lessonRoutes = new Hono<AppBindings>()
       .update(lesson)
       .set({
         ...fields,
+        ...coaches,
         notes: input.notes === undefined ? current.notes : input.notes,
         startsAt,
         endsAt: startsAt + duration * 60_000,

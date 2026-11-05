@@ -1,20 +1,23 @@
-import { and, asc, desc, eq, gte, inArray, isNull, like, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNull, like, ne, or, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import type {
+  ClientCoachesSavedDto,
   ClientDetailDto,
   ClientDto,
   ClientListItemDto,
   LedgerLineDto,
 } from "../../shared/api-types";
+import { normalizeCoaches, planCoachChanges } from "../../shared/coaches";
 import { CLIENT_STATUSES } from "../../shared/domain";
 import { uuidv7 } from "../../shared/ids";
 import { can } from "../../shared/roles";
-import { clientSchema, clientUpdateSchema } from "../../shared/schemas";
+import { clientCoachesSchema, clientSchema, clientUpdateSchema } from "../../shared/schemas";
 import { localDate, todayIn } from "../../shared/time";
 import {
   attendance,
   charge,
   client,
+  clientCoach,
   clientPackage,
   creditLedger,
   event,
@@ -26,9 +29,15 @@ import {
 } from "../db/schema";
 import { auditEntry } from "../lib/audit";
 import { badRequest, conflict, notFound } from "../lib/errors";
-import { unique } from "../lib/sql";
+import { inList, unique } from "../lib/sql";
 import { v } from "../lib/validate";
 import { ctxOf, requireCap } from "../middleware";
+import {
+  assertStaff,
+  coachRefs,
+  currentClientCoaches,
+  loadClientCoaches,
+} from "../services/coaches";
 import { packagesForClients, runBatch } from "../services/credits";
 import {
   lessonSummaries,
@@ -59,7 +68,23 @@ function listColumns(today: string) {
     nextSessionAt: sql<
       number | null
     >`(select min(l.starts_at) from attendance a join lesson l on l.id = a.lesson_id where a.workspace_id = "client"."workspace_id" and a.client_id = "client"."id" and l.ends_at > ${Date.now()} and l.status != 'cancelled' and a.status not in ('excused', 'late_cancel'))`,
+    coaches: sql<
+      string | null
+    >`(select group_concat(cc.role || ':' || cc.coach_user_id) from client_coach cc where cc.workspace_id = "client"."workspace_id" and cc.client_id = "client"."id" and cc.ended_on is null)`,
   };
+}
+
+/** "primary:<id>,assistant:<id>" (current client_coach rows) → the list item's coach fields. */
+function parseCoaches(value: string | null) {
+  let primaryCoachUserId: string | null = null;
+  const assistantCoachIds: string[] = [];
+  for (const part of value ? value.split(",") : []) {
+    const [role, id] = part.split(":");
+    if (!id) continue;
+    if (role === "primary" && !primaryCoachUserId) primaryCoachUserId = id;
+    else if (role === "assistant") assistantCoachIds.push(id);
+  }
+  return { primaryCoachUserId, assistantCoachIds };
 }
 
 function toListItem(
@@ -73,6 +98,7 @@ function toListItem(
     creditsUsedUpTotal: number;
     nextExpiryOn: string | null;
     nextSessionAt: number | null;
+    coaches: string | null;
   },
   balance: number,
   tz: string,
@@ -99,6 +125,7 @@ function toListItem(
     nextExpiryOn: r.nextExpiryOn,
     nextSessionAt: r.nextSessionAt === null ? null : Number(r.nextSessionAt),
     joinedOn: r.c.joinedOn,
+    ...parseCoaches(r.coaches),
   };
 }
 
@@ -222,16 +249,33 @@ export const clientRoutes = new Hono<AppBindings>()
 
   .post("/clients", v("json", clientSchema), async (c) => {
     const ctx = ctxOf(c);
-    const { groupIds, id: requestedId, ...input } = c.req.valid("json");
+    const { groupIds, id: requestedId, primaryCoachUserId, ...input } = c.req.valid("json");
     const id = requestedId ?? uuidv7();
+    // Whoever adds a student coaches them until someone changes it; null = no coach yet.
+    const primary = primaryCoachUserId === undefined ? ctx.userId : primaryCoachUserId;
+    if (primaryCoachUserId) await assertStaff(ctx, [primaryCoachUserId], "primaryCoachUserId");
+    const today = todayIn(ctx.settings.timezone);
     await runBatch(ctx, [
       ctx.db.insert(client).values({
         ...input,
         id,
         workspaceId: ctx.workspaceId,
-        joinedOn: input.joinedOn ?? todayIn(ctx.settings.timezone),
+        joinedOn: input.joinedOn ?? today,
         tags: input.tags ?? [],
       }),
+      ...(primary
+        ? [
+            ctx.db.insert(clientCoach).values({
+              id: uuidv7(),
+              workspaceId: ctx.workspaceId,
+              clientId: id,
+              coachUserId: primary,
+              role: "primary" as const,
+              startedOn: today,
+              assignedBy: ctx.userId,
+            }),
+          ]
+        : []),
       auditEntry(ctx, "create", "client", id),
     ]);
     if (groupIds?.length) await setGroups(ctx, id, groupIds);
@@ -243,7 +287,7 @@ export const clientRoutes = new Hono<AppBindings>()
     const id = c.req.param("id");
     const dto = await loadClient(ctx, id);
     const { db, workspaceId, settings } = ctx;
-    const [groups, packages, upcomingRows, recent, registrations] = await Promise.all([
+    const [groups, packages, upcomingRows, recent, registrations, coaches] = await Promise.all([
       db
         .select({ id: trainingGroup.id, name: trainingGroup.name, color: trainingGroup.color })
         .from(groupMember)
@@ -303,6 +347,7 @@ export const clientRoutes = new Hono<AppBindings>()
           and(eq(eventRegistration.workspaceId, workspaceId), eq(eventRegistration.clientId, id)),
         )
         .orderBy(desc(event.startsOn)),
+      loadClientCoaches(ctx, id),
     ]);
     const today = todayIn(settings.timezone);
     const body: ClientDetailDto = {
@@ -331,6 +376,88 @@ export const clientRoutes = new Hono<AppBindings>()
         packageName: r.packageName,
       })),
       registrations,
+      coaches,
+    };
+    return c.json(body);
+  })
+
+  /**
+   * A student's current coaches. Assignments are never overwritten: rows that no longer apply end
+   * today and new ones start today, so the history shows who coached when. Open to every coach.
+   */
+  .put("/clients/:id/coaches", v("json", clientCoachesSchema), async (c) => {
+    const ctx = ctxOf(c);
+    const id = c.req.param("id");
+    const row = await ctx.db.query.client.findFirst({
+      where: and(eq(client.id, id), eq(client.workspaceId, ctx.workspaceId)),
+      columns: { id: true },
+    });
+    if (!row) throw notFound("Client");
+    const desired = normalizeCoaches(c.req.valid("json"));
+    await assertStaff(ctx, [desired.primaryCoachUserId], "primaryCoachUserId");
+    await assertStaff(ctx, desired.assistantCoachIds, "assistantCoachIds");
+    const plan = planCoachChanges(await currentClientCoaches(ctx, id), desired);
+    const today = todayIn(ctx.settings.timezone);
+    if (plan.end.length || plan.start.length) {
+      const started = plan.start.map((s) => ({ ...s, id: uuidv7() }));
+      const newPrimary = started.find((s) => s.role === "primary");
+      await runBatch(ctx, [
+        ...(plan.end.length
+          ? [
+              ctx.db
+                .update(clientCoach)
+                .set({ endedOn: today })
+                .where(
+                  and(
+                    eq(clientCoach.workspaceId, ctx.workspaceId),
+                    inList(clientCoach.id, plan.end),
+                  ),
+                ),
+            ]
+          : []),
+        ...started.map((s) =>
+          ctx.db.insert(clientCoach).values({
+            id: s.id,
+            workspaceId: ctx.workspaceId,
+            clientId: id,
+            coachUserId: s.coachUserId,
+            role: s.role,
+            startedOn: today,
+            assignedBy: ctx.userId,
+          }),
+        ),
+        // One current primary, even when two people change a student's coaches at once: the
+        // later change wins and the other primary ends today.
+        ...(newPrimary
+          ? [
+              ctx.db
+                .update(clientCoach)
+                .set({ endedOn: today })
+                .where(
+                  and(
+                    eq(clientCoach.workspaceId, ctx.workspaceId),
+                    eq(clientCoach.clientId, id),
+                    eq(clientCoach.role, "primary"),
+                    isNull(clientCoach.endedOn),
+                    ne(clientCoach.id, newPrimary.id),
+                  ),
+                ),
+            ]
+          : []),
+        auditEntry(ctx, "assign_coaches", "client", id, {
+          primary: desired.primaryCoachUserId,
+          assistants: desired.assistantCoachIds,
+        }),
+      ]);
+    }
+    const [coaches, refs] = await Promise.all([
+      loadClientCoaches(ctx, id),
+      coachRefs(ctx.db, ctx.workspaceId, [plan.previousPrimary]),
+    ]);
+    const body: ClientCoachesSavedDto = {
+      coaches,
+      primaryChanged: plan.primaryChanged,
+      previousPrimary: plan.previousPrimary ? (refs.get(plan.previousPrimary) ?? null) : null,
     };
     return c.json(body);
   })

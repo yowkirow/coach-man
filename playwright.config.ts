@@ -25,7 +25,9 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   workers: 2,
   timeout: 60_000,
-  expect: { timeout: 10_000 },
+  // A deployed target is reached over the internet: an asset or API answer can take seconds there
+  // (one smoke run saw an 11 s script download), so it gets more time than the local server.
+  expect: { timeout: process.env.E2E_BASE_URL ? 30_000 : 10_000 },
   reporter: process.env.CI ? [["github"], ["html", { open: "never" }]] : "list",
   use: {
     baseURL,

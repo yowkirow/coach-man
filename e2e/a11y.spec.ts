@@ -20,6 +20,7 @@ import {
   expect,
   linkFamily,
   listAcademy,
+  pngImage,
   signIn,
   test,
   testEmail,
@@ -564,6 +565,174 @@ test.describe("accessibility of payment proofs", () => {
     await expect(page.getByRole("region", { name: "Payment proofs" })).toContainText("GC-4242");
     await check(page, "client payment proofs");
     expect(waiting.status).toBe("pending");
+    expect(found).toEqual({});
+  });
+});
+
+test.describe("accessibility of kids' safety, announcements, and CoachMan's pages", () => {
+  test.use({ serviceWorkers: "block" });
+
+  test("/about, /privacy, and /terms have no serious violations", async ({ page }) => {
+    const found: Record<string, unknown> = {};
+    for (const path of ["/about", "/privacy", "/terms"]) {
+      await visit(page, path);
+      await page.waitForLoadState("networkidle");
+      await expect(page.locator("h1").first()).toBeVisible();
+      const violations = await seriousViolations(page);
+      if (violations.length) found[path] = violations;
+    }
+    expect(found).toEqual({});
+  });
+
+  test("a family editing a Profile, and their announcements, have no serious violations", async ({
+    seeded,
+    personas,
+  }, info) => {
+    const { api, request } = seeded;
+    const kid = await api.post<{ id: string }>("/clients", {
+      firstName: "Mia",
+      lastName: "Santos",
+      birthDate: bornYearsAgo(10),
+      isJunior: true,
+      medicalNotes: "Mild asthma.",
+    });
+    const pickup = await request.post(`/api/v1/clients/${kid.id}/pickups`, {
+      multipart: {
+        data: JSON.stringify({
+          name: "Rosa Dela Cruz",
+          relationship: "Grandmother",
+          phone: "0917",
+        }),
+        photo: { name: "rosa.png", mimeType: "image/png", buffer: pngImage(64) },
+      },
+    });
+    expect(pickup.status(), await pickup.text()).toBe(201);
+    await api.post("/announcements", {
+      title: "Courts closed on Saturday",
+      body: "Courts 1 to 4 are being resurfaced. Details: https://example.com/courts",
+      audience: "all",
+      pinned: true,
+      publish: "now",
+    });
+    const email = testEmail("a11y-profile", info);
+    const linked = await linkFamily(request, {
+      clientId: kid.id,
+      email,
+      name: "Pat Santos",
+      relation: "guardian",
+    });
+    expect(linked.status).toBe(201);
+    const { page } = await personas.open({ email, name: "Pat Santos", persona: "none" });
+    const found: Record<string, unknown> = {};
+    const check = async (where: string) => {
+      const violations = await seriousViolations(page);
+      if (violations.length) found[where] = violations;
+    };
+
+    await visit(page, `/my/${kid.id}/profile`);
+    await expect(page.getByRole("region", { name: "Pickup" })).toContainText("Rosa Dela Cruz");
+    await check("profile");
+    await page.getByRole("button", { name: "Edit health and emergency details" }).click();
+    await expect(page.getByRole("dialog", { name: "Health and emergency" })).toBeVisible();
+    await check("health and emergency sheet");
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await page.getByRole("button", { name: "Add person" }).click();
+    await expect(page.getByRole("dialog", { name: "Add a pickup person" })).toBeVisible();
+    await check("add pickup sheet");
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await page.getByRole("button", { name: "Edit Rosa Dela Cruz" }).click();
+    await expect(page.getByRole("dialog", { name: "Edit Rosa Dela Cruz" })).toBeVisible();
+    await check("edit pickup sheet");
+    await page.keyboard.press("Escape");
+
+    await visit(page, "/my/announcements");
+    await expect(page.getByRole("article", { name: "Courts closed on Saturday" })).toBeVisible();
+    await check("announcements");
+    expect(found).toEqual({});
+  });
+
+  test("the announcements composer, Today, and a roster with safety flags have no serious violations", async ({
+    page,
+    seeded,
+  }) => {
+    const { api, request } = seeded;
+    const { date: today } = await api.get<{ date: string }>("/today");
+    const kid = await api.post<{ id: string }>("/clients", {
+      firstName: "Mia",
+      lastName: "Santos",
+      birthDate: bornYearsAgo(10),
+      isJunior: true,
+      medicalNotes: "Peanut allergy: EpiPen in her bag.",
+      emergencyName: "Lola Santos",
+      emergencyPhone: "0917 222 3333",
+    });
+    const pickup = await request.post(`/api/v1/clients/${kid.id}/pickups`, {
+      multipart: {
+        data: JSON.stringify({
+          name: "Rosa Dela Cruz",
+          relationship: "Grandmother",
+          phone: "0917",
+        }),
+        photo: { name: "rosa.png", mimeType: "image/png", buffer: pngImage(64) },
+      },
+    });
+    expect(pickup.status(), await pickup.text()).toBe(201);
+    const clinic = await api.post<{ lesson: { lesson: { id: string } } }>("/lessons", {
+      kind: "group",
+      title: "Junior clinic",
+      date: today,
+      startTime: "17:00",
+      durationMinutes: 60,
+      clientIds: [kid.id],
+    });
+    await api.post("/announcements", {
+      title: "Courts closed on Saturday",
+      body: "Courts 1 to 4 are being resurfaced.",
+      audience: "all",
+      pinned: true,
+      publish: "now",
+    });
+    const found: Record<string, unknown> = {};
+    const check = async (where: string) => {
+      const violations = await seriousViolations(page);
+      if (violations.length) found[where] = violations;
+    };
+
+    await visit(page, "/announcements");
+    await expect(page.getByRole("article", { name: "Courts closed on Saturday" })).toBeVisible();
+    await check("announcements");
+    await page.getByRole("button", { name: "New announcement" }).first().click();
+    const composer = page.getByRole("dialog", { name: "New announcement" });
+    await expect(composer).toBeVisible();
+    await check("composer");
+    await toggle(composer.getByRole("radio", { name: "Program", exact: true }));
+    await toggle(composer.getByRole("radio", { name: "Schedule" }));
+    await toggle(composer.getByRole("checkbox", { name: "Take it down on a set day" }));
+    await expect(composer.getByLabel("Ends on")).toBeVisible();
+    await check("composer, scheduled for a program");
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+
+    await visit(page, `/sessions/${clinic.lesson.lesson.id}`);
+    await page.getByRole("button", { name: "Medical note for Mia Santos" }).click();
+    await expect(page.getByRole("dialog", { name: "Mia Santos" })).toBeVisible();
+    await check("medical sheet");
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await check("roster with flags");
+    await page.getByRole("button", { name: /^Who may pick up Mia Santos/ }).click();
+    await expect(page.getByRole("dialog", { name: "Pickup for Mia" })).toBeVisible();
+    await check("pickup sheet");
+    await page.keyboard.press("Escape");
+
+    await visit(page, "/");
+    await expect(page.getByRole("region", { name: "Announcements" })).toBeVisible();
+    await check("today with announcements and medical notes");
+    await visit(page, `/clients/${kid.id}`);
+    await expect(page.getByRole("region", { name: "Pickup" })).toContainText("Rosa Dela Cruz");
+    await check("client profile with pickups");
     expect(found).toEqual({});
   });
 });

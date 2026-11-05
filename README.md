@@ -16,7 +16,10 @@ CoachMan (short for *coach manager*) is an installable web app for pickleball ac
 - **Groups and events**: classes with members and weekly series; camps, academies, clinics, tournaments, and socials with registrations, a waitlist, early-bird pricing, and their own sessions.
 - **Money**: charges and payments (cash, transfer, card, e-wallet), oldest-first allocation, balances, monthly summaries, payment proofs to review, and CSV exports.
 - **Sign-in**: Google creates the account; passkeys give one-tap sign-in afterwards. Parents and students without Google can make a passkey-only account from their invite, or while enrolling.
-- **Family portal**: students and parents follow sessions and attendance, shared progress and coaches' comments, coaches, packages, credits, payments, and their enrollment requests (with the amount due once approved, and **Pay** to send proof of payment) under their academy's name and logo, on a phone or a laptop.
+- **Family portal**: students and parents follow sessions and attendance, shared progress and coaches' comments, coaches, packages, credits, payments, announcements, and their enrollment requests (with the amount due once approved, and **Pay** to send proof of payment) under their academy's name and logo, on a phone or a laptop. Parents keep a child's health details, emergency contact, and pickup people up to date from the Profile.
+- **Kids' safety**: medical notes, emergency contacts, and authorized pickup people with photos, kept current by parents; at check-in, coaches get a medical flag (tap to read) and a **Pickup** list with photos and tap-to-call, and Today counts the juniors with medical notes in the day's sessions.
+- **Announcements**: owners and admins post news for everyone, one program's members, or one event's players, pinned, published now or scheduled, with an optional end; families see theirs on Home and in Announcements, staff on Today.
+- **Public pages**: `/about` (what CoachMan is and how to start), `/privacy`, and `/terms`, readable signed out, linked from sign-in, enrollment, academy pages, and Settings.
 - **PWA**: installable, offline reads, offline-queued check-ins and notes that sync with idempotency keys, push reminders and a daily digest.
 - **Import**: bring clients over from a spreadsheet (CSV with column mapping, preview, and duplicate detection).
 
@@ -45,6 +48,8 @@ Nobody gets an academy just by signing in. After sign-in:
 - **Staff** (a member of at least one academy) land in the staff app. Staff of more than one academy switch between them in Settings or More.
 - **Families** (a student or parent linked to a student) land in the family portal at `/my`. Someone who is both (a coach who is also a parent) gets **My family** in the staff app's Settings and More, and **Coach view** in the portal's header.
 - **Everyone else** lands on `/welcome`: "Set up CoachMan for my coaching or academy" creates their own workspace and continues to onboarding; students and parents are pointed to their academy's invite link or page.
+
+Signed out, a visit to exactly `/` opens `/about` (CoachMan's public home page, with **Sign in** and **Set up your academy**); every deeper link (`/clients`, `/my`, …), and the installed app, goes to `/sign-in?next=…` and comes back after signing in.
 
 The account endpoints work without a workspace:
 
@@ -129,14 +134,15 @@ A parent of a 13 to 17 year old can make the teen's own login link from the port
 
 `/my` is a calmer, phone-first app under the academy's own logo and name (not recolored), with a floating tab bar on phones and the same places in the header on a laptop:
 
-- **Home**: a greeting, and for each linked student the next session, credits left with their expiry, the balance (linking to Payments), their enrollment requests with where each stands (Requested, Waitlisted, Approved with what's due, Declined with the academy's reason, Cancelled; open ones can be cancelled), and **Renew for next month** when a monthly package ends this month; the latest comments coaches shared; announcements (an empty state until academies can post them); **Enroll**; and each academy's contact card.
+- **Home**: a greeting, and for each linked student the next session, credits left with their expiry, the balance (linking to Payments), their enrollment requests with where each stands (Requested, Waitlisted, Approved with what's due, Declined with the academy's reason, Cancelled; open ones can be cancelled), and **Renew for next month** when a monthly package ends this month; the latest comments coaches shared; the latest announcements that reach the family (pinned first, with **All announcements** opening `/my/announcements`); **Enroll**; and each academy's contact card.
 - **Progress**: skill bars from shared assessments (with the previous score), the overall level, goals, the rating history, and the shared comments timeline with coach names and dates.
 - **Schedule**: sessions ahead (the next one highlighted) and past ones with attendance, with venue, court, and lead coach.
 - **Coaches**: the student's coaches with photo and title; bio, certifications, specialties, and languages only when the coach's profile is public.
 - **Payments**: the balance (with **Pay**), **To pay** (what approved requests still owe, each with **Pay** and where its payment stands), packages with credits and expiry, the student's requests and renewal, the payment proofs sent and where each stands, the history of charges and payments, and **How to pay** with the academy's instructions (numbers to copy) and QR code. **Pay** (`/my/<student>/pay`) sends proof of a payment; see Payment proofs below.
 - **Enroll** (`/my/enroll`, from Home, More, and the laptop header): the tiers of each listed academy the person's students train at, grouped by academy, each starting the enrollment wizard.
-- **Profile**: basics and the health and emergency summary, read-only (the academy updates it).
-- **Settings**: passkeys (add, remove; a passkey-only account keeps its last one), linking Google, teen logins for parents, installing the app (with iOS steps), and signing out. **More** gathers Coaches, Profile, Settings, the academy, and Coach view for staff.
+- **Profile**: basics (with the training shirt size), the health and emergency details, and, for juniors, the authorized pickup people with their photos. A parent of a minor edits all of it; an adult student edits their own medical note, emergency contact, and shirt size; a teen's own login reads it (see Kids' safety below).
+- **Announcements** (`/my/announcements`, from Home and More): everything live that reaches the family's students, pinned first, then newest, with the academy's name when there are several.
+- **Settings**: passkeys (add, remove; a passkey-only account keeps its last one), linking Google, teen logins for parents, installing the app (with iOS steps), signing out, and links to CoachMan's privacy policy and terms. **More** gathers Coaches, Profile, Announcements, Settings, the academy, and Coach view for staff.
 
 Several students, in one academy or several, switch from the student pages; the header follows the current student's academy. Money, dates, and times use each academy's currency, locale, and time zone. The portal only reads `/api/account` and `/api/portal` (families get 403 from `/api/v1`). Its pages persist offline like the staff app's, under keys that carry the person's id; the cache-owner check clears a previous person's data on a shared phone, and data of students someone is no longer linked to is dropped once the server says so.
 
@@ -144,16 +150,21 @@ Several students, in one academy or several, switch from the student pages; the 
 
 | Endpoint | Does |
 | --- | --- |
-| `GET /api/portal/home` | Per student: next session, credits, balance, latest shared assessment; latest shared comments; academies; announcements |
+| `GET /api/portal/home` | Per student: next session, credits, balance, latest shared assessment; latest shared comments; academies; the latest 5 announcements that reach the family |
+| `GET /api/portal/announcements` | Every live announcement that reaches the caller's students, pinned first, then newest, with the academies |
 | `GET /api/portal/academies/:workspaceId` | The academy's profile: contact, address and map, socials, policies, payment instructions and QR |
-| `GET /api/portal/students/:clientId` | Basics, health and emergency details, current coaches, programs, and (parents) the teen-login state |
+| `GET /api/portal/students/:clientId` | Basics, health and emergency details, pickup people, what the caller may change (`editable`), who last changed the details (`safetyUpdate`: by you or by the academy), current coaches, programs, and (parents) the teen-login state |
+| `PATCH /api/portal/students/:clientId/safety` | `{ medicalNotes?, emergencyName?, emergencyPhone?, guardianPhone?, guardianEmail?, shirtSize? }` within the caller's rights (403 `read_only` otherwise); answers the fresh student |
+| `POST /api/portal/students/:clientId/pickups` | A parent adds a pickup person: multipart `data` (JSON `{ name, relationship?, phone?, notes? }`) and `photo`, or JSON alone |
+| `PATCH /api/portal/students/:clientId/pickups/:pickupId` | Changes one (`removePhoto: true` drops the photo; a new `photo` replaces it) |
+| `DELETE /api/portal/students/:clientId/pickups/:pickupId` | Removes one, with their photo |
 | `GET /api/portal/students/:clientId/schedule?from&to` | Sessions with this student's attendance (default: 90 days back to 60 ahead; at most 400 days) |
 | `GET /api/portal/students/:clientId/progress` | Skills, shared assessments, goals, ratings, shared comments |
 | `GET /api/portal/students/:clientId/money` | Balance, packages, charges, payments (voided ones left out) |
 | `POST /api/portal/students/:clientId/teen-invite` | A parent makes their 13 to 17 year old's own-login link |
 | `DELETE /api/portal/students/:clientId/teen-invites/:inviteId` | A parent withdraws it |
 | `DELETE /api/portal/students/:clientId/access/:accessId` | A parent ends their teen's own login (only `self` access) |
-| `GET /api/portal/files/<key>` | Photos of the caller's own students, their academies' public images, and screenshots of their students' payment proofs (looked up by the exact key); nothing else |
+| `GET /api/portal/files/<key>` | Photos of the caller's own students, their academies' public images, and (looked up by the exact key) screenshots of their students' payment proofs and photos of their students' pickup people; nothing else |
 | `GET /api/portal/enrollment-context?slug=` | The wizard's choices at a listed academy: the caller's own student record, their children there (with whether each may be enrolled), what's already signed, and open or approved requests |
 | `GET /api/portal/enroll` | The Enroll page: each linked academy's page (listed ones) with its programs and tiers |
 | `POST /api/portal/enrollments` | Sends a request from the wizard (201, or 200 for a retried send with the same `id`); 30 an hour per person |
@@ -291,6 +302,59 @@ Every step is in the audit log (`submit`, `withdraw`, `confirm`, `reject`, `void
 | `POST /api/v1/payment-proofs/:id/confirm` | `{ amountMinor?, method?, paidOn?, reference?, note? }`: records the payment (`enrollment` and `money`); confirming again answers the confirmed proof |
 | `POST /api/v1/payment-proofs/:id/reject` | `{ reason }` |
 | `GET /api/v1/clients/:id/payment-proofs` | A student's proofs (their Money tab) |
+
+### Kids' safety
+
+Parents keep a junior's health details and pickup people up to date from the family portal's **Profile**, and coaches see them where they need them: at check-in. Who may change what lives in `src/shared/safety.ts`, shared by the Worker (which enforces it) and the app:
+
+| Who | Medical note | Emergency contact | Parent's phone and email | Shirt size | Pickup people |
+| --- | --- | --- | --- | --- | --- |
+| A parent or guardian of a minor | ✓ | ✓ | ✓ | ✓ | ✓ |
+| An adult student, for themselves | ✓ | ✓ | | ✓ | |
+| A teen's own login, or a parent of a student who has turned 18 | reads | reads | reads | reads | reads |
+| Staff (any role) | ✓ (the client form, as before) | ✓ | ✓ | reads | ✓ |
+
+Pickup people apply to minors (under 18 by birth date, or marked junior without one), up to 10 per student, each with a name, relationship, phone, notes for the coach, and an optional photo. The parent's email on file is write-only in the portal: one guardian email serves every parent of a student, so a parent can replace it but never reads it back (the portal only says whether one is on file).
+
+**Staff** read "Health and emergency details · Updated by Pat Santos (parent or guardian) on Nov 5, 2026" in a student's Details (whoever changed them last: a parent, the student, or staff), and a **Pickup** card on juniors' profiles where any staff role adds, edits, and removes people. At check-in (Today's roster and the session page), a player with a medical note has a coral **Medical** pill (the note, the parent's and emergency contact's numbers with **Call** buttons, and the profile), and a junior has a **Pickup** pill with the count (photos, relationship, notes, **Call**). Today's **Needs attention** shows "N juniors with medical notes" for the sessions in view, opening every note.
+
+**Photos** are private R2 objects, `ws/<academy>/clients/<student>/pickups/<uuid>.<ext>` (JPEG, PNG, or WebP by their bytes, 1.5 MB at most; the app squares and shrinks them on the phone first). Staff of any role read them through `/api/v1/files`; families through `/api/portal/files` only when a pickup person of one of their linked students has exactly that key (another family, or a guessed key in the right folder, gets 404). Replacing a photo, removing the person, or deleting the student deletes the image.
+
+**Audit.** `update` on `client_safety` (`{ fields, by }`) and `create`, `update`, `delete` on `authorized_pickup` (`{ clientId, fields, photo?, by }`), with who and when: field names only, never the medical text or any other value. Family edits are limited to 120 an hour per person.
+
+| Endpoint | Does |
+| --- | --- |
+| `GET /api/v1/clients/:id/pickups` | A student's pickup people (any staff role; also in the client detail as `pickups`, with `safetyUpdate`) |
+| `POST /api/v1/clients/:id/pickups` | Multipart `data` (JSON `{ name, relationship?, phone?, notes? }`) and `photo`, or JSON alone |
+| `PATCH /api/v1/clients/:id/pickups/:pickupId` | Changes one (`removePhoto: true` drops the photo; a new `photo` replaces it) |
+| `DELETE /api/v1/clients/:id/pickups/:pickupId` | Removes one, with the photo |
+
+Roster entries (Today and a session's detail) carry `safety`: whether the player is a junior, the medical note, the parent's and emergency contact's names and phones, and (juniors) the pickup people. The family's own endpoints are in the family portal table above.
+
+### Announcements
+
+Owners and admins (`announcements`) post news from **Announcements** (`/announcements`, with tabs for Drafts, Scheduled, Live, and Expired): a title; a plain-text message (a blank line starts a paragraph and web addresses become links; HTML is shown as text); who it's for (everyone, a program's current members, or an event's registered players); **Pin to the top**; and when it goes live (now, at a time within the next year, or kept as a draft), with an optional end. Each card can be edited, unpublished (back to drafts), or deleted. Every staff role reads the live ones, on a card on Today and on the page; coaches get 403 for everything else.
+
+Families see a live announcement when it reaches one of their linked students at that academy: `all` reaches every student, `program` the group's current members, `event` the players registered for it (not cancelled). Pinned ones come first, then the newest. A scheduled one appears once its time passes and an ended one disappears, both by the clock.
+
+**Push hook.** `announcementPublished(ctx, announcement)` in `src/worker/services/announcements.ts` runs once for each announcement when it goes live: at once for **Publish now**, and from the 5-minute cron for scheduled ones. `announcement.notified_at` is claimed with a guarded update, so it never runs twice, even after unpublishing and publishing again. For now it logs how many families it would reach (`familyRecipients`); family push notifications connect there.
+
+| Endpoint | Does |
+| --- | --- |
+| `GET /api/v1/announcements?status=` | `live` (the default; every role), or `draft`, `scheduled`, `expired`, `all` (`announcements`), with counts per state |
+| `GET /api/v1/announcements/:id` | One announcement (`announcements`) |
+| `POST /api/v1/announcements` | `{ title, body, audience: "all" \| "program" \| "event", audienceId?, pinned?, publish: "now" \| "schedule" \| "draft", publishAt?, expiresAt? }` |
+| `PATCH /api/v1/announcements/:id` | The same body; publishing a live one again keeps its time |
+| `POST /api/v1/announcements/:id/unpublish` | Back to drafts: families stop seeing it |
+| `DELETE /api/v1/announcements/:id` | Deletes it |
+
+### Public pages
+
+`/about` (CoachMan's public home page: what it is, who it's for, what it does, and how to start), `/privacy`, and `/terms` need no sign-in. The Worker serves them (`assets.run_worker_first`) as the app shell with each page's own title, description, and link-preview tags, and the contact address in a JSON block (`#cm-public-config`; also `GET /api/public/config`). They don't register the service worker or ask for storage, but an installed app's cached shell still opens them offline. They're linked from sign-in, `/welcome`, `/join`, onboarding, the enrollment wizard (its sign-in and consent steps), the footer of every academy page, and Settings and More in both apps.
+
+**The owner must review the privacy policy and the terms before publishing Google sign-in for everyone.** They were written in plain language from what the code does (`src/app/features/public-info/privacy.tsx` and `terms.tsx`, each starting with a review note); they're not legal advice. Update their "Last updated" date (November 5, 2026) when the text changes. The contact address is `PUBLIC_CONTACT_EMAIL` (`privacy@coachman.cloud` by default; see Environment variables).
+
+For Google's consent screen (the **Branding** page): home page `https://coachman.cloud/about`, privacy policy `https://coachman.cloud/privacy`, terms of service `https://coachman.cloud/terms`.
 ## Suggested next steps
 
 The academy release (roles, team invites, coach profiles and assignments, the family portal, the public academy page, enrollment, payment proofs, consents, kids' safety info, announcements, and family reminders) is being built in workstreams; see `PRODUCT.md`. After it:
@@ -311,9 +375,9 @@ The academy release (roles, team invites, coach profiles and assignments, the fa
 | --- | --- |
 | Hosting | One Cloudflare Worker serves the SPA (static assets) and the API under `/api/*` |
 | API | Hono, Zod validation, typed DTOs shared with the app (`src/shared`) |
-| Data | Cloudflare D1 (SQLite) with Drizzle; R2 for client photos, payment proof screenshots (private), and academy images (logos, payment QR codes, coach photos) |
+| Data | Cloudflare D1 (SQLite) with Drizzle; R2 for client photos, payment proof screenshots and pickup people's photos (private), and academy images (logos, payment QR codes, coach photos) |
 | Auth | Better Auth: Google OAuth plus passkeys (WebAuthn); staff roles per academy, and a separate family portal |
-| Jobs | Cron triggers: reminders and digests every 5 minutes, maintenance daily (including removing abandoned passkey-only accounts) |
+| Jobs | Cron triggers: scheduled announcements going live, reminders, and digests every 5 minutes; maintenance daily (including removing abandoned passkey-only accounts) |
 | App | React 19, Vite, TanStack Router and Query, React Aria Components, Tailwind CSS 4 |
 | Offline | Workbox service worker, IndexedDB-persisted query cache, paused mutations resume on reconnect |
 
@@ -353,7 +417,7 @@ npx drizzle-kit generate --name <what-changed>   # writes migrations/NNNN_<name>
 npm run db:migrate:local                         # apply to the local D1 (Miniflare)
 ```
 
-Wrangler asks before applying; in scripts and on Windows PowerShell set `CI=1` to accept (`$env:CI='1'; npx wrangler d1 migrations apply DB --local`). Read every generated file before applying it: new columns on existing tables must be nullable or have a default, so the SQL stays `ALTER TABLE … ADD` and never rebuilds a table. `0001_academy` adds the academy tables and columns and ends with a hand-written, idempotent backfill: each workspace's owner becomes the lead coach of its sessions, series, groups, and events and the primary coach of its clients, and every member gets a coach profile. `0002_coaching` adds who set each goal (`goal.created_by`, backfilled with the owner) and an academy profile row for every workspace. `0003_offerings` adds `client_package.includes_uniform`, the `consent_document_version` table (the text of every signed version), and an index on consent signatures. `0004_enrollment` adds an index on `enrollment_request.requested_by` (the portal's and the cleanup's lookups). `0005_payment_proofs` adds `payment_submission.resubmit_of` (the refused proof a new one resends), a unique index on `payment_submission.proof_key` (the family's file reads look a proof up by its key), and indexes on its `payment_id` and `enrollment_id`. Remote databases use `npm run db:migrate:staging` and `npm run db:migrate:production`.
+Wrangler asks before applying; in scripts and on Windows PowerShell set `CI=1` to accept (`$env:CI='1'; npx wrangler d1 migrations apply DB --local`). Read every generated file before applying it: new columns on existing tables must be nullable or have a default, so the SQL stays `ALTER TABLE … ADD` and never rebuilds a table. `0001_academy` adds the academy tables and columns and ends with a hand-written, idempotent backfill: each workspace's owner becomes the lead coach of its sessions, series, groups, and events and the primary coach of its clients, and every member gets a coach profile. `0002_coaching` adds who set each goal (`goal.created_by`, backfilled with the owner) and an academy profile row for every workspace. `0003_offerings` adds `client_package.includes_uniform`, the `consent_document_version` table (the text of every signed version), and an index on consent signatures. `0004_enrollment` adds an index on `enrollment_request.requested_by` (the portal's and the cleanup's lookups). `0005_payment_proofs` adds `payment_submission.resubmit_of` (the refused proof a new one resends), a unique index on `payment_submission.proof_key` (the family's file reads look a proof up by its key), and indexes on its `payment_id` and `enrollment_id`. `0006_essentials` adds `announcement.notified_at` (when the publish hook ran) with an index for the cron, `client.safety_updated_at`/`safety_updated_by`/`safety_updated_relation` (the "Updated by" line), and a unique index on `authorized_pickup.photo_key`; its backfill marks announcements already live as announced. Remote databases use `npm run db:migrate:staging` and `npm run db:migrate:production`.
 
 ### Environment variables
 
@@ -362,6 +426,7 @@ Wrangler asks before applying; in scripts and on Windows PowerShell set `CI=1` t
 | `APP_ENV` | var | `development`, `staging`, or `production` |
 | `APP_URL` | var | Public origin, e.g. `https://coachman.cloud` (auth callbacks, passkey origin) |
 | `PASSKEY_RP_ID` / `PASSKEY_RP_NAME` | var | WebAuthn relying party (the bare domain, e.g. `coachman.cloud`) |
+| `PUBLIC_CONTACT_EMAIL` | var | Where people write about privacy, their data, or the terms; shown on `/about`, `/privacy`, and `/terms` (`privacy@coachman.cloud` in every environment; after changing it, run `npm run cf-typegen`) |
 | `BETTER_AUTH_SECRET` | secret | 32+ random characters for session signing |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | secret | Google OAuth client |
 | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` | secret | Web Push keys from `npm run vapid:generate`; push is off when unset |
@@ -374,8 +439,8 @@ Vars live in `wrangler.jsonc` per environment; secrets go in `.dev.vars` locally
 ```bash
 npm run lint          # Biome
 npm run typecheck     # tsc -b (app, service worker, worker, tooling)
-npm run test:unit     # Vitest: credits, allocation, recurrence, money/time, bypass gate, roles, redaction, tokens, age rules, invites (staff and family), passkey-only accounts and their cleanup, Google linking, portal DTOs and scoping, team rules, coach changes, notes, reminders, month-end validity and credit eligibility, consent versions and signers, public DTOs, link-preview tags, the enrollment state machine, modes and periods, renewal eligibility, who may enroll whom, duplicates, capacity, the payment proof state machine, proof checks and duplicate warnings, who may read a proof, a request's payment state, numbers to copy
-npm run test:e2e      # Playwright: API golden paths, roles and routing, team and invites, family invites and age rules, the family portal and what it never shows, passkey-only accounts, coaching, Today check-in/undo, offline sync, passkeys, programs and tiers, consents, the public academy page, enrollment (wizard, inbox, renewals, passkey enrollment, access and leaks), payment proofs (pay, review, not accepted and resend, withdraw, cash, duplicates, double confirm, voided payments, access and leaks), axe
+npm run test:unit     # Vitest: credits, allocation, recurrence, money/time, bypass gate, roles, redaction, tokens, age rules, invites (staff and family), passkey-only accounts and their cleanup, Google linking, portal DTOs and scoping, team rules, coach changes, notes, reminders, month-end validity and credit eligibility, consent versions and signers, public DTOs, link-preview tags, the enrollment state machine, modes and periods, renewal eligibility, who may enroll whom, duplicates, capacity, the payment proof state machine, proof checks and duplicate warnings, who may read a proof, a request's payment state, numbers to copy, who may change health details and pickup people, changed fields, who may read a pickup photo, announcement states, audiences, ordering, publishing rules, and links in the text
+npm run test:e2e      # Playwright: API golden paths, roles and routing, team and invites, family invites and age rules, the family portal and what it never shows, passkey-only accounts, coaching, Today check-in/undo, offline sync, passkeys, programs and tiers, consents, the public academy page, enrollment (wizard, inbox, renewals, passkey enrollment, access and leaks), payment proofs (pay, review, not accepted and resend, withdraw, cash, duplicates, double confirm, voided payments, access and leaks), kids' safety (portal edits, the roster's flags, photos, rights, audit), announcements (audiences, scheduling through the cron, expiry, unpublish, roles), the public pages (signed out, routing, link previews, links, offline), axe
 ```
 
 ### The Playwright auth bypass
@@ -409,6 +474,7 @@ Tests that need more than one person use personas, each in its own browser conte
 | `POST /api/test/audit` | The caller's academy's audit log, newest first |
 | `POST /api/test/user-exists { userId }` | Whether an account still exists (abandoned passkey-only accounts are deleted) |
 | `POST /api/test/cleanup-accounts { userId, hours }` | Ages a passkey-only account by `hours`, then runs the daily cleanup of abandoned ones |
+| `POST /api/test/run-announcements { id? }` | Runs the 5-minute cron's announcements step now; with `id` (one of the caller's academy's scheduled announcements), its time is moved to a moment ago first. Answers which of the caller's announcements it announced, and the target's `notifiedAt` |
 
 Family and portal specs (`family`, `portal`, `portal-leaks`, `passkey-account`) also use `inviteToken`, `bornYearsAgo`, `acceptInvite`, `portalCall`/`portalGet`, `auditLog`, `pngImage`, and `uploadPng` from `e2e/support.ts`, and block the service worker for every context they open: each context's precache burst can stall the local server for the other worker. `portal-leaks.spec.ts` seeds every kind of private detail with a unique marker and checks that no portal answer or page contains one. The passkey-only account spec uses Chromium's virtual authenticator and runs on desktop only.
 
@@ -419,6 +485,8 @@ The WS4a specs (`offerings`, `consents`, `public-page`) also use `listAcademy` (
 The enrollment specs (`enrollment`, `enrollment-renewal`, `enrollment-access`, `enrollment-passkey`, and the enrollment part of `a11y`) share `e2e/enroll-support.ts`: `openEnrollment` (lists a seeded academy with enrollment open and returns its program, its Trial, Monthly, and Monthly plus tiers, and this and next month), `addConsents`, `publicSessions`, `newChildBody`/`answersFor`/`sendOk`/`sendRequest` (requests straight to the portal API), and the wizard steps as a person drives them (`chooseNewChild`, `pickLevel`, `fillContact`, `continueTo`). The passkey enrollment spec uses Chromium's virtual authenticator and runs on desktop only.
 
 The payment proof specs (`payment-proofs`, `payment-proofs-access`, and the proofs part of `a11y`) share `e2e/proof-support.ts`: `approvedEnrollment` (an academy with payment instructions and its own method names, a parent whose new child's Monthly request was approved: ₱6,000 to pay), `sendProof`/`sendProofOk` (multipart with a screenshot, or JSON for cash, straight to the portal API), `screenshot()` (a small PNG), and `noisePng(width, height)` (random pixels that don't compress: a picture over 1.5 MB the app must shrink before sending).
+
+The WS5a specs: `kids-safety` (a parent edits a junior's health details and adds a pickup person with a photo in the portal; staff read "Updated by", a coach reads the roster's Medical and Pickup sheets and Today's count; another family gets 404 for the student and the photo; a teen reads but can't edit; an adult keeps their own; the audit names fields, never the text), `announcements` (an admin composes for everyone, a program, an event, and later; each family sees only theirs; the scheduled one goes live through `/api/test/run-announcements`; pinned order, expiry, unpublish, delete, another academy; a coach reads and gets 403 for the rest), and `public-info` (`/about`, `/privacy`, `/terms` signed out, `/` → `/about`, deep links → `/sign-in?next=`, the HTML's tags, the links, and the pages opening offline from the installed app's cache, which runs with the service worker on desktop only).
 
 `npm run screenshots` captures desktop (1440) and phone (390) screenshots into `.impeccable/review/` using the same bypass.
 
@@ -434,7 +502,7 @@ The payment proof specs (`payment-proofs`, `payment-proofs-access`, and the proo
 | R2 | `coachman-files` (APAC) | `coachman-files-staging` (APAC) |
 | Secrets set | `BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_*`, `VAPID_*` | `BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_*`, `VAPID_*` |
 
-Google sign-in uses the Google Cloud project **CoachMan** (`coachman-512116`) and its web OAuth client "CoachMan web". The client's redirect URIs cover production (`https://coachman.cloud/api/auth/callback/google`), staging, and `http://localhost:5173` (local `.dev.vars` holds the same client), and `coachman.cloud` is listed under **Authorized domains** on the Branding page. The consent screen is External but still in **Testing**, so only listed test users can sign in (currently the owner, jerrosyap05@gmail.com; up to 100). To let any coach sign in, add a home page and privacy policy link on the Branding page, then use **Publish app** on the Audience page. The basic scopes CoachMan asks for (email, profile, openid) don't need Google verification. Until the brand is verified, though, Google's account chooser names the domain (`coachman.cloud` in production, `jerrosyap05.workers.dev` on staging) instead of "CoachMan". Google never shows a client secret again after creation; to rotate it, add a new secret on the client's page, then `npx wrangler secret put GOOGLE_CLIENT_SECRET --env <env>`, update `.dev.vars`, and disable the old secret.
+Google sign-in uses the Google Cloud project **CoachMan** (`coachman-512116`) and its web OAuth client "CoachMan web". The client's redirect URIs cover production (`https://coachman.cloud/api/auth/callback/google`), staging, and `http://localhost:5173` (local `.dev.vars` holds the same client), and `coachman.cloud` is listed under **Authorized domains** on the Branding page. The consent screen is External but still in **Testing**, so only listed test users can sign in (currently the owner, jerrosyap05@gmail.com; up to 100). To let any coach sign in: first have the privacy policy and terms reviewed (see Public pages), then on the **Branding** page set the application home page to `https://coachman.cloud/about`, the privacy policy link to `https://coachman.cloud/privacy`, and the terms of service link to `https://coachman.cloud/terms`, and use **Publish app** on the **Audience** page. The basic scopes CoachMan asks for (email, profile, openid) don't need Google verification. Until the brand is verified, though, Google's account chooser names the domain (`coachman.cloud` in production, `jerrosyap05.workers.dev` on staging) instead of "CoachMan". Google never shows a client secret again after creation; to rotate it, add a new secret on the client's page, then `npx wrangler secret put GOOGLE_CLIENT_SECRET --env <env>`, update `.dev.vars`, and disable the old secret.
 
 GitHub deploys are wired up: the repository secrets `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` are set. The token is the Cloudflare user token "CoachMan GitHub deploy", scoped to this account: Workers Scripts, D1, and Workers R2 Storage edit, plus Account Settings and Workers Tail read and User Details read. Pushing to `main` deploys staging; the staging smoke test stays skipped until `STAGING_URL` and the bypass secrets are set. Before running a production deploy from Actions, add **Zone → Workers Routes → Edit** for `coachman.cloud` to that token: wrangler re-sends production's custom domain on every deploy, and Cloudflare requires that permission to add or change a custom domain. Staging doesn't need it.
 

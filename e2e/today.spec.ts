@@ -129,11 +129,16 @@ test.describe("on court", () => {
 });
 
 test.describe("first run", () => {
-  test("signed-out visitors land on sign-in", async ({ page }) => {
+  test("signed-out visitors meet CoachMan first, and sign in from there", async ({ page }) => {
     await page.goto("/");
+    await expect(page).toHaveURL(/\/about$/);
+    await page.getByRole("link", { name: "Sign in", exact: true }).first().click();
     await expect(page).toHaveURL(/\/sign-in/);
     await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Continue with Google" })).toBeVisible();
+    // A deeper link goes straight to sign-in, and back there afterwards.
+    await page.goto("/clients");
+    await expect(page).toHaveURL(/\/sign-in\?next=(%2F|\/)clients$/);
   });
 
   test("a new coach is walked through onboarding", async ({ page, coach }) => {

@@ -42,6 +42,7 @@ import { Route as PortalMyClientIdRouteImport } from './routes/_portal/my.$clien
 import { Route as PortalMyAnnouncementsRouteImport } from './routes/_portal/my.announcements'
 import { Route as PortalMyEnrollRouteImport } from './routes/_portal/my.enroll'
 import { Route as PortalMyMoreRouteImport } from './routes/_portal/my.more'
+import { Route as PortalMyNotificationsRouteImport } from './routes/_portal/my.notifications'
 import { Route as PortalMySettingsRouteImport } from './routes/_portal/my.settings'
 import { Route as ASlugIndexRouteImport } from './routes/a.$slug.index'
 import { Route as ASlugEnrollRouteImport } from './routes/a.$slug.enroll'
@@ -218,6 +219,11 @@ const PortalMyMoreRoute = PortalMyMoreRouteImport.update({
   path: '/my/more',
   getParentRoute: () => PortalRoute,
 } as any)
+const PortalMyNotificationsRoute = PortalMyNotificationsRouteImport.update({
+  id: '/my/notifications',
+  path: '/my/notifications',
+  getParentRoute: () => PortalRoute,
+} as any)
 const PortalMySettingsRoute = PortalMySettingsRouteImport.update({
   id: '/my/settings',
   path: '/my/settings',
@@ -310,6 +316,7 @@ export interface FileRoutesByFullPath {
   '/my/announcements': typeof PortalMyAnnouncementsRoute
   '/my/enroll': typeof PortalMyEnrollRoute
   '/my/more': typeof PortalMyMoreRoute
+  '/my/notifications': typeof PortalMyNotificationsRoute
   '/my/settings': typeof PortalMySettingsRoute
   '/a/$slug/enroll': typeof ASlugEnrollRoute
   '/a/$slug/rates': typeof ASlugRatesRoute
@@ -354,6 +361,7 @@ export interface FileRoutesByTo {
   '/my/announcements': typeof PortalMyAnnouncementsRoute
   '/my/enroll': typeof PortalMyEnrollRoute
   '/my/more': typeof PortalMyMoreRoute
+  '/my/notifications': typeof PortalMyNotificationsRoute
   '/my/settings': typeof PortalMySettingsRoute
   '/a/$slug/enroll': typeof ASlugEnrollRoute
   '/a/$slug/rates': typeof ASlugRatesRoute
@@ -402,6 +410,7 @@ export interface FileRoutesById {
   '/_portal/my/announcements': typeof PortalMyAnnouncementsRoute
   '/_portal/my/enroll': typeof PortalMyEnrollRoute
   '/_portal/my/more': typeof PortalMyMoreRoute
+  '/_portal/my/notifications': typeof PortalMyNotificationsRoute
   '/_portal/my/settings': typeof PortalMySettingsRoute
   '/a/$slug/enroll': typeof ASlugEnrollRoute
   '/a/$slug/rates': typeof ASlugRatesRoute
@@ -449,6 +458,7 @@ export interface FileRouteTypes {
     | '/my/announcements'
     | '/my/enroll'
     | '/my/more'
+    | '/my/notifications'
     | '/my/settings'
     | '/a/$slug/enroll'
     | '/a/$slug/rates'
@@ -493,6 +503,7 @@ export interface FileRouteTypes {
     | '/my/announcements'
     | '/my/enroll'
     | '/my/more'
+    | '/my/notifications'
     | '/my/settings'
     | '/a/$slug/enroll'
     | '/a/$slug/rates'
@@ -540,6 +551,7 @@ export interface FileRouteTypes {
     | '/_portal/my/announcements'
     | '/_portal/my/enroll'
     | '/_portal/my/more'
+    | '/_portal/my/notifications'
     | '/_portal/my/settings'
     | '/a/$slug/enroll'
     | '/a/$slug/rates'
@@ -807,6 +819,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PortalMyMoreRouteImport
       parentRoute: typeof PortalRoute
     }
+    '/_portal/my/notifications': {
+      id: '/_portal/my/notifications'
+      path: '/my/notifications'
+      fullPath: '/my/notifications'
+      preLoaderRoute: typeof PortalMyNotificationsRouteImport
+      parentRoute: typeof PortalRoute
+    }
     '/_portal/my/settings': {
       id: '/_portal/my/settings'
       path: '/my/settings'
@@ -970,6 +989,7 @@ interface PortalRouteChildren {
   PortalMyAnnouncementsRoute: typeof PortalMyAnnouncementsRoute
   PortalMyEnrollRoute: typeof PortalMyEnrollRoute
   PortalMyMoreRoute: typeof PortalMyMoreRoute
+  PortalMyNotificationsRoute: typeof PortalMyNotificationsRoute
   PortalMySettingsRoute: typeof PortalMySettingsRoute
   PortalMyIndexRoute: typeof PortalMyIndexRoute
 }
@@ -979,6 +999,7 @@ const PortalRouteChildren: PortalRouteChildren = {
   PortalMyAnnouncementsRoute: PortalMyAnnouncementsRoute,
   PortalMyEnrollRoute: PortalMyEnrollRoute,
   PortalMyMoreRoute: PortalMyMoreRoute,
+  PortalMyNotificationsRoute: PortalMyNotificationsRoute,
   PortalMySettingsRoute: PortalMySettingsRoute,
   PortalMyIndexRoute: PortalMyIndexRoute,
 }

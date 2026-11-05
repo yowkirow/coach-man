@@ -1,11 +1,13 @@
 import type { PortalTeenInviteCreatedDto } from "@shared/api-types";
 import { familyInviteMessage } from "@shared/family";
+import { FAMILY_CATEGORIES } from "@shared/notifications";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { KeyRound, Link2, Share, Smartphone, Trash2, UserRoundPlus } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { Bell, KeyRound, Link2, Share, Smartphone, Trash2, UserRoundPlus } from "lucide-react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { GoogleG } from "../../components/auth-layout";
 import { InviteLinkPanel } from "../../components/domain/invite-link";
-import { Button, IconButton } from "../../components/ui/button";
+import { Button, buttonClass, IconButton } from "../../components/ui/button";
 import { Card, Pill } from "../../components/ui/display";
 import { ErrorState, InlineError, RowsSkeleton } from "../../components/ui/feedback";
 import { ConfirmSheet, Sheet } from "../../components/ui/overlay";
@@ -17,6 +19,7 @@ import {
   passkeysSupported,
   refreshSession,
 } from "../../lib/auth-client";
+import { plural } from "../../lib/format";
 import { notify } from "../../lib/notify";
 import { useOnline } from "../../lib/offline";
 import { useInstallPrompt } from "../../lib/pwa";
@@ -24,6 +27,7 @@ import { keys } from "../../lib/query";
 import { LegalLinks } from "../public-info/legal-links";
 import { SignOutButton } from "../settings/sign-out";
 import { PortalCard } from "./bits";
+import { useFamilyNotifications } from "./notifications";
 import {
   type FamilyStudent,
   familyStudents,
@@ -520,6 +524,38 @@ function Install() {
   );
 }
 
+/** Settings → Notifications: what's set up, and the way to the notification settings. */
+function Notifications() {
+  const settings = useFamilyNotifications();
+  const data = settings.data;
+  const on = data ? FAMILY_CATEGORIES.filter((c) => data.prefs[c]).length : null;
+  return (
+    <PortalCard title="Notifications" label="Notification settings">
+      <div className="flex flex-col gap-3">
+        <p className="max-w-[60ch] text-[0.9375rem] text-ink-2">
+          Reminders before sessions and news from the academy, as notifications on the phones and
+          computers you turn on.
+        </p>
+        {data ? (
+          <p className="num text-[0.875rem]">
+            {data.devices > 0
+              ? `On for ${plural(data.devices, "device")}`
+              : "Not on for any device yet"}
+            {` · ${on === FAMILY_CATEGORIES.length ? "Everything" : `${on} of ${FAMILY_CATEGORIES.length} kinds`}`}
+            {data.prefs.quietStart && data.prefs.quietEnd
+              ? ` · Quiet ${data.prefs.quietStart} to ${data.prefs.quietEnd}`
+              : ""}
+          </p>
+        ) : null}
+        <Link to="/my/notifications" className={buttonClass("dark", "md", "self-start")}>
+          <Bell aria-hidden className="size-4.5" />
+          Notification settings
+        </Link>
+      </div>
+    </PortalCard>
+  );
+}
+
 /** Settings: how you sign in, your teens' own logins, installing the app, and signing out. */
 export function PortalSettings(props: { google?: string; error?: string; description?: string }) {
   const account = usePortalAccount().data;
@@ -532,6 +568,7 @@ export function PortalSettings(props: { google?: string; error?: string; descrip
           {guarded.length ? <TeenLogins students={guarded} /> : null}
         </div>
         <div className="flex flex-col gap-5">
+          <Notifications />
           <Install />
           <Card label="Sign out" className="flex flex-wrap items-center justify-between gap-3 p-5">
             <p className="text-[0.9375rem] text-ink-2">

@@ -23,6 +23,7 @@ import { EnrollLinkCard, RenewCard, StudentRequests } from "../enrollment/family
 import { AcademyCard } from "./academy";
 import { HomeAnnouncements } from "./announcements";
 import { CoachLine, PortalAvatar, PortalCard, QueryGate } from "./bits";
+import { RemindersPrompt } from "./notifications";
 import { useAcademyFormat, usePortalHome } from "./queries";
 import { PortalPage } from "./shell";
 
@@ -323,6 +324,7 @@ export function PortalHome({ greetingName }: { greetingName?: string }) {
         {(h) => (
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start lg:gap-6">
             <div className="flex flex-col gap-6">
+              {h.students.length ? <RemindersPrompt /> : null}
               {h.students.length ? (
                 h.students.map((s) => (
                   <StudentBlock

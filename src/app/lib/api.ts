@@ -113,6 +113,7 @@ export const api = {
 export const accountApi = {
   get: <T>(path = "") => send<T>("GET", `/api/account${path}`),
   post: <T>(path: string, body?: unknown) => send<T>("POST", `/api/account${path}`, body ?? {}),
+  del: <T>(path: string, body?: unknown) => send<T>("DELETE", `/api/account${path}`, body),
 };
 
 /** /api/invites: invite links (the preview needs no sign-in; accepting does). */
@@ -133,8 +134,9 @@ export const portalApi = {
   get: <T>(path: string, opts?: RequestOptions) =>
     send<T>("GET", `/api/portal${path}`, undefined, opts),
   post: <T>(path: string, body?: unknown) => send<T>("POST", `/api/portal${path}`, body ?? {}),
+  put: <T>(path: string, body: unknown) => send<T>("PUT", `/api/portal${path}`, body),
   patch: <T>(path: string, body: unknown) => send<T>("PATCH", `/api/portal${path}`, body),
-  del: <T>(path: string) => send<T>("DELETE", `/api/portal${path}`),
+  del: <T>(path: string, body?: unknown) => send<T>("DELETE", `/api/portal${path}`, body),
 };
 
 /** The extra the server sends with some refusals, e.g. `alreadyLinked` on a family invite. */

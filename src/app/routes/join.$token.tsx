@@ -30,6 +30,7 @@ import {
 } from "../lib/auth-client";
 import { initials, plural } from "../lib/format";
 import { clearLocalData, usePendingChanges } from "../lib/offline";
+import { forgetThisDevice } from "../lib/pwa";
 
 export const Route = createFileRoute("/join/$token")({
   // Google sends people back here with ?error=… when sign-in didn't finish.
@@ -226,6 +227,7 @@ function JoinPage() {
   const switchAccount = async () => {
     setSigningIn("out");
     try {
+      await forgetThisDevice();
       await authClient.signOut();
     } finally {
       await clearLocalData();

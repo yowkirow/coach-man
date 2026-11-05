@@ -5,9 +5,12 @@ import { ConfirmSheet } from "../../components/ui/overlay";
 import { authClient } from "../../lib/auth-client";
 import { plural } from "../../lib/format";
 import { clearLocalData, usePendingChanges } from "../../lib/offline";
+import { forgetThisDevice } from "../../lib/pwa";
 
 async function signOutNow() {
   try {
+    // This browser stops getting the person's notifications before the session ends.
+    await forgetThisDevice();
     await authClient.signOut();
   } finally {
     await clearLocalData();

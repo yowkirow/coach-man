@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import {
   ArrowLeftRight,
   ArrowUpRight,
+  Bell,
   ClipboardList,
   FileSignature,
   type LucideIcon,
@@ -139,6 +140,15 @@ export function PortalMore() {
                   icon={ClipboardList}
                   title="Enroll"
                   body="Programs and packages, for you or a child"
+                />
+              </li>
+              <li>
+                <LinkCard
+                  to="/my/notifications"
+                  icon={Bell}
+                  title="Notifications"
+                  body="Reminders on this device, what you get, and quiet hours"
+                  tone="sky"
                 />
               </li>
               <li>

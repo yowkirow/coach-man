@@ -89,6 +89,7 @@ export const keys = {
       ["portal", userId, "enrollments", clientId] as const,
     proofs: (userId: string, clientId: string) => ["portal", userId, "proofs", clientId] as const,
     announcements: (userId: string) => ["portal", userId, "announcements"] as const,
+    notifications: (userId: string) => ["portal", userId, "notifications"] as const,
   },
 };
 

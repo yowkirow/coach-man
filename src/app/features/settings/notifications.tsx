@@ -11,7 +11,7 @@ import { plural } from "../../lib/format";
 import { useCan } from "../../lib/hooks";
 import { notify } from "../../lib/notify";
 import { useOnline } from "../../lib/offline";
-import { currentPushSubscription, disablePush, enablePush, pushSupported } from "../../lib/pwa";
+import { disablePush, enablePush, pushDeviceState, pushSupported } from "../../lib/pwa";
 import { keys } from "../../lib/query";
 import { OfflineNote } from "./offline";
 import { SaveBar, SettingsSection } from "./sections";
@@ -44,6 +44,7 @@ interface PrefDraft {
   digestOn: boolean;
   digestTime: string;
   expiryDays: string;
+  enrollmentAlerts: boolean;
 }
 
 function draftOf(p: NotificationPrefDto): PrefDraft {
@@ -52,6 +53,7 @@ function draftOf(p: NotificationPrefDto): PrefDraft {
     digestOn: Boolean(p.dailyDigestTime),
     digestTime: p.dailyDigestTime ?? "07:00",
     expiryDays: String(p.packageExpiryDays),
+    enrollmentAlerts: p.enrollmentAlerts ?? true,
   };
 }
 
@@ -64,6 +66,9 @@ export function NotificationsSection() {
     queryFn: () => api.get<NotificationPrefDto>("/notification-prefs"),
   });
   const [device, setDevice] = useState<Device>("checking");
+  // This browser also gets family reminders (the portal registered it): turning staff push off
+  // keeps the browser subscribed for those, and says so.
+  const [familyOn, setFamilyOn] = useState(false);
   const [permission, setPermission] = useState<Permission>(permissionNow);
   const [draft, setDraft] = useState<PrefDraft | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -81,8 +86,12 @@ export function NotificationsSection() {
       setDevice("off");
       return;
     }
-    withTimeout(currentPushSubscription(), 5000, "timeout")
-      .then((sub) => alive && setDevice(sub ? "on" : "off"))
+    withTimeout(pushDeviceState("staff"), 5000, "timeout")
+      .then((state) => {
+        if (!alive) return;
+        setDevice(state.staff ? "on" : "off");
+        setFamilyOn(state.family);
+      })
       .catch(() => alive && setDevice("off"));
     return () => {
       alive = false;
@@ -110,11 +119,21 @@ export function NotificationsSection() {
   });
   const turnOff = useMutation({
     meta: { silent: true },
-    mutationFn: () => withTimeout(disablePush(), 10_000, "This browser didn't respond. Try again."),
-    onSuccess: () => {
+    mutationFn: () =>
+      withTimeout(disablePush("staff"), 10_000, "This browser didn't respond. Try again."),
+    onSuccess: ({ otherOn }) => {
       setDevice("off");
+      setFamilyOn(otherOn);
       void qc.invalidateQueries({ queryKey: keys.notificationPrefs });
-      notify({ tone: "neutral", title: "Push is off for this device" });
+      notify(
+        otherOn
+          ? {
+              tone: "neutral",
+              title: "Coach notifications are off for this device",
+              body: "Family reminders stay on here. Turn them off in My family, Notifications.",
+            }
+          : { tone: "neutral", title: "Push is off for this device" },
+      );
     },
   });
   const save = useMutation({
@@ -164,6 +183,7 @@ export function NotificationsSection() {
       sessionReminderMinutes: draft.reminder === "off" ? null : Number(draft.reminder),
       dailyDigestTime: draft.digestOn ? draft.digestTime : null,
       packageExpiryDays: Number(draft.expiryDays),
+      enrollmentAlerts: draft.enrollmentAlerts,
     });
     if (!parsed.success) {
       setErrors(
@@ -188,9 +208,11 @@ export function NotificationsSection() {
           ? "Checking this device…"
           : device === "on"
             ? "On for this device."
-            : permission === "granted"
-              ? "Off for this device. Notifications are allowed in this browser."
-              : "Off for this device. Your browser will ask for permission.";
+            : familyOn
+              ? "Off for coach notifications. This device gets your family reminders."
+              : permission === "granted"
+                ? "Off for this device. Notifications are allowed in this browser."
+                : "Off for this device. Your browser will ask for permission.";
   const canToggle =
     pushSupported() && !noServer && permission !== "denied" && device !== "checking";
   const deviceError = turnOn.error ?? turnOff.error;
@@ -310,7 +332,7 @@ export function NotificationsSection() {
                 />
               ) : null}
             </div>
-            <div className="pt-4">
+            <div className={can.enrollment ? "py-4" : "pt-4"}>
               <Segmented
                 label="Package expiry warning (days before)"
                 options={expiryOptions}
@@ -321,6 +343,17 @@ export function NotificationsSection() {
                 Flags a client's package {draft.expiryDays} days before it expires.
               </p>
             </div>
+            {can.enrollment ? (
+              <div className="pt-4">
+                <Switch
+                  isSelected={draft.enrollmentAlerts}
+                  onChange={(v) => set("enrollmentAlerts", v)}
+                  description="A push for each new enrollment request and each payment proof to review."
+                >
+                  Enrollments & payments
+                </Switch>
+              </div>
+            ) : null}
           </div>
 
           <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-line pt-4">

@@ -53,15 +53,18 @@ export function PortalCard({
   children,
   className = "",
   id,
+  label,
 }: {
   title: ReactNode;
   action?: ReactNode;
   children: ReactNode;
   className?: string;
   id?: string;
+  /** The card's region name when it should differ from its title (unique landmark names). */
+  label?: string;
 }) {
   return (
-    <Card className={className} label={typeof title === "string" ? title : undefined}>
+    <Card className={className} label={label ?? (typeof title === "string" ? title : undefined)}>
       <div className="flex flex-wrap items-center justify-between gap-3 px-5 pt-5 pb-2">
         <h2 id={id} className="text-[1.125rem] font-medium">
           {title}

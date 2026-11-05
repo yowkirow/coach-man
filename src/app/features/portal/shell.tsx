@@ -134,6 +134,7 @@ function useNavItems(): NavItem[] {
       active:
         pathname.startsWith("/my/more") ||
         pathname.startsWith("/my/settings") ||
+        pathname.startsWith("/my/notifications") ||
         pathname.startsWith("/my/enroll") ||
         pathname.startsWith("/my/announcements") ||
         section === "coaches" ||
@@ -217,8 +218,14 @@ function DesktopNav() {
         <li>
           <Link
             to="/my/settings"
-            aria-current={pathname.startsWith("/my/settings") ? "page" : undefined}
-            className={pill(pathname.startsWith("/my/settings"))}
+            aria-current={
+              pathname.startsWith("/my/settings") || pathname.startsWith("/my/notifications")
+                ? "page"
+                : undefined
+            }
+            className={pill(
+              pathname.startsWith("/my/settings") || pathname.startsWith("/my/notifications"),
+            )}
           >
             <Settings aria-hidden className="size-4.5" strokeWidth={1.75} />
             Settings

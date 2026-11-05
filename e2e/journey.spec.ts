@@ -403,6 +403,15 @@ test(
           await expect(share).toBeChecked();
           await timeline.getByRole("button", { name: "Save and share" }).click();
           await expect(timeline.getByText("Shared with family")).toHaveCount(1);
+          // The note shows at once (it works offline); wait for the server to have it before the
+          // page reloads, so a slower network can't lose it mid-flight.
+          await expect
+            .poll(async () =>
+              (await coach.api.get<ProgressDto>(`/clients/${mia.clientId}/progress`)).notes.some(
+                (n) => n.visibility === "shared" && n.body === COMMENT,
+              ),
+            )
+            .toBe(true);
 
           // Sam hands Mia to Robin, with a note for the next coach.
           await visit(c, `/clients/${mia.clientId}`);

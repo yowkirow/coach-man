@@ -1,4 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
+import type { StaffInviteCreatedDto } from "../src/shared/api-types";
 import { expect, linkFamily, test, testEmail, visit } from "./support";
 
 const SCREENS = [
@@ -11,6 +12,7 @@ const SCREENS = [
   "/packages",
   "/settings",
   "/more",
+  "/team",
 ];
 
 async function seriousViolations(page: import("@playwright/test").Page) {
@@ -72,6 +74,31 @@ test.describe("accessibility", () => {
     const { page } = await personas.open({ email, name: "Pat Santos", persona: "none" });
     await visit(page, "/my");
     await expect(page.getByRole("heading", { name: "Hi, Pat" })).toBeVisible();
+    expect(await seriousViolations(page)).toEqual([]);
+  });
+
+  test("/join/<token> has no serious violations, signed out or in", async ({
+    browser,
+    seeded,
+    personas,
+  }, info) => {
+    const email = testEmail("a11y-join", info);
+    const created = await seeded.api.post<StaffInviteCreatedDto>("/team/invites", {
+      email,
+      role: "coach",
+    });
+    const path = new URL(created.link).pathname;
+
+    const signedOut = await browser.newContext({ serviceWorkers: "block" });
+    const outPage = await signedOut.newPage();
+    await visit(outPage, path);
+    await expect(outPage.getByRole("button", { name: "Continue with Google" })).toBeVisible();
+    expect(await seriousViolations(outPage)).toEqual([]);
+    await signedOut.close();
+
+    const { page } = await personas.open({ email, name: "Sam Rivera", persona: "none" });
+    await visit(page, path);
+    await expect(page.getByRole("button", { name: /^Join / })).toBeVisible();
     expect(await seriousViolations(page)).toEqual([]);
   });
 });

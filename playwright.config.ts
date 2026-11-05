@@ -18,6 +18,8 @@ const accessHeaders =
 
 export default defineConfig({
   testDir: "e2e",
+  // Warms a local server first (cold workerd answers its first bursts slowly); see the file.
+  globalSetup: "./e2e/global-setup.ts",
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,

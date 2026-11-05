@@ -51,6 +51,48 @@ The account endpoints work without a workspace:
 
 `/api/v1` answers 403 `no_workspace` to a signed-in person who isn't staff anywhere, and the app sends them to `/welcome`. Academies are managed through these endpoints and `/api/v1`, so Better Auth's organization plugin endpoints (`/api/auth/organization/*`) answer 404.
 
+### Academy profile
+
+**Settings → Academy profile** (owners and admins) holds what families will see: the academy's name, its public address (`/a/<slug>`: 3 to 40 lowercase letters, numbers, and single hyphens; unique, so a taken address answers 409), logo, tagline, about, contact details, address and map link, social links, payment instructions with a QR code, policies, and two switches (show the academy page, take enrollment requests). A preview shows the logo, name, and tagline as invites and the portal show them. Everyone on the team can read the profile (`GET /api/v1/academy`); changing it takes `settings` (`PATCH /api/v1/academy`, `PUT`/`DELETE /api/v1/academy/logo` and `/academy/payment-qr`). The time zone, currency, and formats moved to **Regional settings**. A solo coach is a one-person academy: onboarding asks for an "academy name" and suggests their own name.
+
+Logos, payment QR codes, and coach photos are public images, stored under `ws/<workspaceId>/public/` in R2 and served to anyone by `GET /api/public/files/<key>` (only that prefix; rate-limited; cacheable). Uploads are JPEG, PNG, or WebP up to 1.5 MB, checked by content type and file signature, and resized in the browser first.
+
+### Team and invites
+
+**Team** (in the nav for everyone) lists the members with their role, when they joined, their coach title, and how many students they coach. Owners and admins (`team`) also see waiting and recently expired invites, invite people, change roles, and remove people. Anything that makes, changes, or removes an owner, and transferring ownership, takes `ownership`, so only an owner can do it. The last owner can never be demoted or removed: the check runs inside the database update, so two owners demoting each other at the same moment still leave one.
+
+Inviting a coach or an admin makes a single-use link, `${APP_URL}/join/<token>`, valid for seven days. There is no email: Team shows the link once (only its SHA-256 is stored) with Copy, Share, and a message ready to paste into Messenger, Viber, or a text. A new link for the same address replaces the old one; links can be withdrawn and sent again.
+
+The person opens the link, signs in with Google (or a passkey they already have), and joins. The signed-in account's email must be the invited address (any letter case) and verified by Google; a different account is told so and offered "Use another account". Expired, used, and withdrawn links each get their own page; someone opening a link they already used is told they're on the team and can open the academy.
+
+| Endpoint | Does |
+| --- | --- |
+| `GET /api/v1/team` | Members (everyone; colleagues' emails only for `team`) and invites (`team` only) |
+| `POST /api/v1/team/invites` | `{ email, role: "admin" \| "coach" }` → `{ invite, link }` (`team`) |
+| `DELETE /api/v1/team/invites/:id` | Withdraws an invite (`team`) |
+| `PATCH /api/v1/team/members/:userId` | `{ role }` (`team`; owners only for anything owner) |
+| `DELETE /api/v1/team/members/:userId` | Removes someone: their current students and upcoming sessions lose them as coach (`team`) |
+| `POST /api/v1/team/transfer-ownership` | `{ userId }`: they become an owner, you an admin (`ownership`) |
+| `GET /api/invites/:token` | Public preview: academy name and logo, role, and whether the link still works |
+| `POST /api/invites/:token/accept` | Signed in: joins the academy (staff invites; family invites arrive with the portal) |
+
+Both `/api/invites` routes are rate-limited per IP address.
+
+### Coach profiles
+
+Every staff member has a coach profile (Settings → **My coach profile**): the name shown, title, about, photo, certifications, DUPR rating, specialties, languages, years coaching, and whether it may appear on the academy page. Owners and admins edit anyone's from Team. Coaches' names and photos appear on their notes, assessments, goals, students, sessions, programs, and events, including after they leave the team. Endpoints: `GET /api/v1/coaches` (the team as coach pickers need it), `GET`/`PATCH /api/v1/coaches/:userId` and `PUT`/`DELETE /api/v1/coaches/:userId/photo` (yourself, or anyone with `team`).
+
+### Coach assignment
+
+- **Students** have a primary coach and any number of assistant coaches, changed from the Coaches card on their profile by any coach (`PUT /api/v1/clients/:id/coaches`). Changes never overwrite: the old assignment ends today and a new one starts, so "Earlier coaches" shows who coached them and when. Whoever adds a student is their primary coach unless they pick someone else.
+- **Sessions, weekly series, groups, and events** have a lead coach and assistants, picked in their create and edit sheets. A new session is led by whoever schedules it, unless its group or event names a lead. Weekly series copy their coaches into every session they add. Changing coaches with "this and following" changes the series and the sessions ahead; sessions already held keep the coaches who ran them. Changing a group's or event's coaches applies to sessions added afterwards.
+- **Filters:** Clients has "My students"; Today and Schedule have "Mine / Everyone" (coaches start on Mine, owners and admins on Everyone; the choice is remembered on the device). A one-person academy doesn't see these.
+- **Reminders** go to a session's lead and assistant coaches; a session with no coach on the team goes to the owners and admins. Owners and admins get the academy-wide daily digest; coaches get one about their own sessions and students.
+
+### Coach comments
+
+Notes on a student show who wrote them and when. They're for coaches only unless the author turns on **Share with student & parents**, which says plainly who will see the note (the family portal shows only shared notes). Only the author changes a note's words or sharing (the note is then marked edited); the author, an owner, or an admin may delete it. When a student's primary coach changes, the app offers to write a **handoff note**, which is always coaches only, whatever the request asks. The Progress tab's coaching timeline puts every coach's notes, assessments, and goals in one list, with a filter by coach. Assessments are shared with the family by default; a "Visible to student & parents" switch holds one back.
+
 ## Suggested next steps
 
 The academy release (roles, team invites, coach profiles and assignments, the family portal, the public academy page, enrollment, payment proofs, consents, kids' safety info, announcements, and family reminders) is being built in workstreams; see `PRODUCT.md`. After it:
@@ -71,7 +113,7 @@ The academy release (roles, team invites, coach profiles and assignments, the fa
 | --- | --- |
 | Hosting | One Cloudflare Worker serves the SPA (static assets) and the API under `/api/*` |
 | API | Hono, Zod validation, typed DTOs shared with the app (`src/shared`) |
-| Data | Cloudflare D1 (SQLite) with Drizzle; R2 for client photos |
+| Data | Cloudflare D1 (SQLite) with Drizzle; R2 for client photos and academy images (logos, payment QR codes, coach photos) |
 | Auth | Better Auth: Google OAuth plus passkeys (WebAuthn); staff roles per academy, and a separate family portal |
 | Jobs | Cron triggers: reminders and digests every 5 minutes, maintenance daily |
 | App | React 19, Vite, TanStack Router and Query, React Aria Components, Tailwind CSS 4 |
@@ -113,7 +155,7 @@ npx drizzle-kit generate --name <what-changed>   # writes migrations/NNNN_<name>
 npm run db:migrate:local                         # apply to the local D1 (Miniflare)
 ```
 
-Wrangler asks before applying; in scripts and on Windows PowerShell set `CI=1` to accept (`$env:CI='1'; npx wrangler d1 migrations apply DB --local`). Read every generated file before applying it: new columns on existing tables must be nullable or have a default, so the SQL stays `ALTER TABLE … ADD` and never rebuilds a table. `0001_academy` adds the academy tables and columns and ends with a hand-written, idempotent backfill: each workspace's owner becomes the lead coach of its sessions, series, groups, and events and the primary coach of its clients, and every member gets a coach profile. Remote databases use `npm run db:migrate:staging` and `npm run db:migrate:production`.
+Wrangler asks before applying; in scripts and on Windows PowerShell set `CI=1` to accept (`$env:CI='1'; npx wrangler d1 migrations apply DB --local`). Read every generated file before applying it: new columns on existing tables must be nullable or have a default, so the SQL stays `ALTER TABLE … ADD` and never rebuilds a table. `0001_academy` adds the academy tables and columns and ends with a hand-written, idempotent backfill: each workspace's owner becomes the lead coach of its sessions, series, groups, and events and the primary coach of its clients, and every member gets a coach profile. `0002_coaching` adds who set each goal (`goal.created_by`, backfilled with the owner) and an academy profile row for every workspace. Remote databases use `npm run db:migrate:staging` and `npm run db:migrate:production`.
 
 ### Environment variables
 
@@ -134,8 +176,8 @@ Vars live in `wrangler.jsonc` per environment; secrets go in `.dev.vars` locally
 ```bash
 npm run lint          # Biome
 npm run typecheck     # tsc -b (app, service worker, worker, tooling)
-npm run test:unit     # Vitest: credits, allocation, recurrence, money/time, bypass gate, roles, redaction, tokens, age rules
-npm run test:e2e      # Playwright: API golden paths, roles and routing, Today check-in/undo, offline sync, passkeys, axe
+npm run test:unit     # Vitest: credits, allocation, recurrence, money/time, bypass gate, roles, redaction, tokens, age rules, invites, team rules, coach changes, notes, reminders
+npm run test:e2e      # Playwright: API golden paths, roles and routing, team and invites, coaching, Today check-in/undo, offline sync, passkeys, axe
 ```
 
 ### The Playwright auth bypass
@@ -165,8 +207,9 @@ Tests that need more than one person use personas, each in its own browser conte
 | `POST /api/test/member { email, name, role }` | Adds a user (created if new) to the caller's workspace as `owner`, `admin`, or `coach`, with a coach profile |
 | `POST /api/test/family { clientId, email, name, relation, force? }` | Links a user (created if new) to one of the caller's students as `self` or `guardian`; the portal's age rules apply unless `force` |
 | `POST /api/test/seed`, `POST /api/test/reset` | Sample data in the caller's workspace; deletes the workspaces the caller owns |
+| `POST /api/test/expire-invite { inviteId }` | Makes one of the caller's academy's invites expire now (they otherwise last seven days) |
 
-For the fastest, most realistic local run, test the production build: `npm run build`, then start `npx vite preview --port 5173` with `X_LOCAL_OBSERVABILITY=false` in one terminal (PowerShell: `$env:X_LOCAL_OBSERVABILITY='false'; npx vite preview --port 5173`) and `npx playwright test` in another (it reuses whatever serves :5173). That variable turns off Miniflare's local trace store: because `observability` is enabled in `wrangler.jsonc`, local runs record every request in `.wrangler/state/v3/observability`, which never shrinks and, once large, stalls the local runtime for seconds under test load. Servers Playwright starts itself get it automatically. On machines with little free memory, add `--workers=1`: local workerd can drop requests under memory pressure.
+For the fastest, most realistic local run, test the production build: `npm run build`, then start `npx vite preview --port 5173` with `X_LOCAL_OBSERVABILITY=false` in one terminal (PowerShell: `$env:X_LOCAL_OBSERVABILITY='false'; npx vite preview --port 5173`) and `npx playwright test` in another (it reuses whatever serves :5173). That variable turns off Miniflare's local trace store: because `observability` is enabled in `wrangler.jsonc`, local runs record every request in `.wrangler/state/v3/observability`, which never shrinks and, once large, stalls the local runtime for seconds under test load. Servers Playwright starts itself get it automatically. Before the first test, `e2e/global-setup.ts` warms a local server (one signed-in round of reads and writes and one load of the app shell), because a freshly started workerd answers its first bursts slowly enough to time out the first tests; it skips remote targets (`E2E_BASE_URL`). On machines with little free memory, add `--workers=1`: local workerd can drop requests under memory pressure.
 
 `npm run screenshots` captures desktop (1440) and phone (390) screenshots into `.impeccable/review/` using the same bypass.
 

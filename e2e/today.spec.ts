@@ -140,7 +140,7 @@ test.describe("first run", () => {
     void coach;
     await page.goto("/");
     await expect(page).toHaveURL(/\/onboarding/);
-    await page.getByLabel("Workspace name").fill("Robin's coaching");
+    await page.getByLabel("Academy name").fill("Robin's coaching");
     await page.getByText("Add sample clients and sessions").click();
     await page.getByRole("button", { name: "Continue" }).click();
     await expect(page.getByRole("heading", { name: "Add a passkey" })).toBeVisible();

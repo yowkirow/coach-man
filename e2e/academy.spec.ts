@@ -343,8 +343,8 @@ test.describe("signing in without an academy", () => {
 
     await page.getByRole("button", { name: /Set up CoachMan for my coaching or academy/ }).click();
     await expect(page).toHaveURL(/\/onboarding/);
-    await expect(page.getByRole("heading", { name: "Set up your workspace" })).toBeVisible();
-    await page.getByLabel("Workspace name").fill("Jordan's coaching");
+    await expect(page.getByRole("heading", { name: "Set up your academy" })).toBeVisible();
+    await page.getByLabel("Academy name").fill("Jordan's coaching");
     await page.getByRole("button", { name: "Continue" }).click();
     await expect(page.getByRole("heading", { name: "Add a passkey" })).toBeVisible();
   });

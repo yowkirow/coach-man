@@ -61,6 +61,11 @@ export class Api {
     return { status: res.status(), text, json };
   }
 
+  /** The error code of a refused request (`{ error: { code } }`), for asserting why. */
+  static code(res: { json: unknown }): string | undefined {
+    return (res.json as { error?: { code?: string } } | undefined)?.error?.code;
+  }
+
   get<T>(path: string) {
     return this.call<T>("GET", path);
   }
@@ -71,6 +76,14 @@ export class Api {
 
   patch<T>(path: string, data: unknown) {
     return this.call<T>("PATCH", path, data);
+  }
+
+  put<T>(path: string, data: unknown) {
+    return this.call<T>("PUT", path, data);
+  }
+
+  del<T>(path: string) {
+    return this.call<T>("DELETE", path);
   }
 }
 

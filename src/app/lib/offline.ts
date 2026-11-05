@@ -1,10 +1,11 @@
 import type { OfflinePackDto } from "@shared/api-types";
 import { onlineManager, useMutationState } from "@tanstack/react-query";
+import { persistQueryClientSave } from "@tanstack/react-query-persist-client";
 import { useEffect, useSyncExternalStore } from "react";
 import { api } from "./api";
 import { switchCacheOwner } from "./cache-owner";
-import { resumeQueuedChanges } from "./outbox";
-import { keys, queryClient } from "./query";
+import { isOfflineMutationKey, resumeQueuedChanges } from "./outbox";
+import { CACHE_BUSTER, keys, persistDehydrateOptions, persisterNow, queryClient } from "./query";
 
 export function useOnline(): boolean {
   return useSyncExternalStore(
@@ -25,11 +26,27 @@ let markRestored: () => void = () => undefined;
 const restored = new Promise<void>((resolve) => {
   markRestored = resolve;
 });
+let cacheRestored = false;
 
 /** Called by the persistence provider once the IndexedDB cache has loaded. */
 export function onCacheRestored() {
+  cacheRestored = true;
   markRestored();
 }
+
+// The provider saves the cache at most once a second. A court change is saved the moment it
+// starts, so closing the app right after a tap doesn't lose it. Only once the stored cache has
+// loaded: before that, a save would write over what's still being read.
+queryClient.getMutationCache().subscribe((event) => {
+  if (!cacheRestored || event.type !== "updated" || event.action.type !== "pending") return;
+  if (!isOfflineMutationKey(event.mutation.options.mutationKey)) return;
+  void persistQueryClientSave({
+    queryClient,
+    persister: persisterNow,
+    buster: CACHE_BUSTER,
+    dehydrateOptions: persistDehydrateOptions,
+  }).catch(() => undefined);
+});
 
 /** Resolves once the persisted cache has loaded; never waits longer than `ms`. */
 export function whenCacheRestored(ms = 2000): Promise<void> {

@@ -9,10 +9,16 @@ import type {
 import type { AttendanceStatus, NoteKind, NoteVisibility } from "@shared/domain";
 import { CONSUMING_STATUSES } from "@shared/domain";
 import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
-import { MutationCache, QueryClient, type QueryKey } from "@tanstack/react-query";
+import {
+  type DehydrateOptions,
+  MutationCache,
+  QueryClient,
+  type QueryKey,
+} from "@tanstack/react-query";
 import { del, get, set } from "idb-keyval";
 import { ApiRequestError, api } from "./api";
 import { notify } from "./notify";
+import { shouldPersistMutation } from "./outbox";
 
 export const CACHE_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
 export const CACHE_BUSTER = "coachman-cache-v1";
@@ -142,15 +148,31 @@ export const queryClient = new QueryClient({
   }),
 });
 
+const deviceStore = {
+  getItem: async (key: string) => (await get<string>(key)) ?? null,
+  setItem: (key: string, value: string) => set(key, value),
+  removeItem: (key: string) => del(key),
+};
+const CACHE_KEY = "coachman-query-cache";
+
 export const persister = createAsyncStoragePersister({
-  storage: {
-    getItem: async (key) => (await get<string>(key)) ?? null,
-    setItem: (key, value) => set(key, value),
-    removeItem: (key) => del(key),
-  },
-  key: "coachman-query-cache",
+  storage: deviceStore,
+  key: CACHE_KEY,
   throttleTime: 1000,
 });
+
+/** The same store, unthrottled: a court change is saved the moment it starts (lib/offline.ts). */
+export const persisterNow = createAsyncStoragePersister({
+  storage: deviceStore,
+  key: CACHE_KEY,
+  throttleTime: 0,
+});
+
+/** What the device keeps: the query families above, and changes queued offline or in flight. */
+export const persistDehydrateOptions: DehydrateOptions = {
+  shouldDehydrateQuery: (q) => shouldPersistQuery(q.queryKey, q.state.status),
+  shouldDehydrateMutation: shouldPersistMutation,
+};
 
 // ---------------------------------------------------------------------------
 // Offline-capable mutations. Defaults are registered by key so mutations that were paused

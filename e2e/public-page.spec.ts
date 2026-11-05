@@ -202,7 +202,8 @@ test.describe("the public academy page", () => {
     );
     await expect(page.getByRole("region", { name: "Policies" })).toContainText(PROFILE.policies);
 
-    // Nothing unpublished, and no enroll button yet (WS4b adds enrolling).
+    // Nothing unpublished, and no enroll button while the academy isn't taking enrollments (its
+    // tiers say enrollment is closed and how to get in touch instead).
     for (const hidden of [
       "Secret squad",
       "Hidden tier",

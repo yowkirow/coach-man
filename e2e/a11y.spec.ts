@@ -4,7 +4,27 @@ import type {
   FamilyInviteCreatedDto,
   StaffInviteCreatedDto,
 } from "../src/shared/api-types";
-import { bornYearsAgo, expect, linkFamily, listAcademy, test, testEmail, visit } from "./support";
+import {
+  addConsents,
+  chooseNewChild,
+  continueTo,
+  fillContact,
+  newChildBody,
+  openEnrollment,
+  pickLevel,
+  sendOk,
+} from "./enroll-support";
+import {
+  bornYearsAgo,
+  expect,
+  linkFamily,
+  listAcademy,
+  signIn,
+  test,
+  testEmail,
+  toggle,
+  visit,
+} from "./support";
 
 const SCREENS = [
   "/",
@@ -298,6 +318,145 @@ test.describe("accessibility of the academy page and consents", () => {
     await expect(parent.page.getByRole("dialog", { name: "Data privacy consent" })).toBeVisible();
     const sheetViolations = await seriousViolations(parent.page);
     if (sheetViolations.length) found["portal sign sheet"] = sheetViolations;
+    expect(found).toEqual({});
+  });
+});
+
+test.describe("accessibility of enrolling", () => {
+  test.use({ serviceWorkers: "block" });
+
+  test("each step of the enrollment wizard has no serious violations", async ({
+    browser,
+    seeded,
+  }, info) => {
+    const setup = await openEnrollment(seeded, info);
+    await addConsents(seeded.api);
+    const url = `/a/${setup.slug}/enroll?package=${setup.monthly.id}`;
+    const context = await browser.newContext({ serviceWorkers: "block" });
+    const page = await context.newPage();
+    const found: Record<string, unknown> = {};
+    const check = async (step: string) => {
+      const violations = await seriousViolations(page);
+      if (violations.length) found[step] = violations;
+    };
+
+    // Signed out: signing in, and the passkey account form.
+    await visit(page, url);
+    await expect(page.getByRole("heading", { name: "Sign in to enroll" })).toBeVisible();
+    await check("sign in");
+    await page.getByRole("button", { name: "Create a passkey account" }).click();
+    await expect(page.getByLabel("Your name")).toBeVisible();
+    await check("create account");
+
+    await signIn(context.request, {
+      email: testEmail("a11y-enroll", info),
+      name: "Pat Santos",
+      persona: "none",
+    });
+    await visit(page, url);
+    await expect(page.getByRole("heading", { name: "Who's training?" })).toBeVisible();
+    await page.getByRole("button", { name: "Continue" }).click();
+    await expect(page.getByText("Choose who's training.")).toBeVisible();
+    await check("who (with an error)");
+    await chooseNewChild(page, {
+      firstName: "Mia",
+      lastName: "Santos",
+      birthDate: bornYearsAgo(12),
+    });
+    await check("who");
+    await continueTo(page, "About Mia's game");
+    await check("level");
+    await pickLevel(page, "3.0", "Kids M");
+    await continueTo(page, "Contact and safety");
+    await fillContact(page);
+    await page.getByRole("button", { name: "Add a person" }).click();
+    await check("contact");
+    await page.getByLabel("Name", { exact: true }).fill("Lola Santos");
+    await continueTo(page, "Which month?");
+    await check("when");
+    await toggle(page.getByRole("radio", { name: /^Next month/ }));
+    await continueTo(page, "Consent forms");
+    await check("consents");
+    await toggle(page.getByRole("checkbox", { name: /Waiver and release/ }));
+    await toggle(page.getByRole("checkbox", { name: /Parental consent/ }));
+    await continueTo(page, "Check and send");
+    await check("review");
+    await page.getByRole("button", { name: "Send request" }).click();
+    await expect(page.getByRole("heading", { name: "Request sent" })).toBeVisible();
+    // React Aria announces the send button's pending state through a short-lived node in its
+    // live region (role="img", labelled by the button, which is gone now); it clears itself.
+    await expect(page.locator('[data-live-announcer] [role="img"]')).toHaveCount(0, {
+      timeout: 15_000,
+    });
+    await check("sent");
+    await visit(page, "/my/enroll");
+    await expect(page.getByRole("heading", { name: "Enroll", level: 1 })).toBeVisible();
+    await check("portal enroll page");
+    expect(found).toEqual({});
+    await context.close();
+  });
+
+  test("the Enrollments inbox and a request have no serious violations", async ({
+    page,
+    seeded,
+    personas,
+  }, info) => {
+    const setup = await openEnrollment(seeded, info);
+    const { waiver, parental } = await addConsents(seeded.api);
+    const parent = await personas.open({
+      email: testEmail("a11y-inbox", info),
+      name: "Pat Santos",
+      persona: "none",
+    });
+    const sent = await sendOk(
+      parent.context.request,
+      newChildBody(setup, {
+        firstName: "Mia",
+        birthDate: bornYearsAgo(12),
+        startMonth: setup.thisMonth,
+        answers: { pickups: [{ name: "Lola Santos", relationship: "Grandmother", phone: "0917" }] },
+        signatures: [waiver, parental].map((d) => ({
+          documentId: d.id,
+          version: d.version,
+          signerName: "Pat Santos",
+        })),
+      }),
+    );
+    const found: Record<string, unknown> = {};
+    const check = async (where: string) => {
+      const violations = await seriousViolations(page);
+      if (violations.length) found[where] = violations;
+    };
+    await visit(page, "/enrollments");
+    await expect(page.getByRole("link", { name: /Mia Santos/ })).toBeVisible();
+    await check("inbox");
+    await visit(page, `/enrollments/${sent.request.id}`);
+    await expect(page.getByRole("heading", { level: 1, name: "Mia Santos" })).toBeVisible();
+    await check("request");
+    for (const [button, dialog] of [
+      ["Approve", "Approve Mia?"],
+      ["Waitlist", "Waitlist Mia?"],
+      ["Decline", "Decline Mia's request?"],
+    ] as const) {
+      await page.getByRole("button", { name: button, exact: true }).click();
+      await expect(page.getByRole("dialog", { name: dialog })).toBeVisible();
+      await check(`${button} sheet`);
+      await page.keyboard.press("Escape");
+      await expect(page.getByRole("dialog")).toHaveCount(0);
+    }
+    // Approved this month: the request's decided view, and Not yet renewed with a reminder.
+    await seeded.api.post(`/enrollments/${sent.request.id}/approve`, {});
+    await visit(page, `/enrollments/${sent.request.id}`);
+    await expect(page.getByRole("heading", { name: "Approved" })).toBeVisible();
+    await check("approved request");
+    await visit(page, "/enrollments?view=renewals");
+    await page.getByRole("button", { name: /Copy reminder message/ }).click();
+    await check("not yet renewed");
+    // The family's side: the approved request with what to pay, and the renewal offer.
+    await visit(parent.page, "/my");
+    await expect(parent.page.getByRole("region", { name: /^Renew for/ })).toBeVisible();
+    const portal = await seriousViolations(parent.page);
+    if (portal.length) found.portal = portal;
     expect(found).toEqual({});
   });
 });

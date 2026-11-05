@@ -6,12 +6,13 @@ import { Button } from "../../components/ui/button";
 import { Avatar, Bento, Card, PageHeader, Pill } from "../../components/ui/display";
 import { AcademySwitcher } from "../../features/settings/academy";
 import { SignOutButton } from "../../features/settings/sign-out";
-import { useCan, useMe } from "../../lib/hooks";
+import { useCan, useEnrollmentCount, useMe } from "../../lib/hooks";
 import { useInstallPrompt } from "../../lib/pwa";
 
 export const Route = createFileRoute("/_app/more")({ component: More });
 
 const DESCRIPTIONS: Record<string, string> = {
+  "/enrollments": "Requests from your academy page, and who hasn't renewed",
   "/groups": "Classes, squads, and their weekly sessions",
   "/events": "Camps, academies, clinics, and registrations",
   "/team": "Coaches, roles, and invite links",
@@ -24,6 +25,7 @@ function More() {
   const me = useMe().data;
   const can = useCan();
   const links = useMoreLinks();
+  const toReview = useEnrollmentCount().data?.requested ?? 0;
   const install = useInstallPrompt();
   const [firstName, ...rest] = (me?.user.name ?? "Coach").split(" ");
   const coach = { firstName: firstName ?? "Coach", lastName: rest.join(" ") };
@@ -65,6 +67,11 @@ function More() {
                       : DESCRIPTIONS[l.to]}
                   </span>
                 </span>
+                {l.to === "/enrollments" && toReview > 0 ? (
+                  <Pill tone="amber">
+                    <span className="num">{toReview}</span> to review
+                  </Pill>
+                ) : null}
                 <ArrowUpRight aria-hidden className="size-4.5 shrink-0 text-ink-3" />
               </Link>
             </li>

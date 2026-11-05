@@ -1,6 +1,7 @@
 import type {
   PortalAcademyDto,
   PortalChargeDto,
+  PortalEnrollmentDto,
   PortalMoneyDto,
   PortalPackageDto,
   PortalPaymentDto,
@@ -11,6 +12,9 @@ import { Skeleton } from "../../components/ui/feedback";
 import { publicFileUrl } from "../../lib/api";
 import type { Format } from "../../lib/format";
 import { CHARGE_KIND_LABELS } from "../clients/client-utils";
+import { RenewCard, StudentRequests } from "../enrollment/family";
+import { usePortalStudentEnrollments } from "../enrollment/queries";
+import { paymentPill, periodText } from "../enrollment/text";
 import { PortalCard, QueryGate } from "./bits";
 import { balanceState } from "./home";
 import { useAcademyFormat, usePortalAcademy, usePortalMoney } from "./queries";
@@ -225,12 +229,51 @@ function HowToPay({ academy }: { academy: PortalAcademyDto | undefined }) {
   );
 }
 
+/**
+ * What's owed for approved enrollments, beside How to pay. Payment proofs (WS4c) add sending a
+ * screenshot of the payment here.
+ */
+function AmountDue({ requests, fmt }: { requests: PortalEnrollmentDto[]; fmt: Format }) {
+  const owed = requests.filter((r) => r.payment && r.payment.dueMinor > 0);
+  if (!owed.length) return null;
+  return (
+    <PortalCard title="To pay">
+      <ul className="flex flex-col divide-y divide-line">
+        {owed.map((r) => (
+          <li key={r.id} className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
+            <span className="min-w-0 flex-1">
+              <span className="block font-medium">{r.tier.name}</span>
+              <span className="num block text-[0.8125rem] text-ink-2">
+                {periodText({ ...r, sessionStartsAt: r.session?.startsAt ?? null }, fmt)}
+              </span>
+            </span>
+            <span className="flex shrink-0 flex-col items-end gap-1">
+              <span className="num text-[1.375rem] leading-tight font-light">
+                {fmt.money(r.payment?.dueMinor ?? 0)}
+              </span>
+              {r.payment ? (
+                <Pill tone={paymentPill(r.payment).tone}>{paymentPill(r.payment).label}</Pill>
+              ) : null}
+            </span>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-3 text-[0.875rem] text-ink-2">
+        Pay the academy as it asks below. Once it records your payment, this clears.
+      </p>
+    </PortalCard>
+  );
+}
+
 /** Payments: the balance, packages and credits, the history, and how to pay. */
 export function PortalPayments({ clientId }: { clientId: string }) {
   const money = usePortalMoney(clientId);
+  const enroll = usePortalStudentEnrollments(clientId);
   const { current } = useCurrentStudent();
   const academy = usePortalAcademy(money.data?.academy.workspaceId ?? current?.workspaceId);
   const fmt = useAcademyFormat(money.data?.academy);
+  const requests = enroll.data?.requests ?? [];
+  const renewal = enroll.data?.renewal ?? null;
   return (
     <PortalPage
       title="Payments"
@@ -257,10 +300,17 @@ export function PortalPayments({ clientId }: { clientId: string }) {
                       : "Every charge so far is covered by payments."}
                   </p>
                 </Card>
+                {renewal ? (
+                  <div className="grid">
+                    <RenewCard renewal={renewal} fmt={fmt} />
+                  </div>
+                ) : null}
+                <StudentRequests requests={requests} fmt={fmt} title="Enrollment requests" />
                 <Packages packages={m.packages} fmt={fmt} />
                 <History money={m} fmt={fmt} />
               </div>
               <div className="flex flex-col gap-5">
+                <AmountDue requests={requests} fmt={fmt} />
                 <HowToPay academy={academy.data} />
               </div>
             </div>

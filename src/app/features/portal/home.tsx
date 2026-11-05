@@ -1,8 +1,10 @@
 import type {
   PortalAcademyDto,
   PortalCommentDto,
+  PortalEnrollmentDto,
   PortalHomeDto,
   PortalHomeStudentDto,
+  PortalRenewalDto,
 } from "@shared/api-types";
 import { daysBetween } from "@shared/time";
 import { Link } from "@tanstack/react-router";
@@ -18,6 +20,7 @@ import { buttonClass } from "../../components/ui/button";
 import { Card, Meter, Pill } from "../../components/ui/display";
 import { EmptyState } from "../../components/ui/feedback";
 import { type Format, fullName, plural } from "../../lib/format";
+import { EnrollLinkCard, RenewCard, StudentRequests } from "../enrollment/family";
 import { AcademyCard } from "./academy";
 import { CoachLine, PortalAvatar, PortalCard, QueryGate } from "./bits";
 import { useAcademyFormat, usePortalHome } from "./queries";
@@ -162,10 +165,14 @@ function StudentBlock({
   s,
   academy,
   showAcademy,
+  requests,
+  renewal,
 }: {
   s: PortalHomeStudentDto;
   academy: PortalAcademyDto | undefined;
   showAcademy: boolean;
+  requests: PortalEnrollmentDto[];
+  renewal: PortalRenewalDto | undefined;
 }) {
   const fmt = useAcademyFormat(academy);
   const headingId = `student-${s.clientId}`;
@@ -194,10 +201,12 @@ function StudentBlock({
         </Link>
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {renewal ? <RenewCard renewal={renewal} fmt={fmt} /> : null}
         <NextSession s={s} fmt={fmt} />
         <Credits s={s} fmt={fmt} />
         <Balance s={s} fmt={fmt} />
         {s.consentsMissing ? <ConsentsDue s={s} /> : null}
+        <StudentRequests requests={requests} fmt={fmt} />
       </div>
     </section>
   );
@@ -340,6 +349,8 @@ export function PortalHome({ greetingName }: { greetingName?: string }) {
                     s={s}
                     academy={academyFor(s.workspaceId)}
                     showAcademy={h.academies.length > 1}
+                    requests={(h.enrollments ?? []).filter((r) => r.clientId === s.clientId)}
+                    renewal={(h.renewals ?? []).find((r) => r.clientId === s.clientId)}
                   />
                 ))
               ) : (
@@ -355,6 +366,7 @@ export function PortalHome({ greetingName }: { greetingName?: string }) {
             <div className="flex flex-col gap-5">
               {h.students.length ? <Comments home={h} /> : null}
               {h.students.length ? <Announcements home={h} /> : null}
+              <EnrollLinkCard />
               {h.academies.map((a) => (
                 <AcademyCard key={a.workspaceId} academy={a} />
               ))}

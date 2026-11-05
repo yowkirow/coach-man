@@ -3,6 +3,7 @@ import type {
   AccountDto,
   ClientListItemDto,
   CoachSummaryDto,
+  EnrollmentCountDto,
   GroupDto,
   LessonDetailDto,
   LessonSummaryDto,
@@ -160,4 +161,16 @@ export function useAcademy() {
 
 export function useTeam() {
   return useQuery({ queryKey: keys.team, queryFn: () => api.get<TeamDto>("/team") });
+}
+
+/** Enrollment requests waiting for a decision: the nav badge (owners and admins). */
+export function useEnrollmentCount() {
+  const can = useCan();
+  return useQuery({
+    queryKey: keys.enrollmentCount,
+    queryFn: () => api.get<EnrollmentCountDto>("/enrollments/count"),
+    enabled: can.enrollment,
+    refetchInterval: 120_000,
+    staleTime: 30_000,
+  });
 }

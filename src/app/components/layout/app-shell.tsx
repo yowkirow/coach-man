@@ -7,6 +7,7 @@ import {
   Ellipsis,
   Home,
   IdCardLanyard,
+  Inbox,
   Plus,
   Settings,
   Tent,
@@ -17,8 +18,8 @@ import {
 } from "lucide-react";
 import { createContext, type ReactNode, useContext, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
-import { fullName } from "../../lib/format";
-import { useCan, useMe } from "../../lib/hooks";
+import { fullName, plural } from "../../lib/format";
+import { useCan, useEnrollmentCount, useMe } from "../../lib/hooks";
 import { useOnline, usePendingChanges } from "../../lib/offline";
 import { BallMark } from "../brand";
 import { Avatar } from "../ui/display";
@@ -36,6 +37,7 @@ export const NAV: readonly NavItem[] = [
   { to: "/", label: "Today", icon: Home },
   { to: "/schedule", label: "Schedule", icon: CalendarDays },
   { to: "/clients", label: "Clients", icon: Contact },
+  { to: "/enrollments", label: "Enrollments", icon: Inbox, cap: "enrollment" },
   { to: "/groups", label: "Groups", icon: UsersRound },
   { to: "/events", label: "Events", icon: Tent },
   { to: "/team", label: "Team", icon: IdCardLanyard },
@@ -187,25 +189,42 @@ function RailLink({
   label,
   icon: Icon,
   active,
+  badge = 0,
 }: {
   to: string;
   label: string;
   icon: typeof Home;
   active: boolean;
+  /** Things waiting there (enrollment requests to review). */
+  badge?: number;
 }) {
+  const name = badge > 0 ? `${label}, ${badge} to review` : label;
   return (
     <Link
       to={to}
-      title={label}
-      aria-label={label}
+      title={name}
+      aria-label={name}
       aria-current={active ? "page" : undefined}
-      className={`flex size-12 items-center justify-center rounded-full outline-none transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime ${
+      className={`relative flex size-12 shrink-0 items-center justify-center rounded-full outline-none transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime ${
         active ? "bg-lime text-ink" : "bg-night-2 text-night-ink hover:bg-night-3"
       }`}
     >
       <Icon aria-hidden className="size-5" strokeWidth={1.75} />
+      {badge > 0 ? (
+        <span
+          aria-hidden
+          className="num absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-amber px-1 text-[0.6875rem] font-semibold text-ink ring-2 ring-night"
+        >
+          {badge > 99 ? "99+" : badge}
+        </span>
+      ) : null}
     </Link>
   );
+}
+
+/** Requests waiting in the Enrollments inbox (0 for roles without it). */
+function useInboxBadge(): number {
+  return useEnrollmentCount().data?.requested ?? 0;
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -216,6 +235,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [quickOpen, setQuickOpen] = useState(false);
   const [slot, setSlot] = useState<HTMLElement | null>(null);
   const moreActive = !tabs.some((t) => isActivePath(pathname, t));
+  const inbox = useInboxBadge();
   const [firstName, ...rest] = (me.data?.user.name ?? "Coach").split(" ");
   const coach = { firstName: firstName ?? "Coach", lastName: rest.join(" ") };
 
@@ -231,7 +251,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
         {/* Desktop: black command panel = icon rail + page-provided list column */}
         <aside className="dark-zone sticky top-3 hidden h-[calc(100dvh-24px)] shrink-0 rounded-[32px] bg-night text-night-ink lg:flex">
-          <div className="flex w-[84px] flex-col items-center gap-3 py-5">
+          <div className="flex w-[84px] flex-col items-center gap-3 overflow-y-auto py-5 [scrollbar-width:none]">
             <Link
               to="/"
               aria-label="CoachMan home"
@@ -247,6 +267,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   label={n.label}
                   icon={n.icon}
                   active={isActivePath(pathname, n.to)}
+                  badge={n.to === "/enrollments" ? inbox : 0}
                 />
               ))}
             </nav>
@@ -319,8 +340,21 @@ export function AppShell({ children }: { children: ReactNode }) {
                   aria-current={moreActive ? "page" : undefined}
                   className={`flex h-13 w-full flex-col items-center justify-center gap-0.5 rounded-full text-[0.6875rem] font-medium outline-none focus-visible:outline-2 focus-visible:outline-lime ${moreActive ? "bg-lime text-ink" : "text-night-ink-2"}`}
                 >
-                  <Ellipsis aria-hidden className="size-5" strokeWidth={1.75} />
+                  <span className="relative">
+                    <Ellipsis aria-hidden className="size-5" strokeWidth={1.75} />
+                    {inbox > 0 && !isActivePath(pathname, "/enrollments") ? (
+                      <span
+                        aria-hidden
+                        className="absolute -top-0.5 -right-1 size-2.5 rounded-full bg-amber ring-2 ring-night"
+                      />
+                    ) : null}
+                  </span>
                   More
+                  {inbox > 0 ? (
+                    <span className="sr-only">
+                      , {plural(inbox, "enrollment request")} to review
+                    </span>
+                  ) : null}
                 </Link>
               </li>
             </ul>

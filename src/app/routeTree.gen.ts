@@ -26,6 +26,8 @@ import { Route as JoinTokenRouteImport } from './routes/join.$token'
 import { Route as AppClientsIndexRouteImport } from './routes/_app/clients.index'
 import { Route as AppClientsClientIdRouteImport } from './routes/_app/clients.$clientId'
 import { Route as AppClientsNewRouteImport } from './routes/_app/clients.new'
+import { Route as AppEnrollmentsIndexRouteImport } from './routes/_app/enrollments.index'
+import { Route as AppEnrollmentsRequestIdRouteImport } from './routes/_app/enrollments.$requestId'
 import { Route as AppEventsIndexRouteImport } from './routes/_app/events.index'
 import { Route as AppEventsEventIdRouteImport } from './routes/_app/events.$eventId'
 import { Route as AppGroupsIndexRouteImport } from './routes/_app/groups.index'
@@ -33,9 +35,11 @@ import { Route as AppGroupsGroupIdRouteImport } from './routes/_app/groups.$grou
 import { Route as AppSessionsLessonIdRouteImport } from './routes/_app/sessions.$lessonId'
 import { Route as PortalMyIndexRouteImport } from './routes/_portal/my.index'
 import { Route as PortalMyClientIdRouteImport } from './routes/_portal/my.$clientId'
+import { Route as PortalMyEnrollRouteImport } from './routes/_portal/my.enroll'
 import { Route as PortalMyMoreRouteImport } from './routes/_portal/my.more'
 import { Route as PortalMySettingsRouteImport } from './routes/_portal/my.settings'
 import { Route as ASlugIndexRouteImport } from './routes/a.$slug.index'
+import { Route as ASlugEnrollRouteImport } from './routes/a.$slug.enroll'
 import { Route as ASlugRatesRouteImport } from './routes/a.$slug.rates'
 import { Route as PortalMyClientIdIndexRouteImport } from './routes/_portal/my.$clientId.index'
 import { Route as PortalMyClientIdCoachesRouteImport } from './routes/_portal/my.$clientId.coaches'
@@ -128,6 +132,16 @@ const AppClientsNewRoute = AppClientsNewRouteImport.update({
   path: '/clients/new',
   getParentRoute: () => AppRoute,
 } as any)
+const AppEnrollmentsIndexRoute = AppEnrollmentsIndexRouteImport.update({
+  id: '/enrollments/',
+  path: '/enrollments/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppEnrollmentsRequestIdRoute = AppEnrollmentsRequestIdRouteImport.update({
+  id: '/enrollments/$requestId',
+  path: '/enrollments/$requestId',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppEventsIndexRoute = AppEventsIndexRouteImport.update({
   id: '/events/',
   path: '/events/',
@@ -163,6 +177,11 @@ const PortalMyClientIdRoute = PortalMyClientIdRouteImport.update({
   path: '/my/$clientId',
   getParentRoute: () => PortalRoute,
 } as any)
+const PortalMyEnrollRoute = PortalMyEnrollRouteImport.update({
+  id: '/my/enroll',
+  path: '/my/enroll',
+  getParentRoute: () => PortalRoute,
+} as any)
 const PortalMyMoreRoute = PortalMyMoreRouteImport.update({
   id: '/my/more',
   path: '/my/more',
@@ -176,6 +195,11 @@ const PortalMySettingsRoute = PortalMySettingsRouteImport.update({
 const ASlugIndexRoute = ASlugIndexRouteImport.update({
   id: '/a/$slug/',
   path: '/a/$slug/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ASlugEnrollRoute = ASlugEnrollRouteImport.update({
+  id: '/a/$slug/enroll',
+  path: '/a/$slug/enroll',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ASlugRatesRoute = ASlugRatesRouteImport.update({
@@ -238,14 +262,18 @@ export interface FileRoutesByFullPath {
   '/join/$token': typeof JoinTokenRoute
   '/clients/$clientId': typeof AppClientsClientIdRoute
   '/clients/new': typeof AppClientsNewRoute
+  '/enrollments/$requestId': typeof AppEnrollmentsRequestIdRoute
   '/events/$eventId': typeof AppEventsEventIdRoute
   '/groups/$groupId': typeof AppGroupsGroupIdRoute
   '/sessions/$lessonId': typeof AppSessionsLessonIdRoute
   '/my/$clientId': typeof PortalMyClientIdRouteWithChildren
+  '/my/enroll': typeof PortalMyEnrollRoute
   '/my/more': typeof PortalMyMoreRoute
   '/my/settings': typeof PortalMySettingsRoute
+  '/a/$slug/enroll': typeof ASlugEnrollRoute
   '/a/$slug/rates': typeof ASlugRatesRoute
   '/clients/': typeof AppClientsIndexRoute
+  '/enrollments/': typeof AppEnrollmentsIndexRoute
   '/events/': typeof AppEventsIndexRoute
   '/groups/': typeof AppGroupsIndexRoute
   '/my/': typeof PortalMyIndexRoute
@@ -273,13 +301,17 @@ export interface FileRoutesByTo {
   '/join/$token': typeof JoinTokenRoute
   '/clients/$clientId': typeof AppClientsClientIdRoute
   '/clients/new': typeof AppClientsNewRoute
+  '/enrollments/$requestId': typeof AppEnrollmentsRequestIdRoute
   '/events/$eventId': typeof AppEventsEventIdRoute
   '/groups/$groupId': typeof AppGroupsGroupIdRoute
   '/sessions/$lessonId': typeof AppSessionsLessonIdRoute
+  '/my/enroll': typeof PortalMyEnrollRoute
   '/my/more': typeof PortalMyMoreRoute
   '/my/settings': typeof PortalMySettingsRoute
+  '/a/$slug/enroll': typeof ASlugEnrollRoute
   '/a/$slug/rates': typeof ASlugRatesRoute
   '/clients': typeof AppClientsIndexRoute
+  '/enrollments': typeof AppEnrollmentsIndexRoute
   '/events': typeof AppEventsIndexRoute
   '/groups': typeof AppGroupsIndexRoute
   '/my': typeof PortalMyIndexRoute
@@ -310,14 +342,18 @@ export interface FileRoutesById {
   '/_app/': typeof AppIndexRoute
   '/_app/clients/$clientId': typeof AppClientsClientIdRoute
   '/_app/clients/new': typeof AppClientsNewRoute
+  '/_app/enrollments/$requestId': typeof AppEnrollmentsRequestIdRoute
   '/_app/events/$eventId': typeof AppEventsEventIdRoute
   '/_app/groups/$groupId': typeof AppGroupsGroupIdRoute
   '/_app/sessions/$lessonId': typeof AppSessionsLessonIdRoute
   '/_portal/my/$clientId': typeof PortalMyClientIdRouteWithChildren
+  '/_portal/my/enroll': typeof PortalMyEnrollRoute
   '/_portal/my/more': typeof PortalMyMoreRoute
   '/_portal/my/settings': typeof PortalMySettingsRoute
+  '/a/$slug/enroll': typeof ASlugEnrollRoute
   '/a/$slug/rates': typeof ASlugRatesRoute
   '/_app/clients/': typeof AppClientsIndexRoute
+  '/_app/enrollments/': typeof AppEnrollmentsIndexRoute
   '/_app/events/': typeof AppEventsIndexRoute
   '/_app/groups/': typeof AppGroupsIndexRoute
   '/_portal/my/': typeof PortalMyIndexRoute
@@ -347,14 +383,18 @@ export interface FileRouteTypes {
     | '/join/$token'
     | '/clients/$clientId'
     | '/clients/new'
+    | '/enrollments/$requestId'
     | '/events/$eventId'
     | '/groups/$groupId'
     | '/sessions/$lessonId'
     | '/my/$clientId'
+    | '/my/enroll'
     | '/my/more'
     | '/my/settings'
+    | '/a/$slug/enroll'
     | '/a/$slug/rates'
     | '/clients/'
+    | '/enrollments/'
     | '/events/'
     | '/groups/'
     | '/my/'
@@ -382,13 +422,17 @@ export interface FileRouteTypes {
     | '/join/$token'
     | '/clients/$clientId'
     | '/clients/new'
+    | '/enrollments/$requestId'
     | '/events/$eventId'
     | '/groups/$groupId'
     | '/sessions/$lessonId'
+    | '/my/enroll'
     | '/my/more'
     | '/my/settings'
+    | '/a/$slug/enroll'
     | '/a/$slug/rates'
     | '/clients'
+    | '/enrollments'
     | '/events'
     | '/groups'
     | '/my'
@@ -418,14 +462,18 @@ export interface FileRouteTypes {
     | '/_app/'
     | '/_app/clients/$clientId'
     | '/_app/clients/new'
+    | '/_app/enrollments/$requestId'
     | '/_app/events/$eventId'
     | '/_app/groups/$groupId'
     | '/_app/sessions/$lessonId'
     | '/_portal/my/$clientId'
+    | '/_portal/my/enroll'
     | '/_portal/my/more'
     | '/_portal/my/settings'
+    | '/a/$slug/enroll'
     | '/a/$slug/rates'
     | '/_app/clients/'
+    | '/_app/enrollments/'
     | '/_app/events/'
     | '/_app/groups/'
     | '/_portal/my/'
@@ -446,6 +494,7 @@ export interface RootRouteChildren {
   SignInRoute: typeof SignInRoute
   WelcomeRoute: typeof WelcomeRoute
   JoinTokenRoute: typeof JoinTokenRoute
+  ASlugEnrollRoute: typeof ASlugEnrollRoute
   ASlugRatesRoute: typeof ASlugRatesRoute
   ASlugIndexRoute: typeof ASlugIndexRoute
 }
@@ -571,6 +620,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppClientsNewRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/enrollments/': {
+      id: '/_app/enrollments/'
+      path: '/enrollments'
+      fullPath: '/enrollments/'
+      preLoaderRoute: typeof AppEnrollmentsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/enrollments/$requestId': {
+      id: '/_app/enrollments/$requestId'
+      path: '/enrollments/$requestId'
+      fullPath: '/enrollments/$requestId'
+      preLoaderRoute: typeof AppEnrollmentsRequestIdRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/events/': {
       id: '/_app/events/'
       path: '/events'
@@ -620,6 +683,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PortalMyClientIdRouteImport
       parentRoute: typeof PortalRoute
     }
+    '/_portal/my/enroll': {
+      id: '/_portal/my/enroll'
+      path: '/my/enroll'
+      fullPath: '/my/enroll'
+      preLoaderRoute: typeof PortalMyEnrollRouteImport
+      parentRoute: typeof PortalRoute
+    }
     '/_portal/my/more': {
       id: '/_portal/my/more'
       path: '/my/more'
@@ -639,6 +709,13 @@ declare module '@tanstack/react-router' {
       path: '/a/$slug'
       fullPath: '/a/$slug/'
       preLoaderRoute: typeof ASlugIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/a/$slug/enroll': {
+      id: '/a/$slug/enroll'
+      path: '/a/$slug/enroll'
+      fullPath: '/a/$slug/enroll'
+      preLoaderRoute: typeof ASlugEnrollRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/a/$slug/rates': {
@@ -711,10 +788,12 @@ interface AppRouteChildren {
   AppIndexRoute: typeof AppIndexRoute
   AppClientsClientIdRoute: typeof AppClientsClientIdRoute
   AppClientsNewRoute: typeof AppClientsNewRoute
+  AppEnrollmentsRequestIdRoute: typeof AppEnrollmentsRequestIdRoute
   AppEventsEventIdRoute: typeof AppEventsEventIdRoute
   AppGroupsGroupIdRoute: typeof AppGroupsGroupIdRoute
   AppSessionsLessonIdRoute: typeof AppSessionsLessonIdRoute
   AppClientsIndexRoute: typeof AppClientsIndexRoute
+  AppEnrollmentsIndexRoute: typeof AppEnrollmentsIndexRoute
   AppEventsIndexRoute: typeof AppEventsIndexRoute
   AppGroupsIndexRoute: typeof AppGroupsIndexRoute
 }
@@ -730,10 +809,12 @@ const AppRouteChildren: AppRouteChildren = {
   AppIndexRoute: AppIndexRoute,
   AppClientsClientIdRoute: AppClientsClientIdRoute,
   AppClientsNewRoute: AppClientsNewRoute,
+  AppEnrollmentsRequestIdRoute: AppEnrollmentsRequestIdRoute,
   AppEventsEventIdRoute: AppEventsEventIdRoute,
   AppGroupsGroupIdRoute: AppGroupsGroupIdRoute,
   AppSessionsLessonIdRoute: AppSessionsLessonIdRoute,
   AppClientsIndexRoute: AppClientsIndexRoute,
+  AppEnrollmentsIndexRoute: AppEnrollmentsIndexRoute,
   AppEventsIndexRoute: AppEventsIndexRoute,
   AppGroupsIndexRoute: AppGroupsIndexRoute,
 }
@@ -765,6 +846,7 @@ const PortalMyClientIdRouteWithChildren =
 
 interface PortalRouteChildren {
   PortalMyClientIdRoute: typeof PortalMyClientIdRouteWithChildren
+  PortalMyEnrollRoute: typeof PortalMyEnrollRoute
   PortalMyMoreRoute: typeof PortalMyMoreRoute
   PortalMySettingsRoute: typeof PortalMySettingsRoute
   PortalMyIndexRoute: typeof PortalMyIndexRoute
@@ -772,6 +854,7 @@ interface PortalRouteChildren {
 
 const PortalRouteChildren: PortalRouteChildren = {
   PortalMyClientIdRoute: PortalMyClientIdRouteWithChildren,
+  PortalMyEnrollRoute: PortalMyEnrollRoute,
   PortalMyMoreRoute: PortalMyMoreRoute,
   PortalMySettingsRoute: PortalMySettingsRoute,
   PortalMyIndexRoute: PortalMyIndexRoute,
@@ -787,6 +870,7 @@ const rootRouteChildren: RootRouteChildren = {
   SignInRoute: SignInRoute,
   WelcomeRoute: WelcomeRoute,
   JoinTokenRoute: JoinTokenRoute,
+  ASlugEnrollRoute: ASlugEnrollRoute,
   ASlugRatesRoute: ASlugRatesRoute,
   ASlugIndexRoute: ASlugIndexRoute,
 }

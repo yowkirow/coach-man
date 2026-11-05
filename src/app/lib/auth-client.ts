@@ -64,6 +64,14 @@ export function startPasskeyAccount(name: string, inviteToken: string) {
   return authPost<{ userId: string }>("/passkey-account/start", { name, inviteToken });
 }
 
+/**
+ * The same from an academy's enrollment page: only while that academy's page is listed and it
+ * takes new students.
+ */
+export function startEnrollPasskeyAccount(name: string, slug: string) {
+  return authPost<{ userId: string }>("/passkey-account/start", { name, enrollment: { slug } });
+}
+
 /** After a cancelled or failed passkey: deletes the empty account and signs out. */
 export function abandonPasskeyAccount() {
   return authPost<{ deleted: boolean }>("/passkey-account/abandon", {}).catch(() => ({

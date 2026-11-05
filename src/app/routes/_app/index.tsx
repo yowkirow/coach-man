@@ -6,7 +6,9 @@ import {
   CalendarClock,
   CalendarPlus,
   CircleDollarSign,
+  Inbox,
   Radio,
+  RefreshCw,
   Shirt,
   Ticket,
 } from "lucide-react";
@@ -320,9 +322,42 @@ const ALERT_TONES = {
   uniform: { icon: Shirt, cls: "bg-mint" },
 } as const;
 
+/** Owners and admins: the Enrollments inbox's work, as Today items that open it. */
+function enrollmentWork(alerts: TodayDto["alerts"]) {
+  const e = alerts.enrollments;
+  if (!e) return [];
+  const out: {
+    key: string;
+    title: string;
+    text: string;
+    search: { view?: "renewals" };
+    tone: { icon: typeof Inbox; cls: string };
+  }[] = [];
+  if (e.requested > 0) {
+    out.push({
+      key: "enroll-requests",
+      title: `${plural(e.requested, "enrollment request")} to review`,
+      text: "From your academy page",
+      search: {},
+      tone: { icon: Inbox, cls: "bg-lime" },
+    });
+  }
+  if (e.notRenewed) {
+    out.push({
+      key: "enroll-renewals",
+      title: `${plural(e.notRenewed, "student")} ${e.notRenewed === 1 ? "hasn't" : "haven't"} renewed`,
+      text: "Monthly packages end this month",
+      search: { view: "renewals" },
+      tone: { icon: RefreshCw, cls: "bg-amber" },
+    });
+  }
+  return out;
+}
+
 function Attention({ alerts }: { alerts: TodayDto["alerts"] }) {
   const fmt = useFormat();
   const can = useCan();
+  const work = enrollmentWork(alerts);
   const items = [
     ...(can.money ? alerts.balancesDue : []).map((a) => ({
       key: `due-${a.clientId}`,
@@ -366,10 +401,35 @@ function Attention({ alerts }: { alerts: TodayDto["alerts"] }) {
       <Card label="Needs attention">
         <CardHeader
           title="Needs attention"
-          action={items.length ? <Pill tone="panel">{items.length}</Pill> : null}
+          action={
+            items.length + work.length ? (
+              <Pill tone="panel">{items.length + work.length}</Pill>
+            ) : null
+          }
         />
-        {items.length ? (
+        {items.length + work.length ? (
           <ul className="flex flex-col px-3 pb-3">
+            {work.map((it) => (
+              <li key={it.key}>
+                <Link
+                  to="/enrollments"
+                  search={it.search}
+                  className="flex items-center gap-3 rounded-2xl px-2 py-2.5 outline-none hover:bg-panel focus-visible:outline-2 focus-visible:outline-ink"
+                >
+                  <span
+                    aria-hidden
+                    className={`flex size-10 shrink-0 items-center justify-center rounded-full text-ink ${it.tone.cls}`}
+                  >
+                    <it.tone.icon className="size-4.5" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="num block truncate font-medium">{it.title}</span>
+                    <span className="block truncate text-[0.8125rem] text-ink-2">{it.text}</span>
+                  </span>
+                  <ArrowUpRight aria-hidden className="size-4 shrink-0 text-ink-3" />
+                </Link>
+              </li>
+            ))}
             {items.map((it) => {
               const tone = ALERT_TONES[it.kind];
               return (

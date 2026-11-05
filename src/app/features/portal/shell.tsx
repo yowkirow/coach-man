@@ -132,6 +132,7 @@ function useNavItems(): NavItem[] {
       active:
         pathname.startsWith("/my/more") ||
         pathname.startsWith("/my/settings") ||
+        pathname.startsWith("/my/enroll") ||
         section === "coaches" ||
         section === "consents" ||
         section === "profile",
@@ -201,6 +202,15 @@ function DesktopNav() {
               </li>
             ))
           : null}
+        <li>
+          <Link
+            to="/my/enroll"
+            aria-current={pathname.startsWith("/my/enroll") ? "page" : undefined}
+            className={pill(pathname.startsWith("/my/enroll"))}
+          >
+            Enroll
+          </Link>
+        </li>
         <li>
           <Link
             to="/my/settings"

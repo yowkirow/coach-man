@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { EnrollSlot } from "../features/enrollment/enroll-slot";
 import { AcademyPage } from "../features/public/academy-page";
 import { PublicGate, publicSearch } from "../features/public/public-gate";
 
@@ -16,7 +17,20 @@ function PublicAcademyRoute() {
       preview={preview === 1}
       titleOf={(a) => (a.tagline ? `${a.name} · ${a.tagline}` : a.name)}
     >
-      {(page, fmt) => <AcademyPage page={page} slug={slug} programId={program} fmt={fmt} />}
+      {(page, fmt) => (
+        <AcademyPage
+          page={page}
+          slug={slug}
+          programId={program}
+          fmt={fmt}
+          // Families enroll from each tier; a staff preview shows the page as it is.
+          renderEnroll={
+            page.kind === "public"
+              ? ({ academy, tier }) => <EnrollSlot academy={academy} tier={tier} />
+              : undefined
+          }
+        />
+      )}
     </PublicGate>
   );
 }

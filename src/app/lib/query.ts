@@ -49,6 +49,16 @@ export const keys = {
   /** Public academy pages: never persisted (not in PERSISTED). */
   publicAcademy: (slug: string) => ["public-academy", slug] as const,
   publicPreview: ["public-preview"] as const,
+  publicConsents: (slug: string) => ["public-consents", slug] as const,
+  publicSessions: (slug: string, programId: string) =>
+    ["public-sessions", slug, programId] as const,
+  /** The enrollment wizard's choices for the signed-in person (never persisted). */
+  enrollmentContext: (slug: string) => ["enrollment-context", slug] as const,
+  /** The staff inbox (never persisted: decisions need a connection anyway). */
+  enrollments: (status: string) => ["enrollments", status] as const,
+  enrollment: (id: string) => ["enrollment", id] as const,
+  enrollmentCount: ["enrollment-count"] as const,
+  renewalsDue: ["renewals-due"] as const,
   /**
    * The family portal's reads, under the signed-in person's id: another person signing in on
    * the same device never sees them, even before the cache owner switches.
@@ -66,6 +76,9 @@ export const keys = {
       ["portal", userId, "consents", clientId] as const,
     academy: (userId: string, workspaceId: string) =>
       ["portal", userId, "academy", workspaceId] as const,
+    enroll: (userId: string) => ["portal", userId, "enroll"] as const,
+    enrollments: (userId: string, clientId: string) =>
+      ["portal", userId, "enrollments", clientId] as const,
   },
 };
 

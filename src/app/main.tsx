@@ -5,7 +5,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { setNoWorkspaceHandler, setUnauthorizedHandler } from "./lib/api";
 import { onCacheRestored, requestPersistentStorage } from "./lib/offline";
-import { isPublicPath } from "./lib/public-path";
+import { isEnrollPath, isPublicPath } from "./lib/public-path";
 import {
   CACHE_BUSTER,
   CACHE_MAX_AGE,
@@ -33,8 +33,9 @@ declare module "@tanstack/react-router" {
 setUnauthorizedHandler(() => {
   queryClient.removeQueries({ queryKey: keys.me });
   const path = window.location.pathname;
-  // Invite pages work signed out: they offer sign-in themselves and come back to the link.
-  if (path === "/sign-in" || path.startsWith("/join/")) return;
+  // Invite pages and the enrollment wizard work signed out: they offer sign-in themselves and
+  // come back to the same page.
+  if (path === "/sign-in" || path.startsWith("/join/") || isEnrollPath(path)) return;
   // A staff preview of the public page (/a/…?preview=1) comes back to the preview.
   const next = isPublicPath(path) ? `${path}${window.location.search}` : path;
   void router.navigate({ to: "/sign-in", search: { next } });

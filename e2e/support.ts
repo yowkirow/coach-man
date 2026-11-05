@@ -7,6 +7,7 @@ import {
   type BrowserContext,
   test as base,
   expect,
+  type Locator,
   type Page,
   type TestInfo,
 } from "@playwright/test";
@@ -29,6 +30,24 @@ export function bypassSecret(): string {
 
 type Method = "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
 
+/**
+ * `request.fetch` that sends a read once more when the connection was reset before any answer:
+ * the local server closes idle keep-alive connections, and a request that reuses one just then
+ * fails with ECONNRESET without reaching the Worker. Writes are never resent.
+ */
+async function fetchOnce(
+  request: APIRequestContext,
+  url: string,
+  options: { method: Method; data?: unknown; headers?: Record<string, string> },
+) {
+  try {
+    return await request.fetch(url, options);
+  } catch (err) {
+    if (options.method !== "GET" || !/ECONNRESET|socket hang up/i.test(String(err))) throw err;
+    return request.fetch(url, options);
+  }
+}
+
 /** Thin JSON client for /api/v1 that shares the page's session cookie. */
 export class Api {
   constructor(private readonly request: APIRequestContext) {}
@@ -39,7 +58,7 @@ export class Api {
     data?: unknown,
     headers: Record<string, string> = {},
   ): Promise<T> {
-    const res = await this.request.fetch(`/api/v1${path}`, { method, data, headers });
+    const res = await fetchOnce(this.request, `/api/v1${path}`, { method, data, headers });
     const text = await res.text();
     if (!res.ok()) throw new Error(`${method} ${path} → ${res.status()}: ${text}`);
     return (text ? JSON.parse(text) : undefined) as T;
@@ -51,7 +70,7 @@ export class Api {
     path: string,
     data?: unknown,
   ): Promise<{ status: number; text: string; json: unknown }> {
-    const res = await this.request.fetch(`/api/v1${path}`, { method, data });
+    const res = await fetchOnce(this.request, `/api/v1${path}`, { method, data });
     const text = await res.text();
     let json: unknown;
     try {
@@ -322,7 +341,7 @@ export async function portalCall(
   path: string,
   data?: unknown,
 ): Promise<RawResponse> {
-  return rawOf(await request.fetch(`/api/portal${path}`, { method, data }));
+  return rawOf(await fetchOnce(request, `/api/portal${path}`, { method, data }));
 }
 
 /** GET /api/portal/<path>, failing the test unless it answers 200. */
@@ -387,4 +406,59 @@ export async function uploadPng(request: APIRequestContext, path: string, image 
   });
   expect(res.ok(), await res.text()).toBe(true);
   return (await res.json()) as { key?: string; photoKey?: string };
+}
+
+// --- Programs, tiers, and the public academy page ------------------------------------------------
+
+/**
+ * Flips a React Aria switch, checkbox, or radio by clicking its label: the input itself is
+ * visually hidden, and inside a scrolling sheet a forced click on it can land outside the viewport.
+ */
+export async function toggle(control: Locator) {
+  await control.locator("xpath=ancestor::label[1]").click();
+}
+
+/**
+ * Presses a sheet's save button and waits for the sheet to close. Like `visit`, it rides out the
+ * local preview server dropping the request under load: that answer is a 5xx without the
+ * Worker's JSON (the Worker's own errors are JSON), so the button is pressed again.
+ */
+export async function submitSheet(sheet: Locator, button: Locator) {
+  const page = sheet.page();
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const answered = page
+      .waitForResponse((r) => r.request().method() !== "GET" && r.url().includes("/api/"), {
+        timeout: 20_000,
+      })
+      .catch(() => null);
+    await button.click();
+    const res = await answered;
+    const json = (res?.headers()["content-type"] ?? "").includes("application/json");
+    if (!res || res.status() < 500 || json) break;
+  }
+  await expect(sheet).toBeHidden();
+}
+
+/** A unique public address for the caller's academy, listed (owners and admins). */
+export async function listAcademy(
+  api: Api,
+  info: TestInfo,
+  profile: Record<string, unknown> = {},
+): Promise<string> {
+  const slug = `e2e-${info.project.name}-${randomUUID().slice(0, 8)}`;
+  await api.patch("/academy", { slug, listed: true, ...profile });
+  return slug;
+}
+
+/** "YYYY-MM" moved by `delta` months. */
+export function shiftMonth(ym: string, delta: number): string {
+  const [y, m] = ym.split("-").map(Number);
+  const d = new Date(Date.UTC(y ?? 1970, (m ?? 1) - 1 + delta, 1));
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+/** The last day of a "YYYY-MM" month, as "YYYY-MM-DD". */
+export function lastDayOfMonth(ym: string): string {
+  const [y, m] = ym.split("-").map(Number);
+  return new Date(Date.UTC(y ?? 1970, m ?? 1, 0)).toISOString().slice(0, 10);
 }

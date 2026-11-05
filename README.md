@@ -8,7 +8,9 @@ CoachMan (short for *coach manager*) is an installable web app for pickleball ac
 - **Schedule**: one-off and weekly recurring sessions (private, semi-private, group, clinic, event), edit "this" or "this and following", cancel with automatic credit returns, rain-outs for a whole day.
 - **Clients**: profiles with contact, guardian and emergency details for juniors, groups, tags, photos, and a full activity timeline.
 - **Progress**: a skill rubric per sport (pickleball built in), fixed-scale assessments, goals, DUPR/coach ratings, and notes.
-- **Packages and rates**: a rate card, credit packages with validity, earliest-expiry-first usage, an auditable credit ledger, and manual adjustments.
+- **Packages and rates**: a rate card, credit packages with validity (a number of days, or to the end of a chosen month), earliest-expiry-first usage, an auditable credit ledger, and manual adjustments. Packages double as the tiers of the academy's rates sheet: inclusions, "who it's for", sessions labels, uniforms, and a featured tier.
+- **Academy page**: a public, shareable page for each academy (`/a/<slug>`) with its programs, tiers, coaches, and contact details, a printable rates sheet, and link previews for Messenger, Viber, and Facebook.
+- **Consents**: versioned waivers and consent forms (starter templates included), signed by typing a name in the family portal or recorded from paper.
 - **Groups and events**: classes with members and weekly series; camps, academies, clinics, tournaments, and socials with registrations, a waitlist, early-bird pricing, and their own sessions.
 - **Money**: charges and payments (cash, transfer, card, e-wallet), oldest-first allocation, balances, monthly summaries, and CSV exports.
 - **Sign-in**: Google creates the account; passkeys give one-tap sign-in afterwards. Parents and students without Google can make a passkey-only account from their invite.
@@ -27,7 +29,7 @@ Every member of an academy has one staff role. What each role may do lives in on
 | Clients, progress, notes, schedule, sessions, check-in, group members, event rosters, credits | ✓ | ✓ | ✓ |
 | `money`: prices, payments, charges, balances, revenue, selling and changing packages | ✓ | ✓ | |
 | `catalog`: rates, package templates, programs (groups), events | ✓ | ✓ | |
-| `settings`: academy settings, payment methods, venues, the rubric | ✓ | ✓ | |
+| `settings`: academy settings, payment methods, venues, the rubric, consent forms | ✓ | ✓ | |
 | `data`: CSV import and export, sample data, deleting clients | ✓ | ✓ | |
 | `team`, `enrollment`, `familyAccess`, `announcements` | ✓ | ✓ | |
 | `ownership`: delete the academy, transfer ownership | ✓ | | |
@@ -158,6 +160,63 @@ Parents and students without Google can create an account from a family invite w
 
 **Recovery:** someone without Google who loses every passkey asks the academy for a fresh invite link, makes a new passkey account with it, and the academy revokes the old account's access from the Family access card. Linking Google, or adding a passkey on a second device, avoids this.
 
+### Programs and package tiers
+
+A **program** is a group (`training_group`) the academy publishes: besides its level, size, default venue, weekly series, and coaches it has `isPublic`, `publicDescription` (what families read; the plain description stays internal), `scheduleNote` (a label such as "Every Tue & Thu, 7–10pm" that replaces the weekly series' days and times on the page), `ageMin`/`ageMax`, and `sortOrder`. Edit them in the group sheet's **Academy page** section; the group's header and cards show a **Public** pill, and its Details tab lists the program's tiers (coaches see them without prices).
+
+A **package template** is also a tier on the rates sheet: `programId`, an optional `coachUserId` (a coach-specific tier), `sessionsLabel` ("4–6 sessions"; `credits` is the most it covers), `validityMode` (`days` or `month_end`), `inclusions` (an ordered checklist), `audience` ("Who it's for"), `commitmentNote`, `includesUniform`, `asksSelfRating`, `isPublic`, `highlight` (the featured tier), and `sortOrder`. The package sheet edits them with a live preview of the card families see. A tier is on the public page when it's public, for sale, and in no program or in a public, active program. New packages and groups go to the end of the order.
+
+**Packages & rates → Academy page** (`catalog`) shows whether the page is listed (with **Preview page**, **Printable rates**, and **Copy link**), then each program with its Public switch and order arrows, and its tiers with their Public switch, a featured star, order arrows, and edit. Money stays redacted for coaches as everywhere else: they read tiers (names, inclusions, schedule) without prices and get 403 on every catalog change.
+
+**Month-end validity.** Selling (or, from WS4b, approving) a `month_end` package takes a `startMonth`, this month or next in the academy's time zone (this month by default); it expires on that month's last day, with no proration, whatever the sale date. The sell sheet offers the two months and shows "Pays for sessions from … Valid until …". The **credit rule** for every package: it pays for a session only when the session's local date is within [start, expiry], where the start is the first of `startMonth` for month-end packages and `purchasedOn` otherwise. So a package sold for next month never pays for a session this month: check-in uses another package, or the existing pay-per-session rules (the rate's charge, or nothing); picking it by hand answers 409 with the reason ("it starts on Dec 1, 2026"). The client's packages card says **Starts <date>** until then.
+
+**Uniforms.** A package sold from a tier with `includesUniform` keeps that flag (`client_package.includes_uniform`). Staff record the size (when selling, or later) and **Uniform handed out** from the client's packages card (any staff member: it happens at the court); Today's **Needs attention** lists uniforms still to hand out for owners and admins.
+
+**Self-ratings.** When a tier `asksSelfRating`, enrolling (WS4b) saves the player's own estimate to their rating history with source `self`. The staff app labels it **Self-rating**; the portal's headline rating prefers the latest coach or DUPR rating and shows the self-rating on its own line.
+
+| Endpoint | Does |
+| --- | --- |
+| `POST /api/v1/groups/reorder` | `{ ids }`: programs' order on the page (`catalog`) |
+| `POST /api/v1/packages/reorder` | `{ ids }`: tiers' order; answers the reordered list (`catalog`) |
+| `POST /api/v1/clients/:id/packages` | Selling now also takes `startMonth` (month-end tiers) and `uniformSize` |
+| `PATCH /api/v1/client-packages/:id/uniform` | `{ uniformSize?, issued? }` (any staff) |
+
+### Consents
+
+**Settings → Consent forms** (`settings`) holds the academy's documents: a kind (waiver, data privacy, parental consent, photo and video, other), a title, the text (plain text; a blank line starts a paragraph, and it's always shown as text, never as HTML), whether it's required, who it applies to (everyone, or students under 18 only), and whether it's active (a draft families don't see). **Start from a template** adds an activity waiver and release, a Data Privacy Act (RA 10173) consent, a parental consent for minors, or a photo and video consent, filled in with the academy's name, as drafts under a "starting point, not legal advice" note. Changing the text of a document someone signed starts a new version: earlier signatures stay with the version they signed (its text is kept in `consent_document_version`), and those students show as **Needs re-signing**. A document nobody signed can be deleted; a signed one can only be turned off.
+
+Who may sign: for a student under 18 (or marked junior without a birth date) only a parent or guardian's signature counts, and "students under 18" documents apply only to them; adults sign for themselves. A teen with their own login sees the forms but can't sign them. Any staff member can record a form **signed on paper** (relation `staff`: "Signed on paper by <name>, recorded by <staff>"), which counts either way. A signature keeps the typed name, the relation, the version, the time, the IP address (`cf-connecting-ip`), and the device, and is written to the audit log.
+
+The student's profile has a **Consents** card (signed with version, by whom, and when; missing; needs re-signing; and **Record paper signature**), and Clients has a **Missing consents** list. In the family portal, **Consents** (in More, the laptop header, and a prompt on Home when something is missing) shows the same per student; parents (and adult students) read a form, then sign it by typing their full name.
+
+| Endpoint | Does |
+| --- | --- |
+| `GET`/`POST /api/v1/consent-documents` | The academy's documents with signature counts; create one (`settings`) |
+| `POST /api/v1/consent-documents/templates` | `{ kind }`: a starter document, inactive (`settings`) |
+| `PATCH`/`DELETE /api/v1/consent-documents/:id` | Edit (a signed text starts a new version) or delete an unsigned one (`settings`) |
+| `GET /api/v1/clients/:id/consents` | The student's standing on each active document that applies |
+| `POST /api/v1/clients/:id/consents/:documentId/paper` | `{ signerName, version }`: records a paper signature (any staff) |
+| `GET /api/portal/students/:clientId/consents` | The forms with their text and standing, and whether the caller may sign |
+| `POST /api/portal/students/:clientId/consents/:documentId/sign` | `{ signerName, version }`: a parent for a minor, the student as an adult; 403 otherwise, 409 if the form changed |
+| `GET /api/public/academies/:slug/consents` | Texts of the active required documents (for enrolling in WS4b) |
+
+### The academy page and rates sheet
+
+`/a/<slug>` is the academy's public page, phone-first because links get shared on Messenger and Viber: the academy's logo, name, and tagline; the program on show as a pass (its days lit on a week strip, times, venue with directions, coaches, and next session; `?program=<id>` switches between several); its tiers as cards (price per head, sessions, validity with "Valid until the end of the month; best to enroll early in the month" for month-end tiers, the inclusions checklist, the uniform, who it's for, the commitment note, and the featured tier in lime); about; coaches with photo, title, and certifications; contact (tap to call, text, email, Messenger, the map, socials); policies; and **View printable rates**. Until enrolling arrives (WS4b), the page says how to get in touch. An unlisted, legacy (`ws-…`), or unknown address shows "This academy page isn't available".
+
+`/a/<slug>/rates` is the rates sheet, generated from the live catalog and laid out like a formal rate document: the letterhead (logo, name, tagline, contact), "Rates and packages" as of the current month, then for each program and tier the rates and schedule, validity, inclusions, and notes, in the academy's currency and locale. **Print or save as PDF** opens the browser's print dialog; the print styles drop the toolbar and app chrome, print on white with page margins for A4 or Letter, and keep each tier on one page.
+
+Owners and admins preview the page while it's unlisted: **Settings → Academy profile → Preview public page** (or Packages → Academy page) opens `/a/<slug>?preview=1`, which reads `GET /api/v1/academy/public-preview` (`settings`) and says it's a preview; **Copy link** appears once the page is listed. Someone who only opened an academy's link doesn't get the service worker or a persistent-storage request.
+
+| Endpoint | Does |
+| --- | --- |
+| `GET /api/public/academies/:slug` | A listed academy's page: profile, public programs (schedule, venue, coaches), public tiers with prices, public coach profiles, and the titles of active required consents. `Cache-Control: public, max-age=60`; 404 when unlisted, legacy, or unknown |
+| `GET /api/v1/academy/public-preview` | The same for the staff member's own academy, listed or not, with `listed` and `publicUrl` (`settings`) |
+
+Both are built field by field (`src/worker/lib/public-dto.ts`) from published rows only: no clients, notes, internal descriptions, payment instructions, staff emails, phones, or user ids (coaches are identified by their profile id), and no unpublished programs or tiers. `/api/public/*` and `/a/*` share one rate limit (300 requests a minute per IP address).
+
+**Link previews.** Messenger, Viber, and Facebook read a shared link's HTML; they never run the app. `assets.run_worker_first` in `wrangler.jsonc` sends `/a/*` to the Worker (`src/worker/public-page.ts`), which fetches the app's `index.html` from the assets binding and uses `HTMLRewriter` to replace the title and description and add `og:title`, `og:description`, `og:image` (the cover or logo as an absolute `${APP_URL}/api/public/files/…` URL), `og:url`, and `twitter:card` tags, every value escaped (`src/worker/lib/page-meta.ts`). It also writes the page's data into a JSON block the app reads instead of fetching it again. Unknown and unlisted academies get CoachMan's own tags and the app, which shows the not-found page. The assets' `_headers` (security headers) still apply, local `vite dev` and `vite preview` work the same way, and the service worker leaves `/a/*` to the network.
+
 ## Suggested next steps
 
 The academy release (roles, team invites, coach profiles and assignments, the family portal, the public academy page, enrollment, payment proofs, consents, kids' safety info, announcements, and family reminders) is being built in workstreams; see `PRODUCT.md`. After it:
@@ -220,7 +279,7 @@ npx drizzle-kit generate --name <what-changed>   # writes migrations/NNNN_<name>
 npm run db:migrate:local                         # apply to the local D1 (Miniflare)
 ```
 
-Wrangler asks before applying; in scripts and on Windows PowerShell set `CI=1` to accept (`$env:CI='1'; npx wrangler d1 migrations apply DB --local`). Read every generated file before applying it: new columns on existing tables must be nullable or have a default, so the SQL stays `ALTER TABLE … ADD` and never rebuilds a table. `0001_academy` adds the academy tables and columns and ends with a hand-written, idempotent backfill: each workspace's owner becomes the lead coach of its sessions, series, groups, and events and the primary coach of its clients, and every member gets a coach profile. `0002_coaching` adds who set each goal (`goal.created_by`, backfilled with the owner) and an academy profile row for every workspace. Remote databases use `npm run db:migrate:staging` and `npm run db:migrate:production`.
+Wrangler asks before applying; in scripts and on Windows PowerShell set `CI=1` to accept (`$env:CI='1'; npx wrangler d1 migrations apply DB --local`). Read every generated file before applying it: new columns on existing tables must be nullable or have a default, so the SQL stays `ALTER TABLE … ADD` and never rebuilds a table. `0001_academy` adds the academy tables and columns and ends with a hand-written, idempotent backfill: each workspace's owner becomes the lead coach of its sessions, series, groups, and events and the primary coach of its clients, and every member gets a coach profile. `0002_coaching` adds who set each goal (`goal.created_by`, backfilled with the owner) and an academy profile row for every workspace. `0003_offerings` adds `client_package.includes_uniform`, the `consent_document_version` table (the text of every signed version), and an index on consent signatures. Remote databases use `npm run db:migrate:staging` and `npm run db:migrate:production`.
 
 ### Environment variables
 
@@ -241,8 +300,8 @@ Vars live in `wrangler.jsonc` per environment; secrets go in `.dev.vars` locally
 ```bash
 npm run lint          # Biome
 npm run typecheck     # tsc -b (app, service worker, worker, tooling)
-npm run test:unit     # Vitest: credits, allocation, recurrence, money/time, bypass gate, roles, redaction, tokens, age rules, invites (staff and family), passkey-only accounts and their cleanup, Google linking, portal DTOs and scoping, team rules, coach changes, notes, reminders
-npm run test:e2e      # Playwright: API golden paths, roles and routing, team and invites, family invites and age rules, the family portal and what it never shows, passkey-only accounts, coaching, Today check-in/undo, offline sync, passkeys, axe
+npm run test:unit     # Vitest: credits, allocation, recurrence, money/time, bypass gate, roles, redaction, tokens, age rules, invites (staff and family), passkey-only accounts and their cleanup, Google linking, portal DTOs and scoping, team rules, coach changes, notes, reminders, month-end validity and credit eligibility, consent versions and signers, public DTOs, link-preview tags
+npm run test:e2e      # Playwright: API golden paths, roles and routing, team and invites, family invites and age rules, the family portal and what it never shows, passkey-only accounts, coaching, Today check-in/undo, offline sync, passkeys, programs and tiers, consents, the public academy page, axe
 ```
 
 ### The Playwright auth bypass
@@ -264,7 +323,7 @@ Playwright reads these environment variables:
 
 Each test signs in as a brand-new coach with its own workspace, so tests run in parallel and don't touch real data. Passkey tests use Chromium's virtual authenticator, so the target origin must match `APP_URL`.
 
-Tests that need more than one person use personas, each in its own browser context (`e2e/support.ts`: the `personas` fixture, `addMember`, `linkFamily`, `signIn`, `watchErrors`, `visit`). Persona contexts block the service worker, so each one doesn't precache the whole app. `watchErrors` collects page errors, console errors, and failed requests; `visit` is `page.goto` that retries when the local server drops the page request. The bypass endpoints behind them:
+Tests that need more than one person use personas, each in its own browser context (`e2e/support.ts`: the `personas` fixture, `addMember`, `linkFamily`, `signIn`, `watchErrors`, `visit`). Persona contexts block the service worker, so each one doesn't precache the whole app. `watchErrors` collects page errors, console errors, and failed requests; `visit` is `page.goto` that retries when the local server drops the page request, and `Api` (and `portalCall`) send a read once more when a reused keep-alive connection was reset before any answer (writes are never resent). The bypass endpoints behind them:
 
 | Endpoint | Does |
 | --- | --- |
@@ -280,6 +339,8 @@ Tests that need more than one person use personas, each in its own browser conte
 Family and portal specs (`family`, `portal`, `portal-leaks`, `passkey-account`) also use `inviteToken`, `bornYearsAgo`, `acceptInvite`, `portalCall`/`portalGet`, `auditLog`, `pngImage`, and `uploadPng` from `e2e/support.ts`, and block the service worker for every context they open: each context's precache burst can stall the local server for the other worker. `portal-leaks.spec.ts` seeds every kind of private detail with a unique marker and checks that no portal answer or page contains one. The passkey-only account spec uses Chromium's virtual authenticator and runs on desktop only.
 
 For the fastest, most realistic local run, test the production build: `npm run build`, then start `npx vite preview --port 5173` with `X_LOCAL_OBSERVABILITY=false` in one terminal (PowerShell: `$env:X_LOCAL_OBSERVABILITY='false'; npx vite preview --port 5173`) and `npx playwright test` in another (it reuses whatever serves :5173). That variable turns off Miniflare's local trace store: because `observability` is enabled in `wrangler.jsonc`, local runs record every request in `.wrangler/state/v3/observability`, which never shrinks and, once large, stalls the local runtime for seconds under test load. Servers Playwright starts itself get it automatically. Before the first test, `e2e/global-setup.ts` warms a local server (one signed-in round of reads and writes and one load of the app shell), because a freshly started workerd answers its first bursts slowly enough to time out the first tests; it skips remote targets (`E2E_BASE_URL`). On machines with little free memory, add `--workers=1`: local workerd can drop requests under memory pressure.
+
+The WS4a specs (`offerings`, `consents`, `public-page`) also use `listAcademy` (a unique public address, listed), `shiftMonth`/`lastDayOfMonth`, `toggle` (flips a React Aria switch, checkbox, or radio by its label, which works inside scrolling sheets), and `submitSheet` (saves a sheet and, like `visit`, presses again if the local server dropped the request).
 
 `npm run screenshots` captures desktop (1440) and phone (390) screenshots into `.impeccable/review/` using the same bypass.
 

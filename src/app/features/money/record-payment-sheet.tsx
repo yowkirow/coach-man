@@ -35,6 +35,12 @@ export function useInvalidateMoney() {
     void qc.invalidateQueries({ queryKey: ["clients"] });
     void qc.invalidateQueries({ queryKey: keys.packages });
     void qc.invalidateQueries({ queryKey: keys.today });
+    // Payment proofs show balances and what a request still owes (and voiding a payment a proof
+    // recorded changes the proof).
+    void qc.invalidateQueries({ queryKey: ["payment-proofs"] });
+    void qc.invalidateQueries({ queryKey: keys.proofCount });
+    void qc.invalidateQueries({ queryKey: ["client-proofs"] });
+    void qc.invalidateQueries({ queryKey: ["enrollment"] });
     if (clientId) {
       void qc.invalidateQueries({ queryKey: keys.client(clientId) });
       void qc.invalidateQueries({ queryKey: keys.statement(clientId) });

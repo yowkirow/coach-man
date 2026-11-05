@@ -9,6 +9,7 @@ import type {
   LessonSummaryDto,
   MeDto,
   PackageTemplateDto,
+  PaymentProofCountDto,
   RateDto,
   SkillDto,
   TeamDto,
@@ -170,6 +171,18 @@ export function useEnrollmentCount() {
     queryKey: keys.enrollmentCount,
     queryFn: () => api.get<EnrollmentCountDto>("/enrollments/count"),
     enabled: can.enrollment,
+    refetchInterval: 120_000,
+    staleTime: 30_000,
+  });
+}
+
+/** Payment proofs waiting for review: the Money badge (owners and admins). */
+export function useProofCount() {
+  const can = useCan();
+  return useQuery({
+    queryKey: keys.proofCount,
+    queryFn: () => api.get<PaymentProofCountDto>("/payment-proofs/count"),
+    enabled: can.enrollment && can.money,
     refetchInterval: 120_000,
     staleTime: 30_000,
   });

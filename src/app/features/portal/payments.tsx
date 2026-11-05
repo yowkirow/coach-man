@@ -1,22 +1,25 @@
 import type {
-  PortalAcademyDto,
   PortalChargeDto,
   PortalEnrollmentDto,
   PortalMoneyDto,
   PortalPackageDto,
   PortalPaymentDto,
 } from "@shared/api-types";
-import { CircleDollarSign, QrCode, ReceiptText, Ticket } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { CircleDollarSign, ReceiptText, Ticket, Wallet } from "lucide-react";
+import { buttonClass } from "../../components/ui/button";
 import { Card, Meter, Pill } from "../../components/ui/display";
-import { Skeleton } from "../../components/ui/feedback";
-import { publicFileUrl } from "../../lib/api";
 import type { Format } from "../../lib/format";
 import { CHARGE_KIND_LABELS } from "../clients/client-utils";
 import { RenewCard, StudentRequests } from "../enrollment/family";
 import { usePortalStudentEnrollments } from "../enrollment/queries";
-import { paymentPill, periodText } from "../enrollment/text";
+import { periodText } from "../enrollment/text";
+import { usePortalProofs } from "../payment-proofs/queries";
+import { requestPayPill } from "../payment-proofs/text";
 import { PortalCard, QueryGate } from "./bits";
 import { balanceState } from "./home";
+import { PayInstructions } from "./pay";
+import { PortalProofsCard } from "./proofs";
 import { useAcademyFormat, usePortalAcademy, usePortalMoney } from "./queries";
 import { PortalPage, useCurrentStudent } from "./shell";
 
@@ -174,64 +177,8 @@ function History({ money, fmt }: { money: PortalMoneyDto; fmt: Format }) {
 }
 
 /**
- * How to pay: the academy's own instructions and QR code. Payment happens outside CoachMan
- * (GCash, bank transfer, cash); the academy records it, and it shows in the history.
- */
-function HowToPay({ academy }: { academy: PortalAcademyDto | undefined }) {
-  if (!academy) {
-    return (
-      <PortalCard title="How to pay">
-        <Skeleton className="h-24" />
-      </PortalCard>
-    );
-  }
-  const qr = publicFileUrl(academy.paymentQrKey);
-  const methods = academy.paymentMethods;
-  return (
-    <PortalCard title="How to pay">
-      {academy.paymentInstructions || qr ? (
-        <div className="flex flex-col gap-4">
-          {academy.paymentInstructions ? (
-            <p className="max-w-[65ch] text-[0.9375rem] whitespace-pre-line">
-              {academy.paymentInstructions}
-            </p>
-          ) : null}
-          {qr ? (
-            <figure className="flex flex-col items-start gap-2">
-              <img
-                src={qr}
-                alt={`Payment QR code for ${academy.name}`}
-                className="size-56 rounded-[22px] bg-panel object-contain p-3"
-              />
-              <figcaption className="text-[0.8125rem] text-ink-2">
-                Scan it in your bank or e-wallet app.
-              </figcaption>
-            </figure>
-          ) : null}
-        </div>
-      ) : (
-        <p className="flex items-start gap-3 text-[0.9375rem] text-ink-2">
-          <QrCode aria-hidden className="mt-0.5 size-4.5 shrink-0" />
-          <span>
-            {academy.name} hasn't put payment details here yet. Ask them how they'd like to be paid.
-          </span>
-        </p>
-      )}
-      {methods.length ? (
-        <p className="mt-4 text-[0.875rem] text-ink-2">
-          Accepted: <span className="text-ink">{methods.join(", ")}</span>
-        </p>
-      ) : null}
-      <p className="mt-3 text-[0.875rem] text-ink-2">
-        Once {academy.name} records your payment, it shows in the history here.
-      </p>
-    </PortalCard>
-  );
-}
-
-/**
- * What's owed for approved enrollments, beside How to pay. Payment proofs (WS4c) add sending a
- * screenshot of the payment here.
+ * What's owed for approved enrollments, beside How to pay: each one's amount, where its payment
+ * stands, and Pay (the Pay screen, to send a screenshot of the payment).
  */
 function AmountDue({ requests, fmt }: { requests: PortalEnrollmentDto[]; fmt: Format }) {
   const owed = requests.filter((r) => r.payment && r.payment.dueMinor > 0);
@@ -239,41 +186,66 @@ function AmountDue({ requests, fmt }: { requests: PortalEnrollmentDto[]; fmt: Fo
   return (
     <PortalCard title="To pay">
       <ul className="flex flex-col divide-y divide-line">
-        {owed.map((r) => (
-          <li key={r.id} className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
-            <span className="min-w-0 flex-1">
-              <span className="block font-medium">{r.tier.name}</span>
-              <span className="num block text-[0.8125rem] text-ink-2">
-                {periodText({ ...r, sessionStartsAt: r.session?.startsAt ?? null }, fmt)}
-              </span>
-            </span>
-            <span className="flex shrink-0 flex-col items-end gap-1">
-              <span className="num text-[1.375rem] leading-tight font-light">
-                {fmt.money(r.payment?.dueMinor ?? 0)}
-              </span>
-              {r.payment ? (
-                <Pill tone={paymentPill(r.payment).tone}>{paymentPill(r.payment).label}</Pill>
-              ) : null}
-            </span>
-          </li>
-        ))}
+        {owed.map((r) => {
+          const pill = r.payment ? requestPayPill(r.payment, r.proofs ?? []) : null;
+          const pending = pill?.state === "proof_pending";
+          return (
+            <li key={r.id} className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0">
+              <div className="flex items-start gap-3">
+                <span className="min-w-0 flex-1">
+                  <span className="block font-medium">{r.tier.name}</span>
+                  <span className="num block text-[0.8125rem] text-ink-2">
+                    {periodText({ ...r, sessionStartsAt: r.session?.startsAt ?? null }, fmt)}
+                  </span>
+                </span>
+                <span className="flex shrink-0 flex-col items-end gap-1">
+                  <span className="num text-[1.375rem] leading-tight font-light">
+                    {fmt.money(r.payment?.dueMinor ?? 0)}
+                  </span>
+                  {pill ? <Pill tone={pill.tone}>{pill.label}</Pill> : null}
+                </span>
+              </div>
+              {pending ? (
+                <p className="text-[0.8125rem] text-ink-2">
+                  Proof sent. The academy is checking it.
+                </p>
+              ) : (
+                <Link
+                  to="/my/$clientId/pay"
+                  params={{ clientId: r.clientId }}
+                  search={{ request: r.id }}
+                  className={buttonClass("dark", "sm", "self-start")}
+                >
+                  <Wallet aria-hidden className="size-4" />
+                  Pay {fmt.moneyShort(r.payment?.dueMinor ?? 0)}
+                  <span className="sr-only"> for {r.tier.name}</span>
+                </Link>
+              )}
+            </li>
+          );
+        })}
       </ul>
       <p className="mt-3 text-[0.875rem] text-ink-2">
-        Pay the academy as it asks below. Once it records your payment, this clears.
+        Pay the academy as it asks, then send the screenshot. Once it's confirmed, this clears.
       </p>
     </PortalCard>
   );
 }
 
-/** Payments: the balance, packages and credits, the history, and how to pay. */
+/** Payments: the balance, packages and credits, the history, proofs, and how to pay. */
 export function PortalPayments({ clientId }: { clientId: string }) {
   const money = usePortalMoney(clientId);
   const enroll = usePortalStudentEnrollments(clientId);
+  const proofs = usePortalProofs(clientId);
   const { current } = useCurrentStudent();
   const academy = usePortalAcademy(money.data?.academy.workspaceId ?? current?.workspaceId);
   const fmt = useAcademyFormat(money.data?.academy);
   const requests = enroll.data?.requests ?? [];
   const renewal = enroll.data?.renewal ?? null;
+  const academyName = academy.data?.name ?? money.data?.academy.name ?? "The academy";
+  const waitingMinor = (proofs.data?.proofs ?? [])
+    .filter((p) => p.status === "pending")
+    .reduce((sum, p) => sum + p.amountMinor, 0);
   return (
     <PortalPage
       title="Payments"
@@ -296,9 +268,25 @@ export function PortalPayments({ clientId }: { clientId: string }) {
                   </p>
                   <p className="text-[0.875rem] text-ink-2">
                     {m.balanceMinor > 0
-                      ? "Charges not yet covered by payments. How to pay is below."
+                      ? "Charges not yet covered by payments. Pay the academy, then send the screenshot."
                       : "Every charge so far is covered by payments."}
                   </p>
+                  {waitingMinor > 0 ? (
+                    <p className="num rounded-[18px] bg-sky-soft px-4 py-3 text-[0.875rem]">
+                      {fmt.money(waitingMinor)} in proofs you sent is waiting for {academyName} to
+                      confirm.
+                    </p>
+                  ) : null}
+                  {m.balanceMinor > 0 ? (
+                    <Link
+                      to="/my/$clientId/pay"
+                      params={{ clientId }}
+                      className={buttonClass("dark", "md", "self-start")}
+                    >
+                      <Wallet aria-hidden className="size-4.5" />
+                      Pay {fmt.moneyShort(m.balanceMinor)}
+                    </Link>
+                  ) : null}
                 </Card>
                 {renewal ? (
                   <div className="grid">
@@ -306,12 +294,29 @@ export function PortalPayments({ clientId }: { clientId: string }) {
                   </div>
                 ) : null}
                 <StudentRequests requests={requests} fmt={fmt} title="Enrollment requests" />
+                <PortalProofsCard clientId={clientId} fmt={fmt} academyName={academyName} />
                 <Packages packages={m.packages} fmt={fmt} />
                 <History money={m} fmt={fmt} />
               </div>
               <div className="flex flex-col gap-5">
                 <AmountDue requests={requests} fmt={fmt} />
-                <HowToPay academy={academy.data} />
+                <PayInstructions
+                  academy={academy.data}
+                  footer={
+                    <div className="flex flex-col items-start gap-2 border-t border-line pt-4">
+                      <p className="text-[0.875rem] text-ink-2">
+                        Paid already? Send the screenshot so {academyName} can record it.
+                      </p>
+                      <Link
+                        to="/my/$clientId/pay"
+                        params={{ clientId }}
+                        className={buttonClass("light", "sm")}
+                      >
+                        Send a payment proof
+                      </Link>
+                    </div>
+                  }
+                />
               </div>
             </div>
           );

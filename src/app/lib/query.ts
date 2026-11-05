@@ -59,6 +59,10 @@ export const keys = {
   enrollment: (id: string) => ["enrollment", id] as const,
   enrollmentCount: ["enrollment-count"] as const,
   renewalsDue: ["renewals-due"] as const,
+  /** Payment proofs to review (never persisted: reviewing needs a connection anyway). */
+  paymentProofs: (status: string) => ["payment-proofs", status] as const,
+  proofCount: ["proof-count"] as const,
+  clientProofs: (clientId: string) => ["client-proofs", clientId] as const,
   /**
    * The family portal's reads, under the signed-in person's id: another person signing in on
    * the same device never sees them, even before the cache owner switches.
@@ -79,6 +83,7 @@ export const keys = {
     enroll: (userId: string) => ["portal", userId, "enroll"] as const,
     enrollments: (userId: string, clientId: string) =>
       ["portal", userId, "enrollments", clientId] as const,
+    proofs: (userId: string, clientId: string) => ["portal", userId, "proofs", clientId] as const,
   },
 };
 

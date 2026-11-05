@@ -19,7 +19,7 @@ import {
 import { createContext, type ReactNode, useContext, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { fullName, plural } from "../../lib/format";
-import { useCan, useEnrollmentCount, useMe } from "../../lib/hooks";
+import { useCan, useEnrollmentCount, useMe, useProofCount } from "../../lib/hooks";
 import { useOnline, usePendingChanges } from "../../lib/offline";
 import { BallMark } from "../brand";
 import { Avatar } from "../ui/display";
@@ -227,6 +227,11 @@ function useInboxBadge(): number {
   return useEnrollmentCount().data?.requested ?? 0;
 }
 
+/** Payment proofs waiting on the Money page (0 for roles without money). */
+function useProofBadge(): number {
+  return useProofCount().data?.pending ?? 0;
+}
+
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const me = useMe();
@@ -236,6 +241,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [slot, setSlot] = useState<HTMLElement | null>(null);
   const moreActive = !tabs.some((t) => isActivePath(pathname, t));
   const inbox = useInboxBadge();
+  const proofs = useProofBadge();
   const [firstName, ...rest] = (me.data?.user.name ?? "Coach").split(" ");
   const coach = { firstName: firstName ?? "Coach", lastName: rest.join(" ") };
 
@@ -267,7 +273,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   label={n.label}
                   icon={n.icon}
                   active={isActivePath(pathname, n.to)}
-                  badge={n.to === "/enrollments" ? inbox : 0}
+                  badge={n.to === "/enrollments" ? inbox : n.to === "/money" ? proofs : 0}
                 />
               ))}
             </nav>
@@ -321,6 +327,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 const item = nav.find((n) => n.to === to);
                 if (!item) return null;
                 const active = isActivePath(pathname, to);
+                const waiting = to === "/money" ? proofs : 0;
                 return (
                   <li key={to} className="flex justify-center">
                     <Link
@@ -328,8 +335,21 @@ export function AppShell({ children }: { children: ReactNode }) {
                       aria-current={active ? "page" : undefined}
                       className={`flex h-13 w-full flex-col items-center justify-center gap-0.5 rounded-full text-[0.6875rem] font-medium outline-none focus-visible:outline-2 focus-visible:outline-lime ${active ? "bg-lime text-ink" : "text-night-ink-2"}`}
                     >
-                      <item.icon aria-hidden className="size-5" strokeWidth={1.75} />
+                      <span className="relative">
+                        <item.icon aria-hidden className="size-5" strokeWidth={1.75} />
+                        {waiting > 0 && !active ? (
+                          <span
+                            aria-hidden
+                            className="absolute -top-0.5 -right-1 size-2.5 rounded-full bg-amber ring-2 ring-night"
+                          />
+                        ) : null}
+                      </span>
                       {item.label}
+                      {waiting > 0 ? (
+                        <span className="sr-only">
+                          , {plural(waiting, "payment proof")} to review
+                        </span>
+                      ) : null}
                     </Link>
                   </li>
                 );

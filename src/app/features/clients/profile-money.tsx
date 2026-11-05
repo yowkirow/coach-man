@@ -13,6 +13,7 @@ import { notify } from "../../lib/notify";
 import { useOnline } from "../../lib/offline";
 import { keys } from "../../lib/query";
 import { useInvalidateMoney } from "../money/record-payment-sheet";
+import { ClientProofsCard } from "../payment-proofs/client-card";
 import { CardSkeleton, OfflineHint, SectionHead } from "./bits";
 import { CHARGE_KIND_LABELS } from "./client-utils";
 import { useRefreshClient, useStatement } from "./queries";
@@ -36,6 +37,7 @@ export function MoneyTab({
   onSell: () => void;
 }) {
   const q = useStatement(clientId);
+  const fmt = useFormat();
   const [voiding, setVoiding] = useState<VoidTarget | null>(null);
   if (q.isPending && q.fetchStatus === "paused") {
     return (
@@ -71,6 +73,7 @@ export function MoneyTab({
   return (
     <div className="flex flex-col gap-4">
       <StatementHero statement={s} firstName={firstName} onPay={onPay} onSell={onSell} />
+      <ClientProofsCard clientId={clientId} fmt={fmt} />
       <ChargesCard charges={s.charges} onVoid={setVoiding} />
       <PaymentsCard payments={s.payments} onVoid={setVoiding} onPay={onPay} />
       <VoidSheet

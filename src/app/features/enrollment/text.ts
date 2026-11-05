@@ -1,4 +1,3 @@
-import type { EnrollmentPaymentDto } from "@shared/api-types";
 import type { EnrollmentStatus } from "@shared/domain";
 import { ENROLLMENT_STATUS_LABELS, type EnrollmentMode } from "@shared/enrollment";
 import type { PillTone } from "../../components/ui/display";
@@ -14,13 +13,6 @@ export function enrollmentStatusPill(status: EnrollmentStatus): { tone: PillTone
     cancelled: "outline",
   };
   return { tone: tone[status], label: ENROLLMENT_STATUS_LABELS[status] };
-}
-
-/** What's owed for an approved request, as a pill. */
-export function paymentPill(p: EnrollmentPaymentDto): { tone: PillTone; label: string } {
-  if (p.status === "paid") return { tone: "mint", label: "Paid" };
-  if (p.status === "partial") return { tone: "amber", label: "Part paid" };
-  return { tone: "coral", label: "Unpaid" };
 }
 
 /** The period a request is for: "December 2026", "Tue 10 Nov · 7:00 PM", "From Thu 12 Nov". */

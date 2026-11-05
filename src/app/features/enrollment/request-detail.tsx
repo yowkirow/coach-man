@@ -11,9 +11,11 @@ import { ApiRequestError, errorMessage } from "../../lib/api";
 import { type Format, fullName, plural, useFormat } from "../../lib/format";
 import { useOnline } from "../../lib/offline";
 import { templateValidityText } from "../packages/catalog";
+import { ProofList } from "../payment-proofs/review";
+import { requestPayPill } from "../payment-proofs/text";
 import { ApproveSheet, DeclineSheet, WaitlistSheet } from "./decide";
 import { useEnrollment, useEnrollments } from "./queries";
-import { enrollmentStatusPill, paymentPill, periodText } from "./text";
+import { enrollmentStatusPill, periodText } from "./text";
 
 type Detail = EnrollmentDetailDto;
 type SheetName = "approve" | "waitlist" | "decline";
@@ -528,10 +530,14 @@ function CapacityCard({ d, fmt }: { d: Detail; fmt: Format }) {
   );
 }
 
-/** What's owed: before approval, what approving charges; after, the charge and how it's paid. */
+/**
+ * What's owed: before approval, what approving charges; after, the charge, how much payments
+ * cover, and the proofs the family sent for it (confirm or not accept them right here).
+ */
 function PaymentCard({ d, fmt }: { d: Detail; fmt: Format }) {
   const p = d.payment;
-  const pill = p ? paymentPill(p) : null;
+  const proofs = d.proofs ?? [];
+  const pill = p ? requestPayPill(p, proofs) : null;
   return (
     <Card label="Payment">
       <CardHeader
@@ -552,10 +558,16 @@ function PaymentCard({ d, fmt }: { d: Detail; fmt: Format }) {
                 <span className="num font-medium">{fmt.money(p.dueMinor)}</span>
               </KeyValue>
             </dl>
-            {p.dueMinor > 0 ? (
+            {proofs.length ? (
+              <section aria-label="Payment proofs" className="border-t border-line pt-3">
+                <h3 className="text-[0.9375rem] font-medium">From the family</h3>
+                <ProofList proofs={proofs} fmt={fmt} context="request" />
+              </section>
+            ) : p.dueMinor > 0 ? (
               <p className="text-[0.875rem] text-ink-2">
-                The family sees the amount and your payment instructions in their portal. Record the
-                payment from {d.student.firstName}'s profile or Money when it comes in.
+                The family sees the amount and your payment instructions in their portal. A
+                screenshot they send shows here to confirm; you can also record a payment from{" "}
+                {d.student.firstName}'s profile or Money.
               </p>
             ) : null}
           </>

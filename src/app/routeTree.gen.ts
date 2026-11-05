@@ -44,6 +44,7 @@ import { Route as ASlugRatesRouteImport } from './routes/a.$slug.rates'
 import { Route as PortalMyClientIdIndexRouteImport } from './routes/_portal/my.$clientId.index'
 import { Route as PortalMyClientIdCoachesRouteImport } from './routes/_portal/my.$clientId.coaches'
 import { Route as PortalMyClientIdConsentsRouteImport } from './routes/_portal/my.$clientId.consents'
+import { Route as PortalMyClientIdPayRouteImport } from './routes/_portal/my.$clientId.pay'
 import { Route as PortalMyClientIdPaymentsRouteImport } from './routes/_portal/my.$clientId.payments'
 import { Route as PortalMyClientIdProfileRouteImport } from './routes/_portal/my.$clientId.profile'
 import { Route as PortalMyClientIdProgressRouteImport } from './routes/_portal/my.$clientId.progress'
@@ -223,6 +224,11 @@ const PortalMyClientIdConsentsRoute =
     path: '/consents',
     getParentRoute: () => PortalMyClientIdRoute,
   } as any)
+const PortalMyClientIdPayRoute = PortalMyClientIdPayRouteImport.update({
+  id: '/pay',
+  path: '/pay',
+  getParentRoute: () => PortalMyClientIdRoute,
+} as any)
 const PortalMyClientIdPaymentsRoute =
   PortalMyClientIdPaymentsRouteImport.update({
     id: '/payments',
@@ -280,6 +286,7 @@ export interface FileRoutesByFullPath {
   '/a/$slug/': typeof ASlugIndexRoute
   '/my/$clientId/coaches': typeof PortalMyClientIdCoachesRoute
   '/my/$clientId/consents': typeof PortalMyClientIdConsentsRoute
+  '/my/$clientId/pay': typeof PortalMyClientIdPayRoute
   '/my/$clientId/payments': typeof PortalMyClientIdPaymentsRoute
   '/my/$clientId/profile': typeof PortalMyClientIdProfileRoute
   '/my/$clientId/progress': typeof PortalMyClientIdProgressRoute
@@ -318,6 +325,7 @@ export interface FileRoutesByTo {
   '/a/$slug': typeof ASlugIndexRoute
   '/my/$clientId/coaches': typeof PortalMyClientIdCoachesRoute
   '/my/$clientId/consents': typeof PortalMyClientIdConsentsRoute
+  '/my/$clientId/pay': typeof PortalMyClientIdPayRoute
   '/my/$clientId/payments': typeof PortalMyClientIdPaymentsRoute
   '/my/$clientId/profile': typeof PortalMyClientIdProfileRoute
   '/my/$clientId/progress': typeof PortalMyClientIdProgressRoute
@@ -360,6 +368,7 @@ export interface FileRoutesById {
   '/a/$slug/': typeof ASlugIndexRoute
   '/_portal/my/$clientId/coaches': typeof PortalMyClientIdCoachesRoute
   '/_portal/my/$clientId/consents': typeof PortalMyClientIdConsentsRoute
+  '/_portal/my/$clientId/pay': typeof PortalMyClientIdPayRoute
   '/_portal/my/$clientId/payments': typeof PortalMyClientIdPaymentsRoute
   '/_portal/my/$clientId/profile': typeof PortalMyClientIdProfileRoute
   '/_portal/my/$clientId/progress': typeof PortalMyClientIdProgressRoute
@@ -401,6 +410,7 @@ export interface FileRouteTypes {
     | '/a/$slug/'
     | '/my/$clientId/coaches'
     | '/my/$clientId/consents'
+    | '/my/$clientId/pay'
     | '/my/$clientId/payments'
     | '/my/$clientId/profile'
     | '/my/$clientId/progress'
@@ -439,6 +449,7 @@ export interface FileRouteTypes {
     | '/a/$slug'
     | '/my/$clientId/coaches'
     | '/my/$clientId/consents'
+    | '/my/$clientId/pay'
     | '/my/$clientId/payments'
     | '/my/$clientId/profile'
     | '/my/$clientId/progress'
@@ -480,6 +491,7 @@ export interface FileRouteTypes {
     | '/a/$slug/'
     | '/_portal/my/$clientId/coaches'
     | '/_portal/my/$clientId/consents'
+    | '/_portal/my/$clientId/pay'
     | '/_portal/my/$clientId/payments'
     | '/_portal/my/$clientId/profile'
     | '/_portal/my/$clientId/progress'
@@ -746,6 +758,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PortalMyClientIdConsentsRouteImport
       parentRoute: typeof PortalMyClientIdRoute
     }
+    '/_portal/my/$clientId/pay': {
+      id: '/_portal/my/$clientId/pay'
+      path: '/pay'
+      fullPath: '/my/$clientId/pay'
+      preLoaderRoute: typeof PortalMyClientIdPayRouteImport
+      parentRoute: typeof PortalMyClientIdRoute
+    }
     '/_portal/my/$clientId/payments': {
       id: '/_portal/my/$clientId/payments'
       path: '/payments'
@@ -824,6 +843,7 @@ const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 interface PortalMyClientIdRouteChildren {
   PortalMyClientIdCoachesRoute: typeof PortalMyClientIdCoachesRoute
   PortalMyClientIdConsentsRoute: typeof PortalMyClientIdConsentsRoute
+  PortalMyClientIdPayRoute: typeof PortalMyClientIdPayRoute
   PortalMyClientIdPaymentsRoute: typeof PortalMyClientIdPaymentsRoute
   PortalMyClientIdProfileRoute: typeof PortalMyClientIdProfileRoute
   PortalMyClientIdProgressRoute: typeof PortalMyClientIdProgressRoute
@@ -834,6 +854,7 @@ interface PortalMyClientIdRouteChildren {
 const PortalMyClientIdRouteChildren: PortalMyClientIdRouteChildren = {
   PortalMyClientIdCoachesRoute: PortalMyClientIdCoachesRoute,
   PortalMyClientIdConsentsRoute: PortalMyClientIdConsentsRoute,
+  PortalMyClientIdPayRoute: PortalMyClientIdPayRoute,
   PortalMyClientIdPaymentsRoute: PortalMyClientIdPaymentsRoute,
   PortalMyClientIdProfileRoute: PortalMyClientIdProfileRoute,
   PortalMyClientIdProgressRoute: PortalMyClientIdProgressRoute,

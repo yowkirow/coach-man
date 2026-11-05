@@ -5,14 +5,14 @@ import { notify } from "../../lib/notify";
 import { Button } from "../ui/button";
 import { fieldClass } from "../ui/field";
 
-export async function copyText(text: string, what: string) {
+export async function copyText(
+  text: string,
+  what: string,
+  body = "Paste it into Messenger, Viber, or a text.",
+) {
   try {
     await navigator.clipboard.writeText(text);
-    notify({
-      tone: "success",
-      title: `${what} copied`,
-      body: "Paste it into Messenger, Viber, or a text.",
-    });
+    notify({ tone: "success", title: `${what} copied`, body });
   } catch {
     notify({
       tone: "danger",

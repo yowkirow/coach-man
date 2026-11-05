@@ -222,6 +222,7 @@ function RequestRow({
             {item.student.isNew ? <Pill tone="violet">New student</Pill> : null}
             {item.renewal ? <Pill tone="outline">Renewal</Pill> : null}
             {showStatus ? <Pill tone={pill.tone}>{pill.label}</Pill> : null}
+            {item.proofsPending ? <Pill tone="sky">Proof to review</Pill> : null}
           </span>
           <span className="num mt-0.5 block text-[0.8125rem] text-ink-2">
             {item.tierName} · {periodText(item, fmt)}

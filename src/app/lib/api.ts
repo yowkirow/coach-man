@@ -50,7 +50,9 @@ async function send<T>(
   opts: RequestOptions = {},
 ): Promise<T> {
   const headers: Record<string, string> = { Accept: "application/json" };
-  if (body !== undefined) headers["Content-Type"] = "application/json";
+  // A form (a payment proof's screenshot and details) goes as multipart; the browser sets its type.
+  const form = typeof FormData !== "undefined" && body instanceof FormData ? body : null;
+  if (body !== undefined && !form) headers["Content-Type"] = "application/json";
   if (opts.idempotencyKey) headers["Idempotency-Key"] = opts.idempotencyKey;
   let res: Response;
   try {
@@ -58,7 +60,7 @@ async function send<T>(
       method,
       headers,
       credentials: "same-origin",
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body: body === undefined ? undefined : (form ?? JSON.stringify(body)),
       signal: opts.signal,
     });
   } catch (err) {

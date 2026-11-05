@@ -32,6 +32,7 @@ import {
 } from "../../features/money/overview";
 import { RecordPaymentSheet, type SelectedClient } from "../../features/money/record-payment-sheet";
 import { VoidSheet, type VoidTarget } from "../../features/money/void-sheet";
+import { ProofQueue } from "../../features/payment-proofs/queue";
 import { ConnectionPill } from "../../features/settings/offline";
 import { scrollToId, scrollToIdSoon } from "../../features/settings/scroll";
 import { errorMessage } from "../../lib/api";
@@ -290,6 +291,7 @@ function MoneyPage() {
               </>
             }
           />
+          <ProofQueue fmt={fmt} />
           <div className="min-w-0">{hero}</div>
           {desktopLedger}
         </Page>
@@ -328,6 +330,7 @@ function MoneyPage() {
             <div className="mt-3">{kpis}</div>
           </section>
           <Page className="flex flex-col gap-4 pt-4">
+            <ProofQueue fmt={fmt} />
             {hero}
             <OwesCard {...owesProps} />
             {breakdowns}

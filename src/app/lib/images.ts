@@ -76,3 +76,58 @@ export async function putImage<T>(path: string, body: Blob): Promise<T> {
   }
   return data;
 }
+
+/** What the API takes for a payment proof: JPEG, PNG, or WebP, 1.5 MB at most. */
+export const PROOF_MAX_BYTES = 1_500_000;
+const PROOF_TYPES = ["image/jpeg", "image/png", "image/webp"];
+
+export interface PreparedProof {
+  blob: Blob;
+  /** Shrunk or re-encoded to fit (the original was too big, or not a JPEG, PNG, or WebP). */
+  resized: boolean;
+}
+
+/**
+ * Gets a payment screenshot (or a photo of a receipt) ready to send. One that already fits is
+ * sent untouched; anything bigger than 1.5 MB, or in another format a phone hands over (HEIC, GIF),
+ * is redrawn as a JPEG: at most 2400 px on its long side, then smaller and lighter until it fits,
+ * so the reference number stays readable and typical phone pictures just work.
+ */
+export async function prepareProofImage(file: File): Promise<PreparedProof> {
+  if (PROOF_TYPES.includes(file.type) && file.size > 0 && file.size <= PROOF_MAX_BYTES) {
+    return { blob: file, resized: false };
+  }
+  let bitmap: ImageBitmap;
+  try {
+    bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+  } catch {
+    throw new Error("That file isn't a picture we can read. Use a screenshot or a photo.");
+  }
+  try {
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("This browser can't prepare pictures. Try another browser.");
+    const longest = Math.max(bitmap.width, bitmap.height);
+    let edge = Math.min(2400, longest);
+    let quality = 0.86;
+    for (let attempt = 0; attempt < 8; attempt++) {
+      const scale = edge / longest;
+      canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+      canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+      // JPEG has no transparency: a screenshot's clear corners would turn black.
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      const blob = await new Promise<Blob | null>((resolve) =>
+        canvas.toBlob(resolve, "image/jpeg", quality),
+      );
+      if (!blob) throw new Error("This browser can't prepare pictures. Try another browser.");
+      if (blob.size <= PROOF_MAX_BYTES) return { blob, resized: true };
+      if (quality > 0.7) quality -= 0.08;
+      else edge = Math.round(edge * 0.8);
+    }
+    throw new Error("That picture is too large to send, even made smaller. Send a screenshot.");
+  } finally {
+    bitmap.close();
+  }
+}

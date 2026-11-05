@@ -91,6 +91,8 @@ export function useCurrentStudent(): {
 function useSection(): StudentSection | null {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const last = pathname.split("/").filter(Boolean).at(-1);
+  // The Pay screen belongs to Payments (its tab stays lit, and switching students opens Payments).
+  if (last === "pay") return "payments";
   return (STUDENT_SECTIONS as readonly string[]).includes(last ?? "")
     ? (last as StudentSection)
     : null;

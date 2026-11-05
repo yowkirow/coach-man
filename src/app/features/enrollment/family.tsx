@@ -8,7 +8,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { ArrowUpRight, CalendarSync, ClipboardList, Lock } from "lucide-react";
 import { useState } from "react";
-import { Button } from "../../components/ui/button";
+import { Button, buttonClass } from "../../components/ui/button";
 import { Pill } from "../../components/ui/display";
 import { InlineError } from "../../components/ui/feedback";
 import { Checkbox, TextField } from "../../components/ui/field";
@@ -19,8 +19,9 @@ import { notify } from "../../lib/notify";
 import { useOnline } from "../../lib/offline";
 import { keys } from "../../lib/query";
 import { ConsentText } from "../consents/consents";
+import { requestPayPill } from "../payment-proofs/text";
 import { usePortalAccount } from "../portal/queries";
-import { enrollmentStatusPill, paymentPill, periodText } from "./text";
+import { enrollmentStatusPill, periodText } from "./text";
 
 /** "Monthly · December 2026", "Trial · Tue 10 Nov · 7:00 PM". */
 function whatAndWhen(r: PortalEnrollmentDto, fmt: Format) {
@@ -39,6 +40,75 @@ function useRefreshPortal() {
     void qc.invalidateQueries({ queryKey: ["portal", userId, "money"] });
     void qc.invalidateQueries({ queryKey: ["portal", userId, "consents"] });
   };
+}
+
+const textLink =
+  "inline-flex items-center gap-1 rounded-sm font-medium underline underline-offset-4 outline-none focus-visible:outline-2 focus-visible:outline-ink";
+
+/**
+ * An approved request's payment: what's due, where it stands (Unpaid, Proof pending, Partly
+ * paid, Paid), the academy's reason when a proof wasn't accepted, and Pay.
+ */
+function RequestPayment({ r, fmt }: { r: PortalEnrollmentDto; fmt: Format }) {
+  const payment = r.payment;
+  if (!payment) return null;
+  const proofs = r.proofs ?? [];
+  const pill = requestPayPill(payment, proofs);
+  const owed = payment.dueMinor > 0;
+  const pending = proofs.find((p) => p.status === "pending");
+  const latest = proofs[0];
+  const refused = !pending && latest?.status === "rejected" ? latest : null;
+  const voided = !pending && latest?.status === "voided" ? latest : null;
+  return (
+    <div className="flex flex-col gap-2 text-[0.875rem]">
+      <div className="flex flex-wrap items-center gap-2">
+        <Pill tone={pill.tone}>{pill.label}</Pill>
+        {owed ? (
+          <span className="num">
+            <span className="font-medium">{fmt.money(payment.dueMinor)}</span> due
+          </span>
+        ) : (
+          <span>Approved and paid. See you on court.</span>
+        )}
+      </div>
+      {owed && pending ? (
+        <p>
+          Proof sent {fmt.day(fmt.dayOf(pending.createdAt))}. The academy checks it, then this shows
+          as paid.
+        </p>
+      ) : null}
+      {owed && refused ? (
+        <p className="rounded-[14px] bg-coral-soft px-3 py-2">
+          Your proof wasn't accepted:{" "}
+          <span className="font-medium">{refused.rejectReason ?? "ask the academy why"}</span>
+        </p>
+      ) : null}
+      {owed && voided ? (
+        <p className="rounded-[14px] bg-amber-soft px-3 py-2">
+          The academy voided the payment from your proof. Send a new one, or ask them about it.
+        </p>
+      ) : null}
+      {owed && !pending ? (
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <Link
+            to="/my/$clientId/pay"
+            params={{ clientId: r.clientId }}
+            search={{
+              request: r.id,
+              ...(refused && !refused.resubmitted ? { resubmit: refused.id } : {}),
+            }}
+            className={buttonClass("dark", "sm")}
+          >
+            {refused ? "Send a new proof" : `Pay ${fmt.moneyShort(payment.dueMinor)}`}
+          </Link>
+          <Link to="/my/$clientId/payments" params={{ clientId: r.clientId }} className={textLink}>
+            How to pay
+            <ArrowUpRight aria-hidden className="size-4" />
+          </Link>
+        </div>
+      ) : null}
+    </div>
+  );
 }
 
 /** One request: what it's for, where it stands, the academy's words, and what's owed. */
@@ -64,7 +134,6 @@ export function RequestCard({
     },
   });
   const pill = enrollmentStatusPill(r.status);
-  const owed = r.payment && r.payment.dueMinor > 0 ? r.payment : null;
   const headingId = `request-${r.id}`;
   return (
     <article
@@ -105,26 +174,7 @@ export function RequestCard({
       ) : r.status === "cancelled" ? (
         <p className="text-[0.875rem] text-ink-2">You cancelled this request.</p>
       ) : r.payment ? (
-        <div className="flex flex-wrap items-center gap-2 text-[0.875rem]">
-          <Pill tone={paymentPill(r.payment).tone}>{paymentPill(r.payment).label}</Pill>
-          {owed ? (
-            <span className="num">
-              <span className="font-medium">{fmt.money(owed.dueMinor)}</span> due
-            </span>
-          ) : (
-            <span>Approved and paid. See you on court.</span>
-          )}
-          {owed ? (
-            <Link
-              to="/my/$clientId/payments"
-              params={{ clientId: r.clientId }}
-              className="inline-flex items-center gap-1 rounded-sm font-medium underline underline-offset-4 outline-none focus-visible:outline-2 focus-visible:outline-ink"
-            >
-              How to pay
-              <ArrowUpRight aria-hidden className="size-4" />
-            </Link>
-          ) : null}
-        </div>
+        <RequestPayment r={r} fmt={fmt} />
       ) : (
         <p className="text-[0.875rem]">Approved.</p>
       )}

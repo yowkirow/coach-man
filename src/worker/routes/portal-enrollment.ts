@@ -10,6 +10,7 @@ import type {
 } from "../../shared/api-types";
 import { enrollmentRenewSchema, enrollmentSubmitSchema } from "../../shared/schemas";
 import { client } from "../db/schema";
+import { later } from "../lib/defer";
 import { notFound } from "../lib/errors";
 import { linkFor } from "../lib/portal-scope";
 import { clientIp, enforce } from "../lib/rate-limit";
@@ -24,6 +25,7 @@ import {
   renewEnrollment,
   submitEnrollment,
 } from "../services/enrollment-family";
+import { notifyStaffEnrollmentRequest } from "../services/family-push";
 import { academyRefFor } from "../services/portal";
 import type { AppBindings } from "../types";
 
@@ -62,6 +64,7 @@ export const portalEnrollmentRoutes = new Hono<AppBindings>()
   .post("/enrollments", v("json", enrollmentSubmitSchema), async (c) => {
     await enforce(c, `enroll-submit:user:${c.var.user.id}`, SUBMIT_RULE);
     const body = await submitEnrollment(c.var.db, actorOf(c), c.req.valid("json"));
+    if (!body.replay) toReview(c, body);
     return c.json<EnrollmentSubmittedDto>(body, body.replay ? 200 : 201);
   })
 
@@ -99,5 +102,17 @@ export const portalEnrollmentRoutes = new Hono<AppBindings>()
     if (!link) throw notFound("Student");
     await enforce(c, `enroll-submit:user:${c.var.user.id}`, SUBMIT_RULE);
     const body = await renewEnrollment(c.var.db, actorOf(c), link, c.req.valid("json"));
+    if (!body.replay) toReview(c, body);
     return c.json<EnrollmentSubmittedDto>(body, body.replay ? 200 : 201);
   });
+
+/** Owners and admins hear about a new request after the response. */
+function toReview(c: Context<AppBindings>, body: EnrollmentSubmittedDto) {
+  later(c, "Enrollment request push failed", () =>
+    notifyStaffEnrollmentRequest(c.var.db, c.env, {
+      workspaceId: body.request.workspaceId,
+      requestId: body.request.id,
+      actorUserId: c.var.user.id,
+    }),
+  );
+}

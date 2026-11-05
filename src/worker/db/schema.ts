@@ -29,6 +29,7 @@ import type {
   RegistrationStatus,
   ValidityMode,
 } from "../../shared/domain";
+import type { FamilyNoticeKind, NoticeItem, SessionLead } from "../../shared/notifications";
 import type { StaffRole } from "../../shared/roles";
 import type { SafetyEditor } from "../../shared/safety";
 
@@ -991,6 +992,8 @@ export const enrollmentRequest = sqliteTable(
     index("enrollment_client_idx").on(t.clientId),
     // The passkey-account cleanup keeps accounts that sent a request.
     index("enrollment_requested_by_idx").on(t.requestedBy),
+    // Payment reminders: approved requests decided two to seven days ago, across academies.
+    index("enrollment_decided_idx").on(t.status, t.decidedAt),
   ],
 );
 
@@ -1186,9 +1189,18 @@ export const notificationPref = sqliteTable("notification_pref", {
   /** Local HH:MM for the daily digest; null = off. */
   dailyDigestTime: text().default("07:00"),
   packageExpiryDays: integer().notNull().default(7),
+  /** Owners and admins: a push for each new enrollment request and payment proof to review. */
+  enrollmentAlerts: integer({ mode: "boolean" }).notNull().default(true),
   updatedAt: updatedAt(),
 });
 
+/**
+ * One row per (person, kind, thing) ever notified: what keeps every push to once per person, for
+ * staff and families alike. `workspace_id` is the academy the notification is about (families
+ * need no membership: their notifications are always about a student of some academy). A session
+ * reminder uses the same kind and key (`session_reminder`, the lesson id) for a coach and for a
+ * parent, so someone who is both hears about a session once.
+ */
 export const notificationLog = sqliteTable(
   "notification_log",
   {
@@ -1200,6 +1212,94 @@ export const notificationLog = sqliteTable(
     sentAt: integer().notNull(),
   },
   (t) => [uniqueIndex("notification_log_unique").on(t.userId, t.kind, t.refKey)],
+);
+
+/**
+ * Devices that get a person's family notifications (the portal's "Turn on for this device"),
+ * keyed by person, not academy. Staff devices stay in `push_subscription`. One browser has one
+ * endpoint, so the same endpoint can be in both tables for one person (coach and parent); a
+ * device belongs to one person at a time, and an endpoint the push service says is gone is
+ * removed from both.
+ */
+export const familyPushSubscription = sqliteTable(
+  "family_push_subscription",
+  {
+    id: text().primaryKey(),
+    userId: text()
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    endpoint: text().notNull().unique(),
+    p256dh: text().notNull(),
+    auth: text().notNull(),
+    userAgent: text(),
+    failureCount: integer().notNull().default(0),
+    lastSuccessAt: integer(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("family_push_user_idx").on(t.userId)],
+);
+
+/** A person's family notification settings (no row = everything on, quiet 21:00–07:00). */
+export const familyNotificationPref = sqliteTable("family_notification_pref", {
+  userId: text()
+    .primaryKey()
+    .references(() => user.id, { onDelete: "cascade" }),
+  sessions: integer({ mode: "boolean" }).notNull().default(true),
+  sessionLead: text().$type<SessionLead>().notNull().default("1h"),
+  packages: integer({ mode: "boolean" }).notNull().default(true),
+  enrollment: integer({ mode: "boolean" }).notNull().default(true),
+  progress: integer({ mode: "boolean" }).notNull().default(true),
+  announcements: integer({ mode: "boolean" }).notNull().default(true),
+  /** Local HH:MM in the academy's time zone; both null = quiet hours off. */
+  quietStart: text().default("21:00"),
+  quietEnd: text().default("07:00"),
+  /** "Get reminders on this phone" on the portal's Home was dismissed (it's offered once). */
+  promptDismissedAt: integer(),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});
+
+/**
+ * Family notifications waiting for the person's quiet hours to end. The 5-minute cron sends the
+ * due ones (batched per person and kind) and deletes them; the log still dedupes at send time.
+ */
+export const familyNotificationQueue = sqliteTable(
+  "family_notification_queue",
+  {
+    id: text().primaryKey(),
+    userId: text()
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    workspaceId: workspaceId(),
+    kind: text().$type<FamilyNoticeKind>().notNull(),
+    refKey: text().notNull(),
+    /** What the push says is built when it's sent (so several can travel as one). */
+    item: text({ mode: "json" }).$type<NoticeItem>().notNull(),
+    sendAfter: integer().notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    uniqueIndex("family_queue_unique").on(t.userId, t.kind, t.refKey),
+    index("family_queue_due_idx").on(t.sendAfter),
+  ],
+);
+
+/**
+ * Test only: what would have been pushed to a `https://push-sink.invalid/…` endpoint, recorded
+ * instead of sent when the E2E bypass is on outside production (see lib/push-sink.ts). Read and
+ * cleared through /api/test/push-sink.
+ */
+export const pushSink = sqliteTable(
+  "push_sink",
+  {
+    id: text().primaryKey(),
+    userId: text().notNull(),
+    endpoint: text().notNull(),
+    surface: text().$type<"staff" | "family">().notNull(),
+    payload: text({ mode: "json" }).$type<Record<string, unknown>>().notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("push_sink_user_idx").on(t.userId, t.createdAt)],
 );
 
 export const idempotencyKey = sqliteTable(

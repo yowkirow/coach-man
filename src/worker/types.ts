@@ -30,4 +30,9 @@ export interface Ctx {
   userId: string;
   settings: WorkspaceSettingsRow;
   role: StaffRole;
+  /**
+   * Work to finish after the response (push notifications): `executionCtx.waitUntil` in a request
+   * (see lib/defer.ts). Absent outside a request (cron, scripts): callers then await the work.
+   */
+  defer?: (work: Promise<unknown>) => void;
 }

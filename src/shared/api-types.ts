@@ -31,6 +31,7 @@ import type {
   ValidityMode,
 } from "./domain";
 import type { EnrollmentMode } from "./enrollment";
+import type { FamilyPrefs } from "./notifications";
 import type { Capabilities, StaffRole } from "./roles";
 import type { SafetyEditor, SafetyRights } from "./safety";
 
@@ -808,6 +809,8 @@ export interface NotificationPrefDto {
   sessionReminderMinutes: number | null;
   dailyDigestTime: string | null;
   packageExpiryDays: number;
+  /** Owners and admins: new enrollment requests and payment proofs (optional for old caches). */
+  enrollmentAlerts?: boolean;
   subscriptions: number;
   vapidPublicKey: string | null;
 }
@@ -1928,4 +1931,35 @@ export interface PortalAnnouncementsDto {
 export interface PublicConfigDto {
   /** Where people write about privacy, their data, or the terms (`PUBLIC_CONTACT_EMAIL`). */
   contactEmail: string;
+}
+
+// --- WS5b: family reminders (push for students and parents) ----------------------------------
+
+/** The family portal's notification settings (see src/shared/notifications.ts for the rules). */
+export type FamilyNotificationPrefsDto = FamilyPrefs;
+
+/** GET /api/portal/notifications (also the answer to saving them). */
+export interface FamilyNotificationsDto {
+  prefs: FamilyNotificationPrefsDto;
+  /** Null when push isn't set up on this server. */
+  vapidPublicKey: string | null;
+  /** Devices that get this person's family notifications. */
+  devices: number;
+  /** Quiet hours and the evening-before reminder use this academy time zone. */
+  timezone: string;
+  /** "Get reminders on this phone" on Home was dismissed (or the settings were opened). */
+  promptDismissed: boolean;
+  /** The person is also staff somewhere (coach notifications are set in the staff app). */
+  staff: boolean;
+}
+
+/** Which surfaces a device (this browser's push endpoint) gets notifications for. */
+export interface PushDeviceStateDto {
+  staff: boolean;
+  family: boolean;
+}
+
+/** POST …/test: how many devices the test went to. */
+export interface PushTestResultDto {
+  delivered: number;
 }

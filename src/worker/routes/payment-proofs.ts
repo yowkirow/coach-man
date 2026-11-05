@@ -11,9 +11,11 @@ import {
   paymentProofRejectSchema,
 } from "../../shared/schemas";
 import { client } from "../db/schema";
+import { afterResponse } from "../lib/defer";
 import { notFound } from "../lib/errors";
 import { v } from "../lib/validate";
 import { assertCan, ctxOf, requireCap } from "../middleware";
+import { notifyProofDecision } from "../services/family-push";
 import {
   clientProofs,
   confirmProof,
@@ -22,7 +24,7 @@ import {
   proofDetail,
   rejectProof,
 } from "../services/payment-proofs";
-import type { AppBindings } from "../types";
+import type { AppBindings, Ctx } from "../types";
 
 /**
  * Payment proofs to review (/api/v1/payment-proofs): owners and admins. Reviewing is the
@@ -50,17 +52,19 @@ export const paymentProofRoutes = new Hono<AppBindings>()
   /** Records the payment (amount, method, date, reference editable) and marks it confirmed. */
   .post("/payment-proofs/:id/confirm", v("json", paymentProofConfirmSchema), async (c) => {
     assertCan(c.var.role, "money");
-    return c.json<PaymentProofDto>(
-      await confirmProof(ctxOf(c), c.req.param("id"), c.req.valid("json")),
-    );
+    const ctx = ctxOf(c);
+    const proof = await confirmProof(ctx, c.req.param("id"), c.req.valid("json"));
+    await reviewed(ctx, proof.id);
+    return c.json<PaymentProofDto>(proof);
   })
 
   /** Not accepted, with the reason the family reads. */
-  .post("/payment-proofs/:id/reject", v("json", paymentProofRejectSchema), async (c) =>
-    c.json<PaymentProofDto>(
-      await rejectProof(ctxOf(c), c.req.param("id"), c.req.valid("json").reason),
-    ),
-  )
+  .post("/payment-proofs/:id/reject", v("json", paymentProofRejectSchema), async (c) => {
+    const ctx = ctxOf(c);
+    const proof = await rejectProof(ctx, c.req.param("id"), c.req.valid("json").reason);
+    await reviewed(ctx, proof.id);
+    return c.json<PaymentProofDto>(proof);
+  })
 
   /** A student's proofs (their profile's Money tab). */
   .get("/clients/:id/payment-proofs", requireCap("enrollment"), async (c) => {
@@ -72,3 +76,14 @@ export const paymentProofRoutes = new Hono<AppBindings>()
     if (!row) throw notFound("Client");
     return c.json<PaymentProofDto[]>(await clientProofs(ctx, row.id));
   });
+
+/** The family hears whether the proof was confirmed or not, after the response (deduped). */
+function reviewed(ctx: Ctx, proofId: string) {
+  return afterResponse(ctx, "Payment proof decision push failed", () =>
+    notifyProofDecision(ctx.db, ctx.env, {
+      workspaceId: ctx.workspaceId,
+      proofId,
+      actorUserId: ctx.userId,
+    }),
+  );
+}

@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { getDb } from "./db/client";
 import { workspaceSettings } from "./db/schema";
 import { runAnnouncements } from "./services/announcements";
+import { runFamilyReminders, runFamilySweeps } from "./services/family-push";
 import { extendAllSeries } from "./services/lessons";
 import { runMaintenance, runReminders } from "./services/push";
 
@@ -17,6 +18,12 @@ export async function handleScheduled(cron: string, env: Env, now: Date) {
       if (!settings) return;
       await extendAllSeries({ db, env, workspaceId, userId: "system", settings, role: "owner" });
     });
+    // Families: "Renew for next month", one session left, packages ending within three days.
+    try {
+      await runFamilySweeps(db, env, now.getTime());
+    } catch (err) {
+      console.error("Family sweeps failed", err);
+    }
     return;
   }
   // Scheduled announcements whose time has come go live for families and are announced once
@@ -26,5 +33,11 @@ export async function handleScheduled(cron: string, env: Env, now: Date) {
   } catch (err) {
     console.error("Announcements run failed", err);
   }
-  await runReminders(db, env, now);
+  try {
+    await runReminders(db, env, now);
+  } catch (err) {
+    console.error("Staff reminders failed", err);
+  }
+  // Families: what waited for quiet hours to end, session reminders, and payment reminders.
+  await runFamilyReminders(db, env, now.getTime());
 }

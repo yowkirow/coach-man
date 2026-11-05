@@ -23,12 +23,14 @@ import {
 } from "../../shared/time";
 import { attendance, client, lesson, lessonSeries } from "../db/schema";
 import { auditEntry } from "../lib/audit";
+import { afterResponse } from "../lib/defer";
 import { badRequest, conflict, notFound } from "../lib/errors";
 import { idempotent } from "../lib/idempotency";
 import { v } from "../lib/validate";
 import { assertCan, ctxOf } from "../middleware";
 import { assertStaff, cleanCoaches } from "../services/coaches";
 import { changeAttendance, releaseLessonFunding, runBatch } from "../services/credits";
+import { type CancelPlan, notifyCancellations, planCancellations } from "../services/family-push";
 import {
   createLessons,
   lessonDetail,
@@ -57,6 +59,30 @@ async function cancelLesson(ctx: Ctx, id: string, reason: string | null) {
     ctx,
     id,
     reason ? `Session cancelled: ${reason}` : "Session cancelled",
+  );
+}
+
+/** A series' occurrences from a date on (the ones "this and following" ends). */
+async function laterOccurrences(ctx: Ctx, seriesId: string, fromDate: string): Promise<string[]> {
+  const rows = await ctx.db
+    .select({ id: lesson.id })
+    .from(lesson)
+    .where(
+      and(
+        eq(lesson.workspaceId, ctx.workspaceId),
+        eq(lesson.seriesId, seriesId),
+        eq(lesson.detached, false),
+        sql`${lesson.occurrenceDate} >= ${fromDate}`,
+      ),
+    );
+  return rows.map((r) => r.id);
+}
+
+/** Families of the students who were expected hear the session is off (after the response). */
+function cancelled(ctx: Ctx, plan: CancelPlan | null) {
+  if (!plan) return Promise.resolve();
+  return afterResponse(ctx, "Session cancelled push failed", () =>
+    notifyCancellations(ctx.db, ctx.env, plan, Date.now()),
   );
 }
 
@@ -274,6 +300,17 @@ export const lessonRoutes = new Hono<AppBindings>()
     const ctx = ctxOf(c);
     const input = c.req.valid("json");
     const current = await loadLesson(ctx, c.req.param("id"));
+    const following =
+      input.scope === "following" && current.seriesId && current.occurrenceDate
+        ? await laterOccurrences(ctx, current.seriesId, addDays(current.occurrenceDate, 1))
+        : [];
+    // Who was expected, read before the change (later occurrences may be deleted outright).
+    const plan = await planCancellations(
+      ctx.db,
+      ctx.workspaceId,
+      [current.id, ...following.filter((id) => id !== current.id)],
+      Date.now(),
+    );
     await cancelLesson(ctx, current.id, input.reason ?? null);
     if (input.scope === "following" && current.seriesId && current.occurrenceDate) {
       await endSeriesFrom(
@@ -288,6 +325,7 @@ export const lessonRoutes = new Hono<AppBindings>()
       scope: input.scope,
       reason: input.reason,
     });
+    await cancelled(ctx, plan);
     return c.json(await lessonDetail(ctx, current.id));
   })
 
@@ -340,10 +378,12 @@ export const lessonRoutes = new Hono<AppBindings>()
       .limit(1);
     if (funded.length)
       throw conflict("Players already used credits for this session. Cancel it instead.");
+    const plan = await planCancellations(ctx.db, ctx.workspaceId, [current.id], Date.now());
     await runBatch(ctx, [
       ctx.db.delete(lesson).where(eq(lesson.id, current.id)),
       auditEntry(ctx, "delete", "lesson", current.id),
     ]);
+    await cancelled(ctx, plan);
     return c.body(null, 204);
   })
 
@@ -364,12 +404,19 @@ export const lessonRoutes = new Hono<AppBindings>()
         ),
       );
     const reason = input.reason ?? "Rain-out";
+    const plan = await planCancellations(
+      ctx.db,
+      ctx.workspaceId,
+      rows.map((r) => r.id),
+      Date.now(),
+    );
     for (const r of rows) await cancelLesson(ctx, r.id, reason);
     await auditEntry(ctx, "rain_out", "lesson", null, {
       date: input.date,
       venueId: input.venueId,
       count: rows.length,
     });
+    await cancelled(ctx, plan);
     return c.json({ cancelled: rows.length });
   })
 

@@ -6,6 +6,7 @@ import { type Capability, can, normalizeRole } from "../shared/roles";
 import { getAuth } from "./auth";
 import { getDb } from "./db/client";
 import { client, clientAccess, organization, workspaceSettings } from "./db/schema";
+import { deferrer } from "./lib/defer";
 import { ApiError, forbidden, noWorkspace, unauthorized } from "./lib/errors";
 import { redactMoney } from "./lib/redact";
 import { activeMembership } from "./lib/workspace";
@@ -200,5 +201,6 @@ export function ctxOf(c: Context<AppBindings>): Ctx {
     userId: c.var.user.id,
     settings: c.var.settings,
     role: c.var.role,
+    defer: deferrer(c),
   };
 }

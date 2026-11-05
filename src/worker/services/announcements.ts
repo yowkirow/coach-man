@@ -28,12 +28,14 @@ import {
   groupMember,
   trainingGroup,
 } from "../db/schema";
+import { afterResponse } from "../lib/defer";
 import { badRequest, notFound } from "../lib/errors";
 import { toPortalAnnouncement } from "../lib/portal-dto";
 import type { PortalLink } from "../lib/portal-scope";
 import { inList, unique } from "../lib/sql";
 import type { Ctx } from "../types";
 import { coachRefs } from "./coaches";
+import { notifyAnnouncement } from "./family-push";
 
 type Row = typeof announcement.$inferSelect;
 type StaffCtx = Pick<Ctx, "db" | "workspaceId">;
@@ -269,7 +271,9 @@ export async function saveAnnouncement(
           .values({ id: rowId, workspaceId: ctx.workspaceId, createdBy: ctx.userId, ...values }),
     announcementAudit(ctx, current ? "update" : "create", { id: rowId, ...values }, now),
   ]);
-  if (announcementState(values, now) === "live") await announceIfDue(ctx.db, ctx.env, rowId, now);
+  if (announcementState(values, now) === "live") {
+    await announceIfDue(ctx.db, ctx.env, rowId, now, ctx.defer);
+  }
   return announcementDetail(ctx, rowId, now);
 }
 
@@ -326,15 +330,16 @@ export async function familyRecipients(
 
 /**
  * The publish hook: runs exactly once per announcement, when it goes live (published now from the
- * composer, or a scheduled one reaching its time, picked up by the 5-minute cron). WS5b sends the
- * family push from here (`familyRecipients` says to whom; the payload is the family DTO's title
- * and a link to /my/announcements). Until then it only logs how many families it would reach.
+ * composer, or a scheduled one reaching its time, picked up by the 5-minute cron). Sends the
+ * family push (title and first line, linking to /my/announcements) to everyone it reaches who has
+ * family notifications on (familyRecipients; each person's settings and quiet hours apply).
  */
 export async function announcementPublished(
   ctx: { db: Db; env: Env },
   a: Row,
 ): Promise<{ recipients: number }> {
   const recipients = await familyRecipients(ctx.db, a);
+  await notifyAnnouncement(ctx.db, ctx.env, a, recipients);
   console.log(
     JSON.stringify({
       event: "announcement_published",
@@ -349,21 +354,26 @@ export async function announcementPublished(
 
 /**
  * Claims a live announcement that hasn't been announced (one guarded UPDATE: whoever sets
- * `notified_at` first wins), then runs the publish hook. False when it isn't due or was already
- * announced, so calling it twice, or from two places at once, announces once.
+ * `notified_at` first wins), then runs the publish hook: after the response when `defer` is given
+ * (publishing from the composer), else before returning (the cron). False when it isn't due or was
+ * already announced, so calling it twice, or from two places at once, announces once.
  */
-export async function announceIfDue(db: Db, env: Env, id: string, now: number): Promise<boolean> {
+export async function announceIfDue(
+  db: Db,
+  env: Env,
+  id: string,
+  now: number,
+  defer?: (work: Promise<unknown>) => void,
+): Promise<boolean> {
   const [row] = await db
     .update(announcement)
     .set({ notifiedAt: now })
     .where(and(eq(announcement.id, id), isNull(announcement.notifiedAt), liveAt(now)))
     .returning();
   if (!row) return false;
-  try {
-    await announcementPublished({ db, env }, row);
-  } catch (err) {
-    console.error("The announcement publish hook failed", err);
-  }
+  await afterResponse({ defer }, "The announcement publish hook failed", () =>
+    announcementPublished({ db, env }, row),
+  );
   return true;
 }
 

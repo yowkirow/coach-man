@@ -9,7 +9,12 @@ import type {
   SkillDto,
 } from "../../shared/api-types";
 import { uuidv7 } from "../../shared/ids";
-import { canDeleteNote, noteVisibilityFor, planNoteUpdate } from "../../shared/notes";
+import {
+  canDeleteNote,
+  isFamilyVisible,
+  noteVisibilityFor,
+  planNoteUpdate,
+} from "../../shared/notes";
 import {
   assessmentSchema,
   assessmentUpdateSchema,
@@ -32,6 +37,7 @@ import {
   ratingSnapshot,
   skill,
 } from "../db/schema";
+import { afterResponse } from "../lib/defer";
 import { ApiError, badRequest, notFound } from "../lib/errors";
 import { idempotent } from "../lib/idempotency";
 import { inList, unique } from "../lib/sql";
@@ -39,8 +45,31 @@ import { v } from "../lib/validate";
 import { ctxOf, requireCap } from "../middleware";
 import { coachRefs } from "../services/coaches";
 import { runBatch } from "../services/credits";
+import { notifyAssessmentShared, notifyNoteShared } from "../services/family-push";
 import { toNoteDto } from "../services/lessons";
 import type { AppBindings, Ctx } from "../types";
+
+/** A shared comment reaches the family by push after the response (once per comment). */
+function noteShared(ctx: Ctx, noteId: string) {
+  return afterResponse(ctx, "Shared comment push failed", () =>
+    notifyNoteShared(ctx.db, ctx.env, {
+      workspaceId: ctx.workspaceId,
+      noteId,
+      actorUserId: ctx.userId,
+    }),
+  );
+}
+
+/** A shared assessment reaches the family by push after the response (once per assessment). */
+function assessmentShared(ctx: Ctx, assessmentId: string) {
+  return afterResponse(ctx, "Shared assessment push failed", () =>
+    notifyAssessmentShared(ctx.db, ctx.env, {
+      workspaceId: ctx.workspaceId,
+      assessmentId,
+      actorUserId: ctx.userId,
+    }),
+  );
+}
 
 type Authors = Map<string, CoachRefDto>;
 const authorOf = (id: string | null, authors: Authors) => (id ? (authors.get(id) ?? null) : null);
@@ -273,6 +302,7 @@ export const progressRoutes = new Hono<AppBindings>()
         ? [ctx.db.update(client).set({ level: input.overallLevel }).where(eq(client.id, clientId))]
         : []),
     ]);
+    if (input.sharedWithFamily ?? true) await assessmentShared(ctx, id);
     return c.json(await loadProgress(ctx, clientId), 201);
   })
 
@@ -307,6 +337,10 @@ export const progressRoutes = new Hono<AppBindings>()
           ]
         : []),
     ]);
+    // Switched to shared: the family hears about it once (edits never notify).
+    if (!row.sharedWithFamily && input.sharedWithFamily === true) {
+      await assessmentShared(ctx, row.id);
+    }
     return c.json(await loadProgress(ctx, row.clientId));
   })
 
@@ -434,6 +468,7 @@ export const progressRoutes = new Hono<AppBindings>()
         where: and(eq(note.id, id), eq(note.workspaceId, ctx.workspaceId)),
       });
       if (!row) throw notFound("Note");
+      if (!existing && row.clientId && isFamilyVisible(row)) await noteShared(ctx, row.id);
       return c.json(await noteDto(ctx, row), 201);
     });
   })
@@ -449,6 +484,10 @@ export const progressRoutes = new Hono<AppBindings>()
       .set(plan.set)
       .where(eq(note.id, row.id))
       .returning();
+    // Switched to shared: the family hears about it once (edits to the text never notify).
+    if (updated?.clientId && !isFamilyVisible(row) && isFamilyVisible(updated)) {
+      await noteShared(ctx, updated.id);
+    }
     return c.json(await noteDto(ctx, updated ?? row));
   })
 

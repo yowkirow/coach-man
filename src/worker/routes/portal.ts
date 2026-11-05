@@ -66,6 +66,7 @@ import {
 } from "../services/portal";
 import type { AppBindings } from "../types";
 import { portalEnrollmentRoutes } from "./portal-enrollment";
+import { portalNotificationRoutes } from "./portal-notifications";
 import { portalPaymentRoutes } from "./portal-payments";
 import { portalSafetyRoutes } from "./portal-safety";
 
@@ -188,6 +189,7 @@ export const portalRoutes = new Hono<AppBindings>()
   .route("/", portalEnrollmentRoutes)
   .route("/", portalPaymentRoutes)
   .route("/", portalSafetyRoutes)
+  .route("/", portalNotificationRoutes)
 
   .get("/academies/:workspaceId", async (c) => {
     const workspaceId = c.req.param("workspaceId");

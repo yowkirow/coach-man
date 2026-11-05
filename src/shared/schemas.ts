@@ -34,6 +34,7 @@ import {
 } from "./domain";
 import { ALL_UNIFORM_SIZES, isSelfRating, MAX_PICKUPS } from "./enrollment";
 import { UUID_RE } from "./ids";
+import { SESSION_LEADS } from "./notifications";
 import { REFERENCE_MAX, REFERENCE_MIN } from "./payment-proofs";
 import { STAFF_ROLES } from "./roles";
 import { DATE_RE, isValidTimeZone, TIME_RE } from "./time";
@@ -893,5 +894,40 @@ export const notificationPrefSchema = z.object({
   sessionReminderMinutes: z.number().int().min(5).max(240).nullable(),
   dailyDigestTime: time.nullable(),
   packageExpiryDays: z.number().int().min(1).max(60),
+  /** Owners and admins: a push for each new enrollment request and payment proof (on unless off). */
+  enrollmentAlerts: z.boolean().optional(),
 });
 export type NotificationPrefInput = z.infer<typeof notificationPrefSchema>;
+
+/** DELETE a device (this browser's push endpoint) from one surface or, on sign-out, from both. */
+export const pushEndpointSchema = z.object({ endpoint: z.url().max(2000) });
+
+/** The family portal's notification settings (categories, session lead time, quiet hours). */
+export const familyNotificationPrefsSchema = z
+  .object({
+    sessions: z.boolean(),
+    sessionLead: z.enum(SESSION_LEADS),
+    packages: z.boolean(),
+    enrollment: z.boolean(),
+    progress: z.boolean(),
+    announcements: z.boolean(),
+    /** Both set (academy time) or both null (quiet hours off). */
+    quietStart: time.nullable(),
+    quietEnd: time.nullable(),
+  })
+  .superRefine((v, ctx) => {
+    if ((v.quietStart === null) !== (v.quietEnd === null)) {
+      ctx.addIssue({
+        code: "custom",
+        path: [v.quietStart === null ? "quietStart" : "quietEnd"],
+        message: "Pick when quiet hours start and end.",
+      });
+    } else if (v.quietStart !== null && v.quietStart === v.quietEnd) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["quietEnd"],
+        message: "Quiet hours need to end at a different time than they start.",
+      });
+    }
+  });
+export type FamilyNotificationPrefsInput = z.infer<typeof familyNotificationPrefsSchema>;

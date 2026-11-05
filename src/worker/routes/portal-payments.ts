@@ -4,11 +4,13 @@ import { Hono } from "hono";
 import type { PortalPaymentProofDto, PortalPaymentProofsDto } from "../../shared/api-types";
 import { paymentProofSubmitSchema } from "../../shared/schemas";
 import { client } from "../db/schema";
+import { later } from "../lib/defer";
 import { badRequest, notFound } from "../lib/errors";
 import { linkFor } from "../lib/portal-scope";
 import { enforce } from "../lib/rate-limit";
 import { MAX_IMAGE_BYTES, readImageFile } from "../lib/uploads";
 import { parseWith } from "../lib/validate";
+import { notifyStaffProof } from "../services/family-push";
 import {
   familyProofs,
   type ProofImage,
@@ -109,6 +111,15 @@ export const portalPaymentRoutes = new Hono<AppBindings>()
       input,
       image,
     );
+    if (!replay) {
+      later(c, "Payment proof push failed", () =>
+        notifyStaffProof(c.var.db, c.env, {
+          workspaceId: proof.workspaceId,
+          proofId: proof.id,
+          actorUserId: c.var.user.id,
+        }),
+      );
+    }
     return c.json<PortalPaymentProofDto>(proof, replay ? 200 : 201);
   })
 

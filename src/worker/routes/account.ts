@@ -5,6 +5,7 @@ import { z } from "zod";
 import type { AccountDto } from "../../shared/api-types";
 import { isPlaceholderEmail } from "../../shared/domain";
 import { normalizeRole } from "../../shared/roles";
+import { pushEndpointSchema } from "../../shared/schemas";
 import {
   academyProfile,
   account,
@@ -19,6 +20,7 @@ import { ApiError, unauthorized } from "../lib/errors";
 import { v } from "../lib/validate";
 import { membershipsForUser, ownedWorkspaceForUser, provisionWorkspace } from "../lib/workspace";
 import { originGuard } from "../middleware";
+import { forgetDevice } from "../services/push-delivery";
 import type { AppBindings } from "../types";
 
 async function sessionOf(c: Context<AppBindings>) {
@@ -164,4 +166,14 @@ export const accountRoutes = new Hono<AppBindings>()
       await setActiveWorkspace(c, workspaceId);
       return c.json({ workspaceId });
     },
-  );
+  )
+
+  /**
+   * Signing out on this browser: it stops getting the person's notifications, staff and family
+   * alike (a shared phone must not show someone else's reminders). Called just before sign-out.
+   */
+  .delete("/push-device", v("json", pushEndpointSchema), async (c) => {
+    const { user } = await sessionOf(c);
+    await forgetDevice(c.var.db, user.id, c.req.valid("json").endpoint);
+    return c.body(null, 204);
+  });

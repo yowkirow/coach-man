@@ -6,11 +6,13 @@ import { chargeSchema, paymentSchema, rangeQuerySchema, voidSchema } from "../..
 import { todayIn } from "../../shared/time";
 import { charge, client, payment, paymentAllocation } from "../db/schema";
 import { auditEntry } from "../lib/audit";
+import { afterResponse } from "../lib/defer";
 import { badRequest, notFound } from "../lib/errors";
 import { idempotent } from "../lib/idempotency";
 import { v } from "../lib/validate";
 import { ctxOf, requireCap } from "../middleware";
 import { runBatch } from "../services/credits";
+import { notifyPaymentVoided } from "../services/family-push";
 import {
   balancesDue,
   moneySummary,
@@ -112,6 +114,14 @@ export const moneyRoutes = new Hono<AppBindings>()
       ...(await proofVoidStatements(ctx, row.id, reason ?? null)),
     ]);
     await rebuildAllocations(ctx, row.clientId);
+    // A payment recorded from a family's proof: the family hears it was voided (after the response).
+    await afterResponse(ctx, "Payment voided push failed", () =>
+      notifyPaymentVoided(ctx.db, ctx.env, {
+        workspaceId: ctx.workspaceId,
+        paymentId: row.id,
+        actorUserId: ctx.userId,
+      }),
+    );
     return c.json(await statementFor(ctx, row.clientId));
   })
 

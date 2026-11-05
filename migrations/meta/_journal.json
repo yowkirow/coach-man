@@ -50,6 +50,13 @@
       "when": 1793879092374,
       "tag": "0006_essentials",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1793886515845,
+      "tag": "0007_family_reminders",
+      "breakpoints": true
     }
   ]
 }

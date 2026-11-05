@@ -1,4 +1,4 @@
-import { and, desc, eq, gt, inArray, isNotNull, isNull } from "drizzle-orm";
+import { and, asc, desc, eq, gt, inArray, isNotNull, isNull } from "drizzle-orm";
 import type { Context } from "hono";
 import { Hono } from "hono";
 import { z } from "zod";
@@ -13,8 +13,10 @@ import {
   auditLog,
   client,
   clientAccess,
+  familyNotificationQueue,
   invite,
   organization,
+  pushSink,
   user,
   workspaceSettings,
 } from "../db/schema";
@@ -30,6 +32,13 @@ import {
   provisionWorkspace,
 } from "../lib/workspace";
 import { runAnnouncements } from "../services/announcements";
+import {
+  runFamilyQueue,
+  runFamilySweeps,
+  runPaymentReminders,
+  runSessionReminders,
+} from "../services/family-push";
+import { runReminders } from "../services/push";
 import { seedSampleData } from "../services/sample-data";
 import type { AppBindings } from "../types";
 
@@ -96,6 +105,10 @@ const familySchema = z.object({
  * - POST /user-exists { userId } says whether an account still exists.
  * - POST /cleanup-accounts { userId, hours } ages a passkey-only account, then runs the daily
  *   cleanup of abandoned ones.
+ * - GET /push-sink?userId= lists the pushes the test sink recorded for a person (and what waits
+ *   for their quiet hours to end); DELETE /push-sink?userId= clears them.
+ * - POST /run-reminders { at?, steps? } runs the 5-minute cron's reminder steps as of `at`.
+ * - POST /run-family-sweeps { at? } runs the daily family sweeps as of `at`.
  * - POST /seed fills the caller's workspace with the sample data; POST /reset deletes the
  *   workspaces the caller owns.
  */
@@ -277,6 +290,86 @@ export const testRoutes = new Hono<AppBindings>()
     });
     return c.json({ exists: Boolean(row) });
   })
+
+  /**
+   * What the push sink recorded for a person (`https://push-sink.invalid/…` endpoints are never
+   * sent over the network outside production; see lib/push-sink.ts), oldest first, with what still
+   * waits in the quiet-hours queue.
+   */
+  .get("/push-sink", async (c) => {
+    const userId = c.req.query("userId") ?? "";
+    if (!userId) throw notFound("Person");
+    const db = getDb(c.env.DB);
+    const [items, queued] = await Promise.all([
+      db
+        .select()
+        .from(pushSink)
+        .where(eq(pushSink.userId, userId))
+        .orderBy(asc(pushSink.createdAt), asc(pushSink.id)),
+      db
+        .select({
+          kind: familyNotificationQueue.kind,
+          refKey: familyNotificationQueue.refKey,
+          sendAfter: familyNotificationQueue.sendAfter,
+        })
+        .from(familyNotificationQueue)
+        .where(eq(familyNotificationQueue.userId, userId)),
+    ]);
+    return c.json({ items, queued });
+  })
+
+  /** Clears a person's recorded pushes. */
+  .delete("/push-sink", async (c) => {
+    const userId = c.req.query("userId") ?? "";
+    if (!userId) throw notFound("Person");
+    await getDb(c.env.DB).delete(pushSink).where(eq(pushSink.userId, userId));
+    return c.body(null, 204);
+  })
+
+  /**
+   * The 5-minute cron's reminder steps, on demand, as of `at` (default now): staff reminders and
+   * digests, the family queue (quiet hours over), session reminders, and payment reminders. `steps`
+   * picks some of them.
+   */
+  .post(
+    "/run-reminders",
+    v(
+      "json",
+      z.object({
+        at: z.number().int().positive().optional(),
+        steps: z.array(z.enum(["staff", "queue", "sessions", "payments"])).optional(),
+      }),
+    ),
+    async (c) => {
+      const db = getDb(c.env.DB);
+      const { at, steps } = c.req.valid("json");
+      const now = at ?? Date.now();
+      const run = (s: "staff" | "queue" | "sessions" | "payments") => !steps || steps.includes(s);
+      const out = { staff: false, queue: 0, sessions: 0, payments: 0 };
+      if (run("staff")) {
+        await runReminders(db, c.env, new Date(now));
+        out.staff = true;
+      }
+      if (run("queue")) out.queue = await runFamilyQueue(db, c.env, now);
+      if (run("sessions")) out.sessions = await runSessionReminders(db, c.env, now);
+      if (run("payments")) out.payments = await runPaymentReminders(db, c.env, now);
+      return c.json(out);
+    },
+  )
+
+  /** The daily family sweeps (renewals, one session left, packages ending), as of `at`. */
+  .post(
+    "/run-family-sweeps",
+    v("json", z.object({ at: z.number().int().positive().optional() })),
+    async (c) => {
+      const sent = await runFamilySweeps(
+        getDb(c.env.DB),
+        c.env,
+        c.req.valid("json").at ?? Date.now(),
+      );
+      return c.json({ sent });
+    },
+  )
 
   /**
    * Ages a passkey-only account by `hours` (so the daily cleanup's 24-hour rule can be tested

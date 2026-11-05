@@ -1,19 +1,18 @@
-import { buildPushHTTPRequest } from "@pushforge/builder";
 import { and, eq, gte, isNotNull, isNull, lt, sql } from "drizzle-orm";
 import { LESSON_KIND_LABELS } from "../../shared/domain";
-import { uuidv7 } from "../../shared/ids";
 import { can } from "../../shared/roles";
 import { addDays, localDate, localTime, todayIn } from "../../shared/time";
 import type { Db } from "../db/client";
 import {
   clientCoach,
   clientPackage,
+  familyNotificationQueue,
   idempotencyKey,
   lesson,
   member,
   notificationLog,
   notificationPref,
-  pushSubscription,
+  pushSink,
   rateLimit,
   workspaceSettings,
 } from "../db/schema";
@@ -21,97 +20,18 @@ import { deleteAbandonedPasskeyAccounts } from "../lib/passkey-accounts";
 import { remainingExpr } from "./credits";
 import { lessonSummaries } from "./lessons";
 import { balancesFor } from "./money";
+import { canPush, notifyUser } from "./push-delivery";
 import { digestScope, digestSessions, isRecipient, type StaffRef } from "./reminders";
 
-export interface PushPayload {
-  title: string;
-  body: string;
-  url?: string;
-  tag?: string;
-}
+// Staff reminders and digests (every 5 minutes) and the daily maintenance. Delivery itself, and
+// the device registries, live in push-delivery.ts.
 
-type SubscriptionRow = typeof pushSubscription.$inferSelect;
-
-export function pushConfigured(env: Env): boolean {
-  return Boolean(env.VAPID_PRIVATE_KEY && env.VAPID_PUBLIC_KEY);
-}
-
-async function sendOne(
-  env: Env,
-  sub: SubscriptionRow,
-  payload: PushPayload,
-): Promise<"ok" | "gone" | "error"> {
-  try {
-    const privateJWK = JSON.parse(env.VAPID_PRIVATE_KEY);
-    const req = await buildPushHTTPRequest({
-      privateJWK,
-      subscription: { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-      message: {
-        payload: { ...payload },
-        adminContact: env.VAPID_SUBJECT || "mailto:coach@example.com",
-        options: {
-          ttl: 60 * 60,
-          urgency: "normal",
-          ...(payload.tag ? { topic: payload.tag.slice(0, 32) } : {}),
-        },
-      },
-    });
-    const res = await fetch(req.endpoint, { method: "POST", headers: req.headers, body: req.body });
-    if (res.status === 404 || res.status === 410) return "gone";
-    return res.ok ? "ok" : "error";
-  } catch {
-    return "error";
-  }
-}
-
-/** Sends to every device of a user. Dedupes on (user, kind, refKey) when a log key is given. */
-export async function notifyUser(
-  db: Db,
-  env: Env,
-  target: { userId: string; workspaceId: string },
-  payload: PushPayload,
-  log?: { kind: string; refKey: string },
-): Promise<number> {
-  if (!pushConfigured(env)) return 0;
-  if (log) {
-    const inserted = await db
-      .insert(notificationLog)
-      .values({
-        id: uuidv7(),
-        workspaceId: target.workspaceId,
-        userId: target.userId,
-        kind: log.kind,
-        refKey: log.refKey,
-        sentAt: Date.now(),
-      })
-      .onConflictDoNothing()
-      .returning({ id: notificationLog.id });
-    if (inserted.length === 0) return 0;
-  }
-  const subs = await db
-    .select()
-    .from(pushSubscription)
-    .where(eq(pushSubscription.userId, target.userId));
-  let delivered = 0;
-  for (const sub of subs) {
-    const result = await sendOne(env, sub, payload);
-    if (result === "ok") {
-      delivered++;
-      await db
-        .update(pushSubscription)
-        .set({ lastSuccessAt: Date.now(), failureCount: 0 })
-        .where(eq(pushSubscription.id, sub.id));
-    } else if (result === "gone" || sub.failureCount >= 4) {
-      await db.delete(pushSubscription).where(eq(pushSubscription.id, sub.id));
-    } else {
-      await db
-        .update(pushSubscription)
-        .set({ failureCount: sub.failureCount + 1 })
-        .where(eq(pushSubscription.id, sub.id));
-    }
-  }
-  return delivered;
-}
+export {
+  canPush,
+  notifyUser,
+  type PushPayload,
+  pushConfigured,
+} from "./push-delivery";
 
 function inWindow(localHHMM: string, targetHHMM: string, windowMinutes: number): boolean {
   const toMin = (t: string) => {
@@ -122,9 +42,9 @@ function inWindow(localHHMM: string, targetHHMM: string, windowMinutes: number):
   return diff >= 0 && diff < windowMinutes;
 }
 
-/** Every 5 minutes: session reminders and per-person daily digests. */
+/** Every 5 minutes: staff session reminders and per-person daily digests. */
 export async function runReminders(db: Db, env: Env, now: Date) {
-  if (!pushConfigured(env)) return;
+  if (!canPush(env)) return;
   const targets = await db
     .select({
       userId: notificationPref.userId,
@@ -309,6 +229,12 @@ export async function runMaintenance(
   // Rate-limit counters (ours in lib/rate-limit.ts, and Better Auth's sign-in limits) last a minute
   // or an hour; a day-old one is clutter, and it holds an IP address (the privacy policy says so).
   await db.delete(rateLimit).where(lt(rateLimit.lastRequest, now.getTime() - 86_400_000));
+  // Family notifications held for quiet hours go out within a day; a week-old one is stale. The
+  // test sink keeps a day of payloads (tests read theirs within minutes).
+  await db
+    .delete(familyNotificationQueue)
+    .where(lt(familyNotificationQueue.sendAfter, now.getTime() - 7 * 86_400_000));
+  await db.delete(pushSink).where(lt(pushSink.createdAt, now.getTime() - 86_400_000));
   // Passkey-only accounts whose passkey never arrived can't be signed into: remove them after a day.
   await deleteAbandonedPasskeyAccounts(db, now.getTime());
 }

@@ -15,6 +15,7 @@ import {
 import { todayIn } from "../../shared/time";
 import { addMonths, monthOf } from "../../shared/validity";
 import { organization } from "../db/schema";
+import { afterResponse } from "../lib/defer";
 import { v } from "../lib/validate";
 import { ctxOf, requireCap } from "../middleware";
 import {
@@ -28,7 +29,8 @@ import {
   renewalsDue,
   requestedCount,
 } from "../services/enrollment-staff";
-import type { AppBindings } from "../types";
+import { notifyEnrollmentDecision } from "../services/family-push";
+import type { AppBindings, Ctx } from "../types";
 import { appOrigin } from "./academy";
 
 /**
@@ -71,20 +73,34 @@ export const enrollmentRoutes = new Hono<AppBindings>()
     c.json<EnrollmentDetailDto>(await enrollmentDetail(ctxOf(c), c.req.param("id"))),
   )
 
-  .post("/enrollments/:id/approve", v("json", enrollmentApproveSchema), async (c) =>
-    c.json<EnrollmentDetailDto>(
-      await approveEnrollment(ctxOf(c), c.req.param("id"), c.req.valid("json")),
-    ),
-  )
+  .post("/enrollments/:id/approve", v("json", enrollmentApproveSchema), async (c) => {
+    const ctx = ctxOf(c);
+    const detail = await approveEnrollment(ctx, c.req.param("id"), c.req.valid("json"));
+    await decided(ctx, c.req.param("id"));
+    return c.json<EnrollmentDetailDto>(detail);
+  })
 
-  .post("/enrollments/:id/waitlist", v("json", enrollmentWaitlistSchema), async (c) =>
-    c.json<EnrollmentDetailDto>(
-      await waitlistEnrollment(ctxOf(c), c.req.param("id"), c.req.valid("json").note),
-    ),
-  )
+  .post("/enrollments/:id/waitlist", v("json", enrollmentWaitlistSchema), async (c) => {
+    const ctx = ctxOf(c);
+    const detail = await waitlistEnrollment(ctx, c.req.param("id"), c.req.valid("json").note);
+    await decided(ctx, c.req.param("id"));
+    return c.json<EnrollmentDetailDto>(detail);
+  })
 
-  .post("/enrollments/:id/decline", v("json", enrollmentDeclineSchema), async (c) =>
-    c.json<EnrollmentDetailDto>(
-      await declineEnrollment(ctxOf(c), c.req.param("id"), c.req.valid("json").reason),
-    ),
+  .post("/enrollments/:id/decline", v("json", enrollmentDeclineSchema), async (c) => {
+    const ctx = ctxOf(c);
+    const detail = await declineEnrollment(ctx, c.req.param("id"), c.req.valid("json").reason);
+    await decided(ctx, c.req.param("id"));
+    return c.json<EnrollmentDetailDto>(detail);
+  });
+
+/** The family hears about a decision after the response (a replay is deduped by the log). */
+function decided(ctx: Ctx, requestId: string) {
+  return afterResponse(ctx, "Enrollment decision push failed", () =>
+    notifyEnrollmentDecision(ctx.db, ctx.env, {
+      workspaceId: ctx.workspaceId,
+      requestId,
+      actorUserId: ctx.userId,
+    }),
   );
+}

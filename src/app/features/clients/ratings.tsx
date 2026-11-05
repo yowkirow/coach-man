@@ -9,7 +9,7 @@ import { InlineError } from "../../components/ui/feedback";
 import { Segmented, TextField } from "../../components/ui/field";
 import { ActionMenu, Sheet } from "../../components/ui/overlay";
 import { api, errorMessage, fieldErrors } from "../../lib/api";
-import { useFormat } from "../../lib/format";
+import { type Format, useFormat } from "../../lib/format";
 import { notify } from "../../lib/notify";
 import { useOnline } from "../../lib/offline";
 import { OfflineHint, SectionHead } from "./bits";
@@ -51,7 +51,17 @@ function useWidth<T extends HTMLElement>() {
 }
 
 export function RatingChart({ ratings }: { ratings: RatingDto[] }) {
-  const fmt = useFormat();
+  return <RatingChartView ratings={ratings} fmt={useFormat()} />;
+}
+
+/** The chart itself, formatted by the caller (the family portal formats with its academy's). */
+export function RatingChartView({
+  ratings,
+  fmt,
+}: {
+  ratings: Pick<RatingDto, "id" | "source" | "value" | "recordedOn">[];
+  fmt: Format;
+}) {
   const [ref, width] = useWidth<HTMLDivElement>();
   const sorted = [...ratings].sort((a, b) => a.recordedOn.localeCompare(b.recordedOn));
   const first = sorted[0];

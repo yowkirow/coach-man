@@ -8,6 +8,8 @@ export class ApiRequestError extends Error {
     readonly fields: Record<string, string> = {},
     /** Extra help from the server, e.g. which address an invite was sent to (masked). */
     readonly hint: string | null = null,
+    /** Everything else the server put in `details`. */
+    readonly details: Record<string, unknown> = {},
   ) {
     super(message);
   }
@@ -70,13 +72,16 @@ async function send<T>(
     const err = (data as ApiErrorBody | undefined)?.error;
     if (res.status === 401) onUnauthorized?.();
     if (res.status === 403 && err?.code === "no_workspace") onNoWorkspace?.();
-    const details = err?.details as { fields?: Record<string, string>; hint?: string } | undefined;
+    const details = err?.details as
+      | ({ fields?: Record<string, string>; hint?: string } & Record<string, unknown>)
+      | undefined;
     throw new ApiRequestError(
       res.status,
       err?.code ?? "error",
       err?.message ?? `Request failed (${res.status}).`,
       details?.fields ?? {},
       typeof details?.hint === "string" ? details.hint : null,
+      details && typeof details === "object" ? details : {},
     );
   }
   return data as T;
@@ -115,6 +120,19 @@ export const inviteApi = {
     send<T>("POST", `/api/invites/${encodeURIComponent(token)}/accept`, {}),
 };
 
+/** /api/portal: the family portal's own API (never /api/v1, which families can't use). */
+export const portalApi = {
+  get: <T>(path: string, opts?: RequestOptions) =>
+    send<T>("GET", `/api/portal${path}`, undefined, opts),
+  post: <T>(path: string, body?: unknown) => send<T>("POST", `/api/portal${path}`, body ?? {}),
+  del: <T>(path: string) => send<T>("DELETE", `/api/portal${path}`),
+};
+
+/** The extra the server sends with some refusals, e.g. `alreadyLinked` on a family invite. */
+export function errorDetails(err: unknown): Record<string, unknown> {
+  return err instanceof ApiRequestError ? err.details : {};
+}
+
 /** Signed in, but not staff in any academy: the staff app sends them to /welcome. */
 export function isNoWorkspace(err: unknown): boolean {
   return err instanceof ApiRequestError && err.status === 403 && err.code === "no_workspace";
@@ -137,6 +155,16 @@ export function fileUrl(key: string | null | undefined): string | null {
 /** An academy's public image (logo, payment QR, coach photo) for people who aren't staff yet. */
 export function publicFileUrl(key: string | null | undefined): string | null {
   return key ? `/api/public/files/${key.split("/").map(encodeURIComponent).join("/")}` : null;
+}
+
+/**
+ * A file in the family portal: public academy images (cacheable) through /api/public/files, and
+ * the family's own students' photos through /api/portal/files.
+ */
+export function portalFileUrl(key: string | null | undefined): string | null {
+  if (!key) return null;
+  if (/^ws\/[^/]+\/public\//.test(key)) return publicFileUrl(key);
+  return `/api/portal/files/${key.split("/").map(encodeURIComponent).join("/")}`;
 }
 
 /** The hint the server gives when an invite was sent to another address ("j•••@gmail.com"). */

@@ -43,6 +43,23 @@ export const keys = {
   team: ["team"] as const,
   coaches: ["coaches"] as const,
   coachProfile: (userId: string) => ["coach-profile", userId] as const,
+  familyAccess: (clientId: string) => ["family-access", clientId] as const,
+  /**
+   * The family portal's reads, under the signed-in person's id: another person signing in on
+   * the same device never sees them, even before the cache owner switches.
+   */
+  portal: {
+    all: ["portal"] as const,
+    home: (userId: string) => ["portal", userId, "home"] as const,
+    student: (userId: string, clientId: string) => ["portal", userId, "student", clientId] as const,
+    schedule: (userId: string, clientId: string, from: string, to: string) =>
+      ["portal", userId, "schedule", clientId, from, to] as const,
+    progress: (userId: string, clientId: string) =>
+      ["portal", userId, "progress", clientId] as const,
+    money: (userId: string, clientId: string) => ["portal", userId, "money", clientId] as const,
+    academy: (userId: string, workspaceId: string) =>
+      ["portal", userId, "academy", workspaceId] as const,
+  },
 };
 
 /** Query families kept in IndexedDB so the app can open and read offline. */
@@ -63,6 +80,8 @@ const PERSISTED = new Set([
   "skills",
   "coaches",
   "academy",
+  // The family portal reads offline too (its keys carry the person's id).
+  "portal",
 ]);
 
 export function shouldPersistQuery(key: QueryKey, status: string): boolean {

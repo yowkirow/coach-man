@@ -74,10 +74,13 @@ export function Avatar({
   person,
   size = "md",
   ring = false,
+  src: srcOverride,
 }: {
   person: { firstName: string; lastName: string; photoKey?: string | null };
   size?: "xs" | "sm" | "md" | "lg" | "xl";
   ring?: boolean;
+  /** A ready photo URL (the family portal's files); otherwise `photoKey` via the staff API. */
+  src?: string | null;
 }) {
   const dims = {
     xs: "size-7 text-[0.6875rem]",
@@ -88,7 +91,7 @@ export function Avatar({
   }[size];
   // Ring colour comes from --avatar-ring so stacks can match whatever surface they sit on.
   const ringCls = ring ? "ring-2 ring-[var(--avatar-ring,var(--color-card))]" : "";
-  const src = fileUrl(person.photoKey);
+  const src = srcOverride !== undefined ? srcOverride : fileUrl(person.photoKey);
   if (src)
     return (
       <img
@@ -451,9 +454,17 @@ export function Timeline({ entries }: { entries: TimelineEntry[] }) {
   );
 }
 
-export function KeyValue({ label, children }: { label: string; children: ReactNode }) {
+export function KeyValue({
+  label,
+  children,
+  className = "",
+}: {
+  label: string;
+  children: ReactNode;
+  className?: string;
+}) {
   return (
-    <div className="flex flex-col gap-0.5">
+    <div className={`flex flex-col gap-0.5 ${className}`}>
       <dt className="text-[0.8125rem] text-ink-2">{label}</dt>
       <dd className="text-ink">{children}</dd>
     </div>

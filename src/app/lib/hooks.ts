@@ -60,7 +60,17 @@ export function useCan(): Capabilities {
 /** Who is signed in and where they belong: staff academies and family links (no workspace needed). */
 export const accountQuery = {
   queryKey: keys.account,
-  queryFn: () => accountApi.get<AccountDto>(),
+  queryFn: async () => {
+    const account = await accountApi.get<AccountDto>();
+    // Someone else behind the same cached app (a family phone passed around): start clean, keeping
+    // only this person's account.
+    const cached = queryClient.getQueryData<AccountDto>(keys.account);
+    if (cached && cached.user.id !== account.user.id) {
+      queryClient.setQueryData(keys.account, account);
+      claimCache(account.user.id);
+    }
+    return account;
+  },
   staleTime: 60_000,
 };
 

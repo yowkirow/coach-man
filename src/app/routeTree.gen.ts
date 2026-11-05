@@ -32,6 +32,15 @@ import { Route as AppGroupsIndexRouteImport } from './routes/_app/groups.index'
 import { Route as AppGroupsGroupIdRouteImport } from './routes/_app/groups.$groupId'
 import { Route as AppSessionsLessonIdRouteImport } from './routes/_app/sessions.$lessonId'
 import { Route as PortalMyIndexRouteImport } from './routes/_portal/my.index'
+import { Route as PortalMyClientIdRouteImport } from './routes/_portal/my.$clientId'
+import { Route as PortalMyMoreRouteImport } from './routes/_portal/my.more'
+import { Route as PortalMySettingsRouteImport } from './routes/_portal/my.settings'
+import { Route as PortalMyClientIdIndexRouteImport } from './routes/_portal/my.$clientId.index'
+import { Route as PortalMyClientIdCoachesRouteImport } from './routes/_portal/my.$clientId.coaches'
+import { Route as PortalMyClientIdPaymentsRouteImport } from './routes/_portal/my.$clientId.payments'
+import { Route as PortalMyClientIdProfileRouteImport } from './routes/_portal/my.$clientId.profile'
+import { Route as PortalMyClientIdProgressRouteImport } from './routes/_portal/my.$clientId.progress'
+import { Route as PortalMyClientIdScheduleRouteImport } from './routes/_portal/my.$clientId.schedule'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
@@ -146,6 +155,54 @@ const PortalMyIndexRoute = PortalMyIndexRouteImport.update({
   path: '/my/',
   getParentRoute: () => PortalRoute,
 } as any)
+const PortalMyClientIdRoute = PortalMyClientIdRouteImport.update({
+  id: '/my/$clientId',
+  path: '/my/$clientId',
+  getParentRoute: () => PortalRoute,
+} as any)
+const PortalMyMoreRoute = PortalMyMoreRouteImport.update({
+  id: '/my/more',
+  path: '/my/more',
+  getParentRoute: () => PortalRoute,
+} as any)
+const PortalMySettingsRoute = PortalMySettingsRouteImport.update({
+  id: '/my/settings',
+  path: '/my/settings',
+  getParentRoute: () => PortalRoute,
+} as any)
+const PortalMyClientIdIndexRoute = PortalMyClientIdIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PortalMyClientIdRoute,
+} as any)
+const PortalMyClientIdCoachesRoute = PortalMyClientIdCoachesRouteImport.update({
+  id: '/coaches',
+  path: '/coaches',
+  getParentRoute: () => PortalMyClientIdRoute,
+} as any)
+const PortalMyClientIdPaymentsRoute =
+  PortalMyClientIdPaymentsRouteImport.update({
+    id: '/payments',
+    path: '/payments',
+    getParentRoute: () => PortalMyClientIdRoute,
+  } as any)
+const PortalMyClientIdProfileRoute = PortalMyClientIdProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => PortalMyClientIdRoute,
+} as any)
+const PortalMyClientIdProgressRoute =
+  PortalMyClientIdProgressRouteImport.update({
+    id: '/progress',
+    path: '/progress',
+    getParentRoute: () => PortalMyClientIdRoute,
+  } as any)
+const PortalMyClientIdScheduleRoute =
+  PortalMyClientIdScheduleRouteImport.update({
+    id: '/schedule',
+    path: '/schedule',
+    getParentRoute: () => PortalMyClientIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
@@ -165,10 +222,19 @@ export interface FileRoutesByFullPath {
   '/events/$eventId': typeof AppEventsEventIdRoute
   '/groups/$groupId': typeof AppGroupsGroupIdRoute
   '/sessions/$lessonId': typeof AppSessionsLessonIdRoute
+  '/my/$clientId': typeof PortalMyClientIdRouteWithChildren
+  '/my/more': typeof PortalMyMoreRoute
+  '/my/settings': typeof PortalMySettingsRoute
   '/clients/': typeof AppClientsIndexRoute
   '/events/': typeof AppEventsIndexRoute
   '/groups/': typeof AppGroupsIndexRoute
   '/my/': typeof PortalMyIndexRoute
+  '/my/$clientId/coaches': typeof PortalMyClientIdCoachesRoute
+  '/my/$clientId/payments': typeof PortalMyClientIdPaymentsRoute
+  '/my/$clientId/profile': typeof PortalMyClientIdProfileRoute
+  '/my/$clientId/progress': typeof PortalMyClientIdProgressRoute
+  '/my/$clientId/schedule': typeof PortalMyClientIdScheduleRoute
+  '/my/$clientId/': typeof PortalMyClientIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof AppIndexRoute
@@ -188,10 +254,18 @@ export interface FileRoutesByTo {
   '/events/$eventId': typeof AppEventsEventIdRoute
   '/groups/$groupId': typeof AppGroupsGroupIdRoute
   '/sessions/$lessonId': typeof AppSessionsLessonIdRoute
+  '/my/more': typeof PortalMyMoreRoute
+  '/my/settings': typeof PortalMySettingsRoute
   '/clients': typeof AppClientsIndexRoute
   '/events': typeof AppEventsIndexRoute
   '/groups': typeof AppGroupsIndexRoute
   '/my': typeof PortalMyIndexRoute
+  '/my/$clientId/coaches': typeof PortalMyClientIdCoachesRoute
+  '/my/$clientId/payments': typeof PortalMyClientIdPaymentsRoute
+  '/my/$clientId/profile': typeof PortalMyClientIdProfileRoute
+  '/my/$clientId/progress': typeof PortalMyClientIdProgressRoute
+  '/my/$clientId/schedule': typeof PortalMyClientIdScheduleRoute
+  '/my/$clientId': typeof PortalMyClientIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -214,10 +288,19 @@ export interface FileRoutesById {
   '/_app/events/$eventId': typeof AppEventsEventIdRoute
   '/_app/groups/$groupId': typeof AppGroupsGroupIdRoute
   '/_app/sessions/$lessonId': typeof AppSessionsLessonIdRoute
+  '/_portal/my/$clientId': typeof PortalMyClientIdRouteWithChildren
+  '/_portal/my/more': typeof PortalMyMoreRoute
+  '/_portal/my/settings': typeof PortalMySettingsRoute
   '/_app/clients/': typeof AppClientsIndexRoute
   '/_app/events/': typeof AppEventsIndexRoute
   '/_app/groups/': typeof AppGroupsIndexRoute
   '/_portal/my/': typeof PortalMyIndexRoute
+  '/_portal/my/$clientId/coaches': typeof PortalMyClientIdCoachesRoute
+  '/_portal/my/$clientId/payments': typeof PortalMyClientIdPaymentsRoute
+  '/_portal/my/$clientId/profile': typeof PortalMyClientIdProfileRoute
+  '/_portal/my/$clientId/progress': typeof PortalMyClientIdProgressRoute
+  '/_portal/my/$clientId/schedule': typeof PortalMyClientIdScheduleRoute
+  '/_portal/my/$clientId/': typeof PortalMyClientIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -239,10 +322,19 @@ export interface FileRouteTypes {
     | '/events/$eventId'
     | '/groups/$groupId'
     | '/sessions/$lessonId'
+    | '/my/$clientId'
+    | '/my/more'
+    | '/my/settings'
     | '/clients/'
     | '/events/'
     | '/groups/'
     | '/my/'
+    | '/my/$clientId/coaches'
+    | '/my/$clientId/payments'
+    | '/my/$clientId/profile'
+    | '/my/$clientId/progress'
+    | '/my/$clientId/schedule'
+    | '/my/$clientId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -262,10 +354,18 @@ export interface FileRouteTypes {
     | '/events/$eventId'
     | '/groups/$groupId'
     | '/sessions/$lessonId'
+    | '/my/more'
+    | '/my/settings'
     | '/clients'
     | '/events'
     | '/groups'
     | '/my'
+    | '/my/$clientId/coaches'
+    | '/my/$clientId/payments'
+    | '/my/$clientId/profile'
+    | '/my/$clientId/progress'
+    | '/my/$clientId/schedule'
+    | '/my/$clientId'
   id:
     | '__root__'
     | '/_app'
@@ -287,10 +387,19 @@ export interface FileRouteTypes {
     | '/_app/events/$eventId'
     | '/_app/groups/$groupId'
     | '/_app/sessions/$lessonId'
+    | '/_portal/my/$clientId'
+    | '/_portal/my/more'
+    | '/_portal/my/settings'
     | '/_app/clients/'
     | '/_app/events/'
     | '/_app/groups/'
     | '/_portal/my/'
+    | '/_portal/my/$clientId/coaches'
+    | '/_portal/my/$clientId/payments'
+    | '/_portal/my/$clientId/profile'
+    | '/_portal/my/$clientId/progress'
+    | '/_portal/my/$clientId/schedule'
+    | '/_portal/my/$clientId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -465,6 +574,69 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PortalMyIndexRouteImport
       parentRoute: typeof PortalRoute
     }
+    '/_portal/my/$clientId': {
+      id: '/_portal/my/$clientId'
+      path: '/my/$clientId'
+      fullPath: '/my/$clientId'
+      preLoaderRoute: typeof PortalMyClientIdRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/_portal/my/more': {
+      id: '/_portal/my/more'
+      path: '/my/more'
+      fullPath: '/my/more'
+      preLoaderRoute: typeof PortalMyMoreRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/_portal/my/settings': {
+      id: '/_portal/my/settings'
+      path: '/my/settings'
+      fullPath: '/my/settings'
+      preLoaderRoute: typeof PortalMySettingsRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/_portal/my/$clientId/': {
+      id: '/_portal/my/$clientId/'
+      path: '/'
+      fullPath: '/my/$clientId/'
+      preLoaderRoute: typeof PortalMyClientIdIndexRouteImport
+      parentRoute: typeof PortalMyClientIdRoute
+    }
+    '/_portal/my/$clientId/coaches': {
+      id: '/_portal/my/$clientId/coaches'
+      path: '/coaches'
+      fullPath: '/my/$clientId/coaches'
+      preLoaderRoute: typeof PortalMyClientIdCoachesRouteImport
+      parentRoute: typeof PortalMyClientIdRoute
+    }
+    '/_portal/my/$clientId/payments': {
+      id: '/_portal/my/$clientId/payments'
+      path: '/payments'
+      fullPath: '/my/$clientId/payments'
+      preLoaderRoute: typeof PortalMyClientIdPaymentsRouteImport
+      parentRoute: typeof PortalMyClientIdRoute
+    }
+    '/_portal/my/$clientId/profile': {
+      id: '/_portal/my/$clientId/profile'
+      path: '/profile'
+      fullPath: '/my/$clientId/profile'
+      preLoaderRoute: typeof PortalMyClientIdProfileRouteImport
+      parentRoute: typeof PortalMyClientIdRoute
+    }
+    '/_portal/my/$clientId/progress': {
+      id: '/_portal/my/$clientId/progress'
+      path: '/progress'
+      fullPath: '/my/$clientId/progress'
+      preLoaderRoute: typeof PortalMyClientIdProgressRouteImport
+      parentRoute: typeof PortalMyClientIdRoute
+    }
+    '/_portal/my/$clientId/schedule': {
+      id: '/_portal/my/$clientId/schedule'
+      path: '/schedule'
+      fullPath: '/my/$clientId/schedule'
+      preLoaderRoute: typeof PortalMyClientIdScheduleRouteImport
+      parentRoute: typeof PortalMyClientIdRoute
+    }
   }
 }
 
@@ -508,11 +680,38 @@ const AppRouteChildren: AppRouteChildren = {
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
+interface PortalMyClientIdRouteChildren {
+  PortalMyClientIdCoachesRoute: typeof PortalMyClientIdCoachesRoute
+  PortalMyClientIdPaymentsRoute: typeof PortalMyClientIdPaymentsRoute
+  PortalMyClientIdProfileRoute: typeof PortalMyClientIdProfileRoute
+  PortalMyClientIdProgressRoute: typeof PortalMyClientIdProgressRoute
+  PortalMyClientIdScheduleRoute: typeof PortalMyClientIdScheduleRoute
+  PortalMyClientIdIndexRoute: typeof PortalMyClientIdIndexRoute
+}
+
+const PortalMyClientIdRouteChildren: PortalMyClientIdRouteChildren = {
+  PortalMyClientIdCoachesRoute: PortalMyClientIdCoachesRoute,
+  PortalMyClientIdPaymentsRoute: PortalMyClientIdPaymentsRoute,
+  PortalMyClientIdProfileRoute: PortalMyClientIdProfileRoute,
+  PortalMyClientIdProgressRoute: PortalMyClientIdProgressRoute,
+  PortalMyClientIdScheduleRoute: PortalMyClientIdScheduleRoute,
+  PortalMyClientIdIndexRoute: PortalMyClientIdIndexRoute,
+}
+
+const PortalMyClientIdRouteWithChildren =
+  PortalMyClientIdRoute._addFileChildren(PortalMyClientIdRouteChildren)
+
 interface PortalRouteChildren {
+  PortalMyClientIdRoute: typeof PortalMyClientIdRouteWithChildren
+  PortalMyMoreRoute: typeof PortalMyMoreRoute
+  PortalMySettingsRoute: typeof PortalMySettingsRoute
   PortalMyIndexRoute: typeof PortalMyIndexRoute
 }
 
 const PortalRouteChildren: PortalRouteChildren = {
+  PortalMyClientIdRoute: PortalMyClientIdRouteWithChildren,
+  PortalMyMoreRoute: PortalMyMoreRoute,
+  PortalMySettingsRoute: PortalMySettingsRoute,
   PortalMyIndexRoute: PortalMyIndexRoute,
 }
 

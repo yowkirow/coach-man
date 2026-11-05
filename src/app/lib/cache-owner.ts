@@ -9,9 +9,10 @@ export interface OwnerStore {
 }
 
 /**
- * Records `userId` as the owner of this device's cache. If another coach owned it, their cached
- * data and queued offline changes are dropped first, so nothing from their workspace is shown or
- * replayed under the new session. Returns true when that happened.
+ * Records `userId` as the owner of this device's cache. If someone else owned it, their cached
+ * data (staff screens and family portal alike) and queued offline changes are dropped first, so
+ * nothing of theirs is shown or replayed under the new session. The new person's own profile
+ * (`me`) and account, already fetched, are kept. Returns true when that happened.
  */
 export function switchCacheOwner(
   userId: string,
@@ -27,7 +28,15 @@ export function switchCacheOwner(
   const switched = previous !== null && previous !== userId;
   if (switched) {
     client.getMutationCache().clear();
-    void client.resetQueries({ predicate: (q) => q.queryKey[0] !== "me" });
+    void client.resetQueries({
+      predicate: (q) => {
+        if (q.queryKey[0] === "me") return false;
+        if (q.queryKey[0] === "account") {
+          return (q.state.data as { user?: { id?: string } } | undefined)?.user?.id !== userId;
+        }
+        return true;
+      },
+    });
   }
   try {
     store?.setItem(CACHE_OWNER_KEY, userId);

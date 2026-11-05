@@ -22,6 +22,7 @@ import { type ReactNode, useState } from "react";
 import { Button } from "../../components/ui/button";
 import { Card, KeyValue, Pill, Timeline, type TimelineEntry } from "../../components/ui/display";
 import { type Format, plural, useFormat } from "../../lib/format";
+import { useCan } from "../../lib/hooks";
 import { SectionHead } from "./bits";
 import {
   ATTENDANCE_PILL,
@@ -31,6 +32,7 @@ import {
   shortDate,
 } from "./client-utils";
 import { CoachesCard } from "./coaches";
+import { FamilyAccessCard } from "./family-access";
 import { NoteItem } from "./notes";
 import { UpcomingList } from "./profile-sessions";
 
@@ -466,9 +468,14 @@ function DetailsCard({ detail, onEdit }: { detail: ClientDetailDto; onEdit: () =
         {items.length ? (
           <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
             {items.map((it) => (
-              <div key={it.label} className={it.wide ? "sm:col-span-2" : undefined}>
-                <KeyValue label={it.label}>{it.value}</KeyValue>
-              </div>
+              // dt and dd sit one wrapper deep in a dl, so the grid span goes on that wrapper.
+              <KeyValue
+                key={it.label}
+                label={it.label}
+                className={it.wide ? "sm:col-span-2" : undefined}
+              >
+                {it.value}
+              </KeyValue>
             ))}
           </dl>
         ) : (
@@ -552,6 +559,7 @@ export function OverviewTab({
   onAssessment: (a: AssessmentDto) => void;
 }) {
   const c = detail.client;
+  const can = useCan();
   return (
     <div className="flex flex-col gap-5">
       <Card label="Coming up">
@@ -571,6 +579,7 @@ export function OverviewTab({
         </div>
       </Card>
       <CoachesCard detail={detail} />
+      {can.familyAccess ? <FamilyAccessCard detail={detail} /> : null}
       <ActivityTimeline
         detail={detail}
         statement={statement}

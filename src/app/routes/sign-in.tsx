@@ -1,3 +1,4 @@
+import type { AccountDto } from "@shared/api-types";
 import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, redirect, useRouter } from "@tanstack/react-router";
 import { KeyRound } from "lucide-react";
@@ -6,7 +7,7 @@ import { AuthLayout, GoogleG } from "../components/auth-layout";
 import { Button } from "../components/ui/button";
 import { AvatarStack, KpiTile, Pill } from "../components/ui/display";
 import { InlineError } from "../components/ui/feedback";
-import { isNoWorkspace } from "../lib/api";
+import { accountApi, isNoWorkspace } from "../lib/api";
 import { authClient, passkeysSupported, signInWithGoogle } from "../lib/auth-client";
 import { meQuery } from "../lib/hooks";
 import { keys } from "../lib/query";
@@ -38,6 +39,16 @@ function errorText(code: string) {
   return "Google sign-in didn't finish. Try again, or use a passkey if you've added one.";
 }
 
+/** Where a passkey sign-in lands: parents and students go straight to their family portal. */
+async function landingAfterSignIn(): Promise<string> {
+  try {
+    const account = await accountApi.get<AccountDto>();
+    return !account.staff.length && account.family.length ? "/my" : "/";
+  } catch {
+    return "/";
+  }
+}
+
 function SignIn() {
   const { next, error } = Route.useSearch();
   const router = useRouter();
@@ -60,7 +71,7 @@ function SignIn() {
       return;
     }
     await qc.invalidateQueries({ queryKey: keys.me });
-    router.history.push(next ?? "/");
+    router.history.push(next ?? (await landingAfterSignIn()));
   };
 
   const google = async () => {

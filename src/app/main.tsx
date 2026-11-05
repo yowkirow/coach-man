@@ -37,6 +37,13 @@ let sessionEnded = false;
 setUnauthorizedHandler(() => {
   if (queryClient.getQueryData(keys.me) !== undefined) sessionEnded = true;
   queryClient.removeQueries({ queryKey: keys.me });
+  // The portal's "who is this" goes too: a failed refetch keeps the old answer, and the next
+  // person to sign in on this page (a family phone passed around) must never be greeted with it,
+  // even for a frame. Only when there was someone, so signed-out pages asking don't loop.
+  if (queryClient.getQueryData(keys.account) !== undefined) {
+    sessionEnded = true;
+    queryClient.removeQueries({ queryKey: keys.account });
+  }
   const path = window.location.pathname;
   // Invite pages and the enrollment wizard work signed out: they offer sign-in themselves and
   // come back to the same page. CoachMan's public pages need no sign-in at all.

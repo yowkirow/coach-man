@@ -19,8 +19,9 @@ CoachMan (short for *coach manager*) is an installable web app for pickleball ac
 - **Family portal**: students and parents follow sessions and attendance, shared progress and coaches' comments, coaches, packages, credits, payments, announcements, and their enrollment requests (with the amount due once approved, and **Pay** to send proof of payment) under their academy's name and logo, on a phone or a laptop. Parents keep a child's health details, emergency contact, and pickup people up to date from the Profile.
 - **Kids' safety**: medical notes, emergency contacts, and authorized pickup people with photos, kept current by parents; at check-in, coaches get a medical flag (tap to read) and a **Pickup** list with photos and tap-to-call, and Today counts the juniors with medical notes in the day's sessions.
 - **Announcements**: owners and admins post news for everyone, one program's members, or one event's players, pinned, published now or scheduled, with an optional end; families see theirs on Home and in Announcements, staff on Today.
+- **Family reminders**: students and parents turn on push notifications for each phone or computer in the portal (**Settings → Notifications**): sessions (1 hour, 2 hours, or 7pm the evening before), packages and renewals, enrollment and payments, coaches' comments and progress, and announcements, with quiet hours; iPhones get the Add to Home Screen steps first. Owners and admins get a push for each new enrollment request and payment proof.
 - **Public pages**: `/about` (what CoachMan is and how to start), `/privacy`, and `/terms`, readable signed out, linked from sign-in, enrollment, academy pages, and Settings.
-- **PWA**: installable, offline reads, offline-queued check-ins and notes that sync with idempotency keys, push reminders and a daily digest.
+- **PWA**: installable, offline reads, offline-queued check-ins and notes that sync with idempotency keys, push reminders and a daily digest for staff, and push reminders for families.
 - **Import**: bring clients over from a spreadsheet (CSV with column mapping, preview, and duplicate detection).
 
 ## Academies
@@ -142,7 +143,8 @@ A parent of a 13 to 17 year old can make the teen's own login link from the port
 - **Enroll** (`/my/enroll`, from Home, More, and the laptop header): the tiers of each listed academy the person's students train at, grouped by academy, each starting the enrollment wizard.
 - **Profile**: basics (with the training shirt size), the health and emergency details, and, for juniors, the authorized pickup people with their photos. A parent of a minor edits all of it; an adult student edits their own medical note, emergency contact, and shirt size; a teen's own login reads it (see Kids' safety below).
 - **Announcements** (`/my/announcements`, from Home and More): everything live that reaches the family's students, pinned first, then newest, with the academy's name when there are several.
-- **Settings**: passkeys (add, remove; a passkey-only account keeps its last one), linking Google, teen logins for parents, installing the app (with iOS steps), signing out, and links to CoachMan's privacy policy and terms. **More** gathers Coaches, Profile, Announcements, Settings, the academy, and Coach view for staff.
+- **Notifications** (`/my/notifications`, from Settings and More): turning reminders on for this device, what they get, and quiet hours; see Family reminders below. Home offers it once ("Get reminders on this phone").
+- **Settings**: passkeys (add, remove; a passkey-only account keeps its last one), linking Google, teen logins for parents, notifications, installing the app (with iOS steps), signing out, and links to CoachMan's privacy policy and terms. **More** gathers Coaches, Profile, Announcements, Notifications, Settings, the academy, and Coach view for staff.
 
 Several students, in one academy or several, switch from the student pages; the header follows the current student's academy. Money, dates, and times use each academy's currency, locale, and time zone. The portal only reads `/api/account` and `/api/portal` (families get 403 from `/api/v1`). Its pages persist offline like the staff app's, under keys that carry the person's id; the cache-owner check clears a previous person's data on a shared phone, and data of students someone is no longer linked to is dropped once the server says so.
 
@@ -171,6 +173,13 @@ Several students, in one academy or several, switch from the student pages; the 
 | `POST /api/portal/enrollments/:id/cancel` | Withdraws a requested or waitlisted request (the sender, a parent, or the adult student) |
 | `GET /api/portal/students/:clientId/enrollments` | The student's requests (with what's owed once approved) and their renewal offer |
 | `POST /api/portal/students/:clientId/renew` | `{ id?, signatures? }`: next month, same tier, previous answers; allowed while enrollment is closed |
+| `GET /api/portal/notifications` | The caller's family notification settings (`prefs`), how many devices get them, the time zone quiet hours use, whether Home's offer was dismissed, the Web Push key (null when push is off), and whether the caller is staff too |
+| `PUT /api/portal/notifications` | `{ sessions, sessionLead: "1h" \| "2h" \| "evening", packages, enrollment, progress, announcements, quietStart, quietEnd }` (`HH:MM`, academy time; both null turns quiet hours off) |
+| `POST /api/portal/notifications/devices` | `{ endpoint, keys: { p256dh, auth } }` (the browser's push subscription): this device gets the caller's family notifications |
+| `DELETE /api/portal/notifications/devices` | `{ endpoint }`: it stops; answers `{ staff, family }`, what still uses the device |
+| `GET /api/portal/notifications/device?endpoint=` | `{ staff, family }` for one device of the caller |
+| `POST /api/portal/notifications/test` | A test notification to the caller's family devices (10 per 10 minutes) |
+| `POST /api/portal/notifications/prompt-dismissed` | Home's "Get reminders on this phone" isn't offered again |
 
 ### Passkey-only accounts
 
@@ -337,7 +346,7 @@ Owners and admins (`announcements`) post news from **Announcements** (`/announce
 
 Families see a live announcement when it reaches one of their linked students at that academy: `all` reaches every student, `program` the group's current members, `event` the players registered for it (not cancelled). Pinned ones come first, then the newest. A scheduled one appears once its time passes and an ended one disappears, both by the clock.
 
-**Push hook.** `announcementPublished(ctx, announcement)` in `src/worker/services/announcements.ts` runs once for each announcement when it goes live: at once for **Publish now**, and from the 5-minute cron for scheduled ones. `announcement.notified_at` is claimed with a guarded update, so it never runs twice, even after unpublishing and publishing again. For now it logs how many families it would reach (`familyRecipients`); family push notifications connect there.
+**Push hook.** `announcementPublished(ctx, announcement)` in `src/worker/services/announcements.ts` runs once for each announcement when it goes live: at once for **Publish now** (after the response, through `waitUntil`), and from the 5-minute cron for scheduled ones. `announcement.notified_at` is claimed with a guarded update, so it never runs twice, even after unpublishing and publishing again. It sends the families it reaches (`familyRecipients`) a push with the title and the message's first line, opening `/my/announcements` (see Family reminders).
 
 | Endpoint | Does |
 | --- | --- |
@@ -347,6 +356,47 @@ Families see a live announcement when it reaches one of their linked students at
 | `PATCH /api/v1/announcements/:id` | The same body; publishing a live one again keeps its time |
 | `POST /api/v1/announcements/:id/unpublish` | Back to drafts: families stop seeing it |
 | `DELETE /api/v1/announcements/:id` | Deletes it |
+
+### Family reminders
+
+Students and parents get push notifications on the phones and computers they turn them on for, from the portal's **Notifications** (`/my/notifications`). There's no email or text message fallback in this release.
+
+**This device.** **Turn on** asks the browser's permission and subscribes it; then **Send a test notification** and **Turn off**. The card says how many devices get the person's reminders. On an iPhone or iPad in Safari that hasn't installed CoachMan, it shows the Add to Home Screen steps first (push needs the Home Screen app and iOS 16.4 or later); inside an in-app browser (Messenger, Facebook), on an older iOS, with notifications blocked, or on a browser without push, it explains why instead. Home offers it once after a family's first sign-in ("Get reminders on this phone", or "computer"), with **Set up reminders** and **Not now**; it's never shown again once dismissed or once the settings page is opened, and not on a device that already gets them.
+
+**What they get** (each on by default, per person):
+
+| Category | When |
+| --- | --- |
+| Sessions | Before each session a student is on (bookings and program sessions alike, as the portal's schedule counts them), 1 hour or 2 hours before, or at 7pm the evening before (academy time); "Session cancelled" when a session they were reminded of, or one within a day, is cancelled |
+| Packages & renewals | "Renew for next month" once, from five days before the month ends, when a month-end package ends this month and isn't renewed; "1 session left" once per package; a days-valid package ending within three days, once |
+| Enrollment & payments | An enrollment request approved (with "You have an amount due" when something is owed), waitlisted, or declined (the push only says it was updated; the reason is in the app); a payment proof confirmed or not accepted (the reason only in the app); a payment recorded from their proof voided; a reminder 2 and 5 days after approval while something is owed, never while a proof waits for review, and never after it's paid |
+| Coach comments & progress | A coach shares a comment (new, or a coaches-only one switched to shared) or a skills assessment; edits don't notify again, and coaches-only and handoff notes never do |
+| Announcements | Each one that reaches the family's students, when it goes live |
+
+Everyone linked to a student hears about them: parents and guardians, a teen's own login, and an adult student. Money (renewing, payment outcomes, amounts due) goes to the payers: parents and guardians, and an adult student, not a teen's own login (unless the teen sent the payment proof). Revoked links hear nothing.
+
+**Quiet hours** default to 21:00 to 07:00 in the academy's time zone and can be changed or switched off. What arrives in quiet hours waits in a queue until they end; session reminders are planned around them (a 1 or 2 hour reminder that would land in quiet hours comes as they end when that still leaves half the lead time, otherwise just before they start the evening before), and a cancellation of a session before quiet hours end (or within two hours after) comes at once.
+
+**Privacy.** Pushes show on lock screens, so they carry first names only, never amounts ("You have an amount due"), never medical notes, comment text, or a decline or rejection reason, and never another family's details. Each opens its place in the portal (`/my/<student>/schedule`, `…/payments`, `…/progress`, `…/pay?request=`, `/my/announcements`, or `/my`), focusing an open window of the same app; staff pushes open the staff app.
+
+**Batching.** When one person has several students' news of the same kind at once, it's one push ("2 sessions tomorrow", "Payment updates"), not one per student.
+
+**Staff alerts.** Owners and admins get a push for each new enrollment request (or renewal) and each new payment proof to review, unless they turn off **Enrollments & payments** in **Settings → Notifications** (on by default). Coaches never get them, and the person who sent it doesn't either.
+
+**When they're sent.** Event notifications go out right after the response (`executionCtx.waitUntil`), never holding up the request. The 5-minute cron delivers the quiet-hours queue, session reminders (48 hours ahead), and payment reminders; the daily maintenance (03:15 UTC) runs the renewal, one-session-left, and package-ending sweeps and clears old queue and test-sink rows.
+
+**Devices.** Staff devices stay in `push_subscription` (per academy) and family devices are in `family_push_subscription` (per person, no academy needed). One browser can be in both: a coach who is also a parent turns each on from its own settings, and turning one off keeps the browser's subscription for the other and says so. Events both sides could hear about (a session they coach and their child plays in) share one `notification_log` key, so they get one push. A device the push service reports gone (404 or 410) is removed from both, a device moves to whoever turns it on last on a shared phone, and signing out removes this device's subscriptions.
+
+**Sending a test.** Turn reminders on for the device, then press **Send a test notification**: in the portal's **Notifications** (family devices; `POST /api/portal/notifications/test`) or in the staff app's **Settings → Notifications** (staff devices; `POST /api/v1/push/test`). Web Push needs the `VAPID_*` secrets (see Environment variables); without them the page says push isn't set up. In tests, the push sink records the push instead of sending it (see Testing).
+
+| Endpoint | Does |
+| --- | --- |
+| `GET`/`PUT /api/v1/notification-prefs` | The staff person's settings, now with `enrollmentAlerts` (on by default; the app shows it to owners and admins) |
+| `GET /api/v1/push/device?endpoint=` | `{ staff, family }` for one device of the caller |
+| `DELETE /api/v1/push/subscriptions` | `{ endpoint }`: answers `{ staff, family }`, what still uses the device |
+| `DELETE /api/account/push-device` | `{ endpoint }`: signing out forgets this device for both |
+
+The family's own endpoints are in the family portal table above.
 
 ### Public pages
 
@@ -377,7 +427,7 @@ The academy release (roles, team invites, coach profiles and assignments, the fa
 | API | Hono, Zod validation, typed DTOs shared with the app (`src/shared`) |
 | Data | Cloudflare D1 (SQLite) with Drizzle; R2 for client photos, payment proof screenshots and pickup people's photos (private), and academy images (logos, payment QR codes, coach photos) |
 | Auth | Better Auth: Google OAuth plus passkeys (WebAuthn); staff roles per academy, and a separate family portal |
-| Jobs | Cron triggers: scheduled announcements going live, reminders, and digests every 5 minutes; maintenance daily (including removing abandoned passkey-only accounts) |
+| Jobs | Cron triggers: scheduled announcements going live, staff reminders and digests, and family reminders (the quiet-hours queue, sessions, payments) every 5 minutes; maintenance daily (including removing abandoned passkey-only accounts, and the families' renewal, one-session-left, and package-ending sweeps) |
 | App | React 19, Vite, TanStack Router and Query, React Aria Components, Tailwind CSS 4 |
 | Offline | Workbox service worker, IndexedDB-persisted query cache, paused mutations resume on reconnect |
 
@@ -417,7 +467,7 @@ npx drizzle-kit generate --name <what-changed>   # writes migrations/NNNN_<name>
 npm run db:migrate:local                         # apply to the local D1 (Miniflare)
 ```
 
-Wrangler asks before applying; in scripts and on Windows PowerShell set `CI=1` to accept (`$env:CI='1'; npx wrangler d1 migrations apply DB --local`). Read every generated file before applying it: new columns on existing tables must be nullable or have a default, so the SQL stays `ALTER TABLE … ADD` and never rebuilds a table. `0001_academy` adds the academy tables and columns and ends with a hand-written, idempotent backfill: each workspace's owner becomes the lead coach of its sessions, series, groups, and events and the primary coach of its clients, and every member gets a coach profile. `0002_coaching` adds who set each goal (`goal.created_by`, backfilled with the owner) and an academy profile row for every workspace. `0003_offerings` adds `client_package.includes_uniform`, the `consent_document_version` table (the text of every signed version), and an index on consent signatures. `0004_enrollment` adds an index on `enrollment_request.requested_by` (the portal's and the cleanup's lookups). `0005_payment_proofs` adds `payment_submission.resubmit_of` (the refused proof a new one resends), a unique index on `payment_submission.proof_key` (the family's file reads look a proof up by its key), and indexes on its `payment_id` and `enrollment_id`. `0006_essentials` adds `announcement.notified_at` (when the publish hook ran) with an index for the cron, `client.safety_updated_at`/`safety_updated_by`/`safety_updated_relation` (the "Updated by" line), and a unique index on `authorized_pickup.photo_key`; its backfill marks announcements already live as announced. Remote databases use `npm run db:migrate:staging` and `npm run db:migrate:production`.
+Wrangler asks before applying; in scripts and on Windows PowerShell set `CI=1` to accept (`$env:CI='1'; npx wrangler d1 migrations apply DB --local`). Read every generated file before applying it: new columns on existing tables must be nullable or have a default, so the SQL stays `ALTER TABLE … ADD` and never rebuilds a table. `0001_academy` adds the academy tables and columns and ends with a hand-written, idempotent backfill: each workspace's owner becomes the lead coach of its sessions, series, groups, and events and the primary coach of its clients, and every member gets a coach profile. `0002_coaching` adds who set each goal (`goal.created_by`, backfilled with the owner) and an academy profile row for every workspace. `0003_offerings` adds `client_package.includes_uniform`, the `consent_document_version` table (the text of every signed version), and an index on consent signatures. `0004_enrollment` adds an index on `enrollment_request.requested_by` (the portal's and the cleanup's lookups). `0005_payment_proofs` adds `payment_submission.resubmit_of` (the refused proof a new one resends), a unique index on `payment_submission.proof_key` (the family's file reads look a proof up by its key), and indexes on its `payment_id` and `enrollment_id`. `0006_essentials` adds `announcement.notified_at` (when the publish hook ran) with an index for the cron, `client.safety_updated_at`/`safety_updated_by`/`safety_updated_relation` (the "Updated by" line), and a unique index on `authorized_pickup.photo_key`; its backfill marks announcements already live as announced. `0007_family_reminders` adds the families' notification settings (`family_notification_pref`, one row per person), their devices (`family_push_subscription`, per person, unique by endpoint), the quiet-hours queue (`family_notification_queue`, unique per person, kind, and item, indexed by when it's due), the test push sink (`push_sink`; see Testing), `notification_pref.enrollment_alerts` (default on), and an index on `enrollment_request (status, decided_at)` for payment reminders. Remote databases use `npm run db:migrate:staging` and `npm run db:migrate:production`.
 
 ### Environment variables
 
@@ -439,8 +489,8 @@ Vars live in `wrangler.jsonc` per environment; secrets go in `.dev.vars` locally
 ```bash
 npm run lint          # Biome
 npm run typecheck     # tsc -b (app, service worker, worker, tooling)
-npm run test:unit     # Vitest: credits, allocation, recurrence, money/time, bypass gate, roles, redaction, tokens, age rules, invites (staff and family), passkey-only accounts and their cleanup, Google linking, portal DTOs and scoping, team rules, coach changes, notes, reminders, month-end validity and credit eligibility, consent versions and signers, public DTOs, link-preview tags, the enrollment state machine, modes and periods, renewal eligibility, who may enroll whom, duplicates, capacity, the payment proof state machine, proof checks and duplicate warnings, who may read a proof, a request's payment state, numbers to copy, who may change health details and pickup people, changed fields, who may read a pickup photo, announcement states, audiences, ordering, publishing rules, and links in the text
-npm run test:e2e      # Playwright: API golden paths, roles and routing, team and invites, family invites and age rules, the family portal and what it never shows, passkey-only accounts, coaching, Today check-in/undo, offline sync, passkeys, programs and tiers, consents, the public academy page, enrollment (wizard, inbox, renewals, passkey enrollment, access and leaks), payment proofs (pay, review, not accepted and resend, withdraw, cash, duplicates, double confirm, voided payments, access and leaks), kids' safety (portal edits, the roster's flags, photos, rights, audit), announcements (audiences, scheduling through the cron, expiry, unpublish, roles), the public pages (signed out, routing, link previews, links, offline), axe
+npm run test:unit     # Vitest: credits, allocation, recurrence, money/time, bypass gate, roles, redaction, tokens, age rules, invites (staff and family), passkey-only accounts and their cleanup, Google linking, portal DTOs and scoping, team rules, coach changes, notes, reminders, month-end validity and credit eligibility, consent versions and signers, public DTOs, link-preview tags, the enrollment state machine, modes and periods, renewal eligibility, who may enroll whom, duplicates, capacity, the payment proof state machine, proof checks and duplicate warnings, who may read a proof, a request's payment state, numbers to copy, who may change health details and pickup people, changed fields, who may read a pickup photo, announcement states, audiences, ordering, publishing rules, and links in the text, family notifications (who hears what, staff alerts, quiet hours, lead times, the evening before, session reminder timing, cancellations, payment reminders, renewal, one-session-left, and package-ending sweeps, batching, payloads without amounts, reasons, or health details, and the push sink's production guard)
+npm run test:e2e      # Playwright: API golden paths, roles and routing, team and invites, family invites and age rules, the family portal and what it never shows, passkey-only accounts, coaching, Today check-in/undo, offline sync, passkeys, programs and tiers, consents, the public academy page, enrollment (wizard, inbox, renewals, passkey enrollment, access and leaks), payment proofs (pay, review, not accepted and resend, withdraw, cash, duplicates, double confirm, voided payments, access and leaks), kids' safety (portal edits, the roster's flags, photos, rights, audit), announcements (audiences, scheduling through the cron, expiry, unpublish, roles), family reminders (decisions, proofs, comments, assessments, announcements, sessions through the cron, cancellations, quiet hours, categories off, staff and family at once, staff alerts by role, the Notifications page and iPhone steps), the public pages (signed out, routing, link previews, links, offline), axe
 ```
 
 ### The Playwright auth bypass
@@ -475,6 +525,12 @@ Tests that need more than one person use personas, each in its own browser conte
 | `POST /api/test/user-exists { userId }` | Whether an account still exists (abandoned passkey-only accounts are deleted) |
 | `POST /api/test/cleanup-accounts { userId, hours }` | Ages a passkey-only account by `hours`, then runs the daily cleanup of abandoned ones |
 | `POST /api/test/run-announcements { id? }` | Runs the 5-minute cron's announcements step now; with `id` (one of the caller's academy's scheduled announcements), its time is moved to a moment ago first. Answers which of the caller's announcements it announced, and the target's `notifiedAt` |
+| `GET /api/test/push-sink?userId=` | The pushes the sink recorded for a person (oldest first: `endpoint`, `surface`, `payload`), and what waits for them in the quiet-hours queue |
+| `DELETE /api/test/push-sink?userId=` | Clears a person's recorded pushes |
+| `POST /api/test/run-reminders { at?, steps? }` | Runs the 5-minute cron's reminder steps as of `at` (default now): `staff`, `queue`, `sessions`, `payments` (all unless `steps` picks some) |
+| `POST /api/test/run-family-sweeps { at? }` | Runs the daily renewal, one-session-left, and package-ending sweeps as of `at` |
+
+**The push sink.** Push services can't be reached from tests, so outside production, with the bypass on (the same check as `isBypassEnabled`), a push subscription whose endpoint starts with `https://push-sink.invalid/` is never sent over the network: the Worker stores the payload in `push_sink` instead, read and cleared through the endpoints above (the daily maintenance deletes rows older than a day). In production, or without the bypass, such an endpoint is refused when registered and never delivered or stored (`src/worker/lib/push-sink.ts`, unit-tested). Push works with the sink even without VAPID keys, so tests don't need them.
 
 Family and portal specs (`family`, `portal`, `portal-leaks`, `passkey-account`) also use `inviteToken`, `bornYearsAgo`, `acceptInvite`, `portalCall`/`portalGet`, `auditLog`, `pngImage`, and `uploadPng` from `e2e/support.ts`, and block the service worker for every context they open: each context's precache burst can stall the local server for the other worker. `portal-leaks.spec.ts` seeds every kind of private detail with a unique marker and checks that no portal answer or page contains one. The passkey-only account spec uses Chromium's virtual authenticator and runs on desktop only.
 
@@ -487,6 +543,8 @@ The enrollment specs (`enrollment`, `enrollment-renewal`, `enrollment-access`, `
 The payment proof specs (`payment-proofs`, `payment-proofs-access`, and the proofs part of `a11y`) share `e2e/proof-support.ts`: `approvedEnrollment` (an academy with payment instructions and its own method names, a parent whose new child's Monthly request was approved: ₱6,000 to pay), `sendProof`/`sendProofOk` (multipart with a screenshot, or JSON for cash, straight to the portal API), `screenshot()` (a small PNG), and `noisePng(width, height)` (random pixels that don't compress: a picture over 1.5 MB the app must shrink before sending).
 
 The WS5a specs: `kids-safety` (a parent edits a junior's health details and adds a pickup person with a photo in the portal; staff read "Updated by", a coach reads the roster's Medical and Pickup sheets and Today's count; another family gets 404 for the student and the photo; a teen reads but can't edit; an adult keeps their own; the audit names fields, never the text), `announcements` (an admin composes for everyone, a program, an event, and later; each family sees only theirs; the scheduled one goes live through `/api/test/run-announcements`; pinned order, expiry, unpublish, delete, another academy; a coach reads and gets 403 for the rest), and `public-info` (`/about`, `/privacy`, `/terms` signed out, `/` → `/about`, deep links → `/sign-in?next=`, the HTML's tags, the links, and the pages opening offline from the installed app's cache, which runs with the service worker on desktop only).
+
+The WS5b spec, `family-reminders`, uses `e2e/push-support.ts`: `sinkEndpoint` (a unique `push-sink.invalid` endpoint), `subscribeFamily`/`subscribeStaff` (register a device through the portal or staff API), `setFamilyPrefs` (`ALL_ON`, with quiet hours off unless a test sets them), `pushes` (polls the sink until a matching push arrives: event pushes go out after the response), `sinkOf`, `runReminders` (the cron's reminder steps as of a time), `settle` (waits out pushes that should not come), `userIdOf`, and `localParts` (a time in the academy's zone). The API scenarios run on desktop only; the Notifications page runs on both, with a stand-in push subscription on desktop (persona contexts block the service worker) and an iPhone user agent for the Add to Home Screen steps.
 
 `npm run screenshots` captures desktop (1440) and phone (390) screenshots into `.impeccable/review/` using the same bypass.
 

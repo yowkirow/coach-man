@@ -185,6 +185,63 @@ test.describe("accessibility of the family portal", () => {
     expect(found).toEqual({});
   });
 
+  test("notification settings and Home's reminders offer have no serious violations", async ({
+    browser,
+    seeded,
+    personas,
+  }, info) => {
+    const kid = await seeded.api.post<{ id: string }>("/clients", {
+      firstName: "Mia",
+      lastName: "Santos",
+      birthDate: bornYearsAgo(10),
+      isJunior: true,
+    });
+    const email = testEmail("a11y-reminders", info);
+    const linked = await linkFamily(seeded.request, {
+      clientId: kid.id,
+      email,
+      name: "Pat Santos",
+      relation: "guardian",
+    });
+    expect(linked.status).toBe(201);
+    const { page } = await personas.open({ email, name: "Pat Santos", persona: "none" });
+    const found: Record<string, unknown> = {};
+    await visit(page, "/my");
+    await expect(
+      page.getByRole("region", { name: /^Get reminders on this (phone|computer)$/ }),
+    ).toBeVisible();
+    const home = await seriousViolations(page);
+    if (home.length) found["/my (offer)"] = home;
+    await visit(page, "/my/notifications");
+    await expect(page.getByRole("region", { name: "What you get" })).toBeVisible();
+    await page.waitForLoadState("networkidle");
+    const settings = await seriousViolations(page);
+    if (settings.length) found["/my/notifications"] = settings;
+
+    // On an iPhone in Safari, the Add to Home Screen steps come first.
+    const iphone = await browser.newContext({
+      serviceWorkers: "block",
+      userAgent:
+        "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1",
+      viewport: { width: 390, height: 844 },
+      isMobile: true,
+      hasTouch: true,
+    });
+    try {
+      await signIn(iphone.request, { email, name: "Pat Santos", persona: "none" });
+      const phone = await iphone.newPage();
+      await visit(phone, "/my/notifications");
+      await expect(
+        phone.getByRole("list", { name: "Add CoachMan to your Home Screen" }),
+      ).toBeVisible();
+      const ios = await seriousViolations(phone);
+      if (ios.length) found["/my/notifications (iPhone)"] = ios;
+    } finally {
+      await iphone.close();
+    }
+    expect(found).toEqual({});
+  });
+
   test("a family /join/<token> has no serious violations, signed out or in", async ({
     browser,
     page,

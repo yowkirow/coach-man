@@ -22,6 +22,7 @@ import {
   groupMember,
   lesson,
   payment,
+  paymentSubmission,
   ratingSnapshot,
   user,
 } from "../db/schema";
@@ -317,6 +318,11 @@ export async function approveEnrollment(
         .update(authorizedPickup)
         .set({ clientId: student.id })
         .where(and(eq(authorizedPickup.workspaceId, ws), eq(authorizedPickup.clientId, lead.id))),
+      // A proof the family sent before approval moves with the request (WS4c).
+      db
+        .update(paymentSubmission)
+        .set({ clientId: student.id })
+        .where(and(eq(paymentSubmission.workspaceId, ws), eq(paymentSubmission.clientId, lead.id))),
     );
     for (const a of leadAccess) {
       const accessId = uuidv7();

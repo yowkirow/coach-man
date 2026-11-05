@@ -21,6 +21,7 @@ import type {
   LessonStatus,
   NoteKind,
   NoteVisibility,
+  PaymentSubmissionStatus,
   RateKind,
   RateUnit,
   RatingSource,
@@ -1431,6 +1432,11 @@ export interface PortalEnrollmentDto {
   renewal: boolean;
   /** Approved: what it charged and what's still due. */
   payment: EnrollmentPaymentDto | null;
+  /**
+   * Payment proofs sent for this request, newest first (WS4c; optional for requests cached
+   * before, and absent where proofs aren't loaded: the answer to sending or cancelling a request).
+   */
+  proofs?: PortalPaymentProofDto[];
 }
 
 /** "Renew for next month" for one student (the portal's home and Payments page). */
@@ -1503,6 +1509,8 @@ export interface EnrollmentListItemDto {
   startDate: string | null;
   sessionStartsAt: number | null;
   renewal: boolean;
+  /** Payment proofs for this request waiting for review (WS4c; optional for cached lists). */
+  proofsPending?: number;
 }
 
 export interface EnrollmentListDto {
@@ -1616,8 +1624,10 @@ export interface EnrollmentDetailDto {
   } | null;
   /** The student's age is outside the program's ages. */
   ageNote: string | null;
-  /** Approved: the charge and how much of it is paid (WS4c adds payment proofs). */
+  /** Approved: the charge and how much of it is paid. */
   payment: EnrollmentPaymentDto | null;
+  /** Payment proofs the family sent for this request, newest first (WS4c). */
+  proofs?: PaymentProofDto[];
   created: { clientPackageId: string | null; chargeId: string | null };
   /** New students: people already training here who may be the same person. */
   matches: {
@@ -1665,4 +1675,132 @@ export interface RenewalsDueDto {
 /** GET /api/v1/enrollments/count: the inbox badge. */
 export interface EnrollmentCountDto {
   requested: number;
+}
+
+// --- Payment proofs (WS4c) -----------------------------------------------------------------------
+//
+// Families pay outside CoachMan and send a screenshot (or say they'll pay cash at the court);
+// owners and admins confirm it, which records a payment through the money service, or don't
+// accept it with a reason the family reads.
+
+/** Another proof or payment of the academy that looks like the same money. */
+export interface ProofDuplicateDto {
+  kind: "proof" | "payment";
+  id: string;
+  /** The same reference number, or the same student, amount, and date. */
+  reason: "reference" | "same_details";
+  clientId: string;
+  clientName: string;
+  amountMinor: number;
+  method: string;
+  paidOn: string;
+  reference: string | null;
+  /** A proof's status, or "recorded" for a payment. */
+  status: PaymentSubmissionStatus | "recorded";
+}
+
+/** A payment proof as owners and admins review it (GET /api/v1/payment-proofs and friends). */
+export interface PaymentProofDto {
+  id: string;
+  status: PaymentSubmissionStatus;
+  createdAt: number;
+  student: {
+    clientId: string;
+    firstName: string;
+    lastName: string;
+    photoKey: string | null;
+    /** The student's balance now (charges minus payments; positive = owed). */
+    balanceMinor: number;
+  };
+  /** Who sent it: a parent or the student, with their sign-in address (null for passkey-only). */
+  submitter: { name: string; email: string | null; relation: FamilyRelation | null };
+  amountMinor: number;
+  method: string;
+  reference: string | null;
+  paidOn: string;
+  /** The family's own note. */
+  note: string | null;
+  /**
+   * The screenshot, a private key under the student's `payments/` folder (staff read it through
+   * /api/v1/files with `money` or `enrollment`). Null when they'll pay cash at the court.
+   */
+  proofKey: string | null;
+  /** The approved request it pays, with that request's charge and what's still due. */
+  enrollment: {
+    id: string;
+    tierName: string;
+    mode: EnrollmentMode;
+    startMonth: string | null;
+    startDate: string | null;
+    sessionStartsAt: number | null;
+    status: EnrollmentStatus;
+    payment: EnrollmentPaymentDto | null;
+  } | null;
+  reviewedBy: CoachRefDto | null;
+  reviewedAt: number | null;
+  /** Why it wasn't accepted (the family reads it). */
+  rejectReason: string | null;
+  /** The payment confirming it recorded (struck through once voided). */
+  payment: {
+    id: string;
+    amountMinor: number;
+    method: string;
+    paidOn: string;
+    reference: string | null;
+    voidedAt: number | null;
+  } | null;
+  /** The proof this one sends again, after the academy didn't accept it. */
+  resubmitOf: { id: string; rejectReason: string | null; createdAt: number } | null;
+  /** A newer proof that sends this one again. */
+  resubmittedBy: string | null;
+  /** Proofs and payments that may be the same money (pending and voided proofs only). */
+  duplicates: ProofDuplicateDto[];
+}
+
+/** GET /api/v1/payment-proofs?status=: the list, with how many there are in each status. */
+export interface PaymentProofListDto {
+  counts: Record<PaymentSubmissionStatus, number>;
+  items: PaymentProofDto[];
+}
+
+/** GET /api/v1/payment-proofs/count: the Money badge. */
+export interface PaymentProofCountDto {
+  pending: number;
+}
+
+/** A payment proof as the family sees it: never who reviewed it, or staff notes. */
+export interface PortalPaymentProofDto {
+  id: string;
+  clientId: string;
+  workspaceId: string;
+  /** The enrollment request it pays, if it was sent from one. */
+  enrollmentId: string | null;
+  amountMinor: number;
+  method: string;
+  reference: string | null;
+  paidOn: string;
+  note: string | null;
+  /** The screenshot (/api/portal/files), or null for cash at the court. */
+  proofKey: string | null;
+  status: PaymentSubmissionStatus;
+  createdAt: number;
+  /** When the academy confirmed it or didn't accept it. */
+  decidedAt: number | null;
+  /** Why the academy didn't accept it. */
+  rejectReason: string | null;
+  /** What the academy recorded when it confirmed (it may differ from what was sent). */
+  recorded: { amountMinor: number; paidOn: string } | null;
+  sentBy: { name: string; you: boolean };
+  /** Pending, and the caller sent it. */
+  canWithdraw: boolean;
+  /** It sends again a proof the academy didn't accept. */
+  resubmitOf: string | null;
+  /** A newer proof sends this one again. */
+  resubmitted: boolean;
+}
+
+/** GET /api/portal/students/:clientId/payment-proofs. */
+export interface PortalPaymentProofsDto {
+  academy: PortalAcademyRefDto;
+  proofs: PortalPaymentProofDto[];
 }

@@ -46,6 +46,7 @@ import {
   unbookMemberFromGroupLessons,
 } from "../services/lessons";
 import { balancesFor } from "../services/money";
+import { proofKeysOf } from "../services/payment-proofs";
 import type { AppBindings, Ctx } from "../types";
 
 type ClientRow = typeof client.$inferSelect;
@@ -519,6 +520,9 @@ export const clientRoutes = new Hono<AppBindings>()
       );
     }
     if (existing.photoKey) await ctx.env.FILES.delete(existing.photoKey);
+    // Payment proofs go with the student (the rows cascade; their private screenshots too).
+    const proofKeys = await proofKeysOf(ctx.db, ctx.workspaceId, id);
+    if (proofKeys.length) await ctx.env.FILES.delete(proofKeys);
     await runBatch(ctx, [
       ctx.db.delete(client).where(and(eq(client.id, id), eq(client.workspaceId, ctx.workspaceId))),
       auditEntry(ctx, "delete", "client", id, {

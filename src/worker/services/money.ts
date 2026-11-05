@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, isNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, type SQL, sql } from "drizzle-orm";
 import type {
   BalanceDto,
   ChargeDto,
@@ -11,8 +11,60 @@ import { uuidv7 } from "../../shared/ids";
 import { addDays } from "../../shared/time";
 import { chunkRows } from "../db/client";
 import { charge, client, payment, paymentAllocation } from "../db/schema";
+import { auditEntry } from "../lib/audit";
 import { inList } from "../lib/sql";
 import type { Ctx } from "../types";
+
+export interface PaymentPlanInput {
+  id?: string;
+  clientId: string;
+  /**
+   * The value written to the payment's client_id, when it isn't simply `clientId`: a guard
+   * subquery that is NULL unless the caller's claim in the same batch applied, so a payment that
+   * lost a race aborts the whole batch (confirming a proof twice never records twice).
+   */
+  clientIdValue?: SQL;
+  amountMinor: number;
+  method: string;
+  paidOn: string;
+  reference?: string | null;
+  note?: string | null;
+  /** Extra fields for the audit entry. */
+  audit?: Record<string, unknown>;
+}
+
+/**
+ * Recording a payment: the payment row and its audit entry, built without running them so they
+ * can join a bigger batch (confirming a payment proof). Callers rebuild the client's allocations
+ * after the batch, which settles the oldest charges first.
+ */
+export function planPayment(
+  ctx: Ctx,
+  input: PaymentPlanInput,
+): { id: string; statements: unknown[] } {
+  const id = input.id ?? uuidv7();
+  return {
+    id,
+    statements: [
+      ctx.db.insert(payment).values({
+        id,
+        workspaceId: ctx.workspaceId,
+        clientId: input.clientIdValue ?? input.clientId,
+        amountMinor: input.amountMinor,
+        method: input.method,
+        paidOn: input.paidOn,
+        reference: input.reference ?? null,
+        note: input.note ?? null,
+        createdBy: ctx.userId,
+      }),
+      auditEntry(ctx, "create", "payment", id, {
+        clientId: input.clientId,
+        amountMinor: input.amountMinor,
+        ...input.audit,
+      }),
+    ],
+  };
+}
 
 interface AllocCharge {
   id: string;

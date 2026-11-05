@@ -36,6 +36,13 @@
       "when": 1793867972395,
       "tag": "0004_enrollment",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1793874321046,
+      "tag": "0005_payment_proofs",
+      "breakpoints": true
     }
   ]
 }

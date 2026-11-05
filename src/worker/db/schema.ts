@@ -1008,12 +1008,19 @@ export const paymentSubmission = sqliteTable(
     rejectReason: text(),
     /** The payment recorded when staff confirmed it. */
     paymentId: text(),
+    /** WS4c: the proof (not accepted) this one sends again. */
+    resubmitOf: text(),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
   (t) => [
     index("payment_submission_ws_status_idx").on(t.workspaceId, t.status, t.createdAt),
     index("payment_submission_client_idx").on(t.clientId),
+    // The family's file reads look a proof up by its key; one key, one proof (NULLs allowed).
+    uniqueIndex("payment_submission_proof_key_idx").on(t.proofKey),
+    // Voiding a payment finds the proof that recorded it.
+    index("payment_submission_payment_idx").on(t.paymentId),
+    index("payment_submission_enrollment_idx").on(t.enrollmentId),
   ],
 );
 

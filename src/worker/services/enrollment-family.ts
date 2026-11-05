@@ -65,6 +65,7 @@ import {
   type TierRow,
   toPortalEnrollment,
 } from "./enrollment-core";
+import { proofsForRequests } from "./payment-proofs";
 import { findListedAcademy, type ListedAcademy, loadPublicAcademy } from "./public-academy";
 
 // The family side of enrollment (WS4b): who the signed-in person can enroll, sending a request
@@ -766,7 +767,15 @@ export async function familyEnrollments(
     opts.all ? { limit: 50 } : { since: Date.now() - DECIDED_SHOWN_MS },
   );
   const workspaces = unique(rows.map((r) => r.r.workspaceId));
-  const zones = await timezonesOf(db, workspaces);
+  const [zones, proofs] = await Promise.all([
+    timezonesOf(db, workspaces),
+    proofsForRequests(
+      db,
+      viewerUserId,
+      links,
+      rows.filter((r) => r.r.status === "approved").map((r) => r.r.id),
+    ),
+  ]);
   const out: PortalEnrollmentDto[] = [];
   for (const ws of workspaces) {
     const mine = rows.filter((r) => r.r.workspaceId === ws);
@@ -779,7 +788,13 @@ export async function familyEnrollments(
     for (const row of mine) {
       const link = links.find((l) => l.clientId === row.r.clientId && l.workspaceId === ws);
       if (!link) continue;
-      out.push(toPortalEnrollment(row, { viewerUserId, relation: link.relation, today, payments }));
+      const dto = toPortalEnrollment(row, {
+        viewerUserId,
+        relation: link.relation,
+        today,
+        payments,
+      });
+      out.push(row.r.status === "approved" ? { ...dto, proofs: proofs.get(row.r.id) ?? [] } : dto);
     }
   }
   return out.sort((a, b) => b.createdAt - a.createdAt);

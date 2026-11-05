@@ -26,6 +26,7 @@ import { lessonRoutes } from "./routes/lessons";
 import { meRoutes } from "./routes/me";
 import { moneyRoutes } from "./routes/money";
 import { packageRoutes } from "./routes/packages";
+import { paymentProofRoutes } from "./routes/payment-proofs";
 import { portalRoutes } from "./routes/portal";
 import { progressRoutes } from "./routes/progress";
 import { publicRoutes } from "./routes/public";
@@ -52,6 +53,7 @@ const v1 = new Hono<AppBindings>()
   .route("/", lessonRoutes)
   .route("/", eventRoutes)
   .route("/", moneyRoutes)
+  .route("/", paymentProofRoutes)
   .route("/", progressRoutes)
   .route("/", pushRoutes)
   .route("/", dataRoutes)

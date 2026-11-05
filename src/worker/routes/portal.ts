@@ -17,10 +17,16 @@ import { checkTeenInvite } from "../../shared/family";
 import { consentSignSchema, portalRangeQuerySchema } from "../../shared/schemas";
 import { addDays, daysBetween, startOfLocalDay, todayIn } from "../../shared/time";
 import type { Db } from "../db/client";
-import { client, clientAccess, consentDocument, invite } from "../db/schema";
+import { client, clientAccess, consentDocument, invite, paymentSubmission } from "../db/schema";
 import { ApiError, badRequest, conflict, forbidden, notFound } from "../lib/errors";
 import { toPortalSafety, toPortalStudent, toPortalStudentRef } from "../lib/portal-dto";
-import { canReadPortalFile, linkFor, type PortalLink, workspacesOf } from "../lib/portal-scope";
+import {
+  canReadPortalFile,
+  isProofKey,
+  linkFor,
+  type PortalLink,
+  workspacesOf,
+} from "../lib/portal-scope";
 import { clientIp } from "../lib/rate-limit";
 import { v } from "../lib/validate";
 import { originGuard, requirePortal } from "../middleware";
@@ -51,6 +57,7 @@ import {
 } from "../services/portal";
 import type { AppBindings } from "../types";
 import { portalEnrollmentRoutes } from "./portal-enrollment";
+import { portalPaymentRoutes } from "./portal-payments";
 
 const studentNotFound = () => notFound("Student");
 
@@ -153,6 +160,7 @@ export const portalRoutes = new Hono<AppBindings>()
   })
 
   .route("/", portalEnrollmentRoutes)
+  .route("/", portalPaymentRoutes)
 
   .get("/academies/:workspaceId", async (c) => {
     const workspaceId = c.req.param("workspaceId");
@@ -358,9 +366,9 @@ export const portalRoutes = new Hono<AppBindings>()
   })
 
   /**
-   * Files: the caller's own students' photos and their academies' public images (logo, payment
-   * QR, coach photos). Anything else, including other students' files and payment proofs (WS4),
-   * answers 404.
+   * Files: the caller's own students' photos, their academies' public images (logo, payment QR,
+   * coach photos), and their students' payment proofs (looked up by the exact key: the proof must
+   * belong to a student the caller is linked to). Anything else answers 404.
    */
   .get("/files/*", async (c) => {
     let key: string;
@@ -369,7 +377,13 @@ export const portalRoutes = new Hono<AppBindings>()
     } catch {
       throw notFound("File");
     }
-    if (!canReadPortalFile(c.var.portal, key)) throw notFound("File");
+    const proof = isProofKey(key)
+      ? ((await c.var.db.query.paymentSubmission.findFirst({
+          where: eq(paymentSubmission.proofKey, key),
+          columns: { workspaceId: true, clientId: true },
+        })) ?? null)
+      : null;
+    if (!canReadPortalFile(c.var.portal, key, proof)) throw notFound("File");
     const obj = await c.env.FILES.get(key);
     if (!obj) throw notFound("File");
     return new Response(obj.body, {

@@ -28,6 +28,41 @@ export function hasImageSignature(bytes: Uint8Array, type: string): boolean {
   }
 }
 
+/** The image type the bytes really are (by file signature), whatever the upload claimed. */
+export function sniffImageType(
+  bytes: Uint8Array,
+): "image/jpeg" | "image/png" | "image/webp" | null {
+  for (const type of ["image/jpeg", "image/png", "image/webp"] as const) {
+    if (hasImageSignature(bytes, type)) return type;
+  }
+  return null;
+}
+
+/**
+ * A file part of a multipart upload (payment proofs): JPEG, PNG, or WebP by its bytes (the type
+ * the browser declared doesn't count), 1.5 MB at most, not empty.
+ */
+export async function readImageFile(file: File, noun = "screenshot") {
+  if (file.size === 0) throw badRequest(`The ${noun} is empty.`, { fields: { proof: "Empty" } });
+  if (file.size > MAX_IMAGE_BYTES) {
+    throw badRequest(`That ${noun} is too large (1.5 MB max).`, {
+      fields: { proof: "Too large" },
+    });
+  }
+  const body = await file.arrayBuffer();
+  const type = sniffImageType(new Uint8Array(body, 0, Math.min(body.byteLength, 16)));
+  if (!type) {
+    throw badRequest(`That file isn't a JPEG, PNG, or WebP ${noun}.`, {
+      fields: { proof: "Not an image" },
+    });
+  }
+  return { body, type, ext: TYPES[type] as string };
+}
+
+/** Payment proofs (spec §8): private, under the student's own folder. */
+export const proofKeyFor = (workspaceId: string, clientId: string, ext: string) =>
+  `ws/${workspaceId}/clients/${clientId}/payments/${uuidv7()}.${ext}`;
+
 /**
  * Reads an image request body (PUT with the image as the body) and checks its type, its file
  * signature, and its size. `noun` names it in errors ("photo", "logo", "QR code").

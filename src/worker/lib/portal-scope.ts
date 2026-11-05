@@ -49,7 +49,7 @@ const PUBLIC_RE = new RegExp(`^ws/(${SEGMENT})/public/(?:coaches/)?(${FILE})$`);
 /** An R2 key a family might ask for, by what it is (spec §8). */
 export type PortalFileKey =
   | { kind: "student-photo"; workspaceId: string; clientId: string }
-  /** `payments/` (proofs, WS4) and `pickups/` (WS5) under a student's folder. */
+  /** `payments/` (proofs, WS4c) and `pickups/` (WS5) under a student's folder. */
   | { kind: "student-folder"; workspaceId: string; clientId: string; folder: string }
   | { kind: "public"; workspaceId: string };
 
@@ -74,14 +74,25 @@ export function parsePortalFileKey(key: string): PortalFileKey | null {
   return null;
 }
 
+/** The payment proof a `payments/` key belongs to: the payment_submission row with that proof key. */
+export interface ProofOwner {
+  workspaceId: string;
+  clientId: string;
+}
+
 /**
- * Whether the caller may read a file: their own students' photos, and the public images (logos,
- * payment QR codes, coach photos) of the academies they belong to. Files in a student's
- * subfolders are refused for now: payment proofs (`payments/`) arrive with WS4, which must check
- * the payment_submission row (the family's own proof, or one for a student they're linked to);
- * pickup photos (`pickups/`) arrive with WS5.
+ * Whether the caller may read a file: their own students' photos, the public images (logos,
+ * payment QR codes, coach photos) of the academies they belong to, and payment proofs of their
+ * students. A proof is checked against the payment_submission row its key belongs to (`proof`, the
+ * row found by that exact key), never by its folder alone: a key with no proof, a proof of someone
+ * else's student, or one from another academy is refused. Any other file in a student's
+ * subfolders (pickup photos, `pickups/`, arrive with WS5) is refused.
  */
-export function canReadPortalFile(scope: PortalScope, key: string): boolean {
+export function canReadPortalFile(
+  scope: PortalScope,
+  key: string,
+  proof?: ProofOwner | null,
+): boolean {
   const parsed = parsePortalFileKey(key);
   if (!parsed) return false;
   switch (parsed.kind) {
@@ -90,6 +101,13 @@ export function canReadPortalFile(scope: PortalScope, key: string): boolean {
     case "public":
       return inWorkspace(scope, parsed.workspaceId);
     case "student-folder":
-      return false;
+      if (parsed.folder !== "payments" || !proof) return false;
+      return proof.workspaceId === parsed.workspaceId && ownsRow(scope, proof);
   }
+}
+
+/** A key in a student's `payments/` folder: its proof must be looked up before reading it. */
+export function isProofKey(key: string): boolean {
+  const parsed = parsePortalFileKey(key);
+  return parsed?.kind === "student-folder" && parsed.folder === "payments";
 }

@@ -14,10 +14,12 @@ import { runBatch } from "../services/credits";
 import {
   balancesDue,
   moneySummary,
+  planPayment,
   rebuildAllocations,
   statementFor,
   toPaymentDto,
 } from "../services/money";
+import { proofVoidStatements } from "../services/payment-proofs";
 import type { AppBindings, Ctx } from "../types";
 
 async function ensureClient(ctx: Ctx, clientId: string) {
@@ -67,26 +69,18 @@ export const moneyRoutes = new Hono<AppBindings>()
     const input = c.req.valid("json");
     return idempotent(c, async () => {
       const who = await ensureClient(ctx, input.clientId);
-      const id = input.id ?? uuidv7();
-      await runBatch(ctx, [
-        ctx.db.insert(payment).values({
-          id,
-          workspaceId: ctx.workspaceId,
-          clientId: input.clientId,
-          amountMinor: input.amountMinor,
-          method: input.method,
-          paidOn: input.paidOn,
-          reference: input.reference ?? null,
-          note: input.note ?? null,
-          createdBy: ctx.userId,
-        }),
-        auditEntry(ctx, "create", "payment", id, {
-          clientId: input.clientId,
-          amountMinor: input.amountMinor,
-        }),
-      ]);
+      const planned = planPayment(ctx, {
+        id: input.id,
+        clientId: input.clientId,
+        amountMinor: input.amountMinor,
+        method: input.method,
+        paidOn: input.paidOn,
+        reference: input.reference ?? null,
+        note: input.note ?? null,
+      });
+      await runBatch(ctx, planned.statements);
       await rebuildAllocations(ctx, input.clientId);
-      const row = await ctx.db.query.payment.findFirst({ where: eq(payment.id, id) });
+      const row = await ctx.db.query.payment.findFirst({ where: eq(payment.id, planned.id) });
       return c.json(
         toPaymentDto(row as typeof payment.$inferSelect, `${who.firstName} ${who.lastName}`.trim()),
         201,
@@ -94,6 +88,11 @@ export const moneyRoutes = new Hono<AppBindings>()
     });
   })
 
+  /**
+   * Voids a payment (it stays on record, struck through). A payment recorded by confirming a
+   * family's proof takes the proof with it: the proof shows "Payment voided" (never "Confirmed"
+   * with no live payment behind it), and staff can review it again.
+   */
   .post("/payments/:id/void", requireCap("money"), v("json", voidSchema), async (c) => {
     const ctx = ctxOf(c);
     const row = await ctx.db.query.payment.findFirst({
@@ -110,6 +109,7 @@ export const moneyRoutes = new Hono<AppBindings>()
         })
         .where(eq(payment.id, row.id)),
       auditEntry(ctx, "void", "payment", row.id, { reason }),
+      ...(await proofVoidStatements(ctx, row.id, reason ?? null)),
     ]);
     await rebuildAllocations(ctx, row.clientId);
     return c.json(await statementFor(ctx, row.clientId));

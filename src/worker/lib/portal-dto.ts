@@ -15,6 +15,7 @@ import type {
   PortalGoalDto,
   PortalPackageDto,
   PortalPaymentDto,
+  PortalPaymentProofDto,
   PortalSessionDto,
   PortalStudentDto,
   PortalStudentRefDto,
@@ -36,12 +37,14 @@ import type {
   goal,
   lesson,
   note,
+  paymentSubmission,
   ratingSnapshot,
   workspaceSettings,
 } from "../db/schema";
 import type { PortalLink } from "./portal-scope";
 
 type ClientRow = typeof client.$inferSelect;
+type ProofRow = typeof paymentSubmission.$inferSelect;
 type ProfileRow = typeof academyProfile.$inferSelect;
 type SettingsRow = typeof workspaceSettings.$inferSelect;
 type LessonRow = typeof lesson.$inferSelect;
@@ -331,5 +334,50 @@ export function toPortalPayment(p: {
     method: p.method,
     paidOn: p.paidOn,
     reference: p.reference,
+  };
+}
+
+/**
+ * A payment proof as the family sees it: what they sent, where it stands, the academy's reason
+ * when it wasn't accepted, and what the academy recorded when it confirmed. Never who reviewed it
+ * (no staff ids, names, or emails) or the payment's internal note.
+ */
+export function toPortalProof(
+  s: ProofRow,
+  ctx: {
+    viewerUserId: string;
+    /** The name of the family member who sent it. */
+    sentByName: string;
+    /** The payment confirming it recorded, if any. */
+    payment: { amountMinor: number; paidOn: string; voidedAt: number | null } | null;
+    /** A newer proof sends this one again. */
+    resubmitted: boolean;
+  },
+): PortalPaymentProofDto {
+  const decided = s.status === "confirmed" || s.status === "rejected" || s.status === "voided";
+  const live = s.status === "confirmed" && ctx.payment && ctx.payment.voidedAt === null;
+  return {
+    id: s.id,
+    clientId: s.clientId,
+    workspaceId: s.workspaceId,
+    enrollmentId: s.enrollmentId,
+    amountMinor: s.amountMinor,
+    method: s.method,
+    reference: s.reference,
+    paidOn: s.paidOn,
+    note: s.note,
+    proofKey: s.proofKey,
+    status: s.status,
+    createdAt: s.createdAt,
+    decidedAt: decided ? s.reviewedAt : null,
+    rejectReason: s.status === "rejected" ? s.rejectReason : null,
+    recorded:
+      live && ctx.payment
+        ? { amountMinor: ctx.payment.amountMinor, paidOn: ctx.payment.paidOn }
+        : null,
+    sentBy: { name: ctx.sentByName, you: s.submittedBy === ctx.viewerUserId },
+    canWithdraw: s.status === "pending" && s.submittedBy === ctx.viewerUserId,
+    resubmitOf: s.resubmitOf,
+    resubmitted: ctx.resubmitted,
   };
 }

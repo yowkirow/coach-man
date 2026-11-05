@@ -131,7 +131,18 @@ export const ENROLLMENT_STATUSES = [
 ] as const;
 export type EnrollmentStatus = (typeof ENROLLMENT_STATUSES)[number];
 
-export const PAYMENT_SUBMISSION_STATUSES = ["pending", "confirmed", "rejected"] as const;
+/**
+ * A family's payment proof: waiting for review, confirmed (a payment was recorded), not accepted
+ * (with the reason), withdrawn by the family, or confirmed and then its payment voided (staff can
+ * review it again).
+ */
+export const PAYMENT_SUBMISSION_STATUSES = [
+  "pending",
+  "confirmed",
+  "rejected",
+  "withdrawn",
+  "voided",
+] as const;
 export type PaymentSubmissionStatus = (typeof PAYMENT_SUBMISSION_STATUSES)[number];
 
 export const CONSENT_KINDS = ["waiver", "privacy", "parental", "media", "other"] as const;

@@ -53,6 +53,7 @@ import {
 } from "./enrollment-core";
 import { renewalFacts, renewalOf } from "./enrollment-family";
 import { hasGoogleAccount } from "./family";
+import { pendingByRequest, requestProofs } from "./payment-proofs";
 
 // The staff side of enrollment (WS4b): the Enrollments inbox (owners and admins, `enrollment`),
 // a request's detail, and who hasn't renewed. Approving, waitlisting, and declining live in
@@ -138,6 +139,11 @@ export async function listEnrollments(
     number
   >;
   for (const c of counted) counts[c.status] = c.n;
+  const waiting = await pendingByRequest(
+    db,
+    ws,
+    rows.filter((r) => r.r.status === "approved").map((r) => r.r.id),
+  );
   const items: EnrollmentListItemDto[] = rows.map((row) => {
     const answers = answersOf(row.r);
     return {
@@ -165,6 +171,7 @@ export async function listEnrollments(
       startDate: startDateOf(row.r),
       sessionStartsAt: row.sessionStartsAt,
       renewal: isRenewal(row.r),
+      ...(waiting.get(row.r.id) ? { proofsPending: waiting.get(row.r.id) } : {}),
     };
   });
   return { counts, items };
@@ -232,24 +239,30 @@ export async function enrollmentDetail(
         where: and(eq(trainingGroup.id, req.programId), eq(trainingGroup.workspaceId, ws)),
       })
     : undefined;
-  const [members, session, google, access, deciders, missing, payments] = await Promise.all([
-    program ? programMembers(ctx, program.id) : Promise.resolve(null),
-    req.lessonId
-      ? db
-          .select({ l: lesson, venueName: venue.name })
-          .from(lesson)
-          .leftJoin(venue, eq(venue.id, lesson.venueId))
-          .where(and(eq(lesson.id, req.lessonId), eq(lesson.workspaceId, ws)))
-          .then((r) => r[0] ?? null)
-      : Promise.resolve(null),
-    submitter ? hasGoogleAccount(db, submitter.id) : Promise.resolve(false),
-    db.query.clientAccess.findFirst({
-      where: and(eq(clientAccess.clientId, req.clientId), eq(clientAccess.userId, req.requestedBy)),
-    }),
-    coachRefs(db, ws, [req.decidedBy]),
-    missingByClient(db, ws, [student], today),
-    paymentsFor(db, ws, [req.chargeId]),
-  ]);
+  const [members, session, google, access, deciders, missing, payments, proofs] = await Promise.all(
+    [
+      program ? programMembers(ctx, program.id) : Promise.resolve(null),
+      req.lessonId
+        ? db
+            .select({ l: lesson, venueName: venue.name })
+            .from(lesson)
+            .leftJoin(venue, eq(venue.id, lesson.venueId))
+            .where(and(eq(lesson.id, req.lessonId), eq(lesson.workspaceId, ws)))
+            .then((r) => r[0] ?? null)
+        : Promise.resolve(null),
+      submitter ? hasGoogleAccount(db, submitter.id) : Promise.resolve(false),
+      db.query.clientAccess.findFirst({
+        where: and(
+          eq(clientAccess.clientId, req.clientId),
+          eq(clientAccess.userId, req.requestedBy),
+        ),
+      }),
+      coachRefs(db, ws, [req.decidedBy]),
+      missingByClient(db, ws, [student], today),
+      paymentsFor(db, ws, [req.chargeId]),
+      requestProofs(ctx, req.id),
+    ],
+  );
   const roster = session
     ? await db
         .select({ clientId: attendance.clientId, status: attendance.status })
@@ -447,6 +460,7 @@ export async function enrollmentDetail(
     capacity,
     ageNote: program ? programAgeNote(program, student.birthDate, today) : null,
     payment: requestPayment(req, payments),
+    proofs,
     created: { clientPackageId: req.clientPackageId, chargeId: req.chargeId },
     matches,
     options: {

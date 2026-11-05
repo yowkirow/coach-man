@@ -17,6 +17,7 @@ import {
   LESSON_KINDS,
   NOTE_KINDS,
   NOTE_VISIBILITIES,
+  PAYMENT_SUBMISSION_STATUSES,
   RATE_KINDS,
   RATE_UNITS,
   RATING_SOURCES,
@@ -27,6 +28,7 @@ import {
 } from "./domain";
 import { ALL_UNIFORM_SIZES, isSelfRating, MAX_PICKUPS } from "./enrollment";
 import { UUID_RE } from "./ids";
+import { REFERENCE_MAX, REFERENCE_MIN } from "./payment-proofs";
 import { STAFF_ROLES } from "./roles";
 import { DATE_RE, isValidTimeZone, TIME_RE } from "./time";
 import { MONTH_RE } from "./validity";
@@ -726,6 +728,64 @@ export const enrollmentListQuerySchema = z.object({
 export const publicSessionsQuerySchema = z.object({
   from: date.optional(),
   to: date.optional(),
+});
+
+// --- Payment proofs ------------------------------------------------------------
+
+const reference = z
+  .string()
+  .trim()
+  .max(REFERENCE_MAX, `A reference number has ${REFERENCE_MIN} to ${REFERENCE_MAX} characters.`)
+  .refine(
+    (v) => v === "" || v.length >= REFERENCE_MIN,
+    `A reference number has ${REFERENCE_MIN} to ${REFERENCE_MAX} characters.`,
+  )
+  .transform((v) => (v === "" ? null : v))
+  .nullable()
+  .optional();
+
+/**
+ * POST /api/portal/students/:clientId/payment-proofs: what the family paid, how, and when. The
+ * screenshot travels in the same multipart request (`proof`), with these fields as JSON in `data`;
+ * cash at the court sends JSON alone. The method, the date, and whether a screenshot is needed are
+ * checked against the academy's settings by the server (`checkProofDetails`).
+ */
+export const paymentProofSubmitSchema = z.object({
+  /** Made by the app, so a retried send finds the proof it already made. */
+  id: id.optional(),
+  amountMinor: money.min(1, "Enter the amount you paid."),
+  method: trimmed(40).min(1, "Pick how you paid."),
+  reference,
+  paidOn: date,
+  note: optionalText(500),
+  /** The approved enrollment request it pays (from the request's Pay button). */
+  enrollmentId: id.nullable().optional(),
+  /** A proof the academy didn't accept, which this one sends again. */
+  resubmitOf: id.nullable().optional(),
+});
+export type PaymentProofSubmitInput = z.infer<typeof paymentProofSubmitSchema>;
+
+/**
+ * POST /api/v1/payment-proofs/:id/confirm: records the payment. Omitted fields take what the family
+ * sent; `note` is staff-only (it goes on the payment, after a pointer to the proof).
+ */
+export const paymentProofConfirmSchema = z.object({
+  amountMinor: money.min(1, "Enter an amount").optional(),
+  method: trimmed(40).min(1).optional(),
+  paidOn: date.optional(),
+  reference,
+  note: optionalText(300),
+});
+export type PaymentProofConfirmInput = z.infer<typeof paymentProofConfirmSchema>;
+
+/** POST /api/v1/payment-proofs/:id/reject: the reason, which the family sees. */
+export const paymentProofRejectSchema = z.object({
+  reason: trimmed(300).min(2, "Say why, so the family knows what to fix."),
+});
+
+/** GET /api/v1/payment-proofs?status= (pending by default). */
+export const paymentProofListQuerySchema = z.object({
+  status: z.enum([...PAYMENT_SUBMISSION_STATUSES, "all"]).optional(),
 });
 
 // --- Push ------------------------------------------------------------------

@@ -64,6 +64,13 @@ export interface MeDto {
 export interface AccountDto {
   user: { id: string; name: string; email: string; image: string | null };
   passkeyCount: number;
+  /** A Google account is linked (it signs in too). */
+  hasGoogle: boolean;
+  /**
+   * A passkey-only account: its email is a placeholder (`u-…@passkey.coachman.invalid`) and means
+   * nothing. It can link Google from the portal's settings, which replaces the placeholder.
+   */
+  emailIsPlaceholder: boolean;
   /** Academies where this person is staff, oldest first. */
   staff: {
     workspaceId: string;
@@ -205,12 +212,66 @@ export interface InvitePreviewDto {
    */
   alreadyMember?: boolean;
   workspaceId?: string;
+  /**
+   * Family invites, signed in only: this account already follows the invite's student (as a
+   * parent or as the student), so the link isn't needed and accepting it changes nothing.
+   */
+  alreadyLinked?: boolean;
 }
 
 /** POST /api/invites/:token/accept. */
 export type InviteAcceptedDto =
   | { kind: "staff"; workspaceId: string }
-  | { kind: "family"; clientId: string };
+  | { kind: "family"; clientId: string; workspaceId: string };
+
+// --- Family access (staff side, WS3) ------------------------------------------------------------
+
+/** Why a family link can't be made (the age rules in src/shared/family.ts). */
+export type FamilyRuleCode = "needs_birth_date" | "too_young" | "needs_guardian" | "not_a_minor";
+
+export type FamilyRuleDto = { ok: true } | { ok: false; code: FamilyRuleCode; message: string };
+
+/** Someone linked to a student in the family portal. */
+export interface FamilyLinkDto {
+  /** The client_access row (revoking takes this id). */
+  id: string;
+  name: string;
+  /** Their Google email; null for a passkey-only account. */
+  email: string | null;
+  /** How they sign in: Google (maybe with passkeys too), or passkeys only. */
+  signIn: "google" | "passkey";
+  relation: FamilyRelation;
+  /** When this access was granted (epoch ms). */
+  since: number;
+  /** Who granted it: the staff member or parent who made the invite. */
+  grantedBy: string | null;
+}
+
+export interface FamilyInviteDto {
+  id: string;
+  relation: FamilyRelation;
+  status: InviteStatus;
+  createdAt: number;
+  expiresAt: number;
+  invitedBy: string | null;
+}
+
+/** GET /api/v1/clients/:id/family (`familyAccess`). */
+export interface FamilyAccessDto {
+  clientId: string;
+  firstName: string;
+  links: FamilyLinkDto[];
+  /** Waiting links, and ones that expired in the last 30 days. */
+  invites: FamilyInviteDto[];
+  /** Whether each kind of invite can be made now, and if not, why. */
+  rules: Record<FamilyRelation, FamilyRuleDto>;
+}
+
+/** POST /api/v1/clients/:id/family/invites: the link carries the only copy of the token. */
+export interface FamilyInviteCreatedDto {
+  invite: FamilyInviteDto;
+  link: string;
+}
 
 export interface ClientCoachDto {
   id: string;
@@ -666,4 +727,263 @@ export interface NotificationPrefDto {
 export interface ImportResultDto {
   created: number;
   skipped: { row: number; reason: string }[];
+}
+
+// --- Family portal (/api/portal, WS3) -----------------------------------------------------------
+//
+// Family-safe shapes only, built by their own mappers (src/worker/lib/portal-dto.ts), never from a
+// staff DTO: no coaches-only or handoff notes, unshared assessments, internal notes, tags, or
+// sources, no other students, and no coach emails, phones, or user ids. Money fields are the
+// family's own (their students' packages, charges, payments, and balance).
+
+/** How an academy formats money, dates, and times: the portal never reads /api/v1/me. */
+export interface PortalFormatDto {
+  currency: string;
+  timezone: string;
+  locale: string;
+  weekStartsOn: number;
+}
+
+export interface PortalAcademyRefDto extends PortalFormatDto {
+  workspaceId: string;
+  name: string;
+  /** Public R2 key (`ws/<id>/public/…`): /api/portal/files or /api/public/files. */
+  logoKey: string | null;
+}
+
+/** GET /api/portal/academies/:workspaceId (and each academy on the home page). */
+export interface PortalAcademyDto extends PortalAcademyRefDto {
+  /** `${APP_URL}/a/<slug>` when the academy has a public address, else null. */
+  publicUrl: string | null;
+  tagline: string | null;
+  about: string | null;
+  contactPhone: string | null;
+  contactEmail: string | null;
+  address: string | null;
+  mapUrl: string | null;
+  socials: Partial<Record<AcademySocial, string>>;
+  policies: string | null;
+  paymentInstructions: string | null;
+  paymentQrKey: string | null;
+  /** Payment method names the academy accepts (cash, GCash, bank transfer…). */
+  paymentMethods: string[];
+}
+
+/** A coach as families see them: name and photo, never an email, phone, or user id. */
+export interface PortalCoachRefDto {
+  name: string;
+  /** Public R2 key (coach photos live under `ws/<id>/public/coaches/`). */
+  photoKey: string | null;
+}
+
+/** One of a student's current coaches (GET /api/portal/students/:clientId). */
+export interface PortalCoachDto extends PortalCoachRefDto {
+  /** The assignment row, a stable key. */
+  id: string;
+  role: ClientCoachRole;
+  /** The day they started coaching this student. */
+  since: string;
+  title: string | null;
+  /** Shown only when the coach's profile is public. */
+  bio: string | null;
+  certifications: string[];
+  specialties: string[];
+  languages: string[];
+  yearsCoaching: number | null;
+}
+
+export interface PortalSessionDto {
+  id: string;
+  /** The session's own title, else its program or event, else its kind. Never other players. */
+  title: string;
+  kind: LessonKind;
+  startsAt: number;
+  endsAt: number;
+  status: LessonStatus;
+  /** This student's attendance; null when they aren't on the roster. */
+  attendance: AttendanceStatus | null;
+  venue: { name: string; address: string | null } | null;
+  court: string | null;
+  coach: PortalCoachRefDto | null;
+}
+
+export interface PortalCreditsDto {
+  /** Credits left on active packages that haven't expired. */
+  remaining: number;
+  /** Credits those packages started with. */
+  total: number;
+  /** The soonest expiry among them. */
+  nextExpiryOn: string | null;
+  activePackages: number;
+}
+
+/** A coach's comment the coach shared with the student and parents. */
+export interface PortalCommentDto {
+  id: string;
+  clientId: string;
+  body: string;
+  createdAt: number;
+  editedAt: number | null;
+  author: PortalCoachRefDto | null;
+  /** The session it was written in, if any. */
+  session: { title: string; startsAt: number } | null;
+}
+
+export interface PortalStudentRefDto {
+  clientId: string;
+  workspaceId: string;
+  firstName: string;
+  lastName: string;
+  /** Private R2 key under the student's folder: /api/portal/files. */
+  photoKey: string | null;
+  /** How the signed-in person is linked: the student themself, or their parent. */
+  relation: FamilyRelation;
+  isJunior: boolean;
+}
+
+export interface PortalHomeStudentDto extends PortalStudentRefDto {
+  nextSession: PortalSessionDto | null;
+  credits: PortalCreditsDto;
+  /** Charges minus payments (positive = owed). */
+  balanceMinor: number;
+  latestAssessment: {
+    assessedOn: string;
+    overallLevel: string | null;
+    author: PortalCoachRefDto | null;
+  } | null;
+}
+
+/** Published news from the academy (filled by announcements, WS5). */
+export interface PortalAnnouncementDto {
+  id: string;
+  workspaceId: string;
+  title: string;
+  body: string;
+  pinned: boolean;
+  publishedAt: number;
+}
+
+/** GET /api/portal/home: everything a family sees first. Empty lists when nothing is linked. */
+export interface PortalHomeDto {
+  user: { name: string; firstName: string };
+  academies: PortalAcademyDto[];
+  students: PortalHomeStudentDto[];
+  /** The latest shared comments across the linked students, newest first. */
+  comments: PortalCommentDto[];
+  announcements: PortalAnnouncementDto[];
+}
+
+/** A parent's view of their teen's own login (only for guardians). */
+export interface PortalTeenAccessDto {
+  /** Whether a new "own login" link can be made now, and if not, why. */
+  eligible: FamilyRuleDto;
+  logins: { accessId: string; name: string; since: number }[];
+  invites: { id: string; status: InviteStatus; createdAt: number; expiresAt: number }[];
+}
+
+/** GET /api/portal/students/:clientId. */
+export interface PortalStudentDto {
+  academy: PortalAcademyRefDto;
+  student: PortalStudentRefDto & {
+    birthDate: string | null;
+    /** The overall level of the latest assessment shared with the family. */
+    level: string | null;
+    duprRating: number | null;
+    dominantHand: string | null;
+    shirtSize: string | null;
+    phone: string | null;
+    email: string | null;
+    joinedOn: string | null;
+  };
+  /** Medical and emergency details: only ever for the family's own students. */
+  safety: {
+    medicalNotes: string | null;
+    emergencyName: string | null;
+    emergencyPhone: string | null;
+    guardianName: string | null;
+    guardianPhone: string | null;
+  };
+  coaches: PortalCoachDto[];
+  programs: { name: string }[];
+  /** Guardians only; null for the student's own login. */
+  teenAccess: PortalTeenAccessDto | null;
+}
+
+/** GET /api/portal/students/:clientId/schedule?from&to. */
+export interface PortalScheduleDto {
+  academy: PortalAcademyRefDto;
+  from: string;
+  to: string;
+  sessions: PortalSessionDto[];
+}
+
+export interface PortalAssessmentDto {
+  id: string;
+  assessedOn: string;
+  overallLevel: string | null;
+  notes: string | null;
+  scores: { skillId: string; score: number; note: string | null }[];
+  author: PortalCoachRefDto | null;
+}
+
+export interface PortalGoalDto {
+  id: string;
+  title: string;
+  detail: string | null;
+  targetDate: string | null;
+  status: GoalStatus;
+  achievedOn: string | null;
+  author: PortalCoachRefDto | null;
+}
+
+/** GET /api/portal/students/:clientId/progress: shared assessments and comments only. */
+export interface PortalProgressDto {
+  academy: PortalAcademyRefDto;
+  skills: { id: string; category: string; name: string; description: string | null }[];
+  assessments: PortalAssessmentDto[];
+  goals: PortalGoalDto[];
+  ratings: { id: string; source: RatingSource; value: number; recordedOn: string }[];
+  comments: PortalCommentDto[];
+}
+
+export interface PortalPackageDto {
+  id: string;
+  name: string;
+  creditsTotal: number;
+  remaining: number;
+  purchasedOn: string;
+  expiresOn: string | null;
+  status: ClientPackageStatus;
+}
+
+export interface PortalChargeDto {
+  id: string;
+  kind: ChargeKind;
+  description: string;
+  amountMinor: number;
+  paidMinor: number;
+  occurredOn: string;
+}
+
+export interface PortalPaymentDto {
+  id: string;
+  amountMinor: number;
+  method: string;
+  paidOn: string;
+  reference: string | null;
+}
+
+/** GET /api/portal/students/:clientId/money (voided entries left out). */
+export interface PortalMoneyDto {
+  academy: PortalAcademyRefDto;
+  balanceMinor: number;
+  packages: PortalPackageDto[];
+  charges: PortalChargeDto[];
+  payments: PortalPaymentDto[];
+}
+
+/** POST /api/portal/students/:clientId/teen-invite (guardians of 13–17 year olds). */
+export interface PortalTeenInviteCreatedDto {
+  invite: { id: string; status: InviteStatus; createdAt: number; expiresAt: number };
+  link: string;
 }

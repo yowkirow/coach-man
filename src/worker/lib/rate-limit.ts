@@ -1,4 +1,5 @@
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
+import type { Context } from "hono";
 import { createMiddleware } from "hono/factory";
 import type { Db } from "../db/client";
 import { rateLimit } from "../db/schema";
@@ -93,3 +94,49 @@ export const limitByIp = (bucket: string, rule: RateRule) =>
     }
     await next();
   });
+
+/** Whether a window already holds `rule.max` hits at `now` (one more would be refused). */
+export function isSpent(prev: WindowState | null, now: number, rule: RateRule): boolean {
+  if (!prev || now - prev.windowStart >= rule.windowMs) return false;
+  return prev.count >= rule.max;
+}
+
+/** Reads a counter without counting: true when `key` has used up its window. */
+export async function spent(db: Db, key: string, rule: RateRule, now = Date.now()) {
+  const id = `coachman:${key}`;
+  const row = await db.query.rateLimit.findFirst({ where: eq(rateLimit.key, id) });
+  return isSpent(row ? { count: row.count, windowStart: row.lastRequest } : null, now, rule);
+}
+
+/** The 429 our limits answer with. */
+export function tooManyTries(retryAfterSeconds: number, message?: string) {
+  return new ApiError(
+    429,
+    "rate_limited",
+    message ?? "Too many tries. Wait a few minutes, then try again.",
+    { retryAfterSeconds },
+  );
+}
+
+/** Counts one hit against `key` and throws a 429 (with Retry-After) once the rule is used up. */
+export async function enforce(c: Context<AppBindings>, key: string, rule: RateRule) {
+  const result = await hit(c.var.db, key, rule);
+  if (!result.allowed) {
+    c.header("Retry-After", String(result.retryAfterSeconds));
+    throw tooManyTries(result.retryAfterSeconds);
+  }
+}
+
+/**
+ * Invite links are guessed by trying tokens that don't exist, so misses are what's counted: per
+ * signed-in account where there is one (accepting), else per connection (previews, passkey
+ * accounts). People opening real links are counted per invite instead, so a busy mobile carrier
+ * address, shared by many families, never locks them out.
+ */
+export const INVITE_MISS_RULE: RateRule = { windowMs: 10 * 60_000, max: 20 };
+/** Previews of one invite. */
+export const INVITE_PREVIEW_RULE: RateRule = { windowMs: 60_000, max: 60 };
+/** Accepting one invite, per account. */
+export const INVITE_ACCEPT_RULE: RateRule = { windowMs: 60_000, max: 10 };
+/** Passkey-only accounts started from one invite. */
+export const PASSKEY_ACCOUNT_RULE: RateRule = { windowMs: 60 * 60_000, max: 5 };

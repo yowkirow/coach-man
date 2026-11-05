@@ -56,6 +56,25 @@ describe("offline cache ownership", () => {
     expect(store.value()).toBe("coach-b");
   });
 
+  it("drops the previous person's family portal data too, keeping the new person's account", () => {
+    const client = new QueryClient();
+    const store = memoryStore();
+    switchCacheOwner("parent-a", client, store);
+    client.setQueryData(["portal", "parent-a", "home"], { students: ["child-of-a"] });
+    client.setQueryData(["portal", "parent-a", "money", "c1"], { balanceMinor: 1500 });
+    client.setQueryData(["account"], { user: { id: "parent-b" } });
+
+    expect(switchCacheOwner("parent-b", client, store)).toBe(true);
+    expect(client.getQueryData(["portal", "parent-a", "home"])).toBeUndefined();
+    expect(client.getQueryData(["portal", "parent-a", "money", "c1"])).toBeUndefined();
+    expect(client.getQueryData(["account"])).toEqual({ user: { id: "parent-b" } });
+
+    // An account still cached for someone else goes with the rest.
+    client.setQueryData(["account"], { user: { id: "parent-b" } });
+    expect(switchCacheOwner("parent-c", client, store)).toBe(true);
+    expect(client.getQueryData(["account"])).toBeUndefined();
+  });
+
   it("still works when storage is unavailable", () => {
     const client = new QueryClient();
     const broken: OwnerStore = {

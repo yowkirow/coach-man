@@ -224,3 +224,6 @@ export const PLACEHOLDER_EMAIL_DOMAIN = "passkey.coachman.invalid";
 
 export const isPlaceholderEmail = (email: string | null | undefined) =>
   Boolean(email?.toLowerCase().endsWith(`@${PLACEHOLDER_EMAIL_DOMAIN}`));
+
+/** A passkey-only account's address: `u-<uuid>@passkey.coachman.invalid` (never deliverable). */
+export const placeholderEmail = (uuid: string) => `u-${uuid}@${PLACEHOLDER_EMAIL_DOMAIN}`;

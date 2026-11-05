@@ -2,6 +2,7 @@ import type { StaffRole } from "../shared/roles";
 import type { Auth } from "./auth";
 import type { Db } from "./db/client";
 import type { workspaceSettings } from "./db/schema";
+import type { PortalScope } from "./lib/portal-scope";
 
 export type SessionUser = Auth["$Infer"]["Session"]["user"];
 export type WorkspaceSettingsRow = typeof workspaceSettings.$inferSelect;
@@ -16,6 +17,8 @@ export interface AppBindings {
     settings: WorkspaceSettingsRow;
     /** The caller's staff role in the workspace (see src/shared/roles.ts). */
     role: StaffRole;
+    /** Family portal only (/api/portal): the students the caller is linked to. */
+    portal: PortalScope;
   };
 }
 

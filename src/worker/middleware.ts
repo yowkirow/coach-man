@@ -1,11 +1,11 @@
-import { eq } from "drizzle-orm";
+import { and, asc, eq, isNull } from "drizzle-orm";
 import type { Context } from "hono";
 import { createMiddleware } from "hono/factory";
 import { DEFAULT_PAYMENT_METHODS } from "../shared/domain";
 import { type Capability, can, normalizeRole } from "../shared/roles";
 import { getAuth } from "./auth";
 import { getDb } from "./db/client";
-import { organization, workspaceSettings } from "./db/schema";
+import { client, clientAccess, organization, workspaceSettings } from "./db/schema";
 import { ApiError, forbidden, noWorkspace, unauthorized } from "./lib/errors";
 import { redactMoney } from "./lib/redact";
 import { activeMembership } from "./lib/workspace";
@@ -49,6 +49,39 @@ export const requireUser = createMiddleware<AppBindings>(async (c, next) => {
   const result = await c.var.auth.api.getSession({ headers: c.req.raw.headers });
   if (!result) throw unauthorized();
   c.set("user", result.user);
+  await next();
+});
+
+/**
+ * The family portal (/api/portal): any signed-in person, with the students they're linked to
+ * (active client_access rows, each in its student's own academy). Someone linked to nobody gets
+ * an empty scope, not an error; routes answer 404 for anything outside it.
+ */
+export const requirePortal = createMiddleware<AppBindings>(async (c, next) => {
+  const result = await c.var.auth.api.getSession({ headers: c.req.raw.headers });
+  if (!result) {
+    // Drain the body first: Miniflare's local proxy can fail a request answered unread.
+    if (c.req.method !== "GET" && c.req.method !== "HEAD") {
+      await c.req.raw.arrayBuffer().catch(() => undefined);
+    }
+    throw unauthorized();
+  }
+  const links = await c.var.db
+    .select({
+      accessId: clientAccess.id,
+      clientId: clientAccess.clientId,
+      workspaceId: clientAccess.workspaceId,
+      relation: clientAccess.relation,
+    })
+    .from(clientAccess)
+    .innerJoin(
+      client,
+      and(eq(client.id, clientAccess.clientId), eq(client.workspaceId, clientAccess.workspaceId)),
+    )
+    .where(and(eq(clientAccess.userId, result.user.id), isNull(clientAccess.revokedAt)))
+    .orderBy(asc(clientAccess.createdAt));
+  c.set("user", result.user);
+  c.set("portal", { userId: result.user.id, links });
   await next();
 });
 

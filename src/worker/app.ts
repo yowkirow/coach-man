@@ -16,6 +16,7 @@ import { clientRoutes } from "./routes/clients";
 import { coachRoutes } from "./routes/coaches";
 import { dataRoutes } from "./routes/data";
 import { eventRoutes } from "./routes/events";
+import { familyRoutes } from "./routes/family";
 import { fileRoutes } from "./routes/files";
 import { groupRoutes } from "./routes/groups";
 import { inviteRoutes } from "./routes/invites";
@@ -23,6 +24,7 @@ import { lessonRoutes } from "./routes/lessons";
 import { meRoutes } from "./routes/me";
 import { moneyRoutes } from "./routes/money";
 import { packageRoutes } from "./routes/packages";
+import { portalRoutes } from "./routes/portal";
 import { progressRoutes } from "./routes/progress";
 import { publicRoutes } from "./routes/public";
 import { pushRoutes } from "./routes/push";
@@ -39,6 +41,7 @@ const v1 = new Hono<AppBindings>()
   .route("/", teamRoutes)
   .route("/", coachRoutes)
   .route("/", clientRoutes)
+  .route("/", familyRoutes)
   .route("/", groupRoutes)
   .route("/", catalogRoutes)
   .route("/", packageRoutes)
@@ -68,6 +71,8 @@ export const app = new Hono<AppBindings>()
   .route("/account", accountRoutes)
   .route("/invites", inviteRoutes)
   .route("/public", publicRoutes)
+  // Family portal: signed in, scoped to the students the caller is linked to.
+  .route("/portal", portalRoutes)
   .route("/v1", v1);
 
 app.notFound((c) =>

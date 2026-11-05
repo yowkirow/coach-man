@@ -3,8 +3,18 @@ import type { Context } from "hono";
 import { Hono } from "hono";
 import { z } from "zod";
 import type { AccountDto } from "../../shared/api-types";
+import { isPlaceholderEmail } from "../../shared/domain";
 import { normalizeRole } from "../../shared/roles";
-import { academyProfile, client, clientAccess, member, organization, passkey } from "../db/schema";
+import {
+  academyProfile,
+  account,
+  client,
+  clientAccess,
+  member,
+  organization,
+  passkey,
+  user as userTable,
+} from "../db/schema";
 import { ApiError, unauthorized } from "../lib/errors";
 import { v } from "../lib/validate";
 import { membershipsForUser, ownedWorkspaceForUser, provisionWorkspace } from "../lib/workspace";
@@ -37,8 +47,8 @@ export const accountRoutes = new Hono<AppBindings>()
 
   .get("/", async (c) => {
     const db = c.var.db;
-    const { user, session } = await sessionOf(c);
-    const [staffRows, familyRows, keys] = await Promise.all([
+    const { user: sessionUser, session } = await sessionOf(c);
+    const [staffRows, familyRows, keys, google, fresh] = await Promise.all([
       db
         .select({
           workspaceId: member.organizationId,
@@ -50,7 +60,7 @@ export const accountRoutes = new Hono<AppBindings>()
         .from(member)
         .innerJoin(organization, eq(organization.id, member.organizationId))
         .leftJoin(academyProfile, eq(academyProfile.workspaceId, member.organizationId))
-        .where(eq(member.userId, user.id))
+        .where(eq(member.userId, sessionUser.id))
         .orderBy(asc(member.createdAt)),
       db
         .select({
@@ -67,10 +77,19 @@ export const accountRoutes = new Hono<AppBindings>()
         .innerJoin(client, eq(client.id, clientAccess.clientId))
         .innerJoin(organization, eq(organization.id, clientAccess.workspaceId))
         .leftJoin(academyProfile, eq(academyProfile.workspaceId, clientAccess.workspaceId))
-        .where(and(eq(clientAccess.userId, user.id), isNull(clientAccess.revokedAt)))
+        .where(and(eq(clientAccess.userId, sessionUser.id), isNull(clientAccess.revokedAt)))
         .orderBy(asc(organization.name), asc(client.firstName), asc(client.lastName)),
-      db.select({ n: count() }).from(passkey).where(eq(passkey.userId, user.id)),
+      db.select({ n: count() }).from(passkey).where(eq(passkey.userId, sessionUser.id)),
+      db.query.account.findFirst({
+        where: and(eq(account.userId, sessionUser.id), eq(account.providerId, "google")),
+        columns: { id: true },
+      }),
+      // The stored row, not the session's cached copy: linking Google changes the name and email.
+      db.query.user.findFirst({ where: eq(userTable.id, sessionUser.id) }),
     ]);
+    // Gone (an abandoned passkey-only account was cleaned up) while a cached session lingers.
+    if (!fresh) throw unauthorized();
+    const user = fresh;
 
     const staff: AccountDto["staff"] = [];
     for (const r of staffRows) {
@@ -109,6 +128,8 @@ export const accountRoutes = new Hono<AppBindings>()
     const body: AccountDto = {
       user: { id: user.id, name: user.name, email: user.email, image: user.image ?? null },
       passkeyCount: keys[0]?.n ?? 0,
+      hasGoogle: Boolean(google),
+      emailIsPlaceholder: isPlaceholderEmail(user.email),
       staff,
       family,
       activeWorkspaceId:

@@ -17,6 +17,7 @@ import {
   rateLimit,
   workspaceSettings,
 } from "../db/schema";
+import { deleteAbandonedPasskeyAccounts } from "../lib/passkey-accounts";
 import { remainingExpr } from "./credits";
 import { lessonSummaries } from "./lessons";
 import { balancesFor } from "./money";
@@ -311,4 +312,6 @@ export async function runMaintenance(
     .where(
       and(like(rateLimit.key, "coachman:%"), lt(rateLimit.lastRequest, now.getTime() - 86_400_000)),
     );
+  // Passkey-only accounts whose passkey never arrived can't be signed into: remove them after a day.
+  await deleteAbandonedPasskeyAccounts(db, now.getTime());
 }

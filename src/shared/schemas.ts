@@ -5,9 +5,11 @@ import {
   CLIENT_STATUSES,
   EVENT_KINDS,
   EVENT_STATUSES,
+  FAMILY_RELATIONS,
   GOAL_STATUSES,
   isAcademySlug,
   isHttpUrl,
+  isPlaceholderEmail,
   LESSON_KINDS,
   NOTE_KINDS,
   NOTE_VISIBILITIES,
@@ -134,10 +136,25 @@ export type AcademyUpdateInput = z.infer<typeof academyUpdateSchema>;
 
 /** POST /team/invites: owners are made from inside the team, so invites are for admins and coaches. */
 export const staffInviteSchema = z.object({
-  email: z.string().trim().toLowerCase().pipe(z.email("That email doesn't look complete.")),
+  email: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .pipe(z.email("That email doesn't look complete."))
+    // Passkey-only family accounts carry a placeholder address; it must never match a staff invite.
+    .refine((e) => !isPlaceholderEmail(e), "Use the person's Google email address."),
   role: z.enum(["admin", "coach"]),
 });
 export type StaffInviteInput = z.infer<typeof staffInviteSchema>;
+
+/** POST /clients/:id/family/invites: a parent's link, or the student's own login. */
+export const familyInviteSchema = z.object({ relation: z.enum(FAMILY_RELATIONS) });
+
+/** GET /api/portal/students/:id/schedule: an optional window of local dates. */
+export const portalRangeQuerySchema = z.object({
+  from: date.optional(),
+  to: date.optional(),
+});
 
 export const memberRoleSchema = z.object({ role: z.enum(STAFF_ROLES) });
 

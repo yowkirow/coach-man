@@ -1,16 +1,25 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 import type { Context } from "hono";
 import { Hono } from "hono";
 import { z } from "zod";
-import { FAMILY_RELATIONS } from "../../shared/domain";
+import { FAMILY_RELATIONS, isPlaceholderEmail } from "../../shared/domain";
 import { checkFamilyAccess } from "../../shared/family";
 import { uuidv7 } from "../../shared/ids";
 import { normalizeRole, STAFF_ROLES } from "../../shared/roles";
 import { todayIn } from "../../shared/time";
 import { getDb } from "../db/client";
-import { client, clientAccess, invite, organization, workspaceSettings } from "../db/schema";
+import {
+  auditLog,
+  client,
+  clientAccess,
+  invite,
+  organization,
+  user,
+  workspaceSettings,
+} from "../db/schema";
 import { E2E_HEADER, isBypassRequestAllowed } from "../lib/bypass";
 import { ApiError, notFound, noWorkspace, unauthorized } from "../lib/errors";
+import { deleteAbandonedPasskeyAccounts } from "../lib/passkey-accounts";
 import { v } from "../lib/validate";
 import {
   activeMembership,
@@ -40,12 +49,20 @@ async function callerWorkspace(c: Context<AppBindings>) {
   return { user, workspaceId: membership.workspaceId };
 }
 
-/** Finds the user by email or creates them (verified, like a Google sign-in would). */
+/**
+ * Finds the user by email or creates them (verified, like a Google sign-in would). Created
+ * directly: Better Auth's createUser now runs `validateUserInfo`, which only works inside one of
+ * its own endpoints.
+ */
 async function ensureUser(c: Context<AppBindings>, email: string, name: string) {
-  const auth = await c.var.auth.$context;
-  const found = await auth.internalAdapter.findUserByEmail(email);
-  if (found?.user) return found.user;
-  return auth.internalAdapter.createUser({ email, name, emailVerified: true }, { method: "e2e" });
+  const db = getDb(c.env.DB);
+  const found = await db.query.user.findFirst({ where: eq(user.email, email) });
+  if (found) return found;
+  const id = uuidv7();
+  await db.insert(user).values({ id, email, name, emailVerified: true }).onConflictDoNothing();
+  const created = await db.query.user.findFirst({ where: eq(user.email, email) });
+  if (!created) throw new ApiError(500, "internal", "Couldn't create the test user.");
+  return created;
 }
 
 const memberSchema = z.object({
@@ -71,6 +88,10 @@ const familySchema = z.object({
  * - POST /member { email, name, role } adds a user to the caller's workspace as staff.
  * - POST /family { clientId, email, name, relation, force? } links a user to a student.
  * - POST /expire-invite { inviteId } makes one of the caller's academy's invites expire now.
+ * - POST /audit lists the caller's academy's audit log, newest first.
+ * - POST /user-exists { userId } says whether an account still exists.
+ * - POST /cleanup-accounts { userId, hours } ages a passkey-only account, then runs the daily
+ *   cleanup of abandoned ones.
  * - POST /seed fills the caller's workspace with the sample data; POST /reset deletes the
  *   workspaces the caller owns.
  */
@@ -176,6 +197,54 @@ export const testRoutes = new Hono<AppBindings>()
     if (!res.length) throw notFound("Invite");
     return c.body(null, 204);
   })
+
+  /** The caller's academy's audit log, newest first (the app has no screen for it yet). */
+  .post("/audit", async (c) => {
+    const { workspaceId } = await callerWorkspace(c);
+    const rows = await getDb(c.env.DB)
+      .select({
+        action: auditLog.action,
+        entity: auditLog.entity,
+        entityId: auditLog.entityId,
+        userId: auditLog.userId,
+        data: auditLog.data,
+      })
+      .from(auditLog)
+      .where(eq(auditLog.workspaceId, workspaceId))
+      .orderBy(desc(auditLog.createdAt), desc(auditLog.id))
+      .limit(200);
+    return c.json({ entries: rows });
+  })
+
+  /** Whether an account still exists (passkey-only accounts are removed when abandoned). */
+  .post("/user-exists", v("json", z.object({ userId: z.string().min(1) })), async (c) => {
+    const row = await getDb(c.env.DB).query.user.findFirst({
+      where: eq(user.id, c.req.valid("json").userId),
+      columns: { id: true },
+    });
+    return c.json({ exists: Boolean(row) });
+  })
+
+  /**
+   * Ages a passkey-only account by `hours` (so the daily cleanup's 24-hour rule can be tested
+   * without waiting), then runs that cleanup. Placeholder-email accounts only.
+   */
+  .post(
+    "/cleanup-accounts",
+    v("json", z.object({ userId: z.string().min(1), hours: z.number().min(0).max(1000) })),
+    async (c) => {
+      const db = getDb(c.env.DB);
+      const { userId, hours } = c.req.valid("json");
+      const row = await db.query.user.findFirst({ where: eq(user.id, userId) });
+      if (!row || !isPlaceholderEmail(row.email)) throw notFound("Passkey-only account");
+      await db
+        .update(user)
+        .set({ createdAt: new Date(row.createdAt.getTime() - hours * 3_600_000) })
+        .where(eq(user.id, userId));
+      const removed = await deleteAbandonedPasskeyAccounts(db, Date.now());
+      return c.json({ removed });
+    },
+  )
 
   .post("/seed", async (c) => {
     const { user } = await callerSession(c);

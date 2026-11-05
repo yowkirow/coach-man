@@ -1,0 +1,95 @@
+import type { FamilyRelation } from "../../shared/domain";
+
+/**
+ * What a family member may see: their active client_access rows (revokedAt null), resolved once
+ * per request by `requirePortal`. Every /api/portal query is scoped to these students and their
+ * academies; anything else answers 404, so existence never leaks.
+ */
+export interface PortalLink {
+  accessId: string;
+  clientId: string;
+  workspaceId: string;
+  relation: FamilyRelation;
+}
+
+export interface PortalScope {
+  userId: string;
+  links: PortalLink[];
+}
+
+/** The caller's link to a student, or null when they have none (then the answer is 404). */
+export function linkFor(scope: PortalScope, clientId: string): PortalLink | null {
+  return scope.links.find((l) => l.clientId === clientId) ?? null;
+}
+
+/** The academies the caller has students in, in link order, without repeats. */
+export function workspacesOf(scope: PortalScope): string[] {
+  return [...new Set(scope.links.map((l) => l.workspaceId))];
+}
+
+export function inWorkspace(scope: PortalScope, workspaceId: string): boolean {
+  return scope.links.some((l) => l.workspaceId === workspaceId);
+}
+
+/** Whether a row belongs to one of the caller's students in that student's own academy. */
+export function ownsRow(scope: PortalScope, row: { workspaceId: string; clientId: string | null }) {
+  return scope.links.some((l) => l.workspaceId === row.workspaceId && l.clientId === row.clientId);
+}
+
+const SEGMENT = "[A-Za-z0-9-]+";
+const FILE = "[A-Za-z0-9_-][A-Za-z0-9._-]*";
+/** Student photos are `<uuid>.<ext>` directly in the student's folder. */
+const PHOTO = "[A-Za-z0-9-]+\\.(?:jpg|jpeg|png|webp)";
+const STUDENT_PHOTO_RE = new RegExp(`^ws/(${SEGMENT})/clients/(${SEGMENT})/(${PHOTO})$`);
+const STUDENT_FOLDER_RE = new RegExp(
+  `^ws/(${SEGMENT})/clients/(${SEGMENT})/(${SEGMENT})/(${FILE})$`,
+);
+const PUBLIC_RE = new RegExp(`^ws/(${SEGMENT})/public/(?:coaches/)?(${FILE})$`);
+
+/** An R2 key a family might ask for, by what it is (spec §8). */
+export type PortalFileKey =
+  | { kind: "student-photo"; workspaceId: string; clientId: string }
+  /** `payments/` (proofs, WS4) and `pickups/` (WS5) under a student's folder. */
+  | { kind: "student-folder"; workspaceId: string; clientId: string; folder: string }
+  | { kind: "public"; workspaceId: string };
+
+/** Parses a key; null for anything malformed or that tries to climb out (`..`). */
+export function parsePortalFileKey(key: string): PortalFileKey | null {
+  if (!key || key.includes("..") || key.includes("//") || key.includes("\\")) return null;
+  const photo = STUDENT_PHOTO_RE.exec(key);
+  if (photo?.[1] && photo[2]) {
+    return { kind: "student-photo", workspaceId: photo[1], clientId: photo[2] };
+  }
+  const folder = STUDENT_FOLDER_RE.exec(key);
+  if (folder?.[1] && folder[2] && folder[3]) {
+    return {
+      kind: "student-folder",
+      workspaceId: folder[1],
+      clientId: folder[2],
+      folder: folder[3],
+    };
+  }
+  const pub = PUBLIC_RE.exec(key);
+  if (pub?.[1]) return { kind: "public", workspaceId: pub[1] };
+  return null;
+}
+
+/**
+ * Whether the caller may read a file: their own students' photos, and the public images (logos,
+ * payment QR codes, coach photos) of the academies they belong to. Files in a student's
+ * subfolders are refused for now: payment proofs (`payments/`) arrive with WS4, which must check
+ * the payment_submission row (the family's own proof, or one for a student they're linked to);
+ * pickup photos (`pickups/`) arrive with WS5.
+ */
+export function canReadPortalFile(scope: PortalScope, key: string): boolean {
+  const parsed = parsePortalFileKey(key);
+  if (!parsed) return false;
+  switch (parsed.kind) {
+    case "student-photo":
+      return ownsRow(scope, parsed);
+    case "public":
+      return inWorkspace(scope, parsed.workspaceId);
+    case "student-folder":
+      return false;
+  }
+}

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { LegalLinks } from "../features/public-info/legal-links";
 import { Wordmark } from "./brand";
 
 export function GoogleG({ className = "size-5" }: { className?: string }) {
@@ -32,8 +33,9 @@ export function AuthLayout({ panel, children }: { panel: ReactNode; children: Re
         <Wordmark dark />
         {panel}
       </section>
-      <main className="flex items-center justify-center py-6 lg:py-0">
+      <main className="flex flex-col items-center justify-center gap-4 py-6 lg:py-0">
         <div className="w-full max-w-md rounded-[32px] bg-card p-6 sm:p-8">{children}</div>
+        <LegalLinks className="w-full max-w-md px-2" />
       </main>
     </div>
   );

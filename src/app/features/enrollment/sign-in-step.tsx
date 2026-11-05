@@ -15,6 +15,7 @@ import {
   signInWithGoogle,
   startEnrollPasskeyAccount,
 } from "../../lib/auth-client";
+import { AgreeNote } from "../public-info/legal-links";
 import { StepHeading } from "./wizard-ui";
 
 /** Plain words for a passkey that wasn't made. */
@@ -165,6 +166,7 @@ export function EnrollSignIn({
           The passkey stays on this device (and syncs where your phone syncs passwords). You can
           link Google later in the family portal's settings.
         </p>
+        <AgreeNote className="mt-3" />
       </>
     );
   }
@@ -218,6 +220,7 @@ export function EnrollSignIn({
           No Google account? Create a passkey account: just your name and your phone's screen lock.
         </p>
       ) : null}
+      <AgreeNote className="mt-4" />
     </>
   );
 }

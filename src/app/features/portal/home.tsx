@@ -12,7 +12,6 @@ import {
   ArrowUpRight,
   CalendarDays,
   FileSignature,
-  Megaphone,
   MessageSquareText,
   UserRound,
 } from "lucide-react";
@@ -22,6 +21,7 @@ import { EmptyState } from "../../components/ui/feedback";
 import { type Format, fullName, plural } from "../../lib/format";
 import { EnrollLinkCard, RenewCard, StudentRequests } from "../enrollment/family";
 import { AcademyCard } from "./academy";
+import { HomeAnnouncements } from "./announcements";
 import { CoachLine, PortalAvatar, PortalCard, QueryGate } from "./bits";
 import { useAcademyFormat, usePortalHome } from "./queries";
 import { PortalPage } from "./shell";
@@ -301,26 +301,7 @@ function CommentRow({
 }
 
 function Announcements({ home }: { home: PortalHomeDto }) {
-  const academy = home.academies[0]?.name ?? "your academy";
-  return (
-    <PortalCard title="Announcements">
-      {home.announcements.length ? (
-        <ul className="flex flex-col divide-y divide-line">
-          {home.announcements.map((a) => (
-            <li key={a.id} className="py-3 first:pt-0 last:pb-0">
-              <p className="font-medium">{a.title}</p>
-              <p className="mt-1 text-[0.9375rem] whitespace-pre-line text-ink-2">{a.body}</p>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="flex items-start gap-3 text-[0.9375rem] text-ink-2">
-          <Megaphone aria-hidden className="mt-0.5 size-4.5 shrink-0" />
-          <span>News from {academy}, like schedule changes and events, will show here.</span>
-        </p>
-      )}
-    </PortalCard>
-  );
+  return <HomeAnnouncements home={home} />;
 }
 
 /** The family portal's first page: each student's next session, credits, and balance. */

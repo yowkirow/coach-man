@@ -24,6 +24,7 @@ import { Card, KeyValue, Pill, Timeline, type TimelineEntry } from "../../compon
 import { type Format, plural, useFormat } from "../../lib/format";
 import { useCan } from "../../lib/hooks";
 import { ConsentsCard } from "../consents/client-card";
+import { PickupsCard, SafetyUpdatedLine } from "../safety/staff";
 import { SectionHead } from "./bits";
 import { ATTENDANCE_PILL, ageText, HAND_LABELS, ratingTitle, shortDate } from "./client-utils";
 import { CoachesCard } from "./coaches";
@@ -404,6 +405,7 @@ function DetailsCard({ detail, onEdit }: { detail: ClientDetailDto; onEdit: () =
   if (c.dominantHand)
     items.push({ label: "Plays", value: HAND_LABELS[c.dominantHand] ?? c.dominantHand });
   if (c.paddle) items.push({ label: "Paddle", value: c.paddle });
+  if (c.shirtSize) items.push({ label: "Shirt size", value: c.shirtSize });
   if (c.joinedOn)
     items.push({
       label: "Client since",
@@ -456,6 +458,7 @@ function DetailsCard({ detail, onEdit }: { detail: ClientDetailDto; onEdit: () =
             </div>
           </div>
         ) : null}
+        <SafetyUpdatedLine update={detail.safetyUpdate} />
         {items.length ? (
           <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
             {items.map((it) => (
@@ -572,6 +575,7 @@ export function OverviewTab({
       <CoachesCard detail={detail} />
       {can.familyAccess ? <FamilyAccessCard detail={detail} /> : null}
       <ConsentsCard clientId={c.id} />
+      <PickupsCard detail={detail} />
       <ActivityTimeline
         detail={detail}
         statement={statement}

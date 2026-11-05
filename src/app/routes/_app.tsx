@@ -3,6 +3,7 @@ import { AppShell } from "../components/layout/app-shell";
 import { ApiRequestError, isNoWorkspace } from "../lib/api";
 import { meQuery } from "../lib/hooks";
 import { claimCache, useOfflinePack, whenCacheRestored } from "../lib/offline";
+import { isStandalone } from "../lib/public-path";
 
 export const Route = createFileRoute("/_app")({
   beforeLoad: async ({ context, location }) => {
@@ -17,6 +18,11 @@ export const Route = createFileRoute("/_app")({
     } catch (err) {
       if (isRedirect(err)) throw err;
       if (err instanceof ApiRequestError && err.status === 401) {
+        // A signed-out visit to the front door meets CoachMan first (with a clear Sign in); the
+        // installed app, and every deeper link, go straight to sign-in and come back.
+        if (location.pathname === "/" && !location.searchStr && !isStandalone()) {
+          throw redirect({ to: "/about" });
+        }
         throw redirect({ to: "/sign-in", search: { next: location.href } });
       }
       // Signed in but not staff anywhere: families and brand-new accounts start at /welcome.

@@ -23,6 +23,7 @@ import { type Format, plural } from "../../lib/format";
 import { ConsentText } from "../consents/consents";
 import { MONTH_END_ADVICE, scheduleLines, sessionsLabel, validityLine } from "../public/text";
 import { UNIFORM_WORDS } from "../public/tier-card";
+import { PolicyLink } from "../public-info/legal-links";
 import type { WizardDraft } from "./draft";
 import type { StepProps } from "./steps-student";
 import { chosenStudent } from "./steps-student";
@@ -261,6 +262,11 @@ export function ConsentsStep({
         }
         error={errors.signerName}
       />
+      <p className="text-[0.8125rem] text-ink-2">
+        These forms are the academy's. How CoachMan keeps what you send:{" "}
+        <PolicyLink to="/privacy">privacy policy</PolicyLink> and{" "}
+        <PolicyLink to="/terms">terms of use</PolicyLink>.
+      </p>
     </div>
   );
 }

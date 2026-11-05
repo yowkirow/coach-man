@@ -4,6 +4,7 @@ import { ArrowUpRight, FileUp, Share, Smartphone } from "lucide-react";
 import { Page, useMoreLinks } from "../../components/layout/app-shell";
 import { Button } from "../../components/ui/button";
 import { Avatar, Bento, Card, PageHeader, Pill } from "../../components/ui/display";
+import { LegalLinks } from "../../features/public-info/legal-links";
 import { AcademySwitcher } from "../../features/settings/academy";
 import { SignOutButton } from "../../features/settings/sign-out";
 import { useCan, useEnrollmentCount, useMe } from "../../lib/hooks";
@@ -15,6 +16,7 @@ const DESCRIPTIONS: Record<string, string> = {
   "/enrollments": "Requests from your academy page, and who hasn't renewed",
   "/groups": "Classes, squads, and their weekly sessions",
   "/events": "Camps, academies, clinics, and registrations",
+  "/announcements": "News for families: everyone, a program, or an event",
   "/team": "Coaches, roles, and invite links",
   "/money": "Payments, charges, and who owes",
   "/packages": "Your rate card and credit packages",
@@ -123,8 +125,9 @@ function More() {
         </Bento>
       ) : null}
 
-      <div>
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <SignOutButton />
+        <LegalLinks />
       </div>
     </Page>
   );

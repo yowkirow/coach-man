@@ -5,6 +5,7 @@ import {
   ClipboardList,
   FileSignature,
   type LucideIcon,
+  Megaphone,
   Settings,
   Share,
   Smartphone,
@@ -14,6 +15,7 @@ import {
 import { Button } from "../../components/ui/button";
 import { Bento, Card } from "../../components/ui/display";
 import { useInstallPrompt } from "../../lib/pwa";
+import { LegalLinks } from "../public-info/legal-links";
 import { SignOutButton } from "../settings/sign-out";
 import { AcademyCard } from "./academy";
 import { PortalAvatar } from "./bits";
@@ -124,6 +126,15 @@ export function PortalMore() {
               ) : null}
               <li>
                 <LinkCard
+                  to="/my/announcements"
+                  icon={Megaphone}
+                  title="Announcements"
+                  body="News from your academy"
+                  tone="sky"
+                />
+              </li>
+              <li>
+                <LinkCard
                   to="/my/enroll"
                   icon={ClipboardList}
                   title="Enroll"
@@ -176,8 +187,9 @@ export function PortalMore() {
               )}
             </Bento>
           ) : null}
-          <div>
+          <div className="flex flex-wrap items-center justify-between gap-4">
             <SignOutButton />
+            <LegalLinks />
           </div>
         </div>
         <div className="flex flex-col gap-5">

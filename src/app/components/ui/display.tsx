@@ -92,11 +92,14 @@ export function Avatar({
   // Ring colour comes from --avatar-ring so stacks can match whatever surface they sit on.
   const ringCls = ring ? "ring-2 ring-[var(--avatar-ring,var(--color-card))]" : "";
   const src = srcOverride !== undefined ? srcOverride : fileUrl(person.photoKey);
-  if (src)
+  // A photo that can't load (offline, say) falls back to initials instead of a broken image.
+  const [failed, setFailed] = useState<string | null>(null);
+  if (src && failed !== src)
     return (
       <img
         src={src}
         alt=""
+        onError={() => setFailed(src)}
         className={`${dims} ${ringCls} shrink-0 rounded-full object-cover`}
         loading="lazy"
       />

@@ -3,6 +3,7 @@ import { Page, ShellAside, useIsDesktop } from "../../components/layout/app-shel
 import { PageHeader } from "../../components/ui/display";
 import { MyCoachProfileSection } from "../../features/coaches/profile";
 import { ConsentsSection } from "../../features/consents/settings-section";
+import { LegalLinks } from "../../features/public-info/legal-links";
 import { AcademySection } from "../../features/settings/academy";
 import { AcademyProfileSection } from "../../features/settings/academy-profile";
 import { AppDataSection } from "../../features/settings/app-data";
@@ -66,6 +67,7 @@ function SettingsPage() {
         <SecuritySection />
         <NotificationsSection />
         <AppDataSection />
+        <LegalLinks className="px-1 pt-2" />
       </Page>
     </>
   );

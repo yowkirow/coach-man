@@ -135,6 +135,7 @@ function useNavItems(): NavItem[] {
         pathname.startsWith("/my/more") ||
         pathname.startsWith("/my/settings") ||
         pathname.startsWith("/my/enroll") ||
+        pathname.startsWith("/my/announcements") ||
         section === "coaches" ||
         section === "consents" ||
         section === "profile",

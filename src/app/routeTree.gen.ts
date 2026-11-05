@@ -11,10 +11,14 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as PortalRouteImport } from './routes/_portal'
+import { Route as AboutRouteImport } from './routes/about'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as SignInRouteImport } from './routes/sign-in'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as WelcomeRouteImport } from './routes/welcome'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
+import { Route as AppAnnouncementsRouteImport } from './routes/_app/announcements'
 import { Route as AppImportRouteImport } from './routes/_app/import'
 import { Route as AppMoneyRouteImport } from './routes/_app/money'
 import { Route as AppMoreRouteImport } from './routes/_app/more'
@@ -35,6 +39,7 @@ import { Route as AppGroupsGroupIdRouteImport } from './routes/_app/groups.$grou
 import { Route as AppSessionsLessonIdRouteImport } from './routes/_app/sessions.$lessonId'
 import { Route as PortalMyIndexRouteImport } from './routes/_portal/my.index'
 import { Route as PortalMyClientIdRouteImport } from './routes/_portal/my.$clientId'
+import { Route as PortalMyAnnouncementsRouteImport } from './routes/_portal/my.announcements'
 import { Route as PortalMyEnrollRouteImport } from './routes/_portal/my.enroll'
 import { Route as PortalMyMoreRouteImport } from './routes/_portal/my.more'
 import { Route as PortalMySettingsRouteImport } from './routes/_portal/my.settings'
@@ -58,14 +63,29 @@ const PortalRoute = PortalRouteImport.update({
   id: '/_portal',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AboutRoute = AboutRouteImport.update({
+  id: '/about',
+  path: '/about',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OnboardingRoute = OnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SignInRoute = SignInRouteImport.update({
   id: '/sign-in',
   path: '/sign-in',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
 const WelcomeRoute = WelcomeRouteImport.update({
@@ -76,6 +96,11 @@ const WelcomeRoute = WelcomeRouteImport.update({
 const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAnnouncementsRoute = AppAnnouncementsRouteImport.update({
+  id: '/announcements',
+  path: '/announcements',
   getParentRoute: () => AppRoute,
 } as any)
 const AppImportRoute = AppImportRouteImport.update({
@@ -178,6 +203,11 @@ const PortalMyClientIdRoute = PortalMyClientIdRouteImport.update({
   path: '/my/$clientId',
   getParentRoute: () => PortalRoute,
 } as any)
+const PortalMyAnnouncementsRoute = PortalMyAnnouncementsRouteImport.update({
+  id: '/my/announcements',
+  path: '/my/announcements',
+  getParentRoute: () => PortalRoute,
+} as any)
 const PortalMyEnrollRoute = PortalMyEnrollRouteImport.update({
   id: '/my/enroll',
   path: '/my/enroll',
@@ -255,9 +285,13 @@ const PortalMyClientIdScheduleRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
+  '/about': typeof AboutRoute
   '/onboarding': typeof OnboardingRoute
+  '/privacy': typeof PrivacyRoute
   '/sign-in': typeof SignInRoute
+  '/terms': typeof TermsRoute
   '/welcome': typeof WelcomeRoute
+  '/announcements': typeof AppAnnouncementsRoute
   '/import': typeof AppImportRoute
   '/money': typeof AppMoneyRoute
   '/more': typeof AppMoreRoute
@@ -273,6 +307,7 @@ export interface FileRoutesByFullPath {
   '/groups/$groupId': typeof AppGroupsGroupIdRoute
   '/sessions/$lessonId': typeof AppSessionsLessonIdRoute
   '/my/$clientId': typeof PortalMyClientIdRouteWithChildren
+  '/my/announcements': typeof PortalMyAnnouncementsRoute
   '/my/enroll': typeof PortalMyEnrollRoute
   '/my/more': typeof PortalMyMoreRoute
   '/my/settings': typeof PortalMySettingsRoute
@@ -295,9 +330,13 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof AppIndexRoute
+  '/about': typeof AboutRoute
   '/onboarding': typeof OnboardingRoute
+  '/privacy': typeof PrivacyRoute
   '/sign-in': typeof SignInRoute
+  '/terms': typeof TermsRoute
   '/welcome': typeof WelcomeRoute
+  '/announcements': typeof AppAnnouncementsRoute
   '/import': typeof AppImportRoute
   '/money': typeof AppMoneyRoute
   '/more': typeof AppMoreRoute
@@ -312,6 +351,7 @@ export interface FileRoutesByTo {
   '/events/$eventId': typeof AppEventsEventIdRoute
   '/groups/$groupId': typeof AppGroupsGroupIdRoute
   '/sessions/$lessonId': typeof AppSessionsLessonIdRoute
+  '/my/announcements': typeof PortalMyAnnouncementsRoute
   '/my/enroll': typeof PortalMyEnrollRoute
   '/my/more': typeof PortalMyMoreRoute
   '/my/settings': typeof PortalMySettingsRoute
@@ -336,9 +376,13 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
   '/_portal': typeof PortalRouteWithChildren
+  '/about': typeof AboutRoute
   '/onboarding': typeof OnboardingRoute
+  '/privacy': typeof PrivacyRoute
   '/sign-in': typeof SignInRoute
+  '/terms': typeof TermsRoute
   '/welcome': typeof WelcomeRoute
+  '/_app/announcements': typeof AppAnnouncementsRoute
   '/_app/import': typeof AppImportRoute
   '/_app/money': typeof AppMoneyRoute
   '/_app/more': typeof AppMoreRoute
@@ -355,6 +399,7 @@ export interface FileRoutesById {
   '/_app/groups/$groupId': typeof AppGroupsGroupIdRoute
   '/_app/sessions/$lessonId': typeof AppSessionsLessonIdRoute
   '/_portal/my/$clientId': typeof PortalMyClientIdRouteWithChildren
+  '/_portal/my/announcements': typeof PortalMyAnnouncementsRoute
   '/_portal/my/enroll': typeof PortalMyEnrollRoute
   '/_portal/my/more': typeof PortalMyMoreRoute
   '/_portal/my/settings': typeof PortalMySettingsRoute
@@ -379,9 +424,13 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/about'
     | '/onboarding'
+    | '/privacy'
     | '/sign-in'
+    | '/terms'
     | '/welcome'
+    | '/announcements'
     | '/import'
     | '/money'
     | '/more'
@@ -397,6 +446,7 @@ export interface FileRouteTypes {
     | '/groups/$groupId'
     | '/sessions/$lessonId'
     | '/my/$clientId'
+    | '/my/announcements'
     | '/my/enroll'
     | '/my/more'
     | '/my/settings'
@@ -419,9 +469,13 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/about'
     | '/onboarding'
+    | '/privacy'
     | '/sign-in'
+    | '/terms'
     | '/welcome'
+    | '/announcements'
     | '/import'
     | '/money'
     | '/more'
@@ -436,6 +490,7 @@ export interface FileRouteTypes {
     | '/events/$eventId'
     | '/groups/$groupId'
     | '/sessions/$lessonId'
+    | '/my/announcements'
     | '/my/enroll'
     | '/my/more'
     | '/my/settings'
@@ -459,9 +514,13 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_app'
     | '/_portal'
+    | '/about'
     | '/onboarding'
+    | '/privacy'
     | '/sign-in'
+    | '/terms'
     | '/welcome'
+    | '/_app/announcements'
     | '/_app/import'
     | '/_app/money'
     | '/_app/more'
@@ -478,6 +537,7 @@ export interface FileRouteTypes {
     | '/_app/groups/$groupId'
     | '/_app/sessions/$lessonId'
     | '/_portal/my/$clientId'
+    | '/_portal/my/announcements'
     | '/_portal/my/enroll'
     | '/_portal/my/more'
     | '/_portal/my/settings'
@@ -502,8 +562,11 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   PortalRoute: typeof PortalRouteWithChildren
+  AboutRoute: typeof AboutRoute
   OnboardingRoute: typeof OnboardingRoute
+  PrivacyRoute: typeof PrivacyRoute
   SignInRoute: typeof SignInRoute
+  TermsRoute: typeof TermsRoute
   WelcomeRoute: typeof WelcomeRoute
   JoinTokenRoute: typeof JoinTokenRoute
   ASlugEnrollRoute: typeof ASlugEnrollRoute
@@ -527,6 +590,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PortalRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/onboarding': {
       id: '/onboarding'
       path: '/onboarding'
@@ -534,11 +604,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OnboardingRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sign-in': {
       id: '/sign-in'
       path: '/sign-in'
       fullPath: '/sign-in'
       preLoaderRoute: typeof SignInRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/welcome': {
@@ -553,6 +637,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/announcements': {
+      id: '/_app/announcements'
+      path: '/announcements'
+      fullPath: '/announcements'
+      preLoaderRoute: typeof AppAnnouncementsRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/import': {
@@ -695,6 +786,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PortalMyClientIdRouteImport
       parentRoute: typeof PortalRoute
     }
+    '/_portal/my/announcements': {
+      id: '/_portal/my/announcements'
+      path: '/my/announcements'
+      fullPath: '/my/announcements'
+      preLoaderRoute: typeof PortalMyAnnouncementsRouteImport
+      parentRoute: typeof PortalRoute
+    }
     '/_portal/my/enroll': {
       id: '/_portal/my/enroll'
       path: '/my/enroll'
@@ -797,6 +895,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppRouteChildren {
+  AppAnnouncementsRoute: typeof AppAnnouncementsRoute
   AppImportRoute: typeof AppImportRoute
   AppMoneyRoute: typeof AppMoneyRoute
   AppMoreRoute: typeof AppMoreRoute
@@ -818,6 +917,7 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppAnnouncementsRoute: AppAnnouncementsRoute,
   AppImportRoute: AppImportRoute,
   AppMoneyRoute: AppMoneyRoute,
   AppMoreRoute: AppMoreRoute,
@@ -867,6 +967,7 @@ const PortalMyClientIdRouteWithChildren =
 
 interface PortalRouteChildren {
   PortalMyClientIdRoute: typeof PortalMyClientIdRouteWithChildren
+  PortalMyAnnouncementsRoute: typeof PortalMyAnnouncementsRoute
   PortalMyEnrollRoute: typeof PortalMyEnrollRoute
   PortalMyMoreRoute: typeof PortalMyMoreRoute
   PortalMySettingsRoute: typeof PortalMySettingsRoute
@@ -875,6 +976,7 @@ interface PortalRouteChildren {
 
 const PortalRouteChildren: PortalRouteChildren = {
   PortalMyClientIdRoute: PortalMyClientIdRouteWithChildren,
+  PortalMyAnnouncementsRoute: PortalMyAnnouncementsRoute,
   PortalMyEnrollRoute: PortalMyEnrollRoute,
   PortalMyMoreRoute: PortalMyMoreRoute,
   PortalMySettingsRoute: PortalMySettingsRoute,
@@ -887,8 +989,11 @@ const PortalRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   PortalRoute: PortalRouteWithChildren,
+  AboutRoute: AboutRoute,
   OnboardingRoute: OnboardingRoute,
+  PrivacyRoute: PrivacyRoute,
   SignInRoute: SignInRoute,
+  TermsRoute: TermsRoute,
   WelcomeRoute: WelcomeRoute,
   JoinTokenRoute: JoinTokenRoute,
   ASlugEnrollRoute: ASlugEnrollRoute,

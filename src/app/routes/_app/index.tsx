@@ -20,6 +20,8 @@ import { Page, ShellAside, SyncStatus, useIsDesktop } from "../../components/lay
 import { Button, buttonClass } from "../../components/ui/button";
 import { Avatar, AvatarStack, Card, CardHeader, KpiTile, Pill } from "../../components/ui/display";
 import { EmptyState, ErrorState, RowsSkeleton, Skeleton } from "../../components/ui/feedback";
+import { TodayAnnouncements } from "../../features/announcements/today-card";
+import { juniorsWithMedical, MedicalTodayItem } from "../../features/safety/today";
 import { phaseLabel, SessionDetail, whereOf } from "../../features/sessions/session-detail";
 import { errorMessage } from "../../lib/api";
 import { inScope, useSessionScope } from "../../lib/coaches";
@@ -83,12 +85,20 @@ function TodayPage() {
             <SessionDetail
               lessonId={selected.id}
               now={now}
-              extraAside={<Attention alerts={today.data.alerts} />}
+              extraAside={
+                <>
+                  <TodayAnnouncements items={today.data.announcements} />
+                  <Attention alerts={today.data.alerts} lessons={lessons} />
+                </>
+              }
             />
           ) : (
             <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
               <NothingToday hidden={hidden} onShowEveryone={showEveryone} />
-              <Attention alerts={today.data.alerts} />
+              <div className="flex flex-col gap-4">
+                <TodayAnnouncements items={today.data.announcements} />
+                <Attention alerts={today.data.alerts} lessons={lessons} />
+              </div>
             </div>
           )}
         </Page>
@@ -354,10 +364,18 @@ function enrollmentWork(alerts: TodayDto["alerts"]) {
   return out;
 }
 
-function Attention({ alerts }: { alerts: TodayDto["alerts"] }) {
+function Attention({
+  alerts,
+  lessons = [],
+}: {
+  alerts: TodayDto["alerts"];
+  /** The sessions in scope, for the juniors with medical notes. */
+  lessons?: TodayLesson[];
+}) {
   const fmt = useFormat();
   const can = useCan();
   const work = enrollmentWork(alerts);
+  const medical = juniorsWithMedical(lessons);
   const items = [
     ...(can.money ? alerts.balancesDue : []).map((a) => ({
       key: `due-${a.clientId}`,
@@ -396,19 +414,17 @@ function Attention({ alerts }: { alerts: TodayDto["alerts"] }) {
       kind: "uniform" as const,
     })),
   ];
+  const total = items.length + work.length + (medical.length ? 1 : 0);
   return (
     <div id="attention" className="scroll-mt-4">
       <Card label="Needs attention">
         <CardHeader
           title="Needs attention"
-          action={
-            items.length + work.length ? (
-              <Pill tone="panel">{items.length + work.length}</Pill>
-            ) : null
-          }
+          action={total ? <Pill tone="panel">{total}</Pill> : null}
         />
-        {items.length + work.length ? (
+        {total ? (
           <ul className="flex flex-col px-3 pb-3">
+            <MedicalTodayItem juniors={medical} />
             {work.map((it) => (
               <li key={it.key}>
                 <Link
@@ -585,7 +601,8 @@ function PhoneToday({
           </Card>
         ) : null}
 
-        {data ? <Attention alerts={data.alerts} /> : null}
+        {data ? <TodayAnnouncements items={data.announcements} /> : null}
+        {data ? <Attention alerts={data.alerts} lessons={lessons} /> : null}
       </Page>
     </div>
   );

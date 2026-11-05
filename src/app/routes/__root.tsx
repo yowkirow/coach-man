@@ -4,7 +4,7 @@ import { createRootRouteWithContext, Outlet, useRouterState } from "@tanstack/re
 import { useEffect } from "react";
 import { Toaster } from "../components/ui/feedback";
 import { notify } from "../lib/notify";
-import { isPublicPath } from "../lib/public-path";
+import { isInfoPath, isPublicPath } from "../lib/public-path";
 
 export interface RouterContext {
   queryClient: QueryClient;
@@ -34,9 +34,11 @@ function UpdatePrompt() {
 }
 
 function Root() {
-  // No service worker for someone who only opened an academy's link; it registers once they
-  // reach the app itself.
-  const publicPage = useRouterState({ select: (s) => isPublicPath(s.location.pathname) });
+  // No service worker for someone who only opened an academy's link or one of CoachMan's public
+  // pages; it registers once they reach the app itself.
+  const publicPage = useRouterState({
+    select: (s) => isPublicPath(s.location.pathname) || isInfoPath(s.location.pathname),
+  });
   return (
     <>
       <Outlet />

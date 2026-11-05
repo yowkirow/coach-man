@@ -6,6 +6,7 @@ import { Link } from "@tanstack/react-router";
 import { ArrowUpRight, Check, Clock3, HeartPulse, History, X } from "lucide-react";
 import { useState } from "react";
 import { ToggleButton } from "react-aria-components";
+import { RosterSafety } from "../../features/safety/roster";
 import { api } from "../../lib/api";
 import { fullName, plural, useFormat } from "../../lib/format";
 import { useCan } from "../../lib/hooks";
@@ -174,40 +175,44 @@ export function RosterRow({
   };
 
   return (
-    <div className="flex items-center gap-3 py-3">
-      <button
-        type="button"
-        onClick={() => setSheetOpen(true)}
-        aria-label={`${name}: ${ATTENDANCE_LABELS[entry.status]}. ${line.text}. Open player options`}
-        className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-2xl text-left outline-none focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ink"
-      >
-        <Avatar person={entry} />
-        <span className="min-w-0 flex-1">
-          <span className="flex items-center gap-2">
-            <span className="truncate text-[1rem] font-medium">{name}</span>
-            {entry.isJunior ? <Pill tone="sky">Junior</Pill> : null}
-            {entry.medicalFlag ? (
-              <HeartPulse
-                aria-label="Has a medical note"
-                className="size-4 shrink-0 text-[#b42318]"
-              />
-            ) : null}
-            {statusPill(entry.status)}
+    <div className="py-3">
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => setSheetOpen(true)}
+          aria-label={`${name}: ${ATTENDANCE_LABELS[entry.status]}. ${line.text}. Open player options`}
+          className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-2xl text-left outline-none focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ink"
+        >
+          <Avatar person={entry} />
+          <span className="min-w-0 flex-1">
+            <span className="flex items-center gap-2">
+              <span className="truncate text-[1rem] font-medium">{name}</span>
+              {entry.isJunior ? <Pill tone="sky">Junior</Pill> : null}
+              {entry.medicalFlag && !entry.safety ? (
+                <HeartPulse
+                  aria-label="Has a medical note"
+                  className="size-4 shrink-0 text-[#b42318]"
+                />
+              ) : null}
+              {statusPill(entry.status)}
+            </span>
+            <span
+              className={`mt-0.5 block truncate text-[0.8125rem] ${line.tone === "warn" ? "text-[#9a5b00]" : line.tone === "sync" ? "text-[#b4480c]" : "text-ink-2"}`}
+            >
+              {line.text}
+            </span>
           </span>
-          <span
-            className={`mt-0.5 block truncate text-[0.8125rem] ${line.tone === "warn" ? "text-[#9a5b00]" : line.tone === "sync" ? "text-[#b4480c]" : "text-ink-2"}`}
-          >
-            {line.text}
-          </span>
-        </span>
-      </button>
-      <CheckInToggle
-        status={entry.status}
-        pending={entry.pending}
-        name={name}
-        isDisabled={lessonCancelled}
-        onToggle={(on) => send(on ? "present" : "booked")}
-      />
+        </button>
+        <CheckInToggle
+          status={entry.status}
+          pending={entry.pending}
+          name={name}
+          isDisabled={lessonCancelled}
+          onToggle={(on) => send(on ? "present" : "booked")}
+        />
+      </div>
+      {/* Its own line under the player, the full width of the row: room for both pills. */}
+      <RosterSafety entry={entry} className="mt-2 pl-14" />
       <PlayerSheet
         isOpen={sheetOpen}
         onOpenChange={setSheetOpen}

@@ -21,6 +21,7 @@ import { notify } from "../../lib/notify";
 import { useOnline } from "../../lib/offline";
 import { useInstallPrompt } from "../../lib/pwa";
 import { keys } from "../../lib/query";
+import { LegalLinks } from "../public-info/legal-links";
 import { SignOutButton } from "../settings/sign-out";
 import { PortalCard } from "./bits";
 import {
@@ -538,6 +539,7 @@ export function PortalSettings(props: { google?: string; error?: string; descrip
             </p>
             <SignOutButton />
           </Card>
+          <LegalLinks className="px-1" />
         </div>
       </div>
     </PortalPage>

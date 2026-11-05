@@ -133,6 +133,7 @@ export const portalApi = {
   get: <T>(path: string, opts?: RequestOptions) =>
     send<T>("GET", `/api/portal${path}`, undefined, opts),
   post: <T>(path: string, body?: unknown) => send<T>("POST", `/api/portal${path}`, body ?? {}),
+  patch: <T>(path: string, body: unknown) => send<T>("PATCH", `/api/portal${path}`, body),
   del: <T>(path: string) => send<T>("DELETE", `/api/portal${path}`),
 };
 

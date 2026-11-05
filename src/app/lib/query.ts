@@ -63,6 +63,10 @@ export const keys = {
   paymentProofs: (status: string) => ["payment-proofs", status] as const,
   proofCount: ["proof-count"] as const,
   clientProofs: (clientId: string) => ["client-proofs", clientId] as const,
+  /** Announcements, by tab (never persisted: composing needs a connection anyway). */
+  announcements: (status: string) => ["announcements", status] as const,
+  /** The contact address of CoachMan's public pages (persisted, so they read offline too). */
+  publicConfig: ["public-config"] as const,
   /**
    * The family portal's reads, under the signed-in person's id: another person signing in on
    * the same device never sees them, even before the cache owner switches.
@@ -84,6 +88,7 @@ export const keys = {
     enrollments: (userId: string, clientId: string) =>
       ["portal", userId, "enrollments", clientId] as const,
     proofs: (userId: string, clientId: string) => ["portal", userId, "proofs", clientId] as const,
+    announcements: (userId: string) => ["portal", userId, "announcements"] as const,
   },
 };
 
@@ -107,6 +112,8 @@ const PERSISTED = new Set([
   "academy",
   // The family portal reads offline too (its keys carry the person's id).
   "portal",
+  // The public pages' contact address (not personal, the same for everyone).
+  "public-config",
 ]);
 
 export function shouldPersistQuery(key: QueryKey, status: string): boolean {

@@ -23,6 +23,7 @@ import { BallMark } from "../../components/brand";
 import { buttonClass } from "../../components/ui/button";
 import { publicFileUrl } from "../../lib/api";
 import { type Format, initials } from "../../lib/format";
+import { LegalLinks } from "../public-info/legal-links";
 import { orderedWeekdays, weekdayName } from "../schedule/dates";
 import type { PublicPage } from "./queries";
 import {
@@ -715,10 +716,16 @@ export function AcademyPage({
           ) : (
             <span />
           )}
-          <p className="inline-flex items-center gap-2 text-[0.8125rem] text-ink-2">
-            <BallMark className="size-5" holes="#111111" />
-            Made with CoachMan
-          </p>
+          <div className="flex flex-col items-start gap-2 sm:items-end">
+            <Link
+              to="/about"
+              className="inline-flex items-center gap-2 rounded-full text-[0.8125rem] text-ink-2 outline-none hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+            >
+              <BallMark className="size-5" holes="#111111" />
+              Made with CoachMan
+            </Link>
+            <LegalLinks about={false} label="CoachMan policies" />
+          </div>
         </footer>
       </main>
 

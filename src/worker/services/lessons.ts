@@ -323,7 +323,7 @@ export async function today(ctx: Ctx): Promise<TodayDto> {
   });
   const expiryWindow = pref?.packageExpiryDays ?? 7;
 
-  const [activePackages, due, clients] = await Promise.all([
+  const [activePackages, due, clients, uniforms] = await Promise.all([
     db
       .select({
         clientId: clientPackage.clientId,
@@ -358,6 +358,31 @@ export async function today(ctx: Ctx): Promise<TodayDto> {
           sql`substr(${client.birthDate}, 6, 5) = ${monthDay(date)}`,
         ),
       ),
+    // Owners and admins hand out the uniforms packages came with.
+    can(ctx.role, "catalog")
+      ? db
+          .select({
+            id: clientPackage.id,
+            clientId: clientPackage.clientId,
+            name: clientPackage.name,
+            uniformSize: clientPackage.uniformSize,
+            firstName: client.firstName,
+            lastName: client.lastName,
+          })
+          .from(clientPackage)
+          .innerJoin(client, eq(client.id, clientPackage.clientId))
+          .where(
+            and(
+              eq(clientPackage.workspaceId, workspaceId),
+              eq(clientPackage.includesUniform, true),
+              isNull(clientPackage.uniformIssuedAt),
+              inArray(clientPackage.status, ["active", "exhausted"]),
+              ne(client.status, "archived"),
+            ),
+          )
+          .orderBy(asc(clientPackage.purchasedOn))
+          .limit(20)
+      : Promise.resolve([]),
   ]);
 
   const horizon = addDays(date, expiryWindow);
@@ -398,6 +423,13 @@ export async function today(ctx: Ctx): Promise<TodayDto> {
         clientId: c.id,
         name: `${c.firstName} ${c.lastName}`.trim(),
         age: c.birthDate ? ageOn(c.birthDate, date) : null,
+      })),
+      uniforms: uniforms.map((u) => ({
+        clientId: u.clientId,
+        name: `${u.firstName} ${u.lastName}`.trim(),
+        clientPackageId: u.id,
+        packageName: u.name,
+        uniformSize: u.uniformSize,
       })),
     },
   };

@@ -1,7 +1,7 @@
 import { and, eq, ne } from "drizzle-orm";
 import type { Context } from "hono";
 import { Hono } from "hono";
-import type { AcademyDto } from "../../shared/api-types";
+import type { AcademyDto, PublicAcademyPreviewDto } from "../../shared/api-types";
 import { ACADEMY_SOCIALS, type AcademySocial, isAcademySlug } from "../../shared/domain";
 import { academyUpdateSchema } from "../../shared/schemas";
 import type { Db } from "../db/client";
@@ -12,6 +12,7 @@ import { publicKey, readImage } from "../lib/uploads";
 import { v } from "../lib/validate";
 import { ctxOf, requireCap } from "../middleware";
 import { runBatch } from "../services/credits";
+import { loadPublicAcademy } from "../services/public-academy";
 import type { AppBindings } from "../types";
 
 type ProfileRow = typeof academyProfile.$inferSelect;
@@ -123,6 +124,27 @@ async function deleteImage(c: Context<AppBindings>, name: keyof typeof IMAGES) {
  */
 export const academyRoutes = new Hono<AppBindings>()
   .get("/academy", async (c) => c.json(await loadAcademy(c.var.db, c.var.workspaceId, c.env)))
+
+  /**
+   * The public page as families will see it (published programs and tiers only), also while it
+   * isn't listed: owners and admins check it before sharing the address.
+   */
+  .get("/academy/public-preview", requireCap("settings"), async (c) => {
+    const ctx = ctxOf(c);
+    const found = await loadPublicAcademy(
+      ctx.db,
+      { workspaceId: ctx.workspaceId },
+      { preview: true },
+    );
+    if (!found) throw notFound("Academy");
+    const slug = found.academy.slug;
+    const body: PublicAcademyPreviewDto = {
+      ...found.academy,
+      listed: found.listed,
+      publicUrl: isAcademySlug(slug) ? `${appOrigin(ctx.env)}/a/${slug}` : null,
+    };
+    return c.json(body);
+  })
 
   .patch("/academy", requireCap("settings"), v("json", academyUpdateSchema), async (c) => {
     const ctx = ctxOf(c);

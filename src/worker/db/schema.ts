@@ -423,6 +423,8 @@ export const clientPackage = sqliteTable(
     notes: text(),
     /** YYYY-MM for month-end packages. */
     startMonth: text(),
+    /** Sold with the training uniform (copied from the package tier at sale, like its name). */
+    includesUniform: integer({ mode: "boolean" }).notNull().default(false),
     uniformSize: text(),
     uniformIssuedAt: integer(),
     enrollmentId: text(),
@@ -1031,6 +1033,26 @@ export const consentDocument = sqliteTable(
   (t) => [index("consent_document_ws_idx").on(t.workspaceId)],
 );
 
+/**
+ * The text of every version of a consent document that was put in front of families, so a
+ * signature can always be matched to the words it agreed to.
+ */
+export const consentDocumentVersion = sqliteTable(
+  "consent_document_version",
+  {
+    id: text().primaryKey(),
+    workspaceId: workspaceId(),
+    documentId: text()
+      .notNull()
+      .references(() => consentDocument.id, { onDelete: "cascade" }),
+    version: integer().notNull(),
+    title: text().notNull(),
+    body: text().notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex("consent_document_version_unique").on(t.documentId, t.version)],
+);
+
 /** A typed-name signature of one version of a consent document, for one student. */
 export const consentSignature = sqliteTable(
   "consent_signature",
@@ -1052,7 +1074,10 @@ export const consentSignature = sqliteTable(
     userAgent: text(),
     enrollmentId: text(),
   },
-  (t) => [index("consent_signature_client_idx").on(t.clientId, t.documentId)],
+  (t) => [
+    index("consent_signature_client_idx").on(t.clientId, t.documentId),
+    index("consent_signature_ws_idx").on(t.workspaceId, t.documentId),
+  ],
 );
 
 /** People allowed to pick up a junior after a session. */

@@ -38,7 +38,8 @@ import {
   currentClientCoaches,
   loadClientCoaches,
 } from "../services/coaches";
-import { packagesForClients, runBatch } from "../services/credits";
+import { missingByClient } from "../services/consents";
+import { packagesForClients, runBatch, toPackageBalanceDto } from "../services/credits";
 import {
   lessonSummaries,
   syncMemberIntoGroupLessons,
@@ -244,7 +245,18 @@ export const clientRoutes = new Hono<AppBindings>()
       )
       .orderBy(asc(client.firstName), asc(client.lastName));
     const balances = can(ctx.role, "money") ? await balancesFor(ctx) : new Map<string, number>();
-    return c.json(rows.map((r) => toListItem(r, balances.get(r.c.id) ?? 0, ctx.settings.timezone)));
+    const consents = await missingByClient(
+      ctx.db,
+      ctx.workspaceId,
+      rows.map((r) => r.c),
+      today,
+    );
+    return c.json(
+      rows.map((r) => ({
+        ...toListItem(r, balances.get(r.c.id) ?? 0, ctx.settings.timezone),
+        consentsMissing: consents.get(r.c.id) ?? 0,
+      })),
+    );
   })
 
   .post("/clients", v("json", clientSchema), async (c) => {
@@ -353,19 +365,7 @@ export const clientRoutes = new Hono<AppBindings>()
     const body: ClientDetailDto = {
       client: dto,
       groups,
-      packages: packages
-        .map((p) => ({
-          id: p.id,
-          name: p.name,
-          creditsTotal: p.creditsTotal,
-          remaining: p.remaining,
-          expiresOn: p.expiresOn,
-          status: (p.status === "active" && p.expiresOn && p.expiresOn < today
-            ? "expired"
-            : p.status) as ClientDetailDto["packages"][number]["status"],
-          lessonKinds: p.lessonKinds,
-        }))
-        .reverse(),
+      packages: packages.map((p) => toPackageBalanceDto(p, today)).reverse(),
       upcoming: upcomingRows.slice(0, 8).map((u) => u.summary),
       recentAttendance: recent.map((r) => ({
         lessonId: r.lessonId,

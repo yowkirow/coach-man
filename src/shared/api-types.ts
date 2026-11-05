@@ -1,3 +1,4 @@
+import type { ConsentStatus } from "./consents";
 import type {
   AcademySocial,
   AttendanceStatus,
@@ -5,6 +6,9 @@ import type {
   ClientCoachRole,
   ClientPackageStatus,
   ClientStatus,
+  ConsentAppliesTo,
+  ConsentKind,
+  ConsentSignerRelation,
   EventKind,
   EventStatus,
   FamilyRelation,
@@ -20,6 +24,7 @@ import type {
   RateUnit,
   RatingSource,
   RegistrationStatus,
+  ValidityMode,
 } from "./domain";
 import type { Capabilities, StaffRole } from "./roles";
 
@@ -306,6 +311,17 @@ export interface PackageBalanceDto {
   expiresOn: string | null;
   status: ClientPackageStatus;
   lessonKinds: LessonKind[];
+  // Optional for profiles cached before package tiers (WS4a).
+  purchasedOn?: string;
+  /** The first local date it can pay for a session (its start month's first day, or purchase day). */
+  startsOn?: string;
+  /** Month-end packages: the calendar month it runs for (YYYY-MM). */
+  startMonth?: string | null;
+  /** Sold with the academy's training uniform (staff record the size and hand it out). */
+  includesUniform?: boolean;
+  uniformSize?: string | null;
+  /** When the uniform was handed out (epoch ms); null while it's still owed. */
+  uniformIssuedAt?: number | null;
 }
 
 export interface ClientListItemDto {
@@ -334,6 +350,8 @@ export interface ClientListItemDto {
   /** Current coaches (user ids); powers "My students". */
   primaryCoachUserId?: string | null;
   assistantCoachIds?: string[];
+  /** Required consent documents still to sign (missing or needing a new signature). */
+  consentsMissing?: number;
 }
 
 export interface ClientDto extends ClientListItemDto {
@@ -407,6 +425,17 @@ export interface GroupDto {
   /** The program's lead coach and assistants. */
   coachUserId: string | null;
   assistantCoachIds: string[];
+  // A group is a program the academy can publish on its public page (WS4a). Optional for groups
+  // cached before then.
+  isPublic?: boolean;
+  /** Shown on the public page (the plain `description` stays internal). */
+  publicDescription?: string | null;
+  /** A label that overrides the weekly sessions' days and times, e.g. "Every Tue & Thu, 7–10pm". */
+  scheduleNote?: string | null;
+  ageMin?: number | null;
+  ageMax?: number | null;
+  /** Order on the public page (lowest first). */
+  sortOrder?: number;
 }
 
 export interface GroupDetailDto {
@@ -458,6 +487,29 @@ export interface PackageTemplateDto {
   description: string | null;
   active: boolean;
   soldCount: number;
+  // Tier fields (WS4a), as on a rates sheet. Optional for packages cached before then.
+  /** The program (group) this tier belongs to. */
+  programId?: string | null;
+  /** A coach-specific tier. */
+  coachUserId?: string | null;
+  /** e.g. "4–6 sessions" when `credits` is the upper bound. */
+  sessionsLabel?: string | null;
+  validityMode?: ValidityMode;
+  /** The checklist of what's included, in order. */
+  inclusions?: string[];
+  /** "Who it's for". */
+  audience?: string | null;
+  /** Recommended commitment, e.g. "Best over at least 2 months". */
+  commitmentNote?: string | null;
+  includesUniform?: boolean;
+  /** Enrollment asks for a self-rating (saved to rating history as "self"). */
+  asksSelfRating?: boolean;
+  /** Shown on the public page and rates sheet (when also for sale and its program is public). */
+  isPublic?: boolean;
+  /** Emphasised on the public page. */
+  highlight?: boolean;
+  /** Order on the public page and in lists (lowest first). */
+  sortOrder?: number;
 }
 
 export interface LessonSummaryDto {
@@ -539,6 +591,17 @@ export interface TodayDto {
     }[];
     balancesDue: { clientId: string; name: string; balanceMinor: number }[];
     birthdays: { clientId: string; name: string; age: number | null }[];
+    /**
+     * Uniforms sold with a package and not handed out yet (owners and admins; empty for coaches).
+     * Optional for Today pages cached before WS4a.
+     */
+    uniforms?: {
+      clientId: string;
+      name: string;
+      clientPackageId: string;
+      packageName: string;
+      uniformSize: string | null;
+    }[];
   };
 }
 
@@ -851,6 +914,8 @@ export interface PortalHomeStudentDto extends PortalStudentRefDto {
     overallLevel: string | null;
     author: PortalCoachRefDto | null;
   } | null;
+  /** Required consent forms still to sign for this student (optional for cached homes). */
+  consentsMissing?: number;
 }
 
 /** Published news from the academy (filled by announcements, WS5). */
@@ -986,4 +1051,235 @@ export interface PortalMoneyDto {
 export interface PortalTeenInviteCreatedDto {
   invite: { id: string; status: InviteStatus; createdAt: number; expiresAt: number };
   link: string;
+}
+
+// --- Consents (WS4a) -----------------------------------------------------------------------------
+
+/** GET /api/v1/consent-documents: the academy's consent documents (drafts are inactive). */
+export interface ConsentDocumentDto {
+  id: string;
+  kind: ConsentKind;
+  title: string;
+  /** Plain text; blank lines separate paragraphs. */
+  body: string;
+  /** Goes up when the text changes after someone signed the current version. */
+  version: number;
+  required: boolean;
+  appliesTo: ConsentAppliesTo;
+  /** Off = a draft families don't see. */
+  active: boolean;
+  createdAt: number;
+  updatedAt: number;
+  /** Signatures of the current version. */
+  signedCurrent: number;
+  /** Signatures of any version (a document with signatures can't be deleted). */
+  signedTotal: number;
+}
+
+/** A signature as staff see it: who signed, as what, which version, when. */
+export interface ConsentSignatureDto {
+  id: string;
+  documentVersion: number;
+  /** The typed name (or the name on the paper form). */
+  signerName: string;
+  relation: ConsentSignerRelation;
+  signedAt: number;
+  /** Paper signatures: the staff member who recorded it. */
+  recordedBy: CoachRefDto | null;
+}
+
+/** One document for one student. */
+export interface ClientConsentDto {
+  document: {
+    id: string;
+    kind: ConsentKind;
+    title: string;
+    version: number;
+    required: boolean;
+    appliesTo: ConsentAppliesTo;
+  };
+  status: ConsentStatus;
+  /** The signature the status rests on (the latest one that counts), if any. */
+  signature: ConsentSignatureDto | null;
+}
+
+/** GET /api/v1/clients/:id/consents: the active documents that apply to the student. */
+export interface ClientConsentsDto {
+  clientId: string;
+  firstName: string;
+  /** Under 18 (or junior without a birth date): only a parent or guardian's signature counts. */
+  minor: boolean;
+  documents: ClientConsentDto[];
+  /** Required documents still to sign. */
+  missing: number;
+}
+
+/** A consent document in the family portal, with the text to read before signing. */
+export interface PortalConsentDocumentDto {
+  id: string;
+  kind: ConsentKind;
+  title: string;
+  body: string;
+  version: number;
+  required: boolean;
+  status: ConsentStatus;
+  signature: {
+    signerName: string;
+    relation: ConsentSignerRelation;
+    signedAt: number;
+    documentVersion: number;
+  } | null;
+}
+
+/** GET /api/portal/students/:clientId/consents. */
+export interface PortalConsentsDto {
+  academy: PortalAcademyRefDto;
+  student: { clientId: string; firstName: string; minor: boolean };
+  /** Whether the signed-in person may sign for this student, and as what. */
+  signer:
+    | { ok: true; relation: "guardian" | "self" }
+    | { ok: false; code: "needs_guardian" | "adult_signs"; message: string };
+  documents: PortalConsentDocumentDto[];
+  missing: number;
+}
+
+// --- Public academy page (WS4a) ------------------------------------------------------------------
+//
+// GET /api/public/academies/:slug: what anyone may see of a listed academy. Built field by field
+// (src/worker/lib/public-dto.ts) from published rows only: no clients, notes, internal
+// descriptions, staff emails or phones, user ids, unpublished programs or tiers, or payment details.
+
+/** A coach as the public page shows them (a profile they chose to make public). */
+export interface PublicCoachDto {
+  /** The coach profile's id (not the person's account id). */
+  id: string;
+  name: string;
+  title: string | null;
+  bio: string | null;
+  /** Public R2 key (`ws/<id>/public/coaches/…`): /api/public/files. */
+  photoKey: string | null;
+  certifications: string[];
+  specialties: string[];
+  languages: string[];
+  yearsCoaching: number | null;
+  duprRating: number | null;
+}
+
+export interface PublicCoachRefDto {
+  id: string;
+  name: string;
+  title: string | null;
+  photoKey: string | null;
+}
+
+export interface PublicVenueDto {
+  name: string;
+  address: string | null;
+}
+
+/** A weekly session of a program, from its recurring series. */
+export interface PublicWeeklySessionDto {
+  /** 0 = Sunday … 6 = Saturday. */
+  weekdays: number[];
+  /** Local HH:MM in the academy's time zone. */
+  startTime: string;
+  durationMinutes: number;
+  venue: PublicVenueDto | null;
+}
+
+/** A published program (a public training group). */
+export interface PublicProgramDto {
+  id: string;
+  name: string;
+  /** The program's public description (never its internal one). */
+  description: string | null;
+  level: string | null;
+  ageMin: number | null;
+  ageMax: number | null;
+  capacity: number | null;
+  /** A label the academy wrote, e.g. "Every Tue & Thu, 7–10pm"; shown instead of `schedule`. */
+  scheduleNote: string | null;
+  /** The program's weekly series that are running. */
+  schedule: PublicWeeklySessionDto[];
+  /** Its default venue. */
+  venue: PublicVenueDto | null;
+  /** Lead coach first; only coaches with public profiles. */
+  coaches: PublicCoachRefDto[];
+  /** Start of its next scheduled session (epoch ms), if any. */
+  nextSessionAt: number | null;
+}
+
+/** A published package tier with its price per head. */
+export interface PublicPackageDto {
+  id: string;
+  /** Its program, when the tier belongs to one (always a published program). */
+  programId: string | null;
+  name: string;
+  priceMinor: number;
+  /** Sessions it pays for (the upper bound of `sessionsLabel`). */
+  credits: number;
+  sessionsLabel: string | null;
+  validityMode: ValidityMode;
+  /** Days-based tiers only. */
+  validityDays: number | null;
+  inclusions: string[];
+  audience: string | null;
+  commitmentNote: string | null;
+  includesUniform: boolean;
+  asksSelfRating: boolean;
+  highlight: boolean;
+  /** A coach-specific tier, when that coach's profile is public. */
+  coach: PublicCoachRefDto | null;
+}
+
+/** A consent families sign when they enroll (titles here; texts from …/consents). */
+export interface PublicConsentRefDto {
+  id: string;
+  kind: ConsentKind;
+  title: string;
+  version: number;
+  appliesTo: ConsentAppliesTo;
+}
+
+export interface PublicConsentDocumentDto extends PublicConsentRefDto {
+  body: string;
+}
+
+export interface PublicAcademyDto {
+  slug: string;
+  name: string;
+  tagline: string | null;
+  about: string | null;
+  /** Public R2 keys: /api/public/files. */
+  logoKey: string | null;
+  coverKey: string | null;
+  contactPhone: string | null;
+  contactEmail: string | null;
+  address: string | null;
+  mapUrl: string | null;
+  socials: Partial<Record<AcademySocial, string>>;
+  policies: string | null;
+  enrollmentOpen: boolean;
+  /** How the academy formats prices, dates, and times. */
+  currency: string;
+  locale: string;
+  timezone: string;
+  weekStartsOn: number;
+  /** In the academy's order. */
+  programs: PublicProgramDto[];
+  /** Published tiers, in the academy's order (grouped by `programId` on the page). */
+  packages: PublicPackageDto[];
+  coaches: PublicCoachDto[];
+  /** Active, required consent documents (titles; the enrollment wizard reads the texts). */
+  consents: PublicConsentRefDto[];
+  /** Today in the academy's time zone (YYYY-MM-DD), for "as of" lines and start months. */
+  today: string;
+  updatedAt: number;
+}
+
+/** GET /api/v1/academy/public-preview: the same page for staff, also while it isn't listed. */
+export interface PublicAcademyPreviewDto extends PublicAcademyDto {
+  listed: boolean;
+  /** `${APP_URL}/a/<slug>`, or null without a public address yet. */
+  publicUrl: string | null;
 }

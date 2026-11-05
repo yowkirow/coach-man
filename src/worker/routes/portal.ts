@@ -3,6 +3,7 @@ import type { Context } from "hono";
 import { Hono } from "hono";
 import type {
   PortalAcademyDto,
+  PortalConsentsDto,
   PortalHomeDto,
   PortalHomeStudentDto,
   PortalMoneyDto,
@@ -11,15 +12,24 @@ import type {
   PortalStudentDto,
   PortalTeenInviteCreatedDto,
 } from "../../shared/api-types";
+import { consentApplies, portalSigner } from "../../shared/consents";
 import { checkTeenInvite } from "../../shared/family";
-import { portalRangeQuerySchema } from "../../shared/schemas";
+import { consentSignSchema, portalRangeQuerySchema } from "../../shared/schemas";
 import { addDays, daysBetween, startOfLocalDay, todayIn } from "../../shared/time";
-import { client, clientAccess, invite } from "../db/schema";
-import { ApiError, badRequest, forbidden, notFound } from "../lib/errors";
+import type { Db } from "../db/client";
+import { client, clientAccess, consentDocument, invite } from "../db/schema";
+import { ApiError, badRequest, conflict, forbidden, notFound } from "../lib/errors";
 import { toPortalSafety, toPortalStudent, toPortalStudentRef } from "../lib/portal-dto";
 import { canReadPortalFile, linkFor, type PortalLink, workspacesOf } from "../lib/portal-scope";
+import { clientIp } from "../lib/rate-limit";
 import { v } from "../lib/validate";
 import { originGuard, requirePortal } from "../middleware";
+import {
+  missingByClient,
+  portalConsentDocuments,
+  recordSignature,
+  studentIsMinor,
+} from "../services/consents";
 import { createFamilyInvite, familyAudit, revokeFamilyAccess } from "../services/family";
 import {
   academiesFor,
@@ -41,6 +51,26 @@ import {
 import type { AppBindings } from "../types";
 
 const studentNotFound = () => notFound("Student");
+
+/** The family's view of a student's consent forms (GET, and the answer to signing). */
+async function portalConsents(
+  db: Db,
+  link: PortalLink,
+  row: typeof client.$inferSelect,
+  today: string,
+): Promise<PortalConsentsDto> {
+  const [academy, consents] = await Promise.all([
+    academyRefFor(db, link.workspaceId),
+    portalConsentDocuments(db, row, today),
+  ]);
+  return {
+    academy,
+    student: { clientId: row.id, firstName: row.firstName, minor: consents.minor },
+    signer: portalSigner(link.relation, consents.minor, row.firstName),
+    documents: consents.documents,
+    missing: consents.missing,
+  };
+}
 
 /** The caller's link to the student in the path, and the student's row; 404 otherwise. */
 async function student(c: Context<AppBindings>) {
@@ -87,10 +117,11 @@ export const portalRoutes = new Hono<AppBindings>()
       const academy = academies.get(link.workspaceId);
       if (!row || !academy) continue;
       const today = todayIn(academy.timezone, now);
-      const [nextSession, credits, latestAssessment] = await Promise.all([
+      const [nextSession, credits, latestAssessment, consents] = await Promise.all([
         nextSessionFor(db, link, now),
         creditsFor(db, link, today),
         latestAssessmentFor(db, link),
+        missingByClient(db, link.workspaceId, [row], today),
       ]);
       home.push({
         ...toPortalStudentRef(row, link),
@@ -98,6 +129,7 @@ export const portalRoutes = new Hono<AppBindings>()
         credits,
         balanceMinor: balances.get(link.clientId) ?? 0,
         latestAssessment,
+        consentsMissing: consents.get(row.id) ?? 0,
       });
     }
     const body: PortalHomeDto = {
@@ -176,6 +208,53 @@ export const portalRoutes = new Hono<AppBindings>()
     ]);
     return c.json<PortalMoneyDto>({ academy, ...money });
   })
+
+  /**
+   * The academy's consent forms for this student: each one's text and where it stands, and
+   * whether the caller may sign (a parent for a minor, the student as an adult).
+   */
+  .get("/students/:clientId/consents", async (c) => {
+    const { link, row, today } = await student(c);
+    return c.json<PortalConsentsDto>(await portalConsents(c.var.db, link, row, today));
+  })
+
+  /** Signs one version of a form by typing a name; the IP address and device are kept with it. */
+  .post(
+    "/students/:clientId/consents/:documentId/sign",
+    v("json", consentSignSchema),
+    async (c) => {
+      const input = c.req.valid("json");
+      const { link, row, today } = await student(c);
+      const db = c.var.db;
+      const minor = studentIsMinor(row, today);
+      const signer = portalSigner(link.relation, minor, row.firstName);
+      if (!signer.ok) throw new ApiError(403, signer.code, signer.message);
+      const doc = await db.query.consentDocument.findFirst({
+        where: and(
+          eq(consentDocument.id, c.req.param("documentId")),
+          eq(consentDocument.workspaceId, link.workspaceId),
+          eq(consentDocument.active, true),
+        ),
+      });
+      if (!doc || !consentApplies(doc, minor)) throw notFound("Document");
+      if (doc.version !== input.version) {
+        throw conflict(
+          "This form changed since you opened it. Read the current version, then sign again.",
+        );
+      }
+      await recordSignature(db, {
+        workspaceId: link.workspaceId,
+        document: doc,
+        clientId: row.id,
+        signedByUserId: c.var.user.id,
+        signerName: input.signerName,
+        relation: signer.relation,
+        ipAddress: clientIp(c.req.raw.headers),
+        userAgent: c.req.header("User-Agent") ?? null,
+      });
+      return c.json<PortalConsentsDto>(await portalConsents(db, link, row, today), 201);
+    },
+  )
 
   /** A parent makes their teen's own login (13–17, by birth date): a single-use link, 7 days. */
   .post("/students/:clientId/teen-invite", async (c) => {

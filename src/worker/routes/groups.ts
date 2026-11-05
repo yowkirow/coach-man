@@ -2,7 +2,7 @@ import { and, asc, eq, gte, isNull, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import type { GroupDetailDto, GroupDto, SeriesDto } from "../../shared/api-types";
 import { uuidv7 } from "../../shared/ids";
-import { groupMembersSchema, groupSchema } from "../../shared/schemas";
+import { groupMembersSchema, groupSchema, reorderSchema } from "../../shared/schemas";
 import { todayIn } from "../../shared/time";
 import { client, groupMember, lesson, lessonSeries, trainingGroup } from "../db/schema";
 import { auditEntry } from "../lib/audit";
@@ -35,7 +35,27 @@ function toGroupDto(g: typeof trainingGroup.$inferSelect, members: number): Grou
     archivedAt: g.archivedAt,
     coachUserId: g.coachUserId,
     assistantCoachIds: g.assistantCoachIds ?? [],
+    isPublic: g.isPublic,
+    publicDescription: g.publicDescription,
+    scheduleNote: g.scheduleNote,
+    ageMin: g.ageMin,
+    ageMax: g.ageMax,
+    sortOrder: g.sortOrder,
   };
+}
+
+/** Ages on the public page read "9–14": the youngest can't be older than the oldest. */
+function checkAges(
+  input: { ageMin?: number | null; ageMax?: number | null },
+  current?: { ageMin: number | null; ageMax: number | null },
+) {
+  const min = input.ageMin === undefined ? (current?.ageMin ?? null) : input.ageMin;
+  const max = input.ageMax === undefined ? (current?.ageMax ?? null) : input.ageMax;
+  if (min !== null && max !== null && min > max) {
+    throw badRequest("Some fields need attention.", {
+      fields: { ageMax: "The oldest age can't be under the youngest." },
+    });
+  }
 }
 
 export function toSeriesDto(s: typeof lessonSeries.$inferSelect): SeriesDto {
@@ -54,6 +74,15 @@ export function toSeriesDto(s: typeof lessonSeries.$inferSelect): SeriesDto {
     coachUserId: s.coachUserId,
     assistantCoachIds: s.assistantCoachIds ?? [],
   };
+}
+
+/** Where a new program goes on the public page: after the others. */
+async function nextGroupOrder(ctx: Ctx): Promise<number> {
+  const [row] = await ctx.db
+    .select({ max: sql<number | null>`max(${trainingGroup.sortOrder})` })
+    .from(trainingGroup)
+    .where(eq(trainingGroup.workspaceId, ctx.workspaceId));
+  return row?.max === null || row?.max === undefined ? 0 : row.max + 10;
 }
 
 async function loadGroup(ctx: Ctx, id: string) {
@@ -84,19 +113,42 @@ export const groupRoutes = new Hono<AppBindings>()
   .post("/groups", requireCap("catalog"), v("json", groupSchema), async (c) => {
     const ctx = ctxOf(c);
     const input = c.req.valid("json");
+    checkAges(input);
     const id = input.id ?? uuidv7();
     // Whoever creates the group leads it unless the request names someone (or nobody).
     const coaches = await programCoaches(ctx, {
       coachUserId: input.coachUserId === undefined ? ctx.userId : input.coachUserId,
       assistantCoachIds: input.assistantCoachIds,
     });
+    const sortOrder = input.sortOrder ?? (await nextGroupOrder(ctx));
     await runBatch(ctx, [
       ctx.db
         .insert(trainingGroup)
-        .values({ ...input, ...coaches, id, workspaceId: ctx.workspaceId }),
+        .values({ ...input, ...coaches, id, sortOrder, workspaceId: ctx.workspaceId }),
       auditEntry(ctx, "create", "group", id),
     ]);
     return c.json(await loadGroup(ctx, id), 201);
+  })
+
+  /** Programs' order on the public page and the rates sheet. */
+  .post("/groups/reorder", requireCap("catalog"), v("json", reorderSchema), async (c) => {
+    const ctx = ctxOf(c);
+    const ids = unique(c.req.valid("json").ids);
+    const found = await ctx.db
+      .select({ id: trainingGroup.id })
+      .from(trainingGroup)
+      .where(and(eq(trainingGroup.workspaceId, ctx.workspaceId), inList(trainingGroup.id, ids)));
+    if (found.length !== ids.length) throw badRequest("Some groups were not found.");
+    await runBatch(ctx, [
+      ...ids.map((id, i) =>
+        ctx.db
+          .update(trainingGroup)
+          .set({ sortOrder: i * 10 })
+          .where(and(eq(trainingGroup.id, id), eq(trainingGroup.workspaceId, ctx.workspaceId))),
+      ),
+      auditEntry(ctx, "reorder", "group", null, { ids }),
+    ]);
+    return c.body(null, 204);
   })
 
   .get("/groups/:id", async (c) => {
@@ -160,6 +212,7 @@ export const groupRoutes = new Hono<AppBindings>()
       ),
     });
     if (!before) throw notFound("Group");
+    checkAges(input, before);
     const coaches = await programCoaches(ctx, input, before);
     const res = await ctx.db
       .update(trainingGroup)

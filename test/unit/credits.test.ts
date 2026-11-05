@@ -11,13 +11,19 @@ import {
 const pkg = (over: Partial<PackageWithRemaining>): PackageWithRemaining => ({
   id: "p",
   clientId: "c",
+  packageId: null,
   name: "10-session pack",
   creditsTotal: 10,
   remaining: 5,
   expiresOn: null,
   purchasedOn: "2026-01-01",
+  startMonth: null,
+  startsOn: "2026-01-01",
   status: "active",
   lessonKinds: [],
+  includesUniform: false,
+  uniformSize: null,
+  uniformIssuedAt: null,
   ...over,
 });
 

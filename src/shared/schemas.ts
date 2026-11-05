@@ -1,8 +1,11 @@
 import { z } from "zod";
+import { CONSENT_TEMPLATE_KINDS } from "./consent-templates";
 import {
   ACADEMY_SOCIALS,
   ATTENDANCE_STATUSES,
   CLIENT_STATUSES,
+  CONSENT_APPLIES_TO,
+  CONSENT_KINDS,
   EVENT_KINDS,
   EVENT_STATUSES,
   FAMILY_RELATIONS,
@@ -19,10 +22,12 @@ import {
   REGISTRATION_STATUSES,
   SCORE_MAX,
   SCORE_MIN,
+  VALIDITY_MODES,
 } from "./domain";
 import { UUID_RE } from "./ids";
 import { STAFF_ROLES } from "./roles";
 import { DATE_RE, isValidTimeZone, TIME_RE } from "./time";
+import { MONTH_RE } from "./validity";
 
 const id = z.string().regex(UUID_RE, "Invalid id");
 /** A Better Auth user id (a staff member's); membership is checked by the server. */
@@ -257,10 +262,21 @@ export const groupSchema = z.object({
   /** The program's lead coach; new sessions of the group start with it. */
   coachUserId: userId.nullable().optional(),
   assistantCoachIds: coachIds.optional(),
+  // A program on the academy's public page.
+  isPublic: z.boolean().optional(),
+  publicDescription: optionalText(1000),
+  /** Overrides the weekly sessions' days and times on the public page, e.g. "Every Tue & Thu, 7–10pm". */
+  scheduleNote: optionalText(80),
+  ageMin: z.number().int().min(3).max(100).nullable().optional(),
+  ageMax: z.number().int().min(3).max(100).nullable().optional(),
+  sortOrder: z.number().int().min(0).max(10_000).optional(),
 });
 export type GroupInput = z.infer<typeof groupSchema>;
 
 export const groupMembersSchema = z.object({ clientIds: z.array(id).min(1).max(200) });
+
+/** POST /groups/reorder and /packages/reorder: ids in their new order (public page order). */
+export const reorderSchema = z.object({ ids: z.array(id).min(1).max(200) });
 
 // --- Rates and packages ----------------------------------------------------
 
@@ -284,6 +300,23 @@ export const packageTemplateSchema = z.object({
   validityDays: z.number().int().min(1).max(3650).nullable().optional(),
   description: optionalText(500),
   active: z.boolean().optional(),
+  // Tier fields, as on a rates sheet.
+  programId: id.nullable().optional(),
+  /** A coach-specific tier. */
+  coachUserId: userId.nullable().optional(),
+  /** e.g. "4–6 sessions"; `credits` is the upper bound. */
+  sessionsLabel: optionalText(40),
+  /** `month_end`: valid to the end of the start month (validityDays is ignored). */
+  validityMode: z.enum(VALIDITY_MODES).optional(),
+  inclusions: z.array(trimmed(120).min(1)).max(20).optional(),
+  /** "Who it's for". */
+  audience: optionalText(300),
+  commitmentNote: optionalText(200),
+  includesUniform: z.boolean().optional(),
+  asksSelfRating: z.boolean().optional(),
+  isPublic: z.boolean().optional(),
+  highlight: z.boolean().optional(),
+  sortOrder: z.number().int().min(0).max(10_000).optional(),
 });
 export type PackageTemplateInput = z.infer<typeof packageTemplateSchema>;
 /** PATCH body: omitted session types stay as they are (see clientUpdateSchema). */
@@ -306,6 +339,10 @@ export const sellPackageSchema = z
     priceMinor: money.optional(),
     purchasedOn: date.optional(),
     expiresOn: date.nullable().optional(),
+    /** Month-end packages: the month it runs for (this month or next; this month by default). */
+    startMonth: z.string().regex(MONTH_RE, "Use YYYY-MM").optional(),
+    /** Packages that include the training uniform. */
+    uniformSize: optionalText(20),
     notes: optionalText(500),
     payment: z
       .object({
@@ -324,6 +361,12 @@ export const clientPackageUpdateSchema = z.object({
   expiresOn: date.nullable().optional(),
   notes: optionalText(500),
   status: z.enum(["active", "void"]).optional(),
+});
+
+/** PATCH /client-packages/:id/uniform: the size, and whether it was handed out (any staff). */
+export const uniformUpdateSchema = z.object({
+  uniformSize: optionalText(20),
+  issued: z.boolean().optional(),
 });
 
 export const creditAdjustSchema = z.object({
@@ -540,6 +583,38 @@ export const noteUpdateSchema = z.object({
   visibility: z.enum(NOTE_VISIBILITIES).optional(),
 });
 export type NoteUpdateInput = z.infer<typeof noteUpdateSchema>;
+
+// --- Consents ----------------------------------------------------------------
+
+const consentBody = z
+  .string()
+  .max(20_000, "Keep the text under 20,000 characters.")
+  .refine((v) => v.trim().length > 0, "Write the text families will sign.");
+
+/** POST /consent-documents (owners and admins). Plain text; blank lines separate paragraphs. */
+export const consentDocumentSchema = z.object({
+  kind: z.enum(CONSENT_KINDS),
+  title: trimmed(120).min(1, "Give the document a title."),
+  body: consentBody,
+  required: z.boolean().optional(),
+  appliesTo: z.enum(CONSENT_APPLIES_TO).optional(),
+  active: z.boolean().optional(),
+});
+export type ConsentDocumentInput = z.infer<typeof consentDocumentSchema>;
+/** PATCH: omitted fields stay; a changed text after signatures starts a new version. */
+export const consentDocumentUpdateSchema = consentDocumentSchema.partial();
+
+/** POST /consent-documents/templates: a starter document, added as a draft. */
+export const consentTemplateSchema = z.object({ kind: z.enum(CONSENT_TEMPLATE_KINDS) });
+
+/**
+ * Signing a version of a document by typing a name (family portal), or recording a paper form
+ * (staff). `version` is the one the signer read: a document changed since answers 409.
+ */
+export const consentSignSchema = z.object({
+  signerName: trimmed(120).min(2, "Type your full name to sign."),
+  version: z.number().int().min(1),
+});
 
 // --- Push ------------------------------------------------------------------
 

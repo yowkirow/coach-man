@@ -14,6 +14,7 @@ import { accountRoutes } from "./routes/account";
 import { catalogRoutes } from "./routes/catalog";
 import { clientRoutes } from "./routes/clients";
 import { coachRoutes } from "./routes/coaches";
+import { consentRoutes } from "./routes/consents";
 import { dataRoutes } from "./routes/data";
 import { eventRoutes } from "./routes/events";
 import { familyRoutes } from "./routes/family";
@@ -42,6 +43,7 @@ const v1 = new Hono<AppBindings>()
   .route("/", coachRoutes)
   .route("/", clientRoutes)
   .route("/", familyRoutes)
+  .route("/", consentRoutes)
   .route("/", groupRoutes)
   .route("/", catalogRoutes)
   .route("/", packageRoutes)

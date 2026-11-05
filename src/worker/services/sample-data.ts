@@ -206,12 +206,17 @@ export async function seedSampleData(ctx: Ctx): Promise<SampleIds> {
   const pPrivate10 = uuidv7();
   const pGroup10 = uuidv7();
   const pGroup5 = uuidv7();
-  ids.packages.push(pPrivate10, pGroup10, pGroup5);
+  // A sample program priced like a monthly rates sheet: a trial, and two month-end tiers.
+  const pTrial = uuidv7();
+  const pMonthly = uuidv7();
+  const pMonthlyPlus = uuidv7();
+  ids.packages.push(pPrivate10, pGroup10, pGroup5, pTrial, pMonthly, pMonthlyPlus);
 
   const gBeginners = uuidv7();
   const gIntermediate = uuidv7();
   const gJuniors = uuidv7();
-  ids.groups.push(gBeginners, gIntermediate, gJuniors);
+  const gEvening = uuidv7();
+  ids.groups.push(gBeginners, gIntermediate, gJuniors, gEvening);
 
   const clientIds = SAMPLE_CLIENTS.map(() => uuidv7());
   ids.clients.push(...clientIds);
@@ -273,73 +278,167 @@ export async function seedSampleData(ctx: Ctx): Promise<SampleIds> {
         unit: "session",
       },
     ]),
-    db.insert(packageTemplate).values([
-      {
-        id: pPrivate10,
-        workspaceId,
-        name: "10 private lessons",
-        credits: 10,
-        lessonKinds: ["private"],
-        priceMinor: price(540),
-        validityDays: 120,
-      },
-      {
-        id: pGroup10,
-        workspaceId,
-        name: "10-session pack",
-        credits: 10,
-        lessonKinds: ["group", "clinic"],
-        priceMinor: price(220),
-        validityDays: 90,
-      },
-      {
-        id: pGroup5,
-        workspaceId,
-        name: "5-session pack",
-        credits: 5,
-        lessonKinds: ["group", "clinic"],
-        priceMinor: price(115),
-        validityDays: 60,
-      },
-    ]),
-    db.insert(trainingGroup).values([
-      {
-        id: gBeginners,
-        workspaceId,
-        name: "Beginners",
-        level: "2.0–2.5",
-        color: "#dff04a",
-        capacity: 8,
-        defaultRateId: rGroup,
-        defaultVenueId: riverside,
-        description: "Fundamentals: serve, return, dinks, and kitchen-line basics.",
-        coachUserId: ctx.userId,
-      },
-      {
-        id: gIntermediate,
-        workspaceId,
-        name: "Intermediate drills",
-        level: "3.0–3.5",
-        color: "#7cc4ff",
-        capacity: 8,
-        defaultRateId: rGroup,
-        defaultVenueId: riverside,
-        description: "Third-shot drops, resets, and transition-zone work.",
-        coachUserId: ctx.userId,
-      },
-      {
-        id: gJuniors,
-        workspaceId,
-        name: "Juniors",
-        level: "Ages 9–14",
-        color: "#ffb020",
-        capacity: 10,
-        defaultRateId: rGroup,
-        defaultVenueId: northside,
-        description: "Weekend juniors program.",
-        coachUserId: ctx.userId,
-      },
-    ]),
+    // One statement per tier: a tier binds ~20 values, and D1 allows 100 per statement.
+    ...(
+      [
+        {
+          id: pPrivate10,
+          workspaceId,
+          name: "10 private lessons",
+          credits: 10,
+          lessonKinds: ["private"],
+          priceMinor: price(540),
+          validityDays: 120,
+        },
+        {
+          id: pGroup10,
+          workspaceId,
+          name: "10-session pack",
+          credits: 10,
+          lessonKinds: ["group", "clinic"],
+          priceMinor: price(220),
+          validityDays: 90,
+        },
+        {
+          id: pGroup5,
+          workspaceId,
+          name: "5-session pack",
+          credits: 5,
+          lessonKinds: ["group", "clinic"],
+          priceMinor: price(115),
+          validityDays: 60,
+        },
+        {
+          id: pTrial,
+          workspaceId,
+          name: "Trial",
+          description: "Sample tier.",
+          credits: 1,
+          lessonKinds: ["group"],
+          priceMinor: price(60),
+          validityDays: 30,
+          programId: gEvening,
+          sessionsLabel: "1 session",
+          validityMode: "days" as const,
+          inclusions: [
+            "One three-hour coached session",
+            "Drills and live play",
+            "Court fee included",
+          ],
+          audience: "Trying the program, or getting back into play.",
+          asksSelfRating: true,
+          isPublic: true,
+          sortOrder: 0,
+        },
+        {
+          id: pMonthly,
+          workspaceId,
+          name: "Monthly",
+          description: "Sample tier.",
+          credits: 6,
+          lessonKinds: ["group"],
+          priceMinor: price(240),
+          validityDays: null,
+          programId: gEvening,
+          sessionsLabel: "4–6 sessions",
+          validityMode: "month_end" as const,
+          inclusions: [
+            "Three-hour coached sessions",
+            "Drills, live play, and game review",
+            "Court fees included",
+            "Training shirt",
+          ],
+          audience: "Players getting ready for a tournament.",
+          includesUniform: true,
+          asksSelfRating: true,
+          isPublic: true,
+          sortOrder: 10,
+        },
+        {
+          id: pMonthlyPlus,
+          workspaceId,
+          name: "Monthly plus",
+          description: "Sample tier.",
+          credits: 9,
+          lessonKinds: ["group"],
+          priceMinor: price(280),
+          validityDays: null,
+          programId: gEvening,
+          sessionsLabel: "7–9 sessions",
+          validityMode: "month_end" as const,
+          inclusions: [
+            "Three-hour coached sessions",
+            "Drills, live play, and game review",
+            "Court fees included",
+            "Training shirt",
+          ],
+          audience: "Players working on their game over the long term.",
+          commitmentNote: "Best over at least two months.",
+          includesUniform: true,
+          asksSelfRating: true,
+          isPublic: true,
+          highlight: true,
+          sortOrder: 20,
+        },
+      ] satisfies (typeof packageTemplate.$inferInsert)[]
+    ).map((row) => db.insert(packageTemplate).values(row)),
+    ...(
+      [
+        {
+          id: gBeginners,
+          workspaceId,
+          name: "Beginners",
+          level: "2.0–2.5",
+          color: "#dff04a",
+          capacity: 8,
+          defaultRateId: rGroup,
+          defaultVenueId: riverside,
+          description: "Fundamentals: serve, return, dinks, and kitchen-line basics.",
+          coachUserId: ctx.userId,
+        },
+        {
+          id: gIntermediate,
+          workspaceId,
+          name: "Intermediate drills",
+          level: "3.0–3.5",
+          color: "#7cc4ff",
+          capacity: 8,
+          defaultRateId: rGroup,
+          defaultVenueId: riverside,
+          description: "Third-shot drops, resets, and transition-zone work.",
+          coachUserId: ctx.userId,
+        },
+        {
+          id: gJuniors,
+          workspaceId,
+          name: "Juniors",
+          level: "Ages 9–14",
+          color: "#ffb020",
+          capacity: 10,
+          defaultRateId: rGroup,
+          defaultVenueId: northside,
+          description: "Weekend juniors program.",
+          coachUserId: ctx.userId,
+        },
+        {
+          id: gEvening,
+          workspaceId,
+          name: "Evening program",
+          level: "All levels",
+          color: "#b3a8f5",
+          capacity: 16,
+          defaultRateId: rGroup,
+          defaultVenueId: riverside,
+          description: "Sample program: demo data you can remove in Settings.",
+          coachUserId: ctx.userId,
+          isPublic: true,
+          publicDescription:
+            "Sample program for trying CoachMan: three-hour evening sessions of drills, live play, and game review.",
+          ageMin: 10,
+          sortOrder: 0,
+        },
+      ] satisfies (typeof trainingGroup.$inferInsert)[]
+    ).map((row) => db.insert(trainingGroup).values(row)),
     ...chunkRows(
       SAMPLE_CLIENTS.map((c, i) => ({
         id: clientIds[i] as string,
@@ -638,6 +737,24 @@ export async function seedSampleData(ctx: Ctx): Promise<SampleIds> {
       rateId: rSemi,
       clientIds: [byName("Noah"), byName("Sam")],
       recurrence: null,
+    }),
+  );
+  // The sample program meets Tuesday and Thursday evenings, from the next one after today (so
+  // Today's sessions stay as they were).
+  let firstEvening = addDays(today, 1);
+  while (![2, 4].includes(weekdayOf(firstEvening))) firstEvening = addDays(firstEvening, 1);
+  track(
+    await createLessons(ctx, {
+      kind: "group",
+      date: firstEvening,
+      startTime: "19:00",
+      durationMinutes: 180,
+      venueId: riverside,
+      court: "1–2",
+      groupId: gEvening,
+      rateId: rGroup,
+      clientIds: [],
+      recurrence: { weekdays: [2, 4], endsOn: null },
     }),
   );
 

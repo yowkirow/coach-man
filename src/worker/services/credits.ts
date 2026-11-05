@@ -1,8 +1,10 @@
 import { and, asc, eq, inArray, sql } from "drizzle-orm";
+import type { PackageBalanceDto } from "../../shared/api-types";
 import type { AttendanceStatus, LessonKind } from "../../shared/domain";
 import { CONSUMING_STATUSES, LESSON_KIND_LABELS } from "../../shared/domain";
 import { uuidv7 } from "../../shared/ids";
-import { localDate } from "../../shared/time";
+import { compareDates, dateLabel, localDate } from "../../shared/time";
+import { coversDate, packageStartsOn } from "../../shared/validity";
 import { attendance, charge, clientPackage, creditLedger, lesson, rate } from "../db/schema";
 import { conflict, notFound } from "../lib/errors";
 import { inList } from "../lib/sql";
@@ -12,13 +14,22 @@ import { rebuildAllocations } from "./money";
 export interface PackageWithRemaining {
   id: string;
   clientId: string;
+  /** The template it was sold from (null for custom packages, or a deleted template). */
+  packageId: string | null;
   name: string;
   creditsTotal: number;
   remaining: number;
   expiresOn: string | null;
   purchasedOn: string;
+  /** Month-end packages: the month they run for (YYYY-MM). */
+  startMonth: string | null;
+  /** The first local date it can pay for a session. */
+  startsOn: string;
   status: string;
   lessonKinds: LessonKind[];
+  includesUniform: boolean;
+  uniformSize: string | null;
+  uniformIssuedAt: number | null;
 }
 
 // Correlated subqueries use explicit, table-qualified raw SQL: drizzle omits table names in
@@ -36,13 +47,18 @@ export async function packagesForClients(
     .select({
       id: clientPackage.id,
       clientId: clientPackage.clientId,
+      packageId: clientPackage.packageId,
       name: clientPackage.name,
       creditsTotal: clientPackage.creditsTotal,
       remaining: remainingExpr,
       expiresOn: clientPackage.expiresOn,
       purchasedOn: clientPackage.purchasedOn,
+      startMonth: clientPackage.startMonth,
       status: clientPackage.status,
       lessonKinds: clientPackage.lessonKinds,
+      includesUniform: clientPackage.includesUniform,
+      uniformSize: clientPackage.uniformSize,
+      uniformIssuedAt: clientPackage.uniformIssuedAt,
     })
     .from(clientPackage)
     .where(
@@ -55,7 +71,35 @@ export async function packagesForClients(
       ),
     )
     .orderBy(asc(clientPackage.purchasedOn));
-  return rows.map((r) => ({ ...r, remaining: Number(r.remaining) }));
+  return rows.map((r) => ({
+    ...r,
+    remaining: Number(r.remaining),
+    startsOn: packageStartsOn(r),
+  }));
+}
+
+/**
+ * A client's package as staff see it (no money: credits, dates, uniform). With `today`, an active
+ * package past its expiry reads as expired (the client page); without, the stored status.
+ */
+export function toPackageBalanceDto(p: PackageWithRemaining, today?: string): PackageBalanceDto {
+  return {
+    id: p.id,
+    name: p.name,
+    creditsTotal: p.creditsTotal,
+    remaining: p.remaining,
+    expiresOn: p.expiresOn,
+    status: (today && p.status === "active" && p.expiresOn && p.expiresOn < today
+      ? "expired"
+      : p.status) as PackageBalanceDto["status"],
+    lessonKinds: p.lessonKinds,
+    purchasedOn: p.purchasedOn,
+    startsOn: p.startsOn,
+    startMonth: p.startMonth,
+    includesUniform: p.includesUniform,
+    uniformSize: p.uniformSize,
+    uniformIssuedAt: p.uniformIssuedAt,
+  };
 }
 
 export function packageCovers(pkg: { lessonKinds: LessonKind[] }, kind: LessonKind): boolean {
@@ -63,19 +107,31 @@ export function packageCovers(pkg: { lessonKinds: LessonKind[] }, kind: LessonKi
   return pkg.lessonKinds.length === 0 || pkg.lessonKinds.includes(kind);
 }
 
-/** Usable packages for a lesson, earliest expiry first (first-expiring, first-used). */
-export function usablePackages(
-  packages: readonly PackageWithRemaining[],
-  kind: LessonKind,
-  onDate: string,
-): PackageWithRemaining[] {
+/**
+ * Usable packages for a lesson on a local date, earliest expiry first (first-expiring,
+ * first-used). A package pays only for sessions on a date within [its start, its expiry]: a
+ * month-end package bought for next month doesn't pay for this month's sessions.
+ */
+export function usablePackages<
+  P extends Pick<
+    PackageWithRemaining,
+    | "status"
+    | "remaining"
+    | "expiresOn"
+    | "purchasedOn"
+    | "startMonth"
+    | "lessonKinds"
+    | "id"
+    | "name"
+  >,
+>(packages: readonly P[], kind: LessonKind, onDate: string): P[] {
   return packages
     .filter(
       (p) =>
         p.status !== "void" &&
         p.status !== "expired" &&
         p.remaining > 0 &&
-        (p.expiresOn === null || p.expiresOn >= onDate) &&
+        coversDate(p, onDate) &&
         packageCovers(p, kind),
     )
     .sort((a, b) => {
@@ -86,6 +142,27 @@ export function usablePackages(
       }
       return a.purchasedOn < b.purchasedOn ? -1 : a.purchasedOn > b.purchasedOn ? 1 : 0;
     });
+}
+
+/** Why a package can't pay for a session on a date (for the refusal), or null when it can. */
+export function unusableReason(
+  p: Pick<
+    PackageWithRemaining,
+    "status" | "remaining" | "expiresOn" | "purchasedOn" | "startMonth" | "lessonKinds"
+  >,
+  kind: LessonKind,
+  onDate: string,
+  formatDate: (ymd: string) => string,
+): string | null {
+  if (p.status === "void") return "it was voided";
+  if (p.remaining <= 0) return "it has no credits left";
+  const startsOn = packageStartsOn(p);
+  if (compareDates(onDate, startsOn) < 0) return `it starts on ${formatDate(startsOn)}`;
+  if (p.status === "expired" || (p.expiresOn && compareDates(onDate, p.expiresOn) > 0)) {
+    return p.expiresOn ? `it expired on ${formatDate(p.expiresOn)}` : "it expired";
+  }
+  if (!packageCovers(p, kind)) return "it doesn't cover this kind of session";
+  return null;
 }
 
 export function statusConsumes(
@@ -204,9 +281,10 @@ async function applyAttendance(ctx: Ctx, input: AttendanceChange): Promise<Atten
     if (!chosen) throw notFound("Package");
     const alreadyHolds = current.type === "package" && current.id === chosen.id;
     if (!alreadyHolds && usablePackages([chosen], les.kind, lessonDate).length === 0) {
-      throw conflict(
-        `${chosen.name} can't pay for this session: no credits left, expired, or wrong type.`,
-      );
+      const why =
+        unusableReason(chosen, les.kind, lessonDate, (ymd) => dateLabel(ymd, settings.locale)) ??
+        "it can't be used for this session";
+      throw conflict(`${chosen.name} can't pay for this session: ${why}.`);
     }
   }
   let target = decideFunding({

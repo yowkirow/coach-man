@@ -1,13 +1,16 @@
 import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import type { PackageBalanceDto } from "../../shared/api-types";
+import type { ValidityMode } from "../../shared/domain";
 import { uuidv7 } from "../../shared/ids";
 import {
   clientPackageUpdateSchema,
   creditAdjustSchema,
   sellPackageSchema,
+  uniformUpdateSchema,
 } from "../../shared/schemas";
-import { addDays, todayIn } from "../../shared/time";
+import { monthLabel, todayIn } from "../../shared/time";
+import { saleTerms } from "../../shared/validity";
 import {
   charge,
   client,
@@ -17,10 +20,15 @@ import {
   payment,
 } from "../db/schema";
 import { auditEntry } from "../lib/audit";
-import { badRequest, notFound } from "../lib/errors";
+import { badRequest, conflict, notFound } from "../lib/errors";
 import { v } from "../lib/validate";
 import { ctxOf, requireCap } from "../middleware";
-import { packagesForClients, refreshPackageStatus, runBatch } from "../services/credits";
+import {
+  packagesForClients,
+  refreshPackageStatus,
+  runBatch,
+  toPackageBalanceDto,
+} from "../services/credits";
 import { rebuildAllocations } from "../services/money";
 import type { AppBindings, Ctx } from "../types";
 
@@ -31,15 +39,7 @@ async function packageDto(ctx: Ctx, clientId: string, id: string): Promise<Packa
   const all = await packagesForClients(ctx, [clientId], { includeInactive: true });
   const p = all.find((x) => x.id === id);
   if (!p) throw notFound("Package");
-  return {
-    id: p.id,
-    name: p.name,
-    creditsTotal: p.creditsTotal,
-    remaining: p.remaining,
-    expiresOn: p.expiresOn,
-    status: p.status as PackageBalanceDto["status"],
-    lessonKinds: p.lessonKinds,
-  };
+  return toPackageBalanceDto(p);
 }
 
 export const packageRoutes = new Hono<AppBindings>()
@@ -56,6 +56,9 @@ export const packageRoutes = new Hono<AppBindings>()
     let credits: number;
     let lessonKinds: (typeof clientPackage.$inferInsert)["lessonKinds"];
     let validityDays: number | null;
+    let validityMode: ValidityMode = "days";
+    let includesUniform = false;
+    let sessionsLabel: string | null = null;
     let price: number;
     let templateId: string | null = null;
     if (input.packageId) {
@@ -71,6 +74,9 @@ export const packageRoutes = new Hono<AppBindings>()
       credits = tpl.credits;
       lessonKinds = tpl.lessonKinds;
       validityDays = tpl.validityDays;
+      validityMode = tpl.validityMode;
+      includesUniform = tpl.includesUniform;
+      sessionsLabel = tpl.sessionsLabel;
       price = input.priceMinor ?? tpl.priceMinor;
     } else if (input.custom) {
       name = input.custom.name;
@@ -83,13 +89,23 @@ export const packageRoutes = new Hono<AppBindings>()
       throw badRequest("Choose a package.");
     }
 
-    const purchasedOn = input.purchasedOn ?? todayIn(ctx.settings.timezone);
-    const expiresOn =
-      input.expiresOn !== undefined
-        ? input.expiresOn
-        : validityDays
-          ? addDays(purchasedOn, validityDays - 1)
-          : null;
+    // Month-end packages run for one calendar month (this month or next), with no proration.
+    const today = todayIn(ctx.settings.timezone);
+    const sale = saleTerms({
+      validityMode,
+      validityDays,
+      today,
+      purchasedOn: input.purchasedOn,
+      startMonth: input.startMonth,
+      expiresOn: input.expiresOn,
+    });
+    if (!sale.ok) throw badRequest(sale.message, { fields: { [sale.field]: sale.message } });
+    const { purchasedOn, startMonth, expiresOn } = sale.terms;
+    const sessions = sessionsLabel ?? `${credits} ${credits === 1 ? "session" : "sessions"}`;
+    const description = startMonth
+      ? `${name} (${sessions}) · ${monthLabel(startMonth, ctx.settings.locale)}`
+      : `${name} (${sessions})`;
+
     const id = input.id ?? uuidv7();
     const statements: unknown[] = [
       ctx.db.insert(clientPackage).values({
@@ -103,10 +119,19 @@ export const packageRoutes = new Hono<AppBindings>()
         priceMinor: price,
         purchasedOn,
         expiresOn,
+        startMonth,
+        includesUniform,
+        uniformSize: includesUniform ? (input.uniformSize ?? null) : null,
         status: "active",
         notes: input.notes ?? null,
       }),
-      auditEntry(ctx, "sell", "client_package", id, { clientId, name, credits, price }),
+      auditEntry(ctx, "sell", "client_package", id, {
+        clientId,
+        name,
+        credits,
+        price,
+        ...(startMonth ? { startMonth } : {}),
+      }),
     ];
     if (price > 0) {
       statements.push(
@@ -115,7 +140,7 @@ export const packageRoutes = new Hono<AppBindings>()
           workspaceId: ctx.workspaceId,
           clientId,
           kind: "package",
-          description: `${name} (${credits} ${credits === 1 ? "session" : "sessions"})`,
+          description,
           amountMinor: price,
           clientPackageId: id,
           occurredOn: purchasedOn,
@@ -205,5 +230,36 @@ export const packageRoutes = new Hono<AppBindings>()
       refreshPackageStatus(ctx, [id]),
       auditEntry(ctx, "adjust", "client_package", id, input),
     ]);
+    return c.json(await packageDto(ctx, pkg.clientId, id));
+  })
+
+  /**
+   * The training uniform a package came with: its size, and whether it was handed out. Any staff
+   * member (it happens at the court); no money involved.
+   */
+  .patch("/client-packages/:id/uniform", v("json", uniformUpdateSchema), async (c) => {
+    const ctx = ctxOf(c);
+    const id = c.req.param("id");
+    const input = c.req.valid("json");
+    const pkg = await ctx.db.query.clientPackage.findFirst({
+      where: and(eq(clientPackage.id, id), eq(clientPackage.workspaceId, ctx.workspaceId)),
+    });
+    if (!pkg) throw notFound("Package");
+    if (!pkg.includesUniform) throw conflict("This package doesn't include a uniform.");
+    const set: Partial<typeof clientPackage.$inferInsert> = {};
+    if (input.uniformSize !== undefined) set.uniformSize = input.uniformSize;
+    if (input.issued !== undefined) {
+      set.uniformIssuedAt = input.issued ? (pkg.uniformIssuedAt ?? Date.now()) : null;
+    }
+    if (Object.keys(set).length) {
+      await runBatch(ctx, [
+        ctx.db.update(clientPackage).set(set).where(eq(clientPackage.id, id)),
+        auditEntry(ctx, "uniform", "client_package", id, {
+          clientId: pkg.clientId,
+          ...(input.uniformSize !== undefined ? { size: input.uniformSize } : {}),
+          ...(input.issued !== undefined ? { issued: input.issued } : {}),
+        }),
+      ]);
+    }
     return c.json(await packageDto(ctx, pkg.clientId, id));
   });

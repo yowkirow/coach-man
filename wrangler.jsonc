@@ -6,9 +6,12 @@
   "compatibility_date": "2026-09-15",
   // Better Auth needs AsyncLocalStorage.
   "compatibility_flags": ["nodejs_compat"],
+  // /a/* (the public academy page) runs the Worker too: it writes the academy's link-preview
+  // tags into the app shell, which it reads through the ASSETS binding.
   "assets": {
+    "binding": "ASSETS",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*"]
+    "run_worker_first": ["/api/*", "/a/*"]
   },
   "observability": { "enabled": true },
   "d1_databases": [

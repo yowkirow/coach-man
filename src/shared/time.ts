@@ -90,3 +90,29 @@ export function formatDuration(minutes: number): string {
   if (h === 0) return `${m} min`;
   return m === 0 ? `${h} h` : `${h} h ${m} min`;
 }
+
+function calendarLabel(
+  ymd: string,
+  locale: string,
+  options: Intl.DateTimeFormatOptions,
+  fallback: string,
+): string {
+  const [y, m, d] = parts(ymd);
+  try {
+    return new Intl.DateTimeFormat(locale, { ...options, timeZone: "UTC" }).format(
+      Date.UTC(y, m - 1, d),
+    );
+  } catch {
+    return fallback;
+  }
+}
+
+/** "Dec 1, 2026" for a local date in the academy's locale (the ISO date if the locale is unknown). */
+export function dateLabel(ymd: string, locale: string): string {
+  return calendarLabel(ymd, locale, { day: "numeric", month: "short", year: "numeric" }, ymd);
+}
+
+/** "December 2026" for a YYYY-MM month in the academy's locale. */
+export function monthLabel(ym: string, locale: string): string {
+  return calendarLabel(`${ym}-01`, locale, { month: "long", year: "numeric" }, ym);
+}

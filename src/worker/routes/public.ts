@@ -1,13 +1,18 @@
 import { Hono } from "hono";
+import type { PublicAcademyDto, PublicConsentDocumentDto } from "../../shared/api-types";
 import { notFound } from "../lib/errors";
 import { limitByIp } from "../lib/rate-limit";
 import { PUBLIC_KEY_RE } from "../lib/uploads";
+import { loadPublicAcademy, loadPublicConsents } from "../services/public-academy";
 import type { AppBindings } from "../types";
 
+/** Published data changes rarely and is the same for everyone: browsers and caches keep it a minute. */
+const PUBLIC_DATA_CACHE = "public, max-age=60";
+
 /**
- * Unauthenticated reads (/api/public, rate-limited). For now, the academy's public images (logo,
- * payment QR, coach photos) under ws/<id>/public/, which invite pages show before anyone signs in.
- * The public academy page's data API joins this router later (WS4).
+ * Unauthenticated reads (/api/public, rate-limited per connection): the academy's public images
+ * (logo, payment QR, coach photos) under ws/<id>/public/, and a listed academy's public page data.
+ * Unlisted academies, legacy `ws-…` addresses, and unknown ones all answer the same 404.
  */
 export const publicRoutes = new Hono<AppBindings>()
   .use("*", limitByIp("public", { windowMs: 60_000, max: 300 }))
@@ -31,4 +36,20 @@ export const publicRoutes = new Hono<AppBindings>()
         "X-Content-Type-Options": "nosniff",
       },
     });
+  })
+
+  /** The public academy page: profile, programs, tiers with prices, coaches, consent titles. */
+  .get("/academies/:slug", async (c) => {
+    const found = await loadPublicAcademy(c.var.db, { slug: c.req.param("slug") });
+    if (!found) throw notFound("Academy");
+    c.header("Cache-Control", PUBLIC_DATA_CACHE);
+    return c.json<PublicAcademyDto>(found.academy);
+  })
+
+  /** The texts of the active required consents, which families read before enrolling (WS4b). */
+  .get("/academies/:slug/consents", async (c) => {
+    const docs = await loadPublicConsents(c.var.db, c.req.param("slug"));
+    if (!docs) throw notFound("Academy");
+    c.header("Cache-Control", PUBLIC_DATA_CACHE);
+    return c.json<PublicConsentDocumentDto[]>(docs);
   });

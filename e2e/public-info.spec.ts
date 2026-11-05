@@ -12,7 +12,7 @@ const SIGNED_OUT = new Set(["401 GET /api/account", "401 GET /api/v1/me"]);
 test.describe("CoachMan's public pages", () => {
   test.use({ serviceWorkers: "block" });
 
-  test("/about, /privacy, and /terms read signed out", async ({ page }) => {
+  test("/about, /privacy, and /terms read signed out", { tag: "@smoke" }, async ({ page }) => {
     const errors = watchErrors(page);
     const { contactEmail } = (await (await page.request.get("/api/public/config")).json()) as {
       contactEmail: string;

@@ -129,7 +129,9 @@ test.describe("on court", () => {
 });
 
 test.describe("first run", () => {
-  test("signed-out visitors meet CoachMan first, and sign in from there", async ({ page }) => {
+  test("signed-out visitors meet CoachMan first, and sign in from there", {
+    tag: "@smoke",
+  }, async ({ page }) => {
     await page.goto("/");
     await expect(page).toHaveURL(/\/about$/);
     await page.getByRole("link", { name: "Sign in", exact: true }).first().click();

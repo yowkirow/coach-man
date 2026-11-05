@@ -88,7 +88,7 @@ async function otherAcademy(
 }
 
 test.describe("family portal privacy", () => {
-  test("no portal answer carries private notes, internal fields, other students, or another academy", async ({
+  test("no portal answer carries private notes, internal fields, other students, or another academy @smoke", async ({
     request,
     seeded,
     personas,

@@ -10,9 +10,9 @@ import { expect, onboard, test, uuid } from "./support";
 test.describe("credits and money", () => {
   test.skip(({ isMobile }) => isMobile, "API flows run once (desktop project)");
 
-  test("sell, check in, replay, undo, and pay keep credits and balance honest", async ({
-    coach,
-  }) => {
+  test("sell, check in, replay, undo, and pay keep credits and balance honest", {
+    tag: "@smoke",
+  }, async ({ coach }) => {
     const { api } = coach;
     await onboard(api);
     const tpl = await api.post<{ id: string }>("/packages", {
@@ -169,7 +169,9 @@ test.describe("credits and money", () => {
 test.describe("test bypass gate", () => {
   test.skip(({ isMobile }) => isMobile, "Runs once");
 
-  test("test endpoints are invisible without the secret", async ({ request }) => {
+  test("test endpoints are invisible without the secret", { tag: "@smoke" }, async ({
+    request,
+  }) => {
     const res = await request.post("/api/test/sign-in", {
       data: { email: "intruder@example.com" },
     });

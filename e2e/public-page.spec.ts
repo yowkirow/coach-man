@@ -117,7 +117,7 @@ const PROFILE = {
 };
 
 test.describe("the public academy page", () => {
-  test("a listed academy shows its program, tiers, coaches, and contact, and nothing unpublished", async ({
+  test("a listed academy shows its program, tiers, coaches, and contact, and nothing unpublished @smoke", async ({
     browser,
     seeded,
   }, info) => {

@@ -43,6 +43,9 @@ jobs:
   smoke:
     name: Smoke test staging
     needs: deploy
+    # Skipped until the STAGING_URL repository variable is set. The run also needs the staging
+    # bypass (E2E_AUTH_BYPASS=1 and E2E_BYPASS_SECRET on the staging Worker, the same secret as
+    # STAGING_E2E_BYPASS_SECRET here); without that secret the steps below are skipped with a note.
     if: ${{ (inputs.environment || 'staging') == 'staging' && vars.STAGING_URL != '' }}
     runs-on: ubuntu-latest
     env:
@@ -51,11 +54,33 @@ jobs:
       CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
       CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
     steps:
+      - name: Check the bypass secret
+        id: ready
+        run: |
+          if [ -z "$E2E_BYPASS_SECRET" ]; then
+            echo "::notice::Smoke test skipped: set the STAGING_E2E_BYPASS_SECRET secret (and the bypass on the staging Worker) to run it."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
       - uses: actions/checkout@v4
+        if: steps.ready.outputs.run == 'true'
       - uses: actions/setup-node@v4
+        if: steps.ready.outputs.run == 'true'
         with:
           node-version: 22
           cache: npm
       - run: npm ci
+        if: steps.ready.outputs.run == 'true'
       - run: npx playwright install --with-deps chromium
-      - run: npx playwright test e2e/api.spec.ts --project=desktop
+        if: steps.ready.outputs.run == 'true'
+      # Health, the public pages, sign-in, /about /privacy /terms, a role check, a portal leak
+      # check, and the academy journey (tests tagged @smoke), on the desktop project.
+      - run: npm run test:smoke
+        if: steps.ready.outputs.run == 'true'
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: smoke-report
+          path: playwright-report
+          retention-days: 7

@@ -168,6 +168,9 @@ test(
           });
           await toggle(published);
           await expect(published).toBeChecked();
+          // The switch flips at once; wait for the server to confirm before the page reloads, or
+          // a slower network (a deployed environment) loses the save mid-flight.
+          await expect(o.getByText("Evening program is on your academy page")).toBeVisible();
           await expect(
             o.getByRole("list", { name: "Evening program tiers" }).getByRole("listitem"),
           ).toHaveCount(3);
@@ -380,6 +383,16 @@ test(
           await expect(
             c.getByRole("button", { name: /^Mia Santos: Checked in\. 5 of 6 left · Monthly\./ }),
           ).toBeVisible();
+          // Check-in shows at once (it works offline); wait for the server to record it before the
+          // page reloads, so a slower network can't lose it mid-flight.
+          await expect
+            .poll(async () => {
+              const detail = await coach.api.get<LessonDetailDto>(
+                `/lessons/${session.lesson.lesson.id}`,
+              );
+              return detail.roster.find((r) => r.clientId === mia.clientId)?.status;
+            })
+            .toBe("present");
           expect(await c.locator("body").innerText()).not.toContain("₱");
 
           await visit(c, `/clients/${mia.clientId}?tab=progress`);

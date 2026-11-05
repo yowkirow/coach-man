@@ -14,6 +14,7 @@ import { METHODS, PAY_INSTRUCTIONS, sendProofOk } from "./proof-support";
 import {
   localParts,
   pushes,
+  runFamilySweeps,
   runReminders,
   type SinkPush,
   setFamilyPrefs,
@@ -29,6 +30,7 @@ import {
   bornYearsAgo,
   type Coach,
   expect,
+  lastDayOfMonth,
   linkFamily,
   type Personas,
   portalCall,
@@ -184,6 +186,56 @@ test.describe("family reminders", () => {
     expect(all.filter(tagged(`enrollment:${requestId}`))).toHaveLength(1);
     expect(all.filter((p) => p.payload.title === "Payment confirmed")).toHaveLength(1);
     expect(all.every((p) => p.payload.url.startsWith("/my"))).toBe(true);
+  });
+
+  test("near the end of the month, a monthly family is reminded to renew, once, unless they already did", async ({
+    seeded,
+    personas,
+  }, info) => {
+    test.skip(info.project.name !== "desktop", "An API flow: one browser is enough");
+    test.slow();
+    const setup = await openEnrollment(seeded, info);
+    // Two families on Monthly for this month; Lee has already asked to renew.
+    const enrolled = async (label: string, parentName: string, child: string) => {
+      const parent = await personas.open({
+        email: testEmail(label, info),
+        name: parentName,
+        persona: "none",
+      });
+      const request = parent.context.request;
+      await subscribeFamily(request);
+      const sent = await sendOk(
+        request,
+        newChildBody(setup, {
+          firstName: child,
+          lastName: parentName.split(" ")[1],
+          birthDate: bornYearsAgo(12),
+          startMonth: setup.thisMonth,
+        }),
+      );
+      await seeded.api.post(`/enrollments/${sent.request.id}/approve`, {});
+      return { request, userId: await userIdOf(request), clientId: sent.clientId };
+    };
+    const pat = await enrolled("push-renew-a", "Pat Santos", "Mia");
+    const lee = await enrolled("push-renew-b", "Lee Reyes", "Leo");
+    const renewed = await portalCall(lee.request, "POST", `/students/${lee.clientId}/renew`, {});
+    expect(renewed.status, renewed.text).toBe(201);
+
+    // The daily sweep on the month's last day (11:15 in Manila): Mia's Monthly ends today with
+    // nothing for next month. The reminder names the child and the tier, never a price, and opens
+    // /my. The sweep has sent everything by the time its answer comes back.
+    const lastDay = Date.parse(`${lastDayOfMonth(setup.thisMonth)}T03:15:00Z`);
+    await runFamilySweeps(seeded.request, lastDay);
+    const isReminder = (p: SinkPush) => p.payload.title === "Renew for next month";
+    const [reminder] = await pushes(seeded.request, pat.userId, isReminder);
+    expect(reminder?.payload).toMatchObject({ url: "/my", tag: `renewal:${setup.nextMonth}` });
+    expect(reminder?.payload.body).toContain("Mia's Monthly ends on");
+    expect(JSON.stringify(reminder?.payload)).not.toMatch(/₱|PHP|Santos/);
+    expect((await sinkOf(seeded.request, lee.userId)).items.filter(isReminder)).toEqual([]);
+
+    // A later run doesn't send it again.
+    await runFamilySweeps(seeded.request, lastDay + 60_000);
+    expect((await sinkOf(seeded.request, pat.userId)).items.filter(isReminder)).toHaveLength(1);
   });
 
   test("shared comments and assessments notify the family; staff-only notes never do", async ({

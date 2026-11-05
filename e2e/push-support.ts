@@ -127,6 +127,20 @@ export async function runReminders(
   };
 }
 
+/**
+ * The daily family sweeps (renewal reminders, one session left, packages ending) as of `at`. They
+ * run across every academy, so a test aims `at` at a moment its own families are due and asserts
+ * only on its own people.
+ */
+export async function runFamilySweeps(request: APIRequestContext, at: number) {
+  const res = await request.post("/api/test/run-family-sweeps", {
+    headers: bypass(),
+    data: { at },
+  });
+  expect(res.ok(), await res.text()).toBe(true);
+  return (await res.json()) as { sent: number };
+}
+
 /** Local date and HH:MM of an instant in a time zone (what the lesson API takes). */
 export function localParts(ms: number, timeZone: string): { date: string; time: string } {
   const parts = Object.fromEntries(

@@ -11,7 +11,8 @@ CoachMan (short for *coach manager*) is an installable web app for pickleball ac
 - **Packages and rates**: a rate card, credit packages with validity, earliest-expiry-first usage, an auditable credit ledger, and manual adjustments.
 - **Groups and events**: classes with members and weekly series; camps, academies, clinics, tournaments, and socials with registrations, a waitlist, early-bird pricing, and their own sessions.
 - **Money**: charges and payments (cash, transfer, card, e-wallet), oldest-first allocation, balances, monthly summaries, and CSV exports.
-- **Sign-in**: Google creates the account; passkeys give one-tap sign-in afterwards.
+- **Sign-in**: Google creates the account; passkeys give one-tap sign-in afterwards. Parents and students without Google can make a passkey-only account from their invite.
+- **Family portal**: students and parents follow sessions and attendance, shared progress and coaches' comments, coaches, packages, credits, and payments under their academy's name and logo, on a phone or a laptop.
 - **PWA**: installable, offline reads, offline-queued check-ins and notes that sync with idempotency keys, push reminders and a daily digest.
 - **Import**: bring clients over from a spreadsheet (CSV with column mapping, preview, and duplicate detection).
 
@@ -38,7 +39,7 @@ Coaches never receive money from the API: money-only routes answer 403, and ever
 Nobody gets an academy just by signing in. After sign-in:
 
 - **Staff** (a member of at least one academy) land in the staff app. Staff of more than one academy switch between them in Settings or More.
-- **Families** (a student or parent linked to a student) land in the family portal at `/my`.
+- **Families** (a student or parent linked to a student) land in the family portal at `/my`. Someone who is both (a coach who is also a parent) gets **My family** in the staff app's Settings and More, and **Coach view** in the portal's header.
 - **Everyone else** lands on `/welcome`: "Set up CoachMan for my coaching or academy" creates their own workspace and continues to onboarding; students and parents are pointed to their academy's invite link or page.
 
 The account endpoints work without a workspace:
@@ -73,10 +74,10 @@ The person opens the link, signs in with Google (or a passkey they already have)
 | `PATCH /api/v1/team/members/:userId` | `{ role }` (`team`; owners only for anything owner) |
 | `DELETE /api/v1/team/members/:userId` | Removes someone: their current students and upcoming sessions lose them as coach (`team`) |
 | `POST /api/v1/team/transfer-ownership` | `{ userId }`: they become an owner, you an admin (`ownership`) |
-| `GET /api/invites/:token` | Public preview: academy name and logo, role, and whether the link still works |
-| `POST /api/invites/:token/accept` | Signed in: joins the academy (staff invites; family invites arrive with the portal) |
+| `GET /api/invites/:token` | Public preview: academy name and logo, role (staff) or student's first name and relation (family), and whether the link still works |
+| `POST /api/invites/:token/accept` | Signed in: joins the academy (staff invites) or links the account to the student (family invites, see below) |
 
-Both `/api/invites` routes are rate-limited per IP address.
+Invite tokens are 256-bit random values, so guessing one isn't practical; the limits make sure nobody tries. Lookups of tokens that don't exist are counted (20 per 10 minutes: per signed-in account when accepting, per connection for previews and passkey accounts), and once that's used up every lookup from there is refused for a while. Real links are counted per invite (60 previews a minute) and per invite and account (10 accepts a minute) instead of per IP address, so a mobile carrier that puts many families behind one address can't lock them out.
 
 ### Coach profiles
 
@@ -92,6 +93,70 @@ Every staff member has a coach profile (Settings → **My coach profile**): the 
 ### Coach comments
 
 Notes on a student show who wrote them and when. They're for coaches only unless the author turns on **Share with student & parents**, which says plainly who will see the note (the family portal shows only shared notes). Only the author changes a note's words or sharing (the note is then marked edited); the author, an owner, or an admin may delete it. When a student's primary coach changes, the app offers to write a **handoff note**, which is always coaches only, whatever the request asks. The Progress tab's coaching timeline puts every coach's notes, assessments, and goals in one list, with a filter by coach. Assessments are shared with the family by default; a "Visible to student & parents" switch holds one back.
+
+### Family access and invites
+
+A student's profile has a **Family access** card (owners and admins, `familyAccess`): who is linked (name, parent or student, since when, how they sign in), waiting links, and two buttons, **Invite parent / guardian** and **Invite student (own login)**. Each makes a single-use link, `${APP_URL}/join/<token>`, valid for seven days and shown once (only its SHA-256 is stored), with Copy, Share, and a message ready to paste into Messenger, Viber, or a text. No email is sent. Links can be withdrawn, and anyone's access can be revoked; every invite, acceptance, grant, and revoke is written to the audit log.
+
+The age rules (`checkFamilyAccess` in `src/shared/family.ts`) apply when a link is made and again when it's used:
+
+| Student | Parent or guardian link | Student's own login |
+| --- | --- | --- |
+| Under 13 | ✓ | Refused: "Students under 13 don't get their own login" |
+| 13 to 17 | ✓ | Only once a parent is linked ("A teen's own login needs a parent linked first") |
+| 18 and over | Refused: adults sign in themselves | ✓ |
+| No birth date, marked junior | ✓ | Refused until a birth date is added |
+| No birth date, not junior | Refused (treated as an adult) | ✓ |
+
+The card says why a button is unavailable. Parents' links don't replace each other (two parents can both be invited); a new own-login link withdraws the student's previous one. Revoking a minor's last parent also ends the teen's own login, and the confirmation says so.
+
+Opening a family link shows the academy's name and logo, the student's first name, and the relation. Signed out, the person can **Continue with Google** (back to the link afterwards), **Create a passkey account** (no Google needed, see below), or sign in with a passkey they already have. Signed in (staff too: people can be both), **Accept invite** links the account and opens `/my`. Accepting re-checks the age rules; someone who already follows the student is told so and the link stays unused for the next person; used, expired, and withdrawn links answer 410 and say so.
+
+A parent of a 13 to 17 year old can make the teen's own login link from the portal (**Settings → Your children's own logins**, same rules and link), see it waiting, withdraw it, and end the teen's login later. Parents can't revoke another parent; the academy can revoke anyone.
+
+| Endpoint | Does |
+| --- | --- |
+| `GET /api/v1/clients/:id/family` | Linked accounts, waiting (and recently expired) links, and which invites the rules allow now (`familyAccess`) |
+| `POST /api/v1/clients/:id/family/invites` | `{ relation: "guardian" \| "self" }` → `{ invite, link }`, or 409 with the rule that refused it |
+| `DELETE /api/v1/clients/:id/family/invites/:inviteId` | Withdraws a link |
+| `DELETE /api/v1/clients/:id/family/access/:accessId` | Revokes someone's access |
+
+### The family portal
+
+`/my` is a calmer, phone-first app under the academy's own logo and name (not recolored), with a floating tab bar on phones and the same places in the header on a laptop:
+
+- **Home**: a greeting, and for each linked student the next session, credits left with their expiry, and the balance (linking to Payments); the latest comments coaches shared; announcements (an empty state until academies can post them); and each academy's contact card.
+- **Progress**: skill bars from shared assessments (with the previous score), the overall level, goals, the rating history, and the shared comments timeline with coach names and dates.
+- **Schedule**: sessions ahead (the next one highlighted) and past ones with attendance, with venue, court, and lead coach.
+- **Coaches**: the student's coaches with photo and title; bio, certifications, specialties, and languages only when the coach's profile is public.
+- **Payments**: the balance, packages with credits and expiry, the history of charges and payments, and **How to pay** with the academy's instructions and QR code.
+- **Profile**: basics and the health and emergency summary, read-only (the academy updates it).
+- **Settings**: passkeys (add, remove; a passkey-only account keeps its last one), linking Google, teen logins for parents, installing the app (with iOS steps), and signing out. **More** gathers Coaches, Profile, Settings, the academy, and Coach view for staff.
+
+Several students, in one academy or several, switch from the student pages; the header follows the current student's academy. Money, dates, and times use each academy's currency, locale, and time zone. The portal only reads `/api/account` and `/api/portal` (families get 403 from `/api/v1`). Its pages persist offline like the staff app's, under keys that carry the person's id; the cache-owner check clears a previous person's data on a shared phone, and data of students someone is no longer linked to is dropped once the server says so.
+
+`/api/portal` scopes every query to the caller's active links: unknown and unlinked ids answer 404 (never 403), signed out answers 401, and someone linked to nobody gets an empty home. Every answer is built by family-safe mappers (`src/worker/lib/portal-dto.ts`), never from a staff DTO: no coaches-only or handoff notes, unshared assessments, internal client notes, tags, or source, no lesson, attendance, registration, package, or payment notes, no other students (session titles never name other players), no coach emails, phones, or user ids, and nothing from another academy. A student's level is the latest shared assessment's.
+
+| Endpoint | Does |
+| --- | --- |
+| `GET /api/portal/home` | Per student: next session, credits, balance, latest shared assessment; latest shared comments; academies; announcements |
+| `GET /api/portal/academies/:workspaceId` | The academy's profile: contact, address and map, socials, policies, payment instructions and QR |
+| `GET /api/portal/students/:clientId` | Basics, health and emergency details, current coaches, programs, and (parents) the teen-login state |
+| `GET /api/portal/students/:clientId/schedule?from&to` | Sessions with this student's attendance (default: 90 days back to 60 ahead; at most 400 days) |
+| `GET /api/portal/students/:clientId/progress` | Skills, shared assessments, goals, ratings, shared comments |
+| `GET /api/portal/students/:clientId/money` | Balance, packages, charges, payments (voided ones left out) |
+| `POST /api/portal/students/:clientId/teen-invite` | A parent makes their 13 to 17 year old's own-login link |
+| `DELETE /api/portal/students/:clientId/teen-invites/:inviteId` | A parent withdraws it |
+| `DELETE /api/portal/students/:clientId/access/:accessId` | A parent ends their teen's own login (only `self` access) |
+| `GET /api/portal/files/<key>` | Photos of the caller's own students, and their academies' public images; nothing else |
+
+### Passkey-only accounts
+
+Parents and students without Google can create an account from a family invite with just their name: `POST /api/auth/passkey-account/start { name, inviteToken }` (a Better Auth plugin endpoint; rate-limited, and refused without a family invite that still works) creates a user with a placeholder address, `u-<uuid>@passkey.coachman.invalid` (unverified, and never accepted by a staff invite), and signs them in; the page then adds the device's passkey and accepts the invite. If the passkey isn't made (cancelled, or the device can't), the page calls `POST /api/auth/passkey-account/abandon`, which deletes the empty account, and says so. A placeholder account can't accept an invite without a passkey or Google, and the daily maintenance deletes placeholder accounts older than a day that have no passkey, no family link, and no academy.
+
+**Linking Google later:** portal Settings offers **Link Google** to passkey-only accounts (only to them: `/api/auth/link-social` answers 403 to everyone else). After Google's page, the account's placeholder address and name become the Google account's verified address and name. A Google account that already belongs to another CoachMan account is refused with a clear message.
+
+**Recovery:** someone without Google who loses every passkey asks the academy for a fresh invite link, makes a new passkey account with it, and the academy revokes the old account's access from the Family access card. Linking Google, or adding a passkey on a second device, avoids this.
 
 ## Suggested next steps
 
@@ -115,7 +180,7 @@ The academy release (roles, team invites, coach profiles and assignments, the fa
 | API | Hono, Zod validation, typed DTOs shared with the app (`src/shared`) |
 | Data | Cloudflare D1 (SQLite) with Drizzle; R2 for client photos and academy images (logos, payment QR codes, coach photos) |
 | Auth | Better Auth: Google OAuth plus passkeys (WebAuthn); staff roles per academy, and a separate family portal |
-| Jobs | Cron triggers: reminders and digests every 5 minutes, maintenance daily |
+| Jobs | Cron triggers: reminders and digests every 5 minutes, maintenance daily (including removing abandoned passkey-only accounts) |
 | App | React 19, Vite, TanStack Router and Query, React Aria Components, Tailwind CSS 4 |
 | Offline | Workbox service worker, IndexedDB-persisted query cache, paused mutations resume on reconnect |
 
@@ -176,8 +241,8 @@ Vars live in `wrangler.jsonc` per environment; secrets go in `.dev.vars` locally
 ```bash
 npm run lint          # Biome
 npm run typecheck     # tsc -b (app, service worker, worker, tooling)
-npm run test:unit     # Vitest: credits, allocation, recurrence, money/time, bypass gate, roles, redaction, tokens, age rules, invites, team rules, coach changes, notes, reminders
-npm run test:e2e      # Playwright: API golden paths, roles and routing, team and invites, coaching, Today check-in/undo, offline sync, passkeys, axe
+npm run test:unit     # Vitest: credits, allocation, recurrence, money/time, bypass gate, roles, redaction, tokens, age rules, invites (staff and family), passkey-only accounts and their cleanup, Google linking, portal DTOs and scoping, team rules, coach changes, notes, reminders
+npm run test:e2e      # Playwright: API golden paths, roles and routing, team and invites, family invites and age rules, the family portal and what it never shows, passkey-only accounts, coaching, Today check-in/undo, offline sync, passkeys, axe
 ```
 
 ### The Playwright auth bypass
@@ -208,6 +273,11 @@ Tests that need more than one person use personas, each in its own browser conte
 | `POST /api/test/family { clientId, email, name, relation, force? }` | Links a user (created if new) to one of the caller's students as `self` or `guardian`; the portal's age rules apply unless `force` |
 | `POST /api/test/seed`, `POST /api/test/reset` | Sample data in the caller's workspace; deletes the workspaces the caller owns |
 | `POST /api/test/expire-invite { inviteId }` | Makes one of the caller's academy's invites expire now (they otherwise last seven days) |
+| `POST /api/test/audit` | The caller's academy's audit log, newest first |
+| `POST /api/test/user-exists { userId }` | Whether an account still exists (abandoned passkey-only accounts are deleted) |
+| `POST /api/test/cleanup-accounts { userId, hours }` | Ages a passkey-only account by `hours`, then runs the daily cleanup of abandoned ones |
+
+Family and portal specs (`family`, `portal`, `portal-leaks`, `passkey-account`) also use `inviteToken`, `bornYearsAgo`, `acceptInvite`, `portalCall`/`portalGet`, `auditLog`, `pngImage`, and `uploadPng` from `e2e/support.ts`, and block the service worker for every context they open: each context's precache burst can stall the local server for the other worker. `portal-leaks.spec.ts` seeds every kind of private detail with a unique marker and checks that no portal answer or page contains one. The passkey-only account spec uses Chromium's virtual authenticator and runs on desktop only.
 
 For the fastest, most realistic local run, test the production build: `npm run build`, then start `npx vite preview --port 5173` with `X_LOCAL_OBSERVABILITY=false` in one terminal (PowerShell: `$env:X_LOCAL_OBSERVABILITY='false'; npx vite preview --port 5173`) and `npx playwright test` in another (it reuses whatever serves :5173). That variable turns off Miniflare's local trace store: because `observability` is enabled in `wrangler.jsonc`, local runs record every request in `.wrangler/state/v3/observability`, which never shrinks and, once large, stalls the local runtime for seconds under test load. Servers Playwright starts itself get it automatically. Before the first test, `e2e/global-setup.ts` warms a local server (one signed-in round of reads and writes and one load of the app shell), because a freshly started workerd answers its first bursts slowly enough to time out the first tests; it skips remote targets (`E2E_BASE_URL`). On machines with little free memory, add `--workers=1`: local workerd can drop requests under memory pressure.
 

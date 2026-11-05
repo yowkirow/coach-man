@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
+import { deflateSync } from "node:zlib";
 import {
   type APIRequestContext,
   type Browser,
@@ -270,3 +271,120 @@ export const test = base.extend<{ coach: Coach; seeded: Coach; personas: Persona
 });
 
 export { expect };
+
+// --- Family access and the family portal ---------------------------------------------------------
+
+/** The token at the end of an invite link (`…/join/<token>`). */
+export function inviteToken(link: string): string {
+  const match = link.match(/\/join\/([A-Za-z0-9_-]+)$/);
+  if (!match?.[1]) throw new Error(`Not an invite link: ${link}`);
+  return match[1];
+}
+
+/**
+ * A birth date that makes a student `age` today, wherever "today" is: their birthday was a month
+ * ago, so the academy's timezone (a day either way) can't change the age.
+ */
+export function bornYearsAgo(age: number): string {
+  const d = new Date();
+  d.setUTCFullYear(d.getUTCFullYear() - age);
+  d.setUTCDate(d.getUTCDate() - 30);
+  return d.toISOString().slice(0, 10);
+}
+
+export interface RawResponse {
+  status: number;
+  text: string;
+  json: unknown;
+}
+
+async function rawOf(res: import("@playwright/test").APIResponse): Promise<RawResponse> {
+  const text = await res.text();
+  let json: unknown;
+  try {
+    json = text ? JSON.parse(text) : undefined;
+  } catch {
+    json = undefined;
+  }
+  return { status: res.status(), text, json };
+}
+
+/** POST /api/invites/<token>/accept as whoever `request` is signed in as. */
+export async function acceptInvite(request: APIRequestContext, token: string) {
+  const res = await rawOf(await request.post(`/api/invites/${token}/accept`));
+  return { ...res, code: Api.code(res) };
+}
+
+/** A family-portal call (/api/portal/…) as whoever `request` is signed in as. */
+export async function portalCall(
+  request: APIRequestContext,
+  method: Method,
+  path: string,
+  data?: unknown,
+): Promise<RawResponse> {
+  return rawOf(await request.fetch(`/api/portal${path}`, { method, data }));
+}
+
+/** GET /api/portal/<path>, failing the test unless it answers 200. */
+export async function portalGet<T>(request: APIRequestContext, path: string): Promise<T> {
+  const res = await portalCall(request, "GET", path);
+  expect(res.status, `GET /api/portal${path}: ${res.text}`).toBe(200);
+  return res.json as T;
+}
+
+/** The caller's academy's audit log, newest first (test bypass). */
+export async function auditLog(
+  request: APIRequestContext,
+): Promise<{ action: string; entity: string; entityId: string | null; data: unknown }[]> {
+  const res = await request.post("/api/test/audit", {
+    headers: { [BYPASS_HEADER]: bypassSecret() },
+  });
+  expect(res.ok(), await res.text()).toBe(true);
+  return ((await res.json()) as { entries: Awaited<ReturnType<typeof auditLog>> }).entries;
+}
+
+/** A small solid-color PNG (a logo, a photo, a QR stand-in), made without any image library. */
+export function pngImage(size = 32, rgb: [number, number, number] = [214, 236, 91]): Buffer {
+  const crcTable = Array.from({ length: 256 }, (_, n) => {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    return c >>> 0;
+  });
+  const crc32 = (buf: Buffer) => {
+    let c = 0xffffffff;
+    for (const b of buf) c = (crcTable[(c ^ b) & 0xff] ?? 0) ^ (c >>> 8);
+    return (c ^ 0xffffffff) >>> 0;
+  };
+  const chunk = (type: string, data: Buffer) => {
+    const len = Buffer.alloc(4);
+    len.writeUInt32BE(data.length);
+    const body = Buffer.concat([Buffer.from(type, "ascii"), data]);
+    const crc = Buffer.alloc(4);
+    crc.writeUInt32BE(crc32(body));
+    return Buffer.concat([len, body, crc]);
+  };
+  const header = Buffer.alloc(13);
+  header.writeUInt32BE(size, 0);
+  header.writeUInt32BE(size, 4);
+  header.writeUInt8(8, 8); // bit depth
+  header.writeUInt8(2, 9); // truecolor RGB
+  const row = Buffer.concat([Buffer.from([0]), Buffer.alloc(size * 3, Buffer.from(rgb))]);
+  const pixels = deflateSync(Buffer.concat(Array.from({ length: size }, () => row)));
+  return Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    chunk("IHDR", header),
+    chunk("IDAT", pixels),
+    chunk("IEND", Buffer.alloc(0)),
+  ]);
+}
+
+/** PUTs a PNG to a staff upload route (/api/v1/…/photo, /academy/logo, /academy/payment-qr). */
+export async function uploadPng(request: APIRequestContext, path: string, image = pngImage()) {
+  const res = await request.fetch(`/api/v1${path}`, {
+    method: "PUT",
+    data: image,
+    headers: { "Content-Type": "image/png" },
+  });
+  expect(res.ok(), await res.text()).toBe(true);
+  return (await res.json()) as { key?: string; photoKey?: string };
+}

@@ -7,6 +7,7 @@ import { getAuth } from "./auth";
 import { getDb } from "./db/client";
 import { client, clientAccess, organization, workspaceSettings } from "./db/schema";
 import { deferrer } from "./lib/defer";
+import { drainBody } from "./lib/drain";
 import { ApiError, forbidden, noWorkspace, unauthorized } from "./lib/errors";
 import { redactMoney } from "./lib/redact";
 import { activeMembership } from "./lib/workspace";
@@ -39,7 +40,10 @@ export const originGuard = createMiddleware<AppBindings>(async (c, next) => {
     if (origin) {
       const allowed = new URL(c.env.APP_URL).origin;
       const self = new URL(c.req.url).origin;
-      if (origin !== allowed && origin !== self) throw forbidden("Cross-origin request blocked.");
+      if (origin !== allowed && origin !== self) {
+        await drainBody(c);
+        throw forbidden("Cross-origin request blocked.");
+      }
     }
   }
   await next();
@@ -48,7 +52,10 @@ export const originGuard = createMiddleware<AppBindings>(async (c, next) => {
 /** Any signed-in person (staff or family); sets `user`. */
 export const requireUser = createMiddleware<AppBindings>(async (c, next) => {
   const result = await c.var.auth.api.getSession({ headers: c.req.raw.headers });
-  if (!result) throw unauthorized();
+  if (!result) {
+    await drainBody(c);
+    throw unauthorized();
+  }
   c.set("user", result.user);
   await next();
 });
@@ -61,10 +68,7 @@ export const requireUser = createMiddleware<AppBindings>(async (c, next) => {
 export const requirePortal = createMiddleware<AppBindings>(async (c, next) => {
   const result = await c.var.auth.api.getSession({ headers: c.req.raw.headers });
   if (!result) {
-    // Drain the body first: Miniflare's local proxy can fail a request answered unread.
-    if (c.req.method !== "GET" && c.req.method !== "HEAD") {
-      await c.req.raw.arrayBuffer().catch(() => undefined);
-    }
+    await drainBody(c);
     throw unauthorized();
   }
   const links = await c.var.db
@@ -94,7 +98,10 @@ export const requirePortal = createMiddleware<AppBindings>(async (c, next) => {
 export const requireWorkspace = createMiddleware<AppBindings>(async (c, next) => {
   const db = c.var.db;
   const result = await c.var.auth.api.getSession({ headers: c.req.raw.headers });
-  if (!result) throw unauthorized();
+  if (!result) {
+    await drainBody(c);
+    throw unauthorized();
+  }
   const { user, session } = result;
 
   const membership = await activeMembership(
@@ -102,7 +109,11 @@ export const requireWorkspace = createMiddleware<AppBindings>(async (c, next) =>
     user.id,
     (session as { activeOrganizationId?: string | null }).activeOrganizationId,
   );
-  if (!membership) throw noWorkspace();
+  if (!membership) {
+    // Families (and anyone who isn't staff anywhere) land here.
+    await drainBody(c);
+    throw noWorkspace();
+  }
   const { workspaceId } = membership;
 
   let settings = await db.query.workspaceSettings.findFirst({
@@ -158,10 +169,7 @@ export function assertCan(role: string, cap: Capability): void {
 export const requireCap = (cap: Capability) =>
   createMiddleware<AppBindings>(async (c, next) => {
     if (!can(c.var.role, cap)) {
-      // Drain the body first: Miniflare's local proxy can fail a request answered unread.
-      if (c.req.method !== "GET" && c.req.method !== "HEAD") {
-        await c.req.raw.arrayBuffer().catch(() => undefined);
-      }
+      await drainBody(c);
       assertCan(c.var.role, cap);
     }
     await next();

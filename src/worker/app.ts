@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import type { ApiErrorBody } from "../shared/api-types";
+import { drainUnreadBody } from "./lib/drain";
 import { ApiError } from "./lib/errors";
 import {
   apiHeaders,
@@ -65,7 +66,7 @@ const v1 = new Hono<AppBindings>()
 
 export const app = new Hono<AppBindings>()
   .basePath("/api")
-  .use("*", withServices, apiHeaders)
+  .use("*", drainUnreadBody, withServices, apiHeaders)
   // Academies are managed through our own API (roles, invites); the organization plugin is only
   // there for the data model and the session's active workspace, so its HTTP endpoints stay shut.
   .all("/auth/organization/*", async (c) => {

@@ -20,6 +20,7 @@ import {
   UsersRound,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { CoachLine } from "../../components/domain/coaches";
 import { LessonRow } from "../../components/domain/lesson";
 import { Button, buttonClass, IconButton } from "../../components/ui/button";
 import {
@@ -43,7 +44,16 @@ import { Checkbox } from "../../components/ui/field";
 import { ActionMenu, ConfirmSheet } from "../../components/ui/overlay";
 import { ApiRequestError, api, errorMessage } from "../../lib/api";
 import { type Format, fullName, plural, useFormat } from "../../lib/format";
-import { useCan, useClients, useLessons, useNow, useRates, useVenues } from "../../lib/hooks";
+import {
+  useCan,
+  useClients,
+  useCoachMap,
+  useHasTeam,
+  useLessons,
+  useNow,
+  useRates,
+  useVenues,
+} from "../../lib/hooks";
 import { notify } from "../../lib/notify";
 import { useOnline } from "../../lib/offline";
 import { keys } from "../../lib/query";
@@ -111,7 +121,7 @@ export function GroupDetail({
           title={missing ? "Group not found" : "Couldn't load this group"}
           message={
             missing
-              ? "It may have been removed, or the link is from another workspace."
+              ? "It may have been removed, or the link is from another academy."
               : errorMessage(q.error)
           }
           onRetry={missing ? undefined : () => void q.refetch()}
@@ -588,11 +598,26 @@ function DetailsCard({ group, onEdit }: { group: GroupDto; onEdit?: () => void }
   const online = useOnline();
   const rates = useRates();
   const venues = useVenues();
+  const hasTeam = useHasTeam();
+  const coachMap = useCoachMap();
   const rate = rates.data?.find((r) => r.id === group.defaultRateId);
   const venue = venues.data?.find((v) => v.id === group.defaultVenueId);
   return (
     <Card className="p-5" label="Group details">
       <dl className="grid gap-5 sm:grid-cols-2">
+        {hasTeam ? (
+          <div className="sm:col-span-2">
+            <KeyValue label="Coaches">
+              <CoachLine
+                lead={group.coachUserId}
+                assistants={group.assistantCoachIds}
+                map={coachMap}
+                empty="No coach set. Sessions are led by whoever schedules them."
+                className="mt-0.5"
+              />
+            </KeyValue>
+          </div>
+        ) : null}
         <KeyValue label="Level">{group.level ?? "Any level"}</KeyValue>
         <KeyValue label="Size limit">
           {group.capacity ? (

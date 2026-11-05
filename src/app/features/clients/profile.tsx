@@ -197,6 +197,7 @@ export function ClientProfile({
           assessment={assessment}
           progress={progress.data}
           clientId={c.id}
+          firstName={c.firstName}
           onClose={() => setAssessment(null)}
         />
       ) : null}

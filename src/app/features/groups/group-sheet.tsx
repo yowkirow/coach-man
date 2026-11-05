@@ -3,13 +3,14 @@ import { useMutation } from "@tanstack/react-query";
 import { Check } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Label, Radio, RadioGroup } from "react-aria-components";
+import { type CoachChoice, CoachFields } from "../../components/domain/coaches";
 import { Button } from "../../components/ui/button";
 import { InlineError } from "../../components/ui/feedback";
 import { SelectField, TextAreaField, TextField } from "../../components/ui/field";
 import { Sheet } from "../../components/ui/overlay";
 import { api, errorMessage, fieldErrors } from "../../lib/api";
 import { plural, useFormat } from "../../lib/format";
-import { useCan, useGroups, useRates, useVenues } from "../../lib/hooks";
+import { useCan, useGroups, useHasTeam, useMe, useRates, useVenues } from "../../lib/hooks";
 import { notify } from "../../lib/notify";
 import { useOnline } from "../../lib/offline";
 import { OfflineNote } from "../schedule/choice";
@@ -103,7 +104,10 @@ export function GroupSheet({
   const groups = useGroups();
   const rates = useRates();
   const venues = useVenues();
+  const hasTeam = useHasTeam();
+  const me = useMe().data;
   const [draft, setDraft] = useState<Draft>(EMPTY);
+  const [coaches, setCoaches] = useState<CoachChoice>({ lead: null, assistants: [] });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const set = (patch: Partial<Draft>) => setDraft((d) => ({ ...d, ...patch }));
 
@@ -134,6 +138,11 @@ export function GroupSheet({
     if (!isOpen) return;
     setErrors({});
     save.reset();
+    setCoaches(
+      group
+        ? { lead: group.coachUserId, assistants: group.assistantCoachIds }
+        : { lead: me?.user.id ?? null, assistants: [] },
+    );
     if (group) {
       setDraft({
         name: group.name,
@@ -174,6 +183,7 @@ export function GroupSheet({
       defaultRateId: draft.rateId === "none" ? null : draft.rateId,
       defaultVenueId: draft.venueId === "none" ? null : draft.venueId,
       description: draft.description.trim() || null,
+      ...(hasTeam ? { coachUserId: coaches.lead, assistantCoachIds: coaches.assistants } : {}),
     });
   };
 
@@ -264,6 +274,19 @@ export function GroupSheet({
           error={err("capacity")}
           className="sm:max-w-[16rem]"
         />
+
+        {hasTeam ? (
+          <CoachFields
+            value={coaches}
+            onChange={setCoaches}
+            description={
+              group
+                ? "Used for sessions you add from now on. To change who runs sessions already scheduled, edit one and apply it to the following sessions."
+                : "Runs the group's sessions and gets their reminders."
+            }
+            error={err("coachUserId") ?? err("assistantCoachIds")}
+          />
+        ) : null}
 
         <div className="grid gap-4 sm:grid-cols-2">
           <SelectField

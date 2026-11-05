@@ -6,6 +6,12 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useRouter } from "@tanstack/react-router";
 import { ArrowLeft, CheckCheck, Ellipsis, NotebookPen, RotateCcw, UserPlus } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
+import {
+  CoachAvatar,
+  type CoachChoice,
+  CoachFields,
+  CoachLine,
+} from "../../components/domain/coaches";
 import { ClientPicker, type SessionPhase, sessionPhase } from "../../components/domain/lesson";
 import { RosterRow, useAttendance } from "../../components/domain/roster";
 import { Button, IconButton } from "../../components/ui/button";
@@ -35,7 +41,7 @@ import {
 import { ActionMenu, ConfirmSheet, Sheet } from "../../components/ui/overlay";
 import { ApiRequestError, api, errorMessage } from "../../lib/api";
 import { type Format, fullName, plural, useFormat } from "../../lib/format";
-import { useCan, useLesson, useVenues } from "../../lib/hooks";
+import { useCan, useCoachMap, useHasTeam, useLesson, useVenues } from "../../lib/hooks";
 import { notify } from "../../lib/notify";
 import { type CompleteVars, keys, type NoteVars, storeLesson } from "../../lib/query";
 
@@ -227,6 +233,8 @@ function SessionHeader({
   const fmt = useFormat();
   const router = useRouter();
   const sync = useLessonCacheSync();
+  const hasTeam = useHasTeam();
+  const coachMap = useCoachMap();
   const l = detail.lesson;
   const cancelled = l.status === "cancelled";
   const completed = l.status === "completed";
@@ -281,6 +289,15 @@ function SessionHeader({
             {l.eventName ? <Pill tone="amber">{l.eventName}</Pill> : null}
             {l.seriesId ? <Pill tone="outline">Repeats weekly</Pill> : null}
           </div>
+          {hasTeam ? (
+            <CoachLine
+              lead={l.coachUserId}
+              assistants={l.assistantCoachIds}
+              map={coachMap}
+              empty="No coach assigned yet"
+              className="mt-3"
+            />
+          ) : null}
         </div>
       </div>
 
@@ -499,14 +516,24 @@ function NotesPanel({ detail, autoFocus }: { detail: LessonDetailDto; autoFocus:
           {notes.map((n) => (
             <li key={n.id} className="py-3.5">
               <div className="flex flex-wrap items-center gap-2 text-[0.8125rem] text-ink-2">
+                {n.author ? (
+                  <span className="inline-flex items-center gap-1.5 font-medium text-ink">
+                    <CoachAvatar coach={n.author} size="xs" />
+                    {n.author.name}
+                  </span>
+                ) : null}
                 <span className="num">
                   {sameDay(n.createdAt) ? fmt.time(n.createdAt) : fmt.day(fmt.dayOf(n.createdAt))}
                 </span>
+                {n.editedAt ? <span>· Edited</span> : null}
                 {n.clientId ? (
                   <Pill tone="sky">{names.get(n.clientId) ?? "Player"}</Pill>
                 ) : (
                   <Pill tone="panel">Whole session</Pill>
                 )}
+                {n.visibility === "shared" && n.kind !== "handoff" ? (
+                  <Pill tone="outline">Shared with family</Pill>
+                ) : null}
                 {n.pending ? <Pill tone="amber">Waiting to sync</Pill> : null}
               </div>
               <p className="mt-1.5 whitespace-pre-line">{n.body}</p>
@@ -515,7 +542,8 @@ function NotesPanel({ detail, autoFocus }: { detail: LessonDetailDto; autoFocus:
         </ol>
       ) : (
         <p className="mt-4 text-ink-2">
-          No notes yet. Notes about a player also appear on their profile.
+          No notes yet. Notes about a player also appear on their profile. Session notes are for
+          coaches only.
         </p>
       )}
     </Card>
@@ -801,6 +829,12 @@ function EditSessionSheet({
   const [price, setPrice] = useState<number | null>(l.priceMinor);
   const [plan, setPlan] = useState(l.notes ?? "");
   const [scope, setScope] = useState("this");
+  const hasTeam = useHasTeam();
+  const seedCoaches = (): CoachChoice => ({
+    lead: l.coachUserId,
+    assistants: l.assistantCoachIds,
+  });
+  const [coaches, setCoaches] = useState<CoachChoice>(seedCoaches);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: re-seed the form when the sheet opens.
   useEffect(() => {
@@ -815,6 +849,7 @@ function EditSessionSheet({
     setPrice(l.priceMinor);
     setPlan(l.notes ?? "");
     setScope("this");
+    setCoaches(seedCoaches());
   }, [isOpen]);
 
   const save = useMutation({
@@ -831,6 +866,7 @@ function EditSessionSheet({
         // Only money roles may set a per-session price; coaches leave it as it is.
         priceMinor: can.money ? price : undefined,
         notes: plan.trim() || null,
+        ...(hasTeam ? { coachUserId: coaches.lead, assistantCoachIds: coaches.assistants } : {}),
         scope,
       }),
     onSuccess: (d) => {
@@ -918,6 +954,17 @@ function EditSessionSheet({
               />
               <TextField label="Court" value={court} onChange={setCourt} placeholder="e.g. 3" />
             </div>
+            {hasTeam ? (
+              <CoachFields
+                value={coaches}
+                onChange={setCoaches}
+                description={
+                  l.seriesId && scope === "following"
+                    ? "Changes this session and the ones after it. Sessions already held keep the coaches who ran them."
+                    : "The lead coach runs it and gets its reminders."
+                }
+              />
+            ) : null}
             <div className="grid gap-4 sm:grid-cols-2">
               <TextField
                 label="Capacity"

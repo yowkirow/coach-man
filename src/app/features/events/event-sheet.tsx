@@ -8,6 +8,7 @@ import {
 import { addDays, compareDates, DATE_RE, daysBetween } from "@shared/time";
 import { useMutation } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
+import { type CoachChoice, CoachFields } from "../../components/domain/coaches";
 import { Button } from "../../components/ui/button";
 import { InlineError } from "../../components/ui/feedback";
 import {
@@ -20,7 +21,7 @@ import {
 import { Sheet } from "../../components/ui/overlay";
 import { api, errorMessage, fieldErrors } from "../../lib/api";
 import { plural, useFormat } from "../../lib/format";
-import { useVenues } from "../../lib/hooks";
+import { useHasTeam, useMe, useVenues } from "../../lib/hooks";
 import { notify } from "../../lib/notify";
 import { useOnline } from "../../lib/offline";
 import { OfflineNote, WrapSegmented } from "../schedule/choice";
@@ -86,7 +87,10 @@ export function EventSheet({
   const venues = useVenues();
   const invalidate = useInvalidateEvents();
   const today = fmt.today();
+  const hasTeam = useHasTeam();
+  const me = useMe().data;
   const [draft, setDraft] = useState<Draft>(() => blank(today));
+  const [coaches, setCoaches] = useState<CoachChoice>({ lead: null, assistants: [] });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const set = (patch: Partial<Draft>) => setDraft((d) => ({ ...d, ...patch }));
 
@@ -120,6 +124,11 @@ export function EventSheet({
     setErrors({});
     save.reset();
     setDraft(event ? fromEvent(event) : blank(today));
+    setCoaches(
+      event
+        ? { lead: event.coachUserId, assistants: event.assistantCoachIds }
+        : { lead: me?.user.id ?? null, assistants: [] },
+    );
   }, [isOpen]);
 
   const serverErrors = fieldErrors(save.error);
@@ -161,6 +170,7 @@ export function EventSheet({
       ageMin: d.ageMin ? Number(d.ageMin) : null,
       ageMax: d.ageMax ? Number(d.ageMax) : null,
       status: d.status,
+      ...(hasTeam ? { coachUserId: coaches.lead, assistantCoachIds: coaches.assistants } : {}),
     });
   };
 
@@ -277,6 +287,19 @@ export function EventSheet({
             error={err("capacity")}
           />
         </div>
+
+        {hasTeam ? (
+          <CoachFields
+            value={coaches}
+            onChange={setCoaches}
+            description={
+              event
+                ? "Used for sessions you add from now on. Sessions already scheduled keep their coaches."
+                : "Runs the event's sessions and gets their reminders."
+            }
+            error={err("coachUserId") ?? err("assistantCoachIds")}
+          />
+        ) : null}
 
         <div className="grid gap-4 sm:grid-cols-3">
           <MoneyField

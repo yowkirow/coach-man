@@ -1,4 +1,5 @@
 import type { ClientDto, ClientListItemDto } from "@shared/api-types";
+import { STAFF_ROLE_LABELS } from "@shared/roles";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useBlocker, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, ArrowUpRight, Check, UserPlus } from "lucide-react";
@@ -7,6 +8,7 @@ import { Page, ShellAside } from "../../components/layout/app-shell";
 import { Button, buttonClass, IconButton } from "../../components/ui/button";
 import { Card } from "../../components/ui/display";
 import { InlineError } from "../../components/ui/feedback";
+import { SelectField } from "../../components/ui/field";
 import { ConfirmSheet } from "../../components/ui/overlay";
 import { OfflineHint } from "../../features/clients/bits";
 import {
@@ -23,7 +25,7 @@ import { normPhone } from "../../features/clients/client-utils";
 import { ClientWorklist } from "../../features/clients/worklist";
 import { api, errorMessage, fieldErrors } from "../../lib/api";
 import { fullName, useFormat } from "../../lib/format";
-import { useCan, useClients } from "../../lib/hooks";
+import { useCan, useClients, useCoaches, useHasTeam, useMe } from "../../lib/hooks";
 import { notify } from "../../lib/notify";
 import { useOnline } from "../../lib/offline";
 import { keys } from "../../lib/query";
@@ -64,6 +66,12 @@ function NewClientPage() {
   const saved = useRef(false);
   const [values, setValues] = useState<ClientFormValues>(emptyClientValues);
   const [errors, setErrors] = useState<ClientErrors>({});
+  const hasTeam = useHasTeam();
+  const coaches = useCoaches().data ?? [];
+  const me = useMe().data;
+  // Whoever adds a student coaches them unless they pick someone else (or nobody yet).
+  const [coachSel, setCoachSel] = useState<string | null>(null);
+  const primaryCoach = coachSel ?? me?.user.id ?? "none";
 
   const dirty = useMemo(
     () => JSON.stringify(values) !== JSON.stringify(emptyClientValues()),
@@ -83,7 +91,8 @@ function NewClientPage() {
 
   const create = useMutation({
     meta: { silent: true },
-    mutationFn: (body: ClientPayload) => api.post<ClientDto>("/clients", body),
+    mutationFn: (body: ClientPayload & { primaryCoachUserId?: string | null }) =>
+      api.post<ClientDto>("/clients", body),
     onSuccess: (c, body) => {
       saved.current = true;
       void qc.invalidateQueries({ queryKey: ["clients"] });
@@ -128,7 +137,10 @@ function NewClientPage() {
     setErrors(found);
     if (Object.keys(found).length) return focusFirstInvalid(formRef.current);
     if (!online) return;
-    create.mutate(toPayload(values));
+    create.mutate({
+      ...toPayload(values),
+      ...(hasTeam ? { primaryCoachUserId: primaryCoach === "none" ? null : primaryCoach } : {}),
+    });
   };
   const general =
     create.error && !Object.keys(fieldErrors(create.error)).length
@@ -235,6 +247,31 @@ function NewClientPage() {
               errors={errors}
               autoFocus
             />
+            {hasTeam ? (
+              <section
+                aria-labelledby="new-client-coach"
+                className="mt-8 border-t border-line pt-6"
+              >
+                <h2 id="new-client-coach" className="text-[1.125rem] font-medium">
+                  Coach
+                </h2>
+                <SelectField
+                  label="Primary coach"
+                  className="mt-4 sm:max-w-[24rem]"
+                  options={[
+                    { id: "none", label: "No coach yet" },
+                    ...coaches.map((c) => ({
+                      id: c.userId,
+                      label: c.userId === me?.user.id ? `${c.name} (you)` : c.name,
+                      description: c.title ?? STAFF_ROLE_LABELS[c.role],
+                    })),
+                  ]}
+                  value={primaryCoach}
+                  onChange={setCoachSel}
+                  description="Their main coach. Add assistant coaches from the profile later."
+                />
+              </section>
+            ) : null}
             <div className="mt-8 flex flex-col gap-4 border-t border-line pt-6">
               {Object.keys(errors).length ? (
                 <InlineError>Some fields need attention.</InlineError>

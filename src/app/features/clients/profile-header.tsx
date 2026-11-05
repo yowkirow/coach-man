@@ -12,6 +12,7 @@ import {
   Ticket,
 } from "lucide-react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
+import { CoachAvatar } from "../../components/domain/coaches";
 import { SyncStatus, useIsDesktop } from "../../components/layout/app-shell";
 import { Button, IconButton } from "../../components/ui/button";
 import { Avatar, Pill } from "../../components/ui/display";
@@ -118,6 +119,18 @@ export function ProfileHeader({
   if (c.isJunior)
     meta.push({ key: "junior", node: age ? `Junior, ${age.toLowerCase()}` : "Junior" });
   else if (age) meta.push({ key: "age", node: age });
+  const primary = detail.coaches?.primary?.coach;
+  if (primary) {
+    meta.push({
+      key: "coach",
+      node: (
+        <span className="inline-flex items-center gap-1.5">
+          <CoachAvatar coach={primary} size="xs" />
+          Coach {primary.name}
+        </span>
+      ),
+    });
+  }
   const contacts: { key: string; node: ReactNode }[] = [];
   if (c.phone)
     contacts.push({

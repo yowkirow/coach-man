@@ -177,6 +177,8 @@ export interface ListSearch {
   status?: StatusFilter;
   group?: string;
   filter?: QuickFilter;
+  /** "My students": the ones you coach (primary or assistant). */
+  mine?: "1";
 }
 
 const STATUS_FILTERS: readonly string[] = ["active", "lead", "paused", "archived"];
@@ -190,6 +192,7 @@ export function parseListSearch(s: Record<string, unknown>): ListSearch {
   if (typeof s.group === "string" && s.group) out.group = s.group;
   if (typeof s.filter === "string" && QUICK_FILTERS.includes(s.filter))
     out.filter = s.filter as QuickFilter;
+  if (s.mine === "1" || s.mine === 1) out.mine = "1";
   return out;
 }
 

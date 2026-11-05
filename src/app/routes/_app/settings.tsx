@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Page, ShellAside, useIsDesktop } from "../../components/layout/app-shell";
 import { PageHeader } from "../../components/ui/display";
+import { MyCoachProfileSection } from "../../features/coaches/profile";
 import { AcademySection } from "../../features/settings/academy";
+import { AcademyProfileSection } from "../../features/settings/academy-profile";
 import { AppDataSection } from "../../features/settings/app-data";
 import { NotificationsSection } from "../../features/settings/notifications";
 import { ConnectionPill } from "../../features/settings/offline";
@@ -10,6 +12,7 @@ import { RubricSection } from "../../features/settings/rubric";
 import {
   SectionChips,
   SettingsNav,
+  SettingsSection,
   useActiveSection,
   useSettingsSections,
 } from "../../features/settings/sections";
@@ -41,6 +44,14 @@ function SettingsPage() {
         />
         {desktop ? null : <SectionChips onJump={jump} />}
         <AcademySection />
+        {can.settings ? <AcademyProfileSection /> : null}
+        <SettingsSection
+          id="coach-profile"
+          title="My coach profile"
+          description="How you appear to your team, and to your academy's students and parents."
+        >
+          {me ? <MyCoachProfileSection userId={me.user.id} /> : null}
+        </SettingsSection>
         {can.settings ? (
           <>
             <WorkspaceSection />

@@ -6,6 +6,8 @@ export class ApiRequestError extends Error {
     readonly code: string,
     message: string,
     readonly fields: Record<string, string> = {},
+    /** Extra help from the server, e.g. which address an invite was sent to (masked). */
+    readonly hint: string | null = null,
   ) {
     super(message);
   }
@@ -68,12 +70,13 @@ async function send<T>(
     const err = (data as ApiErrorBody | undefined)?.error;
     if (res.status === 401) onUnauthorized?.();
     if (res.status === 403 && err?.code === "no_workspace") onNoWorkspace?.();
-    const fields = (err?.details as { fields?: Record<string, string> } | undefined)?.fields ?? {};
+    const details = err?.details as { fields?: Record<string, string>; hint?: string } | undefined;
     throw new ApiRequestError(
       res.status,
       err?.code ?? "error",
       err?.message ?? `Request failed (${res.status}).`,
-      fields,
+      details?.fields ?? {},
+      typeof details?.hint === "string" ? details.hint : null,
     );
   }
   return data as T;
@@ -105,6 +108,13 @@ export const accountApi = {
   post: <T>(path: string, body?: unknown) => send<T>("POST", `/api/account${path}`, body ?? {}),
 };
 
+/** /api/invites: invite links (the preview needs no sign-in; accepting does). */
+export const inviteApi = {
+  preview: <T>(token: string) => send<T>("GET", `/api/invites/${encodeURIComponent(token)}`),
+  accept: <T>(token: string) =>
+    send<T>("POST", `/api/invites/${encodeURIComponent(token)}/accept`, {}),
+};
+
 /** Signed in, but not staff in any academy: the staff app sends them to /welcome. */
 export function isNoWorkspace(err: unknown): boolean {
   return err instanceof ApiRequestError && err.status === 403 && err.code === "no_workspace";
@@ -122,4 +132,14 @@ export function fieldErrors(err: unknown): Record<string, string> {
 
 export function fileUrl(key: string | null | undefined): string | null {
   return key ? `/api/v1/files/${key.split("/").map(encodeURIComponent).join("/")}` : null;
+}
+
+/** An academy's public image (logo, payment QR, coach photo) for people who aren't staff yet. */
+export function publicFileUrl(key: string | null | undefined): string | null {
+  return key ? `/api/public/files/${key.split("/").map(encodeURIComponent).join("/")}` : null;
+}
+
+/** The hint the server gives when an invite was sent to another address ("j•••@gmail.com"). */
+export function errorHint(err: unknown): string | null {
+  return err instanceof ApiRequestError ? err.hint : null;
 }

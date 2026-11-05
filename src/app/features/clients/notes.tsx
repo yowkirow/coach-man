@@ -1,70 +1,69 @@
 import type { NoteDto, ProgressDto } from "@shared/api-types";
+import type { NoteKind, NoteVisibility } from "@shared/domain";
 import { uuidv7 } from "@shared/ids";
+import { canDeleteNote, canEditNote } from "@shared/notes";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { Ellipsis, NotebookPen, Pin } from "lucide-react";
+import { Ellipsis, Pin } from "lucide-react";
 import { useEffect, useState } from "react";
+import { CoachAvatar } from "../../components/domain/coaches";
 import { Button, IconButton } from "../../components/ui/button";
-import { Card, Pill } from "../../components/ui/display";
+import { Pill } from "../../components/ui/display";
 import { InlineError } from "../../components/ui/feedback";
-import { TextAreaField } from "../../components/ui/field";
+import { Switch, TextAreaField } from "../../components/ui/field";
 import { ActionMenu, ConfirmSheet, Sheet } from "../../components/ui/overlay";
 import { api, errorMessage } from "../../lib/api";
 import { type Format, useFormat } from "../../lib/format";
+import { useMe } from "../../lib/hooks";
 import { notify } from "../../lib/notify";
 import { useOnline } from "../../lib/offline";
-import { keys, type NoteVars } from "../../lib/query";
-import { OfflineHint, SectionHead } from "./bits";
+import { keys, type NoteVars, optimisticNote } from "../../lib/query";
+import { OfflineHint } from "./bits";
 import { relativeDay } from "./client-utils";
 
-const byPinnedThenNewest = (a: NoteDto, b: NoteDto) =>
+export const byPinnedThenNewest = (a: NoteDto, b: NoteDto) =>
   Number(b.pinned) - Number(a.pinned) || b.createdAt - a.createdAt;
 
 /**
  * Saves a note about a client. Works offline: the note shows at once (marked waiting to sync)
- * and the queued request goes out when the connection returns.
+ * and the queued request goes out when the connection returns. Notes are coaches-only unless
+ * shared; handoff notes always stay with the coaches.
  */
 export function useAddNote(clientId: string) {
   const qc = useQueryClient();
   const online = useOnline();
   const create = useMutation<unknown, Error, NoteVars>({ mutationKey: ["notes", "create"] });
-  return (body: string, firstName: string) => {
-    const vars: NoteVars = { id: uuidv7(), clientId, body };
-    const now = Date.now();
+  return (
+    body: string,
+    firstName: string,
+    opts: { visibility?: NoteVisibility; kind?: NoteKind } = {},
+  ) => {
+    const vars: NoteVars = { id: uuidv7(), clientId, body, ...opts };
     qc.setQueryData<ProgressDto>(keys.progress(clientId), (old) =>
-      old
-        ? {
-            ...old,
-            notes: [
-              {
-                id: vars.id,
-                clientId,
-                lessonId: null,
-                body,
-                pinned: false,
-                createdAt: now,
-                updatedAt: now,
-                pending: true,
-              },
-              ...old.notes,
-            ].sort(byPinnedThenNewest),
-          }
-        : old,
+      old ? { ...old, notes: [optimisticNote(vars), ...old.notes].sort(byPinnedThenNewest) } : old,
     );
     create.mutate(vars);
+    const title = opts.kind === "handoff" ? "Handoff note saved" : "Note saved";
     notify(
       online
-        ? { tone: "success", title: "Note saved", body: `On ${firstName}'s profile.` }
+        ? {
+            tone: "success",
+            title,
+            body:
+              opts.visibility === "shared"
+                ? `On ${firstName}'s profile, shared with ${firstName} and their parents.`
+                : `On ${firstName}'s profile, for coaches only.`,
+          }
         : {
             tone: "neutral",
-            title: "Note saved offline",
+            title: `${title} offline`,
             body: "It will sync when you're back online.",
           },
     );
   };
 }
 
-function useNoteWrites(clientId: string) {
+export function useNoteWrites(clientId: string) {
   const qc = useQueryClient();
   const patchCache = (fn: (notes: NoteDto[]) => NoteDto[]) =>
     qc.setQueryData<ProgressDto>(keys.progress(clientId), (old) =>
@@ -72,8 +71,12 @@ function useNoteWrites(clientId: string) {
     );
   const update = useMutation({
     meta: { silent: true },
-    mutationFn: (v: { id: string; body?: string; pinned?: boolean }) =>
-      api.patch<NoteDto>(`/notes/${v.id}`, { body: v.body, pinned: v.pinned }),
+    mutationFn: (v: { id: string; body?: string; pinned?: boolean; visibility?: NoteVisibility }) =>
+      api.patch<NoteDto>(`/notes/${v.id}`, {
+        body: v.body,
+        pinned: v.pinned,
+        visibility: v.visibility,
+      }),
     onSuccess: (note) => patchCache((notes) => notes.map((n) => (n.id === note.id ? note : n))),
   });
   const remove = useMutation({
@@ -84,10 +87,37 @@ function useNoteWrites(clientId: string) {
   return { update, remove };
 }
 
-export function noteWhen(n: NoteDto, fmt: Format) {
+export function noteWhen(n: Pick<NoteDto, "createdAt">, fmt: Format) {
   const day = fmt.dayOf(n.createdAt);
   const rel = relativeDay(day, fmt.today());
   return rel === "Today" ? `Today, ${fmt.time(n.createdAt)}` : rel;
+}
+
+/** The explicit "Share with student & parents" control, saying what each setting means. */
+export function ShareSwitch({
+  isSelected,
+  onChange,
+  firstName,
+}: {
+  isSelected: boolean;
+  onChange: (v: boolean) => void;
+  firstName: string;
+}) {
+  return (
+    <div className="rounded-[22px] bg-panel px-4 py-1.5">
+      <Switch
+        isSelected={isSelected}
+        onChange={onChange}
+        description={
+          isSelected
+            ? `${firstName} and their parents can read this note in the family portal. Coaches always see it.`
+            : `Only coaches see this note. Turn this on to also show it to ${firstName} and their parents in the family portal.`
+        }
+      >
+        Share with student & parents
+      </Switch>
+    </div>
+  );
 }
 
 /** Composer for a quick note. Saving clears it; it never blocks on the network. */
@@ -105,6 +135,7 @@ export function NoteComposer({
   rows?: number;
 }) {
   const [body, setBody] = useState("");
+  const [shared, setShared] = useState(false);
   const add = useAddNote(clientId);
   return (
     <form
@@ -112,8 +143,9 @@ export function NoteComposer({
       onSubmit={(e) => {
         e.preventDefault();
         if (!body.trim()) return;
-        add(body.trim(), firstName);
+        add(body.trim(), firstName, { visibility: shared ? "shared" : "staff" });
         setBody("");
+        setShared(false);
         onSaved?.();
       }}
     >
@@ -126,8 +158,9 @@ export function NoteComposer({
         placeholder="What clicked today, what to work on next…"
         description="Notes save even without signal and sync later."
       />
+      <ShareSwitch isSelected={shared} onChange={setShared} firstName={firstName} />
       <Button type="submit" variant="dark" size="sm" className="self-end" isDisabled={!body.trim()}>
-        Save note
+        {shared ? "Save and share" : "Save note"}
       </Button>
     </form>
   );
@@ -150,7 +183,7 @@ export function NoteSheet({
       isOpen={isOpen}
       onOpenChange={onOpenChange}
       title="Add a note"
-      description={`Only you see notes. They stay on ${firstName}'s profile.`}
+      description={`Every coach at the academy can read notes on ${firstName}'s profile. Share one with ${firstName} and their parents when it helps them.`}
     >
       <NoteComposer
         clientId={clientId}
@@ -160,6 +193,47 @@ export function NoteSheet({
         onSaved={() => onOpenChange(false)}
       />
     </Sheet>
+  );
+}
+
+/** Who wrote a note, when, and who can see it. */
+export function NoteByline({ note }: { note: NoteDto }) {
+  const fmt = useFormat();
+  return (
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.8125rem] text-ink-2">
+      {note.author ? (
+        <span className="inline-flex items-center gap-1.5 font-medium text-ink">
+          <CoachAvatar coach={note.author} size="xs" />
+          {note.author.name}
+        </span>
+      ) : null}
+      <span className="num">{noteWhen(note, fmt)}</span>
+      {note.editedAt ? (
+        <span title={`Edited ${fmt.date(fmt.dayOf(note.editedAt))}, ${fmt.time(note.editedAt)}`}>
+          · Edited
+        </span>
+      ) : null}
+      {note.pinned ? (
+        <span className="inline-flex items-center gap-1 font-medium text-ink">
+          <Pin aria-hidden className="size-3.5" />
+          Pinned
+        </span>
+      ) : null}
+      {note.kind === "handoff" ? <Pill tone="outline">Handoff · coaches only</Pill> : null}
+      {note.visibility === "shared" && note.kind !== "handoff" ? (
+        <Pill tone="sky">Shared with family</Pill>
+      ) : null}
+      {note.lessonId ? (
+        <Link
+          to="/sessions/$lessonId"
+          params={{ lessonId: note.lessonId }}
+          className="rounded-full outline-none hover:underline focus-visible:outline-2 focus-visible:outline-ink"
+        >
+          From a session
+        </Link>
+      ) : null}
+      {note.pending ? <Pill tone="amber">Waiting to sync</Pill> : null}
+    </div>
   );
 }
 
@@ -174,35 +248,52 @@ export function NoteItem({
   onEdit?: (n: NoteDto) => void;
   onDelete?: (n: NoteDto) => void;
 }) {
-  const fmt = useFormat();
+  const me = useMe().data;
   const online = useOnline();
   const { update } = useNoteWrites(clientId);
   const canWrite = online && !note.pending;
+  const actor = { userId: me?.user.id ?? "", role: me?.role ?? "coach" };
+  const actions =
+    onEdit && onDelete
+      ? [
+          {
+            id: "pin",
+            label: note.pinned ? "Unpin" : "Pin to top",
+            onAction: () =>
+              update.mutate(
+                { id: note.id, pinned: !note.pinned },
+                {
+                  onError: (err) =>
+                    notify({
+                      tone: "danger",
+                      title: "Couldn't update the note",
+                      body: errorMessage(err),
+                    }),
+                },
+              ),
+          },
+          ...(canEditNote(actor.userId, note)
+            ? [{ id: "edit", label: "Edit", onAction: () => onEdit(note) }]
+            : []),
+          ...(canDeleteNote(actor, note)
+            ? [
+                {
+                  id: "delete",
+                  label: "Delete",
+                  tone: "danger" as const,
+                  onAction: () => onDelete(note),
+                },
+              ]
+            : []),
+        ]
+      : [];
   return (
     <li className="flex items-start gap-3 py-3.5">
       <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-2 text-[0.8125rem] text-ink-2">
-          {note.pinned ? (
-            <span className="inline-flex items-center gap-1 font-medium text-ink">
-              <Pin aria-hidden className="size-3.5" />
-              Pinned
-            </span>
-          ) : null}
-          <span className="num">{noteWhen(note, fmt)}</span>
-          {note.lessonId ? (
-            <Link
-              to="/sessions/$lessonId"
-              params={{ lessonId: note.lessonId }}
-              className="rounded-full outline-none hover:underline focus-visible:outline-2 focus-visible:outline-ink"
-            >
-              From a session
-            </Link>
-          ) : null}
-          {note.pending ? <Pill tone="amber">Waiting to sync</Pill> : null}
-        </div>
+        <NoteByline note={note} />
         <p className="mt-1.5 max-w-[65ch] whitespace-pre-line">{note.body}</p>
       </div>
-      {onEdit && onDelete ? (
+      {actions.length ? (
         <ActionMenu
           label="Note actions"
           trigger={
@@ -210,104 +301,44 @@ export function NoteItem({
               <Ellipsis aria-hidden className="size-5" />
             </IconButton>
           }
-          actions={[
-            {
-              id: "pin",
-              label: note.pinned ? "Unpin" : "Pin to top",
-              onAction: () =>
-                update.mutate(
-                  { id: note.id, pinned: !note.pinned },
-                  {
-                    onError: (err) =>
-                      notify({
-                        tone: "danger",
-                        title: "Couldn't update the note",
-                        body: errorMessage(err),
-                      }),
-                  },
-                ),
-            },
-            { id: "edit", label: "Edit", onAction: () => onEdit(note) },
-            { id: "delete", label: "Delete", tone: "danger", onAction: () => onDelete(note) },
-          ]}
+          actions={actions}
         />
       ) : null}
     </li>
   );
 }
 
-/** Every note about the client, pinned first, with the offline-capable composer on top. */
-export function NotesCard({
-  clientId,
-  firstName,
-  notes,
-}: {
-  clientId: string;
-  firstName: string;
-  notes: NoteDto[];
-}) {
-  const [editing, setEditing] = useState<NoteDto | null>(null);
-  const [deleting, setDeleting] = useState<NoteDto | null>(null);
-  const [showAll, setShowAll] = useState(false);
-  const shown = showAll ? notes : notes.slice(0, 8);
-  return (
-    <Card label="Notes">
-      <SectionHead title="Notes" count={notes.length || undefined} />
-      <div className="px-5 pb-2">
-        <NoteComposer clientId={clientId} firstName={firstName} />
-        {notes.length ? (
-          <ol className="mt-3 flex flex-col divide-y divide-line border-t border-line">
-            {shown.map((n) => (
-              <NoteItem
-                key={n.id}
-                note={n}
-                clientId={clientId}
-                onEdit={setEditing}
-                onDelete={setDeleting}
-              />
-            ))}
-          </ol>
-        ) : (
-          <p className="mt-4 mb-3 flex items-center gap-2 text-ink-2">
-            <NotebookPen aria-hidden className="size-4.5 shrink-0" />
-            No notes yet. Notes from sessions land here too.
-          </p>
-        )}
-        {notes.length > shown.length ? (
-          <Button variant="ghost" size="sm" className="mb-3" onPress={() => setShowAll(true)}>
-            Show {notes.length - shown.length} older notes
-          </Button>
-        ) : null}
-      </div>
-      <EditNoteSheet note={editing} clientId={clientId} onClose={() => setEditing(null)} />
-      <DeleteNoteSheet note={deleting} clientId={clientId} onClose={() => setDeleting(null)} />
-    </Card>
-  );
-}
-
-function EditNoteSheet({
+/** Edit a note's words, and whether the student and parents see it (the author only). */
+export function EditNoteSheet({
   note,
   clientId,
+  firstName,
   onClose,
 }: {
   note: NoteDto | null;
   clientId: string;
+  firstName: string;
   onClose: () => void;
 }) {
   const online = useOnline();
   const { update } = useNoteWrites(clientId);
   const [body, setBody] = useState("");
+  const [shared, setShared] = useState(false);
   // biome-ignore lint/correctness/useExhaustiveDependencies: seed when a different note opens.
   useEffect(() => {
     if (note) {
       setBody(note.body);
+      setShared(note.visibility === "shared");
       update.reset();
     }
   }, [note?.id]);
+  const handoff = note?.kind === "handoff";
+  const visibility: NoteVisibility = !handoff && shared ? "shared" : "staff";
+  const changed = Boolean(note && (body.trim() !== note.body || visibility !== note.visibility));
   const save = () =>
     note &&
     update.mutate(
-      { id: note.id, body: body.trim() },
+      { id: note.id, body: body.trim(), visibility: handoff ? undefined : visibility },
       {
         onSuccess: () => {
           notify({ tone: "success", title: "Note updated" });
@@ -319,7 +350,7 @@ function EditNoteSheet({
     <Sheet
       isOpen={note !== null}
       onOpenChange={(o) => !o && onClose()}
-      title="Edit note"
+      title={handoff ? "Edit handoff note" : "Edit note"}
       footer={
         <>
           <Button variant="light" onPress={onClose}>
@@ -327,7 +358,7 @@ function EditNoteSheet({
           </Button>
           <Button
             variant="dark"
-            isDisabled={!online || !body.trim() || body.trim() === note?.body}
+            isDisabled={!online || !body.trim() || !changed}
             isPending={update.isPending}
             onPress={save}
           >
@@ -338,6 +369,13 @@ function EditNoteSheet({
     >
       <div className="flex flex-col gap-4">
         <TextAreaField label="Note" rows={6} autoFocus value={body} onChange={setBody} />
+        {handoff ? (
+          <p className="rounded-2xl bg-panel px-4 py-3 text-[0.875rem] text-ink-2">
+            Handoff notes are for coaches only. {firstName} and their parents never see them.
+          </p>
+        ) : (
+          <ShareSwitch isSelected={shared} onChange={setShared} firstName={firstName} />
+        )}
         {update.error ? <InlineError>{errorMessage(update.error)}</InlineError> : null}
         <OfflineHint>You're offline. New notes still save; edits need a connection.</OfflineHint>
       </div>
@@ -345,7 +383,7 @@ function EditNoteSheet({
   );
 }
 
-function DeleteNoteSheet({
+export function DeleteNoteSheet({
   note,
   clientId,
   onClose,
@@ -379,7 +417,10 @@ function DeleteNoteSheet({
       body={
         <div className="flex flex-col gap-3">
           <p className="line-clamp-4 rounded-2xl bg-panel px-4 py-3 text-ink">{note?.body}</p>
-          <p>It's removed for good.</p>
+          <p>
+            It's removed for good
+            {note?.author ? `, including for ${note.author.name}, who wrote it` : ""}.
+          </p>
           {remove.error ? <InlineError>{errorMessage(remove.error)}</InlineError> : null}
           <OfflineHint>You're offline. Reconnect to delete notes.</OfflineHint>
         </div>

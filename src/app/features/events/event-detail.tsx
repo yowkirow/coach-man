@@ -18,6 +18,7 @@ import {
   UserPlus,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { CoachLine } from "../../components/domain/coaches";
 import { LessonRow } from "../../components/domain/lesson";
 import { Button, buttonClass, IconButton } from "../../components/ui/button";
 import {
@@ -42,7 +43,7 @@ import { Checkbox } from "../../components/ui/field";
 import { ActionMenu, ConfirmSheet, type MenuAction } from "../../components/ui/overlay";
 import { ApiRequestError, api, errorMessage } from "../../lib/api";
 import { type Format, fullName, plural, useFormat } from "../../lib/format";
-import { useCan, useClients, useNow, useVenues } from "../../lib/hooks";
+import { useCan, useClients, useCoachMap, useHasTeam, useNow, useVenues } from "../../lib/hooks";
 import { notify } from "../../lib/notify";
 import { useOnline } from "../../lib/offline";
 import {
@@ -122,7 +123,7 @@ export function EventDetail({
           title={missing ? "Event not found" : "Couldn't load this event"}
           message={
             missing
-              ? "It may have been removed, or the link is from another workspace."
+              ? "It may have been removed, or the link is from another academy."
               : errorMessage(q.error)
           }
           onRetry={missing ? undefined : () => void q.refetch()}
@@ -749,11 +750,26 @@ function DetailsCard({ event: e }: { event: EventDto }) {
   const fmt = useFormat();
   const can = useCan();
   const venues = useVenues();
+  const hasTeam = useHasTeam();
+  const coachMap = useCoachMap();
   const venue = venues.data?.find((v) => v.id === e.venueId)?.name;
   const days = daysBetween(e.startsOn, e.endsOn) + 1;
   return (
     <Card className="p-5" label="Event details">
       <dl className="grid gap-5 sm:grid-cols-2">
+        {hasTeam ? (
+          <div className="sm:col-span-2">
+            <KeyValue label="Coaches">
+              <CoachLine
+                lead={e.coachUserId}
+                assistants={e.assistantCoachIds}
+                map={coachMap}
+                empty="No coach set. Sessions are led by whoever schedules them."
+                className="mt-0.5"
+              />
+            </KeyValue>
+          </div>
+        ) : null}
         <KeyValue label="Dates">
           <span className="num">
             {eventDates(e, fmt, { weekday: true })} · {plural(days, "day")}

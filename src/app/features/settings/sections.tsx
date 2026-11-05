@@ -6,10 +6,12 @@ import {
   Building2,
   CreditCard,
   Database,
+  Globe,
   KeyRound,
   ListChecks,
   MapPin,
   Scale,
+  UserRound,
 } from "lucide-react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { Button } from "../../components/ui/button";
@@ -20,7 +22,9 @@ import { scrollToId } from "./scroll";
 
 export const SETTINGS_SECTIONS = [
   { id: "academy", label: "Academy", icon: BadgeCheck },
-  { id: "workspace", label: "Workspace", icon: Building2, cap: "settings" },
+  { id: "academy-profile", label: "Academy profile", icon: Building2, cap: "settings" },
+  { id: "coach-profile", label: "My coach profile", icon: UserRound },
+  { id: "workspace", label: "Regional settings", icon: Globe, cap: "settings" },
   { id: "policies", label: "Policies", icon: Scale, cap: "settings" },
   { id: "payment-methods", label: "Payment methods", icon: CreditCard, cap: "settings" },
   { id: "venues", label: "Venues", icon: MapPin, cap: "settings" },
@@ -193,7 +197,7 @@ export function SettingsNav({
       <div className="px-1">
         <h2 className="text-[1.75rem] leading-tight font-light tracking-[-0.01em]">Settings</h2>
         <p className="mt-1 truncate text-[0.875rem] text-night-ink-2">
-          {me?.workspace.name ?? "Your workspace"}
+          {me?.workspace.name ?? "Your academy"}
         </p>
       </div>
       <div className="flex items-center gap-3 rounded-[24px] bg-night-2 p-4">

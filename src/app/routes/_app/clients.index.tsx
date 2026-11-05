@@ -21,8 +21,9 @@ import {
 } from "../../features/clients/client-utils";
 import { useAllClients, useGroupMap } from "../../features/clients/queries";
 import { errorMessage } from "../../lib/api";
+import { isMyStudent } from "../../lib/coaches";
 import { fullName, plural, useFormat } from "../../lib/format";
-import { useCan, useGroups, useMe } from "../../lib/hooks";
+import { useCan, useGroups, useHasTeam, useMe } from "../../lib/hooks";
 
 export const Route = createFileRoute("/_app/clients/")({
   validateSearch: (
@@ -32,6 +33,7 @@ export const Route = createFileRoute("/_app/clients/")({
     status?: "active" | "lead" | "paused" | "archived";
     group?: string;
     filter?: "low" | "owes" | "new";
+    mine?: "1";
   } => parseListSearch(s),
   component: ClientsPage,
 });
@@ -59,10 +61,13 @@ interface Counts {
   low: number;
   owes: number;
   new: number;
+  mine: number;
 }
 
 function useClientList(search: ListSearch) {
   const fmt = useFormat();
+  const me = useMe().data;
+  const userId = me?.user.id;
   const today = fmt.today();
   const { current, archived } = useAllClients();
   const base = search.status === "archived" ? archived : current;
@@ -79,14 +84,16 @@ function useClientList(search: ListSearch) {
       low: list.filter((c) => needsPackage(c, today)).length,
       owes: list.filter(owesMoney).length,
       new: list.filter((c) => isNewThisMonth(c, today)).length,
+      mine: list.filter((c) => isMyStudent(c, userId)).length,
     };
-  }, [current.data, archived.data, today]);
+  }, [current.data, archived.data, today, userId]);
 
   const rows = useMemo(() => {
     const list = (base.data ?? []).filter(
       (c) =>
         (!search.status || c.status === search.status) &&
         (!search.group || c.groupIds.includes(search.group)) &&
+        (!search.mine || isMyStudent(c, userId)) &&
         (search.filter === "low"
           ? needsPackage(c, today)
           : search.filter === "owes"
@@ -100,7 +107,7 @@ function useClientList(search: ListSearch) {
     if (search.filter === "low")
       return list.sort((a, b) => a.creditsRemaining - b.creditsRemaining);
     return list;
-  }, [base.data, search, today]);
+  }, [base.data, search, today, userId]);
 
   return { base, current, counts, rows, today };
 }
@@ -129,7 +136,9 @@ function ClientsPage() {
       replace: true,
     });
 
-  const filtered = Boolean(search.q || search.status || search.group || search.filter);
+  const filtered = Boolean(
+    search.q || search.status || search.group || search.filter || search.mine,
+  );
   const noClientsYet = current.data?.length === 0 && !search.status;
   const activeGroups = (groupList.data ?? []).filter((g) => !g.archivedAt);
   const selectedGroup = search.group ? groups.get(search.group) : undefined;
@@ -142,8 +151,15 @@ function ClientsPage() {
       rows={rows}
       noClientsYet={noClientsYet}
       filtered={filtered}
+      mine={Boolean(search.mine)}
       onClear={() =>
-        setSearch({ q: undefined, status: undefined, group: undefined, filter: undefined })
+        setSearch({
+          q: undefined,
+          status: undefined,
+          group: undefined,
+          filter: undefined,
+          mine: undefined,
+        })
       }
       desktop={desktop}
       groups={groups}
@@ -295,6 +311,7 @@ function ClientListBody({
   rows,
   noClientsYet,
   filtered,
+  mine,
   onClear,
   desktop,
   groups,
@@ -307,6 +324,7 @@ function ClientListBody({
   rows: ClientListItemDto[];
   noClientsYet: boolean;
   filtered: boolean;
+  mine: boolean;
   onClear: () => void;
   desktop: boolean;
   groups: Map<string, GroupDto>;
@@ -333,7 +351,7 @@ function ClientListBody({
         <EmptyState
           icon={<UserPlus aria-hidden className="size-5" />}
           title="No clients yet"
-          body="Add your first client, or bring your list over from a spreadsheet. A first name is enough to start; contact details, levels, and groups can come later. New workspaces can start with sample clients, which are clearly tagged as synthetic."
+          body="Add your first client, or bring your list over from a spreadsheet. A first name is enough to start; contact details, levels, and groups can come later. New academies can start with sample clients, which are clearly tagged as synthetic."
           action={
             <div className="flex flex-wrap gap-2">
               <Link to="/clients/new" className={buttonClass("dark")}>
@@ -355,8 +373,12 @@ function ClientListBody({
       <Card className="px-6 py-4">
         <EmptyState
           icon={<SearchX aria-hidden className="size-5" />}
-          title="No clients match"
-          body="Try a different name, email, or phone number, or clear the filters to see everyone."
+          title={mine ? "No students of yours here" : "No clients match"}
+          body={
+            mine
+              ? "Students show up here once you're their primary or assistant coach. Assign coaches from a student's profile, or clear the filters to see everyone."
+              : "Try a different name, email, or phone number, or clear the filters to see everyone."
+          }
           action={
             <Button variant="dark" onPress={onClear}>
               Clear filters
@@ -397,9 +419,10 @@ function ActiveFilters({
 }: {
   search: ListSearch;
   group?: GroupDto;
-  onClear: (key: "filter" | "group") => void;
+  onClear: (key: "filter" | "group" | "mine") => void;
 }) {
-  const chips: { key: "filter" | "group"; label: string }[] = [];
+  const chips: { key: "filter" | "group" | "mine"; label: string }[] = [];
+  if (search.mine) chips.push({ key: "mine", label: "My students" });
   if (search.filter) chips.push({ key: "filter", label: QUICK_LABELS[search.filter] });
   if (search.group) chips.push({ key: "group", label: group?.name ?? "Group" });
   if (!chips.length) return null;
@@ -442,14 +465,26 @@ function PhoneFilters({
   onChange: (patch: Partial<ListSearch>) => void;
 }) {
   const can = useCan();
+  const hasTeam = useHasTeam();
   const chips: Chip[] = [
     {
       id: "all",
       label: "All",
       count: counts?.all,
-      on: !search.status && !search.filter && !search.group,
-      patch: { status: undefined, filter: undefined, group: undefined },
+      on: !search.status && !search.filter && !search.group && !search.mine,
+      patch: { status: undefined, filter: undefined, group: undefined, mine: undefined },
     },
+    ...(hasTeam
+      ? [
+          {
+            id: "mine",
+            label: "My students",
+            count: counts?.mine,
+            on: Boolean(search.mine),
+            patch: { mine: search.mine ? undefined : ("1" as const) },
+          },
+        ]
+      : []),
     {
       id: "low",
       label: "Low credits",
@@ -623,8 +658,9 @@ function ListPanel({
 }) {
   const dash = "–";
   const can = useCan();
+  const hasTeam = useHasTeam();
   const q: ListSearch = search.q ? { q: search.q } : {};
-  const plain = !search.status && !search.filter && !search.group;
+  const plain = !search.status && !search.filter && !search.group && !search.mine;
   const groupCount = (id: string) => current?.filter((c) => c.groupIds.includes(id)).length;
   return (
     <div className="flex flex-col gap-5">
@@ -689,6 +725,14 @@ function ListPanel({
       <nav aria-label="Client lists" className="flex flex-col gap-2">
         <h3 className="px-1 pt-1 text-[1.125rem] font-light">Lists</h3>
         <FilterRow label="Everyone" count={counts?.all} selected={plain} search={q} />
+        {hasTeam ? (
+          <FilterRow
+            label="My students"
+            count={counts?.mine}
+            selected={Boolean(search.mine) && !search.status && !search.filter && !search.group}
+            search={{ ...q, mine: "1" }}
+          />
+        ) : null}
         <FilterRow
           label="Leads"
           count={counts?.lead}

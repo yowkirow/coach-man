@@ -8,11 +8,11 @@ export const authClient = createAuthClient({
   plugins: [passkeyClient()],
 });
 
-export async function signInWithGoogle(next = "/") {
+export async function signInWithGoogle(next = "/", errorNext = "/sign-in") {
   await authClient.signIn.social({
     provider: "google",
     callbackURL: next,
-    errorCallbackURL: "/sign-in",
+    errorCallbackURL: errorNext,
   });
 }
 

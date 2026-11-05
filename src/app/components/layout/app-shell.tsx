@@ -6,6 +6,7 @@ import {
   Contact,
   Ellipsis,
   Home,
+  IdCardLanyard,
   Plus,
   Settings,
   Tent,
@@ -37,6 +38,7 @@ export const NAV: readonly NavItem[] = [
   { to: "/clients", label: "Clients", icon: Contact },
   { to: "/groups", label: "Groups", icon: UsersRound },
   { to: "/events", label: "Events", icon: Tent },
+  { to: "/team", label: "Team", icon: IdCardLanyard },
   { to: "/money", label: "Money", icon: CircleDollarSign, cap: "money" },
   { to: "/packages", label: "Packages & rates", icon: Ticket, cap: "catalog" },
 ];

@@ -32,16 +32,19 @@ declare module "@tanstack/react-router" {
 setUnauthorizedHandler(() => {
   queryClient.removeQueries({ queryKey: keys.me });
   const path = window.location.pathname;
-  if (path !== "/sign-in") void router.navigate({ to: "/sign-in", search: { next: path } });
+  // Invite pages work signed out: they offer sign-in themselves and come back to the link.
+  if (path === "/sign-in" || path.startsWith("/join/")) return;
+  void router.navigate({ to: "/sign-in", search: { next: path } });
 });
 
 // Removed from their last academy (or never staff): the staff app has nothing to show them.
-// The family portal and /welcome don't use the staff API, so they stay put.
+// The family portal, /welcome, and invite pages don't use the staff API, so they stay put.
 setNoWorkspaceHandler(() => {
   queryClient.removeQueries({ queryKey: keys.me });
   void queryClient.invalidateQueries({ queryKey: keys.account });
   const path = window.location.pathname;
-  if (path === "/welcome" || path === "/my" || path.startsWith("/my/")) return;
+  if (path === "/welcome" || path === "/my" || path.startsWith("/my/") || path.startsWith("/join/"))
+    return;
   void router.navigate({ to: "/welcome" });
 });
 

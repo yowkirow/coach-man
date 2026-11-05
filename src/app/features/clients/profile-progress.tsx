@@ -7,9 +7,9 @@ import { useOnline } from "../../lib/offline";
 import { AssessmentHistoryCard, SkillsCard } from "./assessment";
 import { CardSkeleton } from "./bits";
 import { GoalsCard } from "./goals";
-import { NotesCard } from "./notes";
 import { useProgress } from "./queries";
 import { RatingsCard } from "./ratings";
+import { CoachingTimelineCard } from "./timeline";
 
 export function ProgressTab({
   clientId,
@@ -62,10 +62,15 @@ export function ProgressTab({
   return (
     <div className="flex flex-col gap-4">
       <SkillsCard progress={p} onNew={onNewAssessment} canWrite={online} />
+      <CoachingTimelineCard
+        clientId={clientId}
+        firstName={firstName}
+        progress={p}
+        onOpenAssessment={onOpenAssessment}
+      />
       <AssessmentHistoryCard assessments={p.assessments} onOpen={onOpenAssessment} />
       <GoalsCard clientId={clientId} goals={p.goals} onAdd={onAddGoal} onEdit={onEditGoal} />
       <RatingsCard clientId={clientId} firstName={firstName} ratings={p.ratings} />
-      <NotesCard clientId={clientId} firstName={firstName} notes={p.notes} />
     </div>
   );
 }

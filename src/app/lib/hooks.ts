@@ -1,6 +1,8 @@
 import type {
+  AcademyDto,
   AccountDto,
   ClientListItemDto,
+  CoachSummaryDto,
   GroupDto,
   LessonDetailDto,
   LessonSummaryDto,
@@ -8,12 +10,13 @@ import type {
   PackageTemplateDto,
   RateDto,
   SkillDto,
+  TeamDto,
   TodayDto,
   VenueDto,
 } from "@shared/api-types";
 import { CAPABILITY_NAMES, type Capabilities } from "@shared/roles";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { accountApi, api } from "./api";
 import { claimCache } from "./offline";
 import { keys, queryClient } from "./query";
@@ -119,4 +122,32 @@ export function useVenues() {
 
 export function useSkills() {
   return useQuery({ queryKey: keys.skills, queryFn: () => api.get<SkillDto[]>("/skills") });
+}
+
+/** Everyone on the team (current staff), for coach pickers and avatars. Cached for offline use. */
+export function useCoaches() {
+  return useQuery({
+    queryKey: keys.coaches,
+    queryFn: () => api.get<CoachSummaryDto[]>("/coaches"),
+    staleTime: 5 * 60_000,
+  });
+}
+
+/** Coaches by user id. */
+export function useCoachMap(): Map<string, CoachSummaryDto> {
+  const coaches = useCoaches().data;
+  return useMemo(() => new Map((coaches ?? []).map((c) => [c.userId, c])), [coaches]);
+}
+
+/** More than one person on the team: coach pickers and "Mine / Everyone" have a choice to offer. */
+export function useHasTeam(): boolean {
+  return (useCoaches().data?.length ?? 0) > 1;
+}
+
+export function useAcademy() {
+  return useQuery({ queryKey: keys.academy, queryFn: () => api.get<AcademyDto>("/academy") });
+}
+
+export function useTeam() {
+  return useQuery({ queryKey: keys.team, queryFn: () => api.get<TeamDto>("/team") });
 }

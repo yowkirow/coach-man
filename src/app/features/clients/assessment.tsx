@@ -4,10 +4,11 @@ import { useMutation } from "@tanstack/react-query";
 import { ChevronRight, ClipboardCheck, Copy, NotebookPen, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Radio, RadioGroup } from "react-aria-components";
+import { CoachAvatar } from "../../components/domain/coaches";
 import { Button, IconButton } from "../../components/ui/button";
 import { Card, Pill } from "../../components/ui/display";
 import { EmptyState, InlineError } from "../../components/ui/feedback";
-import { TextAreaField, TextField } from "../../components/ui/field";
+import { Switch, TextAreaField, TextField } from "../../components/ui/field";
 import { Sheet } from "../../components/ui/overlay";
 import { api, errorMessage } from "../../lib/api";
 import { plural, useFormat } from "../../lib/format";
@@ -309,16 +310,48 @@ export function AssessmentHistoryCard({
   );
 }
 
+/** Assessments are shared with the family by default (progress is the point); a coach can hold one back. */
+function SharedWithFamilySwitch({
+  isSelected,
+  onChange,
+  firstName,
+  isDisabled,
+}: {
+  isSelected: boolean;
+  onChange: (v: boolean) => void;
+  firstName: string;
+  isDisabled?: boolean;
+}) {
+  return (
+    <div className="rounded-[22px] bg-panel px-4 py-1.5">
+      <Switch
+        isSelected={isSelected}
+        onChange={onChange}
+        isDisabled={isDisabled}
+        description={
+          isSelected
+            ? `${firstName} and their parents can see these scores in the family portal.`
+            : "Only coaches see this assessment."
+        }
+      >
+        Visible to student & parents
+      </Switch>
+    </div>
+  );
+}
+
 /** Read-only view of one assessment, compared with the one before it. */
 export function AssessmentDetailSheet({
   assessment,
   progress,
   clientId,
+  firstName,
   onClose,
 }: {
   assessment: AssessmentDto | null;
   progress: ProgressDto;
   clientId: string;
+  firstName: string;
   onClose: () => void;
 }) {
   const fmt = useFormat();
@@ -336,11 +369,28 @@ export function AssessmentDetailSheet({
       onClose();
     },
   });
+  const share = useMutation({
+    meta: { silent: true },
+    mutationFn: (v: { id: string; sharedWithFamily: boolean }) =>
+      api.patch<ProgressDto>(`/assessments/${v.id}`, { sharedWithFamily: v.sharedWithFamily }),
+    onSuccess: (p, v) => {
+      storeProgress(clientId, p);
+      notify({
+        tone: "success",
+        title: v.sharedWithFamily ? "Shared with the family" : "Now for coaches only",
+      });
+    },
+  });
   // biome-ignore lint/correctness/useExhaustiveDependencies: reset when another assessment opens.
   useEffect(() => {
     setConfirming(false);
     remove.reset();
+    share.reset();
   }, [assessment?.id]);
+  // The cached progress updates after a change; show this assessment's current state.
+  const current = assessment
+    ? (progress.assessments.find((a) => a.id === assessment.id) ?? assessment)
+    : null;
   const index = assessment ? progress.assessments.findIndex((a) => a.id === assessment.id) : -1;
   const earlier = index > 0 ? progress.assessments.slice(0, index) : [];
   return (
@@ -395,6 +445,12 @@ export function AssessmentDetailSheet({
     >
       {assessment ? (
         <div className="flex flex-col gap-5">
+          {current?.author ? (
+            <p className="flex items-center gap-2 text-[0.875rem] text-ink-2">
+              <CoachAvatar coach={current.author} size="xs" />
+              Assessed by <span className="font-medium text-ink">{current.author.name}</span>
+            </p>
+          ) : null}
           <Legend
             latest={fmt.date(assessment.assessedOn)}
             previous={earlier.length ? "Score before" : undefined}
@@ -407,6 +463,13 @@ export function AssessmentDetailSheet({
           {assessment.notes ? (
             <p className="rounded-2xl bg-panel px-4 py-3">{assessment.notes}</p>
           ) : null}
+          <SharedWithFamilySwitch
+            isSelected={current?.sharedWithFamily ?? true}
+            isDisabled={!online || share.isPending}
+            firstName={firstName}
+            onChange={(v) => current && share.mutate({ id: current.id, sharedWithFamily: v })}
+          />
+          {share.error ? <InlineError>{errorMessage(share.error)}</InlineError> : null}
           {remove.error ? <InlineError>{errorMessage(remove.error)}</InlineError> : null}
         </div>
       ) : null}
@@ -486,6 +549,7 @@ export function NewAssessmentSheet({
   const [openNotes, setOpenNotes] = useState<Set<string>>(new Set());
   const [level, setLevel] = useState("");
   const [summary, setSummary] = useState("");
+  const [shared, setShared] = useState(true);
 
   const save = useMutation({
     meta: { silent: true },
@@ -494,6 +558,7 @@ export function NewAssessmentSheet({
         assessedOn,
         overallLevel: level.trim() || null,
         notes: summary.trim() || null,
+        sharedWithFamily: shared,
         scores: Object.entries(scores).map(([skillId, score]) => ({
           skillId,
           score,
@@ -521,6 +586,7 @@ export function NewAssessmentSheet({
     setOpenNotes(new Set());
     setLevel(currentLevel ?? "");
     setSummary("");
+    setShared(true);
     save.reset();
   }, [isOpen]);
 
@@ -684,6 +750,7 @@ export function NewAssessmentSheet({
             placeholder="Big picture: what improved, what's next"
           />
         </div>
+        <SharedWithFamilySwitch isSelected={shared} onChange={setShared} firstName={firstName} />
         {save.error ? <InlineError>{errorMessage(save.error)}</InlineError> : null}
         <OfflineHint>You're offline. Reconnect to save the assessment.</OfflineHint>
       </div>

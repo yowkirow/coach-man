@@ -1,5 +1,12 @@
-import type { LessonDetailDto, NoteDto, RosterEntryDto, TodayDto } from "@shared/api-types";
-import type { AttendanceStatus } from "@shared/domain";
+import type {
+  CoachSummaryDto,
+  LessonDetailDto,
+  MeDto,
+  NoteDto,
+  RosterEntryDto,
+  TodayDto,
+} from "@shared/api-types";
+import type { AttendanceStatus, NoteKind, NoteVisibility } from "@shared/domain";
 import { CONSUMING_STATUSES } from "@shared/domain";
 import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
 import { MutationCache, QueryClient, type QueryKey } from "@tanstack/react-query";
@@ -32,6 +39,10 @@ export const keys = {
   money: (month: string) => ["money", month] as const,
   balances: ["balances"] as const,
   notificationPrefs: ["notification-prefs"] as const,
+  academy: ["academy"] as const,
+  team: ["team"] as const,
+  coaches: ["coaches"] as const,
+  coachProfile: (userId: string) => ["coach-profile", userId] as const,
 };
 
 /** Query families kept in IndexedDB so the app can open and read offline. */
@@ -50,6 +61,8 @@ const PERSISTED = new Set([
   "packages",
   "venues",
   "skills",
+  "coaches",
+  "academy",
 ]);
 
 export function shouldPersistQuery(key: QueryKey, status: string): boolean {
@@ -107,6 +120,40 @@ export interface NoteVars {
   clientId?: string | null;
   lessonId?: string | null;
   body: string;
+  /** Coaches only unless "shared"; handoff notes are always coaches only. */
+  visibility?: NoteVisibility;
+  kind?: NoteKind;
+}
+
+/** The note as it will look once saved, shown at once (and while offline) with "waiting to sync". */
+export function optimisticNote(vars: NoteVars): NoteDto {
+  const me = queryClient.getQueryData<MeDto>(keys.me);
+  const author = me
+    ? (queryClient
+        .getQueryData<CoachSummaryDto[]>(keys.coaches)
+        ?.find((c) => c.userId === me.user.id) ?? {
+        userId: me.user.id,
+        name: me.user.name,
+        photoKey: null,
+      })
+    : null;
+  const kind = vars.kind ?? "comment";
+  const now = Date.now();
+  return {
+    id: vars.id,
+    clientId: vars.clientId ?? null,
+    lessonId: vars.lessonId ?? null,
+    body: vars.body,
+    pinned: false,
+    createdAt: now,
+    updatedAt: now,
+    createdBy: me?.user.id ?? null,
+    author: author ? { userId: author.userId, name: author.name, photoKey: author.photoKey } : null,
+    kind,
+    visibility: kind === "handoff" ? "staff" : (vars.visibility ?? "staff"),
+    editedAt: null,
+    pending: true,
+  };
 }
 
 export interface CompleteVars {
@@ -205,18 +252,14 @@ queryClient.setMutationDefaults(["attendance"], {
 
 queryClient.setMutationDefaults(["notes", "create"], {
   mutationFn: (vars: NoteVars) => api.post<NoteDto>("/notes", vars, { idempotencyKey: vars.id }),
+  // A dropped request (network blip, server hiccup) shouldn't lose a note: the idempotency key
+  // makes resending safe. Refusals (4xx) are final.
+  retry: (count: number, err: unknown) =>
+    count < 3 && !(err instanceof ApiRequestError && err.status < 500),
+  retryDelay: (attempt: number) => Math.min(1000 * 2 ** attempt, 8000),
   onMutate: (vars: NoteVars) => {
-    const optimistic: NoteDto = {
-      id: vars.id,
-      clientId: vars.clientId ?? null,
-      lessonId: vars.lessonId ?? null,
-      body: vars.body,
-      pinned: false,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-      pending: true,
-    };
     if (vars.lessonId) {
+      const optimistic = optimisticNote(vars);
       queryClient.setQueryData<LessonDetailDto>(keys.lesson(vars.lessonId), (old) =>
         old ? { ...old, notes: [...old.notes, optimistic] } : old,
       );

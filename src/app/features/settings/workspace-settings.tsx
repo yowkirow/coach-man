@@ -96,7 +96,6 @@ function displayName(type: "currency" | "language", code: string): string | unde
 }
 
 interface WorkspaceDraft {
-  name: string;
   currency: string;
   timezone: string;
   locale: string;
@@ -106,7 +105,6 @@ interface WorkspaceDraft {
 
 function draftOf(me: MeDto): WorkspaceDraft {
   return {
-    name: me.workspace.name,
     currency: me.settings.currency,
     timezone: me.settings.timezone,
     locale: me.settings.locale,
@@ -181,12 +179,12 @@ export function WorkspaceSection() {
     const patch = changedFields(draft, draftOf(me));
     const parsed = workspaceUpdateSchema.safeParse(patch);
     if (!parsed.success) {
-      setErrors(issuesToFields(parsed.error.issues, { name: "Give your workspace a name." }));
+      setErrors(issuesToFields(parsed.error.issues));
       return;
     }
     setErrors({});
     save.mutate(parsed.data, {
-      onSuccess: () => notify({ tone: "success", title: "Workspace saved" }),
+      onSuccess: () => notify({ tone: "success", title: "Regional settings saved" }),
     });
   };
   const server = fieldErrors(save.error);
@@ -196,8 +194,8 @@ export function WorkspaceSection() {
   return (
     <SettingsSection
       id="workspace"
-      title="Workspace"
-      description="How prices, dates, and your week read across CoachMan."
+      title="Regional settings"
+      description="Currency, time zone, and how dates, prices, and your week read across CoachMan. The academy's name is in Academy profile."
     >
       <form
         onSubmit={(e) => {
@@ -206,13 +204,6 @@ export function WorkspaceSection() {
         }}
       >
         <div className="grid gap-x-4 gap-y-5 sm:grid-cols-2">
-          <TextField
-            label="Workspace name"
-            value={draft.name}
-            onChange={(v) => set("name", v)}
-            error={err("name")}
-            className="sm:col-span-2"
-          />
           <SelectField
             label="Currency"
             options={currencyOptions}

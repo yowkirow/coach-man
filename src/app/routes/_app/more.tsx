@@ -14,9 +14,10 @@ export const Route = createFileRoute("/_app/more")({ component: More });
 const DESCRIPTIONS: Record<string, string> = {
   "/groups": "Classes, squads, and their weekly sessions",
   "/events": "Camps, academies, clinics, and registrations",
+  "/team": "Coaches, roles, and invite links",
   "/money": "Payments, charges, and who owes",
   "/packages": "Your rate card and credit packages",
-  "/settings": "Workspace, passkeys, reminders, and data",
+  "/settings": "Academy, your coach profile, sign-in, reminders, and data",
 };
 
 function More() {

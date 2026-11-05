@@ -37,7 +37,7 @@ export const Route = createFileRoute("/onboarding")({
 });
 
 const STEPS: { id: Step; label: string; body: string }[] = [
-  { id: "workspace", label: "Your workspace", body: "Name, currency, and time zone" },
+  { id: "workspace", label: "Your academy", body: "Name, currency, and time zone" },
   { id: "passkey", label: "Passkey", body: "One-tap sign-in on this device" },
   { id: "reminders", label: "Reminders", body: "Session alerts and the app icon" },
 ];
@@ -246,18 +246,20 @@ function WorkspaceStep() {
     >
       <div>
         <h1 className="text-[2rem] leading-tight font-light tracking-[-0.02em]">
-          Set up your workspace
+          Set up your academy
         </h1>
         <p className="mt-2 text-ink-2">
-          Prices, reminders, and the schedule use these. You can change them later in Settings.
+          Coaching on your own counts: you're a one-person academy, and you can invite coaches
+          later. Prices, reminders, and the schedule use these settings. Change them anytime in
+          Settings.
         </p>
       </div>
       <TextField
-        label="Workspace name"
+        label="Academy name"
         value={name}
         onChange={setName}
         autoFocus
-        description="Shown on statements you send to clients."
+        description="Your academy's name, or your own if you coach on your own. It shows on invites and statements."
       />
       <SelectField
         label="Currency"

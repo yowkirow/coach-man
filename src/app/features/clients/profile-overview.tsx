@@ -30,6 +30,7 @@ import {
   RATING_SOURCE_LABELS,
   shortDate,
 } from "./client-utils";
+import { CoachesCard } from "./coaches";
 import { NoteItem } from "./notes";
 import { UpcomingList } from "./profile-sessions";
 
@@ -139,13 +140,18 @@ function buildActivity(
       tone: "amber",
       title: <span className="line-clamp-2 font-normal whitespace-pre-line">{n.body}</span>,
       detail: [
-        n.pinned ? "Pinned note" : "Note",
+        n.kind === "handoff" ? "Handoff note" : n.pinned ? "Pinned note" : "Note",
+        n.author ? `by ${n.author.name}` : null,
         n.lessonId ? "from a session" : null,
         fmt.time(n.createdAt),
       ]
         .filter(Boolean)
         .join(" · "),
-      pill: n.pending ? <Pill tone="amber">Waiting to sync</Pill> : undefined,
+      pill: n.pending ? (
+        <Pill tone="amber">Waiting to sync</Pill>
+      ) : n.visibility === "shared" && n.kind !== "handoff" ? (
+        <Pill tone="sky">Shared with family</Pill>
+      ) : undefined,
     });
   }
 
@@ -173,6 +179,7 @@ function buildActivity(
       detail: [
         plural(a.scores.length, "skill"),
         a.overallLevel ? `overall level ${a.overallLevel}` : null,
+        a.author ? `by ${a.author.name}` : null,
       ]
         .filter(Boolean)
         .join(" · "),
@@ -563,6 +570,7 @@ export function OverviewTab({
           <UpcomingList detail={detail} limit={3} firstName={c.firstName} />
         </div>
       </Card>
+      <CoachesCard detail={detail} />
       <ActivityTimeline
         detail={detail}
         statement={statement}

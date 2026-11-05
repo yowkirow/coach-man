@@ -36,7 +36,7 @@ const EXPORTS = [
   { file: "payments.csv", label: "Payments", body: "Amounts, methods, references, and voids" },
   { file: "charges.csv", label: "Charges", body: "Sessions, packages, events, and adjustments" },
   { file: "packages.csv", label: "Client packages", body: "Credits bought, left, and expiry" },
-  { file: "workspace.json", label: "Everything", body: "A full backup of your workspace" },
+  { file: "workspace.json", label: "Everything", body: "A full backup of your academy" },
 ] as const;
 
 function Block({
@@ -206,7 +206,7 @@ export function AppDataSection() {
 
         <Block
           title="This device"
-          description="Clearing removes the offline copy CoachMan keeps on this device. Your workspace stays safe on the server."
+          description="Clearing removes the offline copy CoachMan keeps on this device. Your academy's data stays safe on the server."
         >
           <div className="flex flex-wrap gap-2">
             <Button
@@ -256,7 +256,7 @@ export function AppDataSection() {
         body={
           pending > 0
             ? `${plural(pending, "change")} from this device haven't synced yet and will be lost. Reconnect and wait for the sync first if you can. CoachMan reloads and downloads a fresh copy.`
-            : "CoachMan reloads and downloads a fresh copy from the server. Nothing in your workspace is deleted."
+            : "CoachMan reloads and downloads a fresh copy from the server. Nothing in your academy is deleted."
         }
         confirmLabel={pending > 0 ? "Clear anyway" : "Clear and reload"}
         isPending={clearing}

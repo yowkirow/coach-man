@@ -654,17 +654,27 @@ export function TagInput({
   value,
   onChange,
   error,
+  label = "Tags",
+  placeholder = "Type a tag, then Enter",
+  description,
+  max = MAX_TAGS,
+  maxLength = 30,
 }: {
   value: string[];
   onChange: (tags: string[]) => void;
   error?: string;
+  label?: string;
+  placeholder?: string;
+  description?: string;
+  max?: number;
+  maxLength?: number;
 }) {
   const [draft, setDraft] = useState("");
   const commit = (raw: string) => {
     const next = [...value];
     for (const part of raw.split(",")) {
-      const tag = part.trim().slice(0, 30);
-      if (!tag || next.length >= MAX_TAGS) continue;
+      const tag = part.trim().slice(0, maxLength);
+      if (!tag || next.length >= max) continue;
       if (!next.some((t) => t.toLowerCase() === tag.toLowerCase())) next.push(tag);
     }
     setDraft("");
@@ -683,9 +693,9 @@ export function TagInput({
         isInvalid={Boolean(error)}
         className="flex flex-col gap-1.5"
       >
-        <Label className="text-[0.8125rem] font-medium text-ink-2">Tags</Label>
+        <Label className="text-[0.8125rem] font-medium text-ink-2">{label}</Label>
         <Input
-          placeholder="Type a tag, then Enter"
+          placeholder={placeholder}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
               e.preventDefault();
@@ -705,15 +715,15 @@ export function TagInput({
           </Text>
         ) : (
           <Text slot="description" className="text-[0.8125rem] text-ink-2">
-            {value.length >= MAX_TAGS
-              ? `That's the most tags a client can have (${MAX_TAGS}).`
-              : `Short labels you can search by, like "tournament" or "morning".`}
+            {value.length >= max
+              ? `That's as many as you can add (${max}).`
+              : (description ?? `Short labels you can search by, like "tournament" or "morning".`)}
           </Text>
         )}
       </RACTextField>
       {value.length ? (
         <TagGroup
-          aria-label="Tags added"
+          aria-label={`${label} added`}
           onRemove={(keys) => onChange(value.filter((t) => !keys.has(t)))}
         >
           <TagList className="flex flex-wrap gap-1.5">

@@ -3,6 +3,7 @@ import { addDays, DATE_RE } from "@shared/time";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { CalendarPlus, ChevronLeft, ChevronRight, CloudRain, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
+import { ScopeToggle } from "../../components/domain/coaches";
 import { LessonRow, SessionTile } from "../../components/domain/lesson";
 import { Page, ShellAside, SyncStatus, useIsDesktop } from "../../components/layout/app-shell";
 import { Button, IconButton } from "../../components/ui/button";
@@ -24,6 +25,7 @@ import { NewSessionSheet } from "../../features/schedule/new-session-sheet";
 import { RainOutSheet } from "../../features/schedule/rain-out-sheet";
 import { groupByDay, WeekGrid } from "../../features/schedule/week-grid";
 import { errorMessage } from "../../lib/api";
+import { inScope, useSessionScope } from "../../lib/coaches";
 import { type Format, plural, useFormat } from "../../lib/format";
 import { useLessons, useNow } from "../../lib/hooks";
 import { useOnline } from "../../lib/offline";
@@ -59,6 +61,10 @@ interface NavProps {
   onShiftWeek: (delta: number) => void;
   onNew: () => void;
   onRainOut: () => void;
+  /** "Mine / Everyone": whose sessions the calendar shows. */
+  scope: ReturnType<typeof useSessionScope>;
+  /** The sessions the scope shows. */
+  pick: <T extends LessonSummaryDto>(lessons: readonly T[]) => T[];
 }
 
 function SchedulePage() {
@@ -73,6 +79,7 @@ function SchedulePage() {
   const view: View = search.view ?? "week";
   const days = daysFrom(startOfWeek(date, fmt.weekStartsOn), 7);
   const [rainOpen, setRainOpen] = useState(false);
+  const scope = useSessionScope();
 
   const selectDate = (d: string) =>
     void navigate({
@@ -93,6 +100,8 @@ function SchedulePage() {
     onShiftWeek: (delta) => selectDate(addDays(date, delta * 7)),
     onNew: openNew,
     onRainOut: () => setRainOpen(true),
+    scope,
+    pick: (lessons) => inScope(lessons, scope.scope, scope.userId),
   };
 
   return (
@@ -133,19 +142,33 @@ function SchedulePage() {
 }
 
 /** Black command panel: month calendar, the selected day's sessions, and rain-out. */
-function SchedulePanel({ date, today, days, now, online, onSelect, onNew, onRainOut }: NavProps) {
+function SchedulePanel({
+  date,
+  today,
+  days,
+  now,
+  online,
+  onSelect,
+  onNew,
+  onRainOut,
+  scope,
+  pick,
+}: NavProps) {
   const fmt = useFormat();
   const [month, setMonth] = useState(monthOf(date));
   useEffect(() => setMonth(monthOf(date)), [date]);
   const grid = monthGrid(month, fmt.weekStartsOn);
   const monthQ = useLessons(grid[0] ?? date, grid[41] ?? date);
   const weekQ = useLessons(days[0] ?? date, days[6] ?? date);
-  const counts = countByDay(monthQ.data ?? [], fmt);
-  const dayLessons = (weekQ.data ?? []).filter((l) => fmt.dayOf(l.startsAt) === date);
+  const counts = countByDay(pick(monthQ.data ?? []), fmt);
+  const allDay = (weekQ.data ?? []).filter((l) => fmt.dayOf(l.startsAt) === date);
+  const dayLessons = pick(allDay);
+  const hidden = allDay.length - dayLessons.length;
   const open = dayLessons.filter((l) => l.status !== "cancelled").length;
 
   return (
     <div className="flex min-h-full flex-col gap-5">
+      {scope.enabled ? <ScopeToggle dark value={scope.scope} onChange={scope.setScope} /> : null}
       <MiniCalendar
         month={month}
         onMonthChange={setMonth}
@@ -187,6 +210,21 @@ function SchedulePanel({ date, today, days, now, online, onSelect, onNew, onRain
               linkTo="session"
             />
           ))
+        ) : hidden ? (
+          <div className="rounded-[24px] bg-night-2 p-5">
+            <p className="text-night-ink">None of your sessions.</p>
+            <p className="mt-1 text-[0.8125rem] text-night-ink-2">
+              {plural(hidden, "session")} on the academy schedule that day.
+            </p>
+            <Button
+              variant="lime"
+              size="sm"
+              className="mt-4"
+              onPress={() => scope.setScope("everyone")}
+            >
+              Show everyone's
+            </Button>
+          </div>
         ) : (
           <div className="rounded-[24px] bg-night-2 p-5">
             <p className="text-night-ink">Nothing scheduled.</p>
@@ -251,13 +289,21 @@ function DesktopSchedule({
   onSelect,
   onShiftWeek,
   onNew,
+  scope,
+  pick,
   view,
   onView,
 }: NavProps & { view: View; onView: (v: View) => void }) {
   const fmt = useFormat();
   const week = useLessons(days[0] ?? date, days[6] ?? date);
-  const lessons = week.data ?? [];
+  const lessons = pick(week.data ?? []);
   const open = lessons.filter((l) => l.status !== "cancelled");
+  const hidden = (week.data ?? []).filter((l) => l.status !== "cancelled").length - open.length;
+  const showEveryone = (
+    <Button variant="light" size="sm" onPress={() => scope.setScope("everyone")}>
+      Show everyone's
+    </Button>
+  );
 
   return (
     <Page className="flex flex-col gap-6">
@@ -266,7 +312,9 @@ function DesktopSchedule({
         subtitle={
           <span className="num">
             {dateRangeLabel(days[0] ?? date, days[6] ?? date, fmt.locale, { today })}
-            {week.data ? ` · ${plural(open.length, "session")}` : ""}
+            {week.data
+              ? ` · ${plural(open.length, "session")}${scope.scope === "mine" ? " of yours" : ""}`
+              : ""}
           </span>
         }
         actions={
@@ -328,12 +376,19 @@ function DesktopSchedule({
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-1 pb-3">
             <KindLegend />
             {open.length === 0 ? (
-              <p className="ml-auto flex items-center gap-3 text-[0.875rem] text-ink-2">
-                Nothing scheduled this week.
-                <Button variant="light" size="sm" isDisabled={!online} onPress={onNew}>
-                  New session
-                </Button>
-              </p>
+              hidden ? (
+                <p className="ml-auto flex items-center gap-3 text-[0.875rem] text-ink-2">
+                  None of your sessions this week.
+                  {showEveryone}
+                </p>
+              ) : (
+                <p className="ml-auto flex items-center gap-3 text-[0.875rem] text-ink-2">
+                  Nothing scheduled this week.
+                  <Button variant="light" size="sm" isDisabled={!online} onPress={onNew}>
+                    New session
+                  </Button>
+                </p>
+              )
             ) : null}
           </div>
           <WeekGrid
@@ -349,16 +404,29 @@ function DesktopSchedule({
         <Card className="px-3 py-2" label="Agenda">
           {open.length === 0 && lessons.length === 0 ? (
             <div className="px-2">
-              <EmptyState
-                icon={<CalendarPlus aria-hidden className="size-5" />}
-                title="Nothing scheduled this week"
-                body="Add a private lesson, a group class, or a clinic. Weekly sessions fill the weeks ahead on their own."
-                action={
-                  <Button variant="dark" isDisabled={!online} onPress={onNew}>
-                    New session
-                  </Button>
-                }
-              />
+              {hidden ? (
+                <EmptyState
+                  icon={<CalendarPlus aria-hidden className="size-5" />}
+                  title="None of your sessions this week"
+                  body={`${plural(hidden, "session")} on the academy schedule this week, run by other coaches.`}
+                  action={
+                    <Button variant="dark" onPress={() => scope.setScope("everyone")}>
+                      Show everyone's
+                    </Button>
+                  }
+                />
+              ) : (
+                <EmptyState
+                  icon={<CalendarPlus aria-hidden className="size-5" />}
+                  title="Nothing scheduled this week"
+                  body="Add a private lesson, a group class, or a clinic. Weekly sessions fill the weeks ahead on their own."
+                  action={
+                    <Button variant="dark" isDisabled={!online} onPress={onNew}>
+                      New session
+                    </Button>
+                  }
+                />
+              )}
             </div>
           ) : (
             <AgendaDays days={days} lessons={lessons} now={now} today={today} />
@@ -379,16 +447,20 @@ function PhoneSchedule({
   onShiftWeek,
   onNew,
   onRainOut,
+  scope,
+  pick,
 }: NavProps) {
   const fmt = useFormat();
   const first = days[0] ?? date;
   const range = useLessons(first, addDays(first, 13));
-  const lessons = range.data ?? [];
+  const lessons = pick(range.data ?? []);
   const byDay = groupByDay(lessons, fmt);
   const dayLessons = byDay.get(date) ?? [];
   const next = daysFrom(addDays(date, 1), 7);
   const nextCount = next.reduce((n, d) => n + (byDay.get(d)?.length ?? 0), 0);
   const open = dayLessons.filter((l) => l.status !== "cancelled").length;
+  const hidden =
+    (range.data ?? []).filter((l) => fmt.dayOf(l.startsAt) === date).length - dayLessons.length;
 
   return (
     <div className="flex flex-col">
@@ -410,6 +482,9 @@ function PhoneSchedule({
             </IconButton>
           </div>
         </div>
+        {scope.enabled ? (
+          <ScopeToggle dark value={scope.scope} onChange={scope.setScope} className="mt-4" />
+        ) : null}
         <div className="mt-5">
           <DayStrip
             days={days}
@@ -469,6 +544,19 @@ function PhoneSchedule({
               {dayLessons.map((l) => (
                 <LessonRow key={l.id} lesson={l} now={now} />
               ))}
+            </div>
+          ) : hidden ? (
+            <div className="px-5 pb-3">
+              <EmptyState
+                icon={<CalendarPlus aria-hidden className="size-5" />}
+                title="None of your sessions"
+                body={`${plural(hidden, "session")} on the academy schedule that day, run by other coaches.`}
+                action={
+                  <Button variant="dark" onPress={() => scope.setScope("everyone")}>
+                    Show everyone's
+                  </Button>
+                }
+              />
             </div>
           ) : (
             <div className="px-5 pb-3">

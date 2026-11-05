@@ -21,6 +21,8 @@ import { Route as AppMoreRouteImport } from './routes/_app/more'
 import { Route as AppPackagesRouteImport } from './routes/_app/packages'
 import { Route as AppScheduleRouteImport } from './routes/_app/schedule'
 import { Route as AppSettingsRouteImport } from './routes/_app/settings'
+import { Route as AppTeamRouteImport } from './routes/_app/team'
+import { Route as JoinTokenRouteImport } from './routes/join.$token'
 import { Route as AppClientsIndexRouteImport } from './routes/_app/clients.index'
 import { Route as AppClientsClientIdRouteImport } from './routes/_app/clients.$clientId'
 import { Route as AppClientsNewRouteImport } from './routes/_app/clients.new'
@@ -89,6 +91,16 @@ const AppSettingsRoute = AppSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => AppRoute,
 } as any)
+const AppTeamRoute = AppTeamRouteImport.update({
+  id: '/team',
+  path: '/team',
+  getParentRoute: () => AppRoute,
+} as any)
+const JoinTokenRoute = JoinTokenRouteImport.update({
+  id: '/join/$token',
+  path: '/join/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppClientsIndexRoute = AppClientsIndexRouteImport.update({
   id: '/clients/',
   path: '/clients/',
@@ -146,6 +158,8 @@ export interface FileRoutesByFullPath {
   '/packages': typeof AppPackagesRoute
   '/schedule': typeof AppScheduleRoute
   '/settings': typeof AppSettingsRoute
+  '/team': typeof AppTeamRoute
+  '/join/$token': typeof JoinTokenRoute
   '/clients/$clientId': typeof AppClientsClientIdRoute
   '/clients/new': typeof AppClientsNewRoute
   '/events/$eventId': typeof AppEventsEventIdRoute
@@ -167,6 +181,8 @@ export interface FileRoutesByTo {
   '/packages': typeof AppPackagesRoute
   '/schedule': typeof AppScheduleRoute
   '/settings': typeof AppSettingsRoute
+  '/team': typeof AppTeamRoute
+  '/join/$token': typeof JoinTokenRoute
   '/clients/$clientId': typeof AppClientsClientIdRoute
   '/clients/new': typeof AppClientsNewRoute
   '/events/$eventId': typeof AppEventsEventIdRoute
@@ -190,6 +206,8 @@ export interface FileRoutesById {
   '/_app/packages': typeof AppPackagesRoute
   '/_app/schedule': typeof AppScheduleRoute
   '/_app/settings': typeof AppSettingsRoute
+  '/_app/team': typeof AppTeamRoute
+  '/join/$token': typeof JoinTokenRoute
   '/_app/': typeof AppIndexRoute
   '/_app/clients/$clientId': typeof AppClientsClientIdRoute
   '/_app/clients/new': typeof AppClientsNewRoute
@@ -214,6 +232,8 @@ export interface FileRouteTypes {
     | '/packages'
     | '/schedule'
     | '/settings'
+    | '/team'
+    | '/join/$token'
     | '/clients/$clientId'
     | '/clients/new'
     | '/events/$eventId'
@@ -235,6 +255,8 @@ export interface FileRouteTypes {
     | '/packages'
     | '/schedule'
     | '/settings'
+    | '/team'
+    | '/join/$token'
     | '/clients/$clientId'
     | '/clients/new'
     | '/events/$eventId'
@@ -257,6 +279,8 @@ export interface FileRouteTypes {
     | '/_app/packages'
     | '/_app/schedule'
     | '/_app/settings'
+    | '/_app/team'
+    | '/join/$token'
     | '/_app/'
     | '/_app/clients/$clientId'
     | '/_app/clients/new'
@@ -275,6 +299,7 @@ export interface RootRouteChildren {
   OnboardingRoute: typeof OnboardingRoute
   SignInRoute: typeof SignInRoute
   WelcomeRoute: typeof WelcomeRoute
+  JoinTokenRoute: typeof JoinTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -363,6 +388,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSettingsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/team': {
+      id: '/_app/team'
+      path: '/team'
+      fullPath: '/team'
+      preLoaderRoute: typeof AppTeamRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/join/$token': {
+      id: '/join/$token'
+      path: '/join/$token'
+      fullPath: '/join/$token'
+      preLoaderRoute: typeof JoinTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_app/clients/': {
       id: '/_app/clients/'
       path: '/clients'
@@ -436,6 +475,7 @@ interface AppRouteChildren {
   AppPackagesRoute: typeof AppPackagesRoute
   AppScheduleRoute: typeof AppScheduleRoute
   AppSettingsRoute: typeof AppSettingsRoute
+  AppTeamRoute: typeof AppTeamRoute
   AppIndexRoute: typeof AppIndexRoute
   AppClientsClientIdRoute: typeof AppClientsClientIdRoute
   AppClientsNewRoute: typeof AppClientsNewRoute
@@ -454,6 +494,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppPackagesRoute: AppPackagesRoute,
   AppScheduleRoute: AppScheduleRoute,
   AppSettingsRoute: AppSettingsRoute,
+  AppTeamRoute: AppTeamRoute,
   AppIndexRoute: AppIndexRoute,
   AppClientsClientIdRoute: AppClientsClientIdRoute,
   AppClientsNewRoute: AppClientsNewRoute,
@@ -484,6 +525,7 @@ const rootRouteChildren: RootRouteChildren = {
   OnboardingRoute: OnboardingRoute,
   SignInRoute: SignInRoute,
   WelcomeRoute: WelcomeRoute,
+  JoinTokenRoute: JoinTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

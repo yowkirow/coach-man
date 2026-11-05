@@ -10,18 +10,21 @@ import {
   Ticket,
 } from "lucide-react";
 import { BallMark } from "../../components/brand";
+import { ScopeToggle } from "../../components/domain/coaches";
 import { LessonRow, SessionTile, sessionPhase } from "../../components/domain/lesson";
 import { RosterRow } from "../../components/domain/roster";
 import { Page, ShellAside, SyncStatus, useIsDesktop } from "../../components/layout/app-shell";
-import { buttonClass } from "../../components/ui/button";
+import { Button, buttonClass } from "../../components/ui/button";
 import { Avatar, AvatarStack, Card, CardHeader, KpiTile, Pill } from "../../components/ui/display";
 import { EmptyState, ErrorState, RowsSkeleton, Skeleton } from "../../components/ui/feedback";
 import { phaseLabel, SessionDetail, whereOf } from "../../features/sessions/session-detail";
 import { errorMessage } from "../../lib/api";
+import { inScope, useSessionScope } from "../../lib/coaches";
 import { plural, useFormat } from "../../lib/format";
 import { useCan, useMe, useNow, useToday } from "../../lib/hooks";
 
 type TodayLesson = TodayDto["lessons"][number];
+type Scope = ReturnType<typeof useSessionScope>;
 
 export const Route = createFileRoute("/_app/")({
   validateSearch: (s: Record<string, unknown>): { session?: string } =>
@@ -46,15 +49,22 @@ function TodayPage() {
   const desktop = useIsDesktop();
   const today = useToday();
   const now = useNow();
-  const lessons = today.data?.lessons ?? [];
+  const scope = useSessionScope();
+  const all = today.data?.lessons ?? [];
+  const lessons = inScope(all, scope.scope, scope.userId);
+  const hidden = all.length - lessons.length;
   const featured = featuredLesson(lessons, now);
-  const selected = (session ? lessons.find((l) => l.id === session) : undefined) ?? featured;
+  const selected = (session ? all.find((l) => l.id === session) : undefined) ?? featured;
+  const showEveryone = () => scope.setScope("everyone");
 
   return (
     <>
       <ShellAside>
         <TodayPanel
           data={today.data}
+          lessons={lessons}
+          hidden={hidden}
+          scope={scope}
           isPending={today.isPending}
           now={now}
           selectedId={selected?.id ?? null}
@@ -74,7 +84,7 @@ function TodayPage() {
             />
           ) : (
             <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
-              <NothingToday />
+              <NothingToday hidden={hidden} onShowEveryone={showEveryone} />
               <Attention alerts={today.data.alerts} />
             </div>
           )}
@@ -82,6 +92,9 @@ function TodayPage() {
       ) : (
         <PhoneToday
           data={today.data}
+          lessons={lessons}
+          hidden={hidden}
+          scope={scope}
           isPending={today.isPending}
           error={today.error}
           onRetry={() => void today.refetch()}
@@ -106,10 +119,10 @@ function DesktopSkeleton() {
   );
 }
 
-function TodayKpis({ data }: { data?: TodayDto }) {
+function TodayKpis({ data, lessons: scoped }: { data?: TodayDto; lessons: TodayLesson[] }) {
   const navigate = useNavigate();
   const can = useCan();
-  const lessons = (data?.lessons ?? []).filter((l) => l.status !== "cancelled");
+  const lessons = scoped.filter((l) => l.status !== "cancelled");
   const booked = lessons.reduce((n, l) => n + l.bookedCount, 0);
   const checkedIn = lessons.reduce((n, l) => n + l.checkedInCount, 0);
   const renewals = new Set(
@@ -156,17 +169,22 @@ function TodayKpis({ data }: { data?: TodayDto }) {
 
 function TodayPanel({
   data,
+  lessons,
+  hidden,
+  scope,
   isPending,
   now,
   selectedId,
 }: {
   data?: TodayDto;
+  lessons: TodayLesson[];
+  hidden: number;
+  scope: Scope;
   isPending: boolean;
   now: number;
   selectedId: string | null;
 }) {
   const fmt = useFormat();
-  const lessons = data?.lessons ?? [];
   return (
     <div className="flex flex-col gap-5">
       <div className="flex items-start justify-between gap-2 px-1">
@@ -178,7 +196,8 @@ function TodayPanel({
         </div>
         <SyncStatus dark />
       </div>
-      <TodayKpis data={data} />
+      {scope.enabled ? <ScopeToggle dark value={scope.scope} onChange={scope.setScope} /> : null}
+      <TodayKpis data={data} lessons={lessons} />
       <section aria-labelledby="today-sessions" className="flex flex-col gap-2.5">
         <div className="flex items-center justify-between px-1 pt-1">
           <h3 id="today-sessions" className="text-[1.125rem] font-light">
@@ -207,6 +226,21 @@ function TodayPanel({
               linkTo="today"
             />
           ))
+        ) : hidden ? (
+          <div className="rounded-[24px] bg-night-2 p-5">
+            <p className="text-night-ink">None of your sessions today.</p>
+            <p className="mt-1 text-[0.8125rem] text-night-ink-2">
+              {plural(hidden, "session")} on the academy schedule.
+            </p>
+            <Button
+              variant="lime"
+              size="sm"
+              className="mt-4"
+              onPress={() => scope.setScope("everyone")}
+            >
+              Show everyone's
+            </Button>
+          </div>
         ) : (
           <div className="rounded-[24px] bg-night-2 p-5">
             <p className="text-night-ink">No sessions today.</p>
@@ -228,7 +262,34 @@ function TodayPanel({
   );
 }
 
-function NothingToday() {
+function NothingToday({
+  hidden = 0,
+  onShowEveryone,
+}: {
+  hidden?: number;
+  onShowEveryone?: () => void;
+}) {
+  if (hidden && onShowEveryone) {
+    return (
+      <Card className="p-6">
+        <EmptyState
+          icon={<CalendarPlus aria-hidden className="size-5" />}
+          title="None of your sessions today"
+          body={`${plural(hidden, "session")} on the academy schedule today, run by other coaches.`}
+          action={
+            <div className="flex flex-wrap gap-2">
+              <Button variant="dark" onPress={onShowEveryone}>
+                Show everyone's
+              </Button>
+              <Link to="/schedule" search={{ new: "1" }} className={buttonClass("light")}>
+                New session
+              </Link>
+            </div>
+          }
+        />
+      </Card>
+    );
+  }
   return (
     <Card className="p-6">
       <EmptyState
@@ -338,6 +399,9 @@ function Attention({ alerts }: { alerts: TodayDto["alerts"] }) {
 
 function PhoneToday({
   data,
+  lessons,
+  hidden,
+  scope,
   isPending,
   error,
   onRetry,
@@ -345,6 +409,9 @@ function PhoneToday({
   now,
 }: {
   data?: TodayDto;
+  lessons: TodayLesson[];
+  hidden: number;
+  scope: Scope;
   isPending: boolean;
   error: Error | null;
   onRetry: () => void;
@@ -355,7 +422,7 @@ function PhoneToday({
   const me = useMe().data;
   const [firstName, ...rest] = (me?.user.name ?? "Coach").split(" ");
   const coach = { firstName: firstName ?? "Coach", lastName: rest.join(" ") };
-  const others = (data?.lessons ?? []).filter((l) => l.id !== featured?.id);
+  const others = lessons.filter((l) => l.id !== featured?.id);
 
   return (
     <div className="flex flex-col">
@@ -380,8 +447,11 @@ function PhoneToday({
         <p className="mt-1 text-[0.9375rem] text-night-ink-2">
           {fmt.longDay(data?.date ?? fmt.today())}
         </p>
+        {scope.enabled ? (
+          <ScopeToggle dark value={scope.scope} onChange={scope.setScope} className="mt-4" />
+        ) : null}
         <div className="mt-5">
-          <TodayKpis data={data} />
+          <TodayKpis data={data} lessons={lessons} />
         </div>
       </section>
 
@@ -431,7 +501,7 @@ function PhoneToday({
             </Card>
           </>
         ) : (
-          <NothingToday />
+          <NothingToday hidden={hidden} onShowEveryone={() => scope.setScope("everyone")} />
         )}
 
         {others.length ? (

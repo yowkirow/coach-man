@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Users, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { type CoachChoice, CoachFields } from "../../components/domain/coaches";
 import { ClientPicker } from "../../components/domain/lesson";
 import { Button, buttonClass } from "../../components/ui/button";
 import { Avatar } from "../../components/ui/display";
@@ -20,7 +21,15 @@ import {
 import { Sheet } from "../../components/ui/overlay";
 import { api, errorMessage, fieldErrors } from "../../lib/api";
 import { fullName, plural, useFormat } from "../../lib/format";
-import { useCan, useGroups, useMe, useRates, useVenues } from "../../lib/hooks";
+import {
+  useCan,
+  useCoachMap,
+  useGroups,
+  useHasTeam,
+  useMe,
+  useRates,
+  useVenues,
+} from "../../lib/hooks";
 import { notify } from "../../lib/notify";
 import { useOnline } from "../../lib/offline";
 import { keys, storeLesson } from "../../lib/query";
@@ -124,6 +133,8 @@ export function NewSessionSheet({
   const eventsQ = useEvents("upcoming");
   const ratesQ = useRates();
   const venuesQ = useVenues();
+  const hasTeam = useHasTeam();
+  const coachMap = useCoachMap();
   const today = fmt.today();
 
   const [kind, setKind] = useState<LessonKind>("private");
@@ -144,6 +155,7 @@ export function NewSessionSheet({
   const [weekdays, setWeekdays] = useState<number[]>([]);
   const [endsMode, setEndsMode] = useState<"never" | "on">("never");
   const [endsOn, setEndsOn] = useState("");
+  const [coachSel, setCoachSel] = useState<CoachChoice | null>(null);
   const [localErrors, setLocalErrors] = useState<Record<string, string>>({});
   const eventDefaultsPending = useRef(false);
 
@@ -186,6 +198,7 @@ export function NewSessionSheet({
     setWeekdays([weekdayOf(d)]);
     setEndsMode("never");
     setEndsOn(addDays(d, 55));
+    setCoachSel(null);
     setLocalErrors({});
     eventDefaultsPending.current = Boolean(initial?.eventId);
     create.reset();
@@ -238,6 +251,19 @@ export function NewSessionSheet({
     durationSel ?? String(rate?.durationMinutes ?? me?.settings.defaultSessionMinutes ?? 60);
   const capacity =
     capacitySel ?? (kind === "group" && group?.capacity ? String(group.capacity) : "");
+
+  // Sessions of a group or event start with its coaches; anything else with you as the lead.
+  const coachSource = kind === "group" ? group : kind === "event" ? ev : undefined;
+  const autoLead =
+    coachSource?.coachUserId && coachMap.has(coachSource.coachUserId)
+      ? coachSource.coachUserId
+      : (me?.user.id ?? null);
+  const coaches: CoachChoice = coachSel ?? {
+    lead: autoLead,
+    assistants: (coachSource?.assistantCoachIds ?? []).filter(
+      (id) => id !== autoLead && coachMap.has(id),
+    ),
+  };
 
   const durationOptions = [...new Set([...DURATIONS, Number(duration)])]
     .filter((m) => Number.isFinite(m) && m >= 15)
@@ -301,6 +327,8 @@ export function NewSessionSheet({
       notes: plan.trim() || null,
       clientIds: PLAYER_KINDS.includes(kind) ? players.map((p) => p.id) : [],
       recurrence: repeat ? { weekdays, endsOn: until } : null,
+      // A one-person academy leaves it to the server: you lead what you schedule.
+      ...(hasTeam ? { coachUserId: coaches.lead, assistantCoachIds: coaches.assistants } : {}),
     };
     create.mutate(body, {
       onSuccess: (res) => {
@@ -426,6 +454,7 @@ export function NewSessionSheet({
                 setRateSel(null);
                 setVenueSel(null);
                 setCapacitySel(null);
+                setCoachSel(null);
               }}
               error={err("groupId")}
               description={
@@ -462,6 +491,7 @@ export function NewSessionSheet({
               onChange={(id) => {
                 setEventId(id);
                 setVenueSel(null);
+                setCoachSel(null);
                 eventDefaultsPending.current = true;
               }}
               error={err("eventId")}
@@ -577,6 +607,15 @@ export function NewSessionSheet({
               </p>
             )}
           </div>
+        ) : null}
+
+        {hasTeam ? (
+          <CoachFields
+            value={coaches}
+            onChange={setCoachSel}
+            description="The lead coach runs it and gets its reminders."
+            error={err("coachUserId") ?? err("assistantCoachIds")}
+          />
         ) : null}
 
         {kind !== "event" ? (

@@ -1,8 +1,8 @@
 import { STAFF_ROLE_LABELS } from "@shared/roles";
 import { useMutation } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { ArrowLeftRight, ArrowUpRight, Check } from "lucide-react";
-import { Button } from "../../components/ui/button";
+import { ArrowLeftRight, ArrowUpRight, Check, IdCardLanyard } from "lucide-react";
+import { Button, buttonClass } from "../../components/ui/button";
 import { Card, Pill } from "../../components/ui/display";
 import { InlineError } from "../../components/ui/feedback";
 import { accountApi, errorMessage } from "../../lib/api";
@@ -134,6 +134,12 @@ export function AcademySection() {
     <SettingsSection
       id="academy"
       title="Academy"
+      action={
+        <Link to="/team" className={buttonClass("light", "sm")}>
+          <IdCardLanyard aria-hidden className="size-4" />
+          {me.can?.team ? "Team and invites" : "Team"}
+        </Link>
+      }
       description={
         <>
           You're in <span className="font-medium text-ink">{me.workspace.name}</span> as{" "}

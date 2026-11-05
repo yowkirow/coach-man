@@ -546,7 +546,7 @@ The WS5a specs: `kids-safety` (a parent edits a junior's health details and adds
 
 The WS5b spec, `family-reminders`, uses `e2e/push-support.ts`: `sinkEndpoint` (a unique `push-sink.invalid` endpoint), `subscribeFamily`/`subscribeStaff` (register a device through the portal or staff API), `setFamilyPrefs` (`ALL_ON`, with quiet hours off unless a test sets them), `pushes` (polls the sink until a matching push arrives: event pushes go out after the response), `sinkOf`, `runReminders` (the cron's reminder steps as of a time), `settle` (waits out pushes that should not come), `userIdOf`, and `localParts` (a time in the academy's zone). The API scenarios run on desktop only; the Notifications page runs on both, with a stand-in push subscription on desktop (persona contexts block the service worker) and an iPhone user agent for the Add to Home Screen steps.
 
-`npm run screenshots` captures desktop (1440) and phone (390) screenshots into `.impeccable/review/` using the same bypass.
+`npm run screenshots` captures desktop (1440) and phone (390) screenshots into `.impeccable/review/` using the same bypass. `npm run screenshots:academy` first sets up a listed academy (its public page with programs and tiers, coaches, consent forms, a linked parent, enrollment requests, payment proofs, and announcements), then captures the academy release's pages as an owner, a coach, a parent, and someone signed out into `.impeccable/review/academy/`, with contact sheets for review; `SHOT_GROUPS` and `SHOT_VIEWPORTS` narrow a run.
 
 ## Deploying to Cloudflare
 

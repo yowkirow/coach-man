@@ -26,6 +26,7 @@
     "vapid:generate": "node scripts/vapid.mjs",
     "icons": "node scripts/generate-icons.mjs",
     "screenshots": "node scripts/screenshots.mjs",
+    "screenshots:academy": "node scripts/academy-screenshots.mjs",
     "deploy:staging": "cross-env CLOUDFLARE_ENV=staging vite build && wrangler deploy",
     "deploy:production": "cross-env CLOUDFLARE_ENV=production vite build && wrangler deploy"
   },

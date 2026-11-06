@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-11-06T04:10:32.046Z",
+  "generatedAt": "2026-11-06T10:25:17.742Z",
   "title": "Design System: CoachMan",
   "extensions": {
     "colorMeta": {
@@ -454,6 +454,118 @@
           "#c8c8cd",
           "#eeeef3"
         ]
+      },
+      "ivory": {
+        "role": "neutral",
+        "displayName": "Ball Ivory",
+        "canonical": "#fbfbf0",
+        "tonalRamp": [
+          "#0c0c05",
+          "#26261e",
+          "#43433a",
+          "#626259",
+          "#838379",
+          "#a6a69c",
+          "#cacabf",
+          "#efefe4"
+        ],
+        "note": "Academy website only (.site-root). The ground, edge to edge and through overscroll; the nav, ivory cards, the ball pill."
+      },
+      "ivory-2": {
+        "role": "neutral",
+        "displayName": "Ivory Wash",
+        "canonical": "#f1f2df",
+        "tonalRamp": [
+          "#0c0c02",
+          "#262618",
+          "#434334",
+          "#626352",
+          "#838473",
+          "#a6a795",
+          "#cacbb8",
+          "#eff0dd"
+        ],
+        "note": "Academy website only (.site-root). Wells and soft fills inside ivory surfaces."
+      },
+      "ivory-line": {
+        "role": "neutral",
+        "displayName": "Ivory Rule",
+        "canonical": "#d6d7c2",
+        "tonalRamp": [
+          "#0c0c01",
+          "#262616",
+          "#434332",
+          "#626350",
+          "#838471",
+          "#a6a793",
+          "#cacbb6",
+          "#eff0db"
+        ],
+        "note": "Academy website only (.site-root). The nav's 1px edge, ivory cards' 1.5px ring, the footer rule."
+      },
+      "court": {
+        "role": "tertiary",
+        "displayName": "Court Green",
+        "canonical": "#0f4a3b",
+        "tonalRamp": [
+          "#000f0a",
+          "#002d22",
+          "#134d3e",
+          "#376d5d",
+          "#598f7e",
+          "#7bb3a0",
+          "#9fd7c4",
+          "#c3fde9"
+        ],
+        "note": "Academy website only (.site-root). Proof only: the coaches' slab, the what's-included pills, the Enrolling now tag."
+      },
+      "court-2": {
+        "role": "tertiary",
+        "displayName": "Raised Court",
+        "canonical": "#175b4a",
+        "tonalRamp": [
+          "#000f0a",
+          "#002d22",
+          "#024e3e",
+          "#2e6f5d",
+          "#51917e",
+          "#74b4a0",
+          "#98d9c4",
+          "#bdffe9"
+        ],
+        "note": "Academy website only (.site-root). Proof cards on the court slab."
+      },
+      "court-ink": {
+        "role": "neutral",
+        "displayName": "Court White",
+        "canonical": "#f1f7f1",
+        "tonalRamp": [
+          "#090c09",
+          "#222622",
+          "#3f433f",
+          "#5e635e",
+          "#7f847f",
+          "#a1a7a1",
+          "#c5cbc5",
+          "#eaf0ea"
+        ],
+        "note": "Academy website only (.site-root). Text on Court Green and Raised Court."
+      },
+      "court-ink-2": {
+        "role": "neutral",
+        "displayName": "Court Mist",
+        "canonical": "#b8d2c3",
+        "tonalRamp": [
+          "#000f06",
+          "#152a1f",
+          "#32483c",
+          "#50685b",
+          "#71897b",
+          "#93ac9e",
+          "#b7d1c2",
+          "#dbf6e7"
+        ],
+        "note": "Academy website only (.site-root). Secondary text and arrows on Court Green."
       }
     },
     "typographyMeta": {
@@ -467,7 +579,7 @@
       },
       "figure-lg": {
         "displayName": "Tier Price",
-        "purpose": "A tier's price per head on the academy page, the portal's Enroll page, and the staff preview."
+        "purpose": "A tier's price per head on the website's Enroll now, the portal's Enroll page, and the staff preview."
       },
       "headline-lg": {
         "displayName": "Record Title",
@@ -483,7 +595,7 @@
       },
       "headline-panel": {
         "displayName": "Panel Title",
-        "purpose": "The title at the top of the command panel."
+        "purpose": "The title at the top of the command panel, the tier in the wizard's frame, and a program's days and times on the website (24px on phones)."
       },
       "figure": {
         "displayName": "KPI Figure",
@@ -527,7 +639,7 @@
       },
       "label-sm": {
         "displayName": "Field Label",
-        "purpose": "Labels above fields."
+        "purpose": "Labels above fields, and the website's outlined chips on black (level, ages, session length)."
       },
       "label-xs": {
         "displayName": "Pill",
@@ -536,6 +648,61 @@
       "label-2xs": {
         "displayName": "Tab Label",
         "purpose": "The phone tab bars' labels (staff and portal) and the initials in 28px avatars."
+      },
+      "site-display": {
+        "displayName": "Site Hero",
+        "purpose": "The website's hero headline and the closing call's \"Ready to play?\" from 1024px.",
+        "note": "Academy website only (.site-root)."
+      },
+      "site-display-md": {
+        "displayName": "Site Hero (tablet)",
+        "purpose": "The hero, Enroll now's title, and the closing call from 640px.",
+        "note": "Academy website only (.site-root)."
+      },
+      "site-display-sm": {
+        "displayName": "Site Hero (phone)",
+        "purpose": "The hero and Enroll now's title on phones; the closing call takes 48px there.",
+        "note": "Academy website only (.site-root)."
+      },
+      "site-headline-xl": {
+        "displayName": "Site Section",
+        "purpose": "Section titles from 1024px: Choose a program, On court, The coaches, About, Where we play.",
+        "note": "Academy website only (.site-root)."
+      },
+      "site-headline-lg": {
+        "displayName": "Site Section (tablet)",
+        "purpose": "Section titles from 640px.",
+        "note": "Academy website only (.site-root)."
+      },
+      "site-headline-md": {
+        "displayName": "Site Headline",
+        "purpose": "The questions box from 640px, the team page's titles from 1024px, and the closing call on phones.",
+        "note": "Academy website only (.site-root)."
+      },
+      "site-headline-sm": {
+        "displayName": "Site Section (phone)",
+        "purpose": "Section titles, the questions box, and the team page's titles on phones; a program's name on its card from 640px.",
+        "note": "Academy website only (.site-root)."
+      },
+      "site-title": {
+        "displayName": "Site Card Title",
+        "purpose": "A coach's name, Also on the team, a program's name on its slab or card, More packages, and a coach's highlight on the court slab (28px on phones, 1.12 leading).",
+        "note": "Academy website only (.site-root)."
+      },
+      "site-caption": {
+        "displayName": "Site Footer Heading",
+        "purpose": "The footer's column headings, in Pewter.",
+        "note": "Academy website only (.site-root)."
+      },
+      "site-lead": {
+        "displayName": "Site Lead",
+        "purpose": "The line under a headline, section intros, a program's description, and About, from 640px (16px on phones).",
+        "note": "Academy website only (.site-root)."
+      },
+      "site-wordmark": {
+        "displayName": "Footer Wordmark",
+        "purpose": "The academy's name set huge at the foot of every website page; decorative, hidden from screen readers, and the website's only weight above 600.",
+        "note": "Academy website only (.site-root)."
       }
     },
     "shadows": [
@@ -558,6 +725,21 @@
         "name": "tile-glow",
         "value": "radial-gradient(120% 90% at 0% 0%, var(--tile-tint) 0%, transparent 60%)",
         "purpose": "Background, not a shadow: lights a KPI tile's top-left corner; --tile-tint is the tile's own pastel at about 22%."
+      },
+      {
+        "name": "focus-ring",
+        "value": "outline: 2px solid var(--color-ink); outline-offset: 2px (lime inside .dark-zone)",
+        "purpose": "Keyboard focus on every control, app and website alike: ink on the canvas and on ivory; lime in the dark zone, the website's slabs and black cards included. State, not elevation."
+      },
+      {
+        "name": "slab-tuck",
+        "value": ".slab + .slab::before { position: absolute; inset-inline: 0; top: -64px; height: 64px; z-index: -1; background: inherit } inside the isolated .site-root",
+        "purpose": "Depth device, not a shadow: a website slab that follows another reaches 64px up behind it, so its color fills the first slab's lower corners and the two read as stacked sheets."
+      },
+      {
+        "name": "closing-scrim",
+        "value": "linear-gradient(to bottom, rgb(14 14 15 / 0.35), rgb(14 14 15 / 0.55), rgb(14 14 15 / 0.85))",
+        "purpose": "Background, not a shadow: the Command Black wash over the website's closing call photo, so its white type reads; the website's only gradient."
       }
     ],
     "motion": [
@@ -615,28 +797,43 @@
         "name": "reduced-motion",
         "value": "1ms",
         "purpose": "prefers-reduced-motion collapses every animation and transition to 1ms; toasts and state changes still appear."
+      },
+      {
+        "name": "arc-drift",
+        "value": "requestAnimationFrame; startOffset advances 0.028px per ms (about 28px/s) plus 0.9 x the page scroll since the last frame",
+        "purpose": "The ball's arc: the academy's words drift along the lob and run with the page's scroll (backward when it scrolls up), only while the arc is on screen and the tab is visible. Reduced motion, or no IntersectionObserver: the words hold still."
+      },
+      {
+        "name": "reel-travel",
+        "value": "translate3d(-progress x overflow, 0, 0) on a sticky 100dvh stage inside a section 100dvh + overflow tall",
+        "purpose": "On court, from 1024px with motion allowed: the photo reel travels sideways exactly its own overflow while the page scrolls down. Otherwise a snap-x scroller with one keyboard stop."
+      },
+      {
+        "name": "proof-nudge",
+        "value": "200ms ease-out; translate(2px, -2px)",
+        "purpose": "A proof card's up-right arrow on hover, brightening from Court Mist to Court White."
       }
     ],
     "breakpoints": [
       {
         "name": "sm",
         "value": "640px",
-        "purpose": "Sheets become centered dialogs; page side padding steps from 16px to 24px."
+        "purpose": "Sheets become centered dialogs; page side padding steps from 16px to 24px. On the academy website: slabs round to 48px, the hero to 72px and section titles to 56px, the nav grows to 64px, and the ball's arc switches to its 260px drawing."
       },
       {
         "name": "md",
         "value": "768px",
-        "purpose": "Wider form and list arrangements."
+        "purpose": "Wider form and list arrangements. On the academy website: the nav shows its links (phones fold them into a menu), proof cards pair up, and a coach's portrait becomes a sticky column."
       },
       {
         "name": "lg",
         "value": "1024px",
-        "purpose": "Desktop shell: the command panel and icon rail replace the phone header block and tab bar; titles step up to 40px and 44px."
+        "purpose": "Desktop shell: the command panel and icon rail replace the phone header block and tab bar; titles step up to 40px and 44px. On the academy website: slabs round to 64px, the hero to 96px and section titles to 64px; the Programs slab sets its coach fan beside the program, the photo reel pins and travels sideways, and the team page's dark block becomes a sticky 340px panel."
       },
       {
         "name": "xl",
         "value": "1280px",
-        "purpose": "The folder panel splits into tab content and a 340px bento column."
+        "purpose": "The folder panel splits into tab content and a 340px bento column. On the academy website, the team page's panel widens to 360px."
       }
     ]
   },
@@ -725,7 +922,7 @@
       "name": "Tier Card",
       "kind": "card",
       "refersTo": "tier-card",
-      "description": "A package tier on the academy page and the portal's Enroll page: price per head in light tabular figures, validity, check-circle inclusions, a Who it's for well, and Enroll at the foot. The featured tier is lime.",
+      "description": "A package tier on the website's Enroll now (Ball Ivory there; see Ivory Tier Card), the portal's Enroll page, and the staff preview: price per head in light tabular figures, validity, check-circle inclusions, a Who it's for well, and Enroll at the foot. The featured tier is lime.",
       "html": "<div class=\"ds-tiers\"><article class=\"ds-tier\"><h3 class=\"ds-tier-name\">Monthly</h3><p class=\"ds-tier-meta\">4–6 sessions</p><p class=\"ds-tier-price\">₱6,000 <span>per head</span></p><p class=\"ds-tier-valid\">Valid until the end of the month</p><ul class=\"ds-tier-list\"><li><span class=\"ds-check\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 6 9 17l-5-5\"/></svg></span>Court fees included</li><li><span class=\"ds-check\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 6 9 17l-5-5\"/></svg></span>Game review</li></ul><a class=\"ds-tier-enroll\" href=\"#\">Enroll <svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"/><path d=\"m12 5 7 7-7 7\"/></svg></a></article><article class=\"ds-tier ds-tier-featured\"><h3 class=\"ds-tier-name\">Monthly plus <span class=\"ds-tier-flag\">Featured</span></h3><p class=\"ds-tier-meta\">7–9 sessions</p><p class=\"ds-tier-price\">₱7,000 <span>per head</span></p><p class=\"ds-tier-valid\">Valid until the end of the month</p><ul class=\"ds-tier-list\"><li><span class=\"ds-check\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 6 9 17l-5-5\"/></svg></span>Court fees included</li><li><span class=\"ds-check\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 6 9 17l-5-5\"/></svg></span>Game review</li></ul><a class=\"ds-tier-enroll\" href=\"#\">Enroll <svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"/><path d=\"m12 5 7 7-7 7\"/></svg></a></article></div>",
       "css": ".ds-tiers{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:12px;background:var(--color-canvas,#e5e5e7);border-radius:22px;font-family:var(--font-sans,\"Figtree Variable\",ui-sans-serif,system-ui,sans-serif)} .ds-tier{display:flex;flex-direction:column;padding:24px;border-radius:28px;background:var(--color-card,#fff);color:var(--color-ink,#111)} .ds-tier-featured{background:var(--color-lime,#daee63)} .ds-tier-name{margin:0;font-size:1.375rem;font-weight:300;letter-spacing:-0.01em;display:flex;justify-content:space-between;align-items:center} .ds-tier-flag{height:24px;padding:0 10px;border-radius:9999px;background:#fff;font-size:0.75rem;font-weight:500;display:inline-flex;align-items:center} .ds-tier-meta{margin:4px 0 0;font-size:0.875rem;color:var(--color-ink-2,#5f6066)} .ds-tier-price{margin:20px 0 0;font-size:2.75rem;font-weight:300;letter-spacing:-0.03em;line-height:1;font-variant-numeric:tabular-nums} .ds-tier-price span{font-size:0.9375rem;letter-spacing:0;color:var(--color-ink-2,#5f6066)} .ds-tier-valid{margin:12px 0 0;font-size:0.875rem;font-weight:500} .ds-tier-list{list-style:none;margin:20px 0 20px;padding:0;display:flex;flex-direction:column;gap:10px;font-size:0.9375rem} .ds-check{display:inline-flex;width:22px;height:22px;margin-right:12px;border-radius:9999px;background:var(--color-ink,#111);color:#fff;align-items:center;justify-content:center;font-size:12px} .ds-tier-enroll{margin-top:auto;display:flex;gap:8px;height:52px;align-items:center;justify-content:center;border-radius:9999px;background:var(--color-ink,#111);color:#fff;text-decoration:none;font-weight:500} .ds-tier-enroll:hover{background:var(--color-night-3,#29292c)} .ds-tier-enroll:focus-visible{outline:2px solid var(--color-ink,#111);outline-offset:2px}"
     },
@@ -744,21 +941,85 @@
       "description": "One answer in an enrollment step: a Folder Gray card with a round check; the chosen one turns lime with an ink check.",
       "html": "<div class=\"ds-choices\" role=\"radiogroup\" aria-label=\"Who's training\"><label class=\"ds-choice\"><input type=\"radio\" name=\"who\"><span class=\"ds-dot\"></span><span><b>Me</b><small>I'm 18 or older</small></span></label><label class=\"ds-choice\"><input type=\"radio\" name=\"who\" checked><span class=\"ds-dot\"></span><span><b>Add another child</b><small>Under 18, new to the academy</small></span></label></div>",
       "css": ".ds-choices{display:flex;flex-direction:column;gap:8px;max-width:420px;padding:16px;background:#fff;border-radius:28px;font-family:var(--font-sans,\"Figtree Variable\",ui-sans-serif,system-ui,sans-serif)} .ds-choice{display:flex;align-items:flex-start;gap:12px;min-height:56px;padding:16px;border-radius:22px;background:var(--color-panel,#f3f3f4);cursor:pointer} .ds-choice:hover{background:var(--color-line,#e4e4e7)} .ds-choice input{position:absolute;opacity:0} .ds-dot{flex:none;width:24px;height:24px;border-radius:9999px;border:1px solid var(--color-line-strong,#cfcfd4);background:#fff} .ds-choice b{display:block;font-weight:500} .ds-choice small{display:block;margin-top:2px;font-size:0.875rem;color:var(--color-ink-2,#5f6066)} .ds-choice:has(input:checked){background:var(--color-lime,#daee63)} .ds-choice:has(input:checked) .ds-dot{border:0;background:var(--color-ink,#111)} .ds-choice:has(input:focus-visible){outline:2px solid var(--color-ink,#111);outline-offset:2px}"
+    },
+    {
+      "name": "Site Nav",
+      "kind": "nav",
+      "refersTo": "site-nav",
+      "description": "The academy website's floating nav: an outlined Ball Ivory bar (18px corners, 1px Ivory Rule, no shadow) with the academy's logo tile and name, its links as quiet pills, and the lime Enroll now; phones fold the links behind a 40px menu circle.",
+      "html": "<div class=\"ds-sn-ground\"><nav class=\"ds-sn\" aria-label=\"Riverside Pickleball Academy\"><a class=\"ds-sn-brand\" href=\"#\"><span class=\"ds-sn-logo\">RP</span><span class=\"ds-sn-name\">Riverside Pickleball Academy</span></a><div class=\"ds-sn-links\"><a href=\"#\">Programs</a><a href=\"#\" aria-current=\"page\">Coaches</a><a href=\"#\">Packages</a><a href=\"#\">Contact</a></div><a class=\"ds-sn-enroll\" href=\"#\">Enroll now</a><button class=\"ds-sn-menu\" type=\"button\" aria-label=\"Menu\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 5h16\"/><path d=\"M4 12h16\"/><path d=\"M4 19h16\"/></svg></button></nav></div>",
+      "css": ".ds-sn-ground{padding:16px;border-radius:22px;background:var(--color-ivory,#fbfbf0);color:var(--color-ink,#111111);font-family:var(--font-sans,\"Figtree Variable\",ui-sans-serif,system-ui,sans-serif)} .ds-sn{display:flex;align-items:center;gap:16px;height:64px;padding:0 10px;border:1px solid var(--color-ivory-line,#d6d7c2);border-radius:18px;background:var(--color-ivory,#fbfbf0)} .ds-sn-brand{display:flex;align-items:center;gap:10px;min-width:0;padding-right:4px;border-radius:14px;color:inherit;text-decoration:none;outline:none} .ds-sn-logo{display:inline-flex;flex-shrink:0;width:40px;height:40px;align-items:center;justify-content:center;border-radius:13px;background:var(--color-card,#ffffff);box-shadow:0 0 0 1px var(--color-line-strong,#cfcfd4);font-size:0.875rem;font-weight:600} .ds-sn-name{overflow:hidden;font-size:1rem;font-weight:600;line-height:1.15;white-space:nowrap;text-overflow:ellipsis} .ds-sn-links{display:flex;gap:2px;margin-left:auto} .ds-sn-links a{padding:8px 14px;border-radius:9999px;color:inherit;text-decoration:none;font-size:0.9375rem;font-weight:500;outline:none;transition:background-color 150ms ease-out} .ds-sn-links a:hover{background:rgb(17 17 17 / 0.06)} .ds-sn-links a[aria-current]{background:rgb(17 17 17 / 0.08)} .ds-sn-enroll{display:inline-flex;flex-shrink:0;align-items:center;height:44px;padding:0 20px;border-radius:9999px;background:var(--color-lime,#daee63);color:var(--color-ink,#111111);text-decoration:none;font-size:0.9375rem;font-weight:500;white-space:nowrap;transition:background-color 150ms ease-out,transform 150ms ease-out} .ds-sn-enroll:hover{background:var(--color-lime-strong,#cbe148)} .ds-sn-enroll:active{transform:scale(0.97)} .ds-sn-menu{display:none;flex-shrink:0;width:40px;height:40px;align-items:center;justify-content:center;border:0;border-radius:9999px;background:transparent;color:inherit;cursor:pointer} .ds-sn-menu:hover{background:rgb(17 17 17 / 0.06)} .ds-sn a:focus-visible,.ds-sn-menu:focus-visible{outline:2px solid var(--color-ink,#111111);outline-offset:2px} @media (max-width:767px){.ds-sn{height:56px;gap:8px;padding:0 8px}.ds-sn-links{display:none}.ds-sn-enroll{margin-left:auto}.ds-sn-menu{display:inline-flex}}"
+    },
+    {
+      "name": "Outline Buttons",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "The website's second actions beside a lime Enroll: an ink-ringed outline pill on ivory and a white-ringed outline-light pill on a black slab (1.5px rings inside the edge), in the large 52px size and the 44px default.",
+      "html": "<div class=\"ds-ob\"><div class=\"ds-ob-row ds-ob-ivory\"><a class=\"ds-ob-btn ds-ob-lime\" href=\"#\">Enroll now <svg xmlns=\"http://www.w3.org/2000/svg\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"/><path d=\"m12 5 7 7-7 7\"/></svg></a><a class=\"ds-ob-btn ds-ob-outline\" href=\"#\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719\"/></svg>Message us</a><a class=\"ds-ob-btn ds-ob-outline ds-ob-md\" href=\"#\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2\"/><path d=\"M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6\"/><rect x=\"6\" y=\"14\" width=\"12\" height=\"8\" rx=\"1\"/></svg>Printable rates</a></div><div class=\"ds-ob-row ds-ob-night\"><a class=\"ds-ob-btn ds-ob-lime\" href=\"#\">Enroll in Juniors <svg xmlns=\"http://www.w3.org/2000/svg\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"/><path d=\"m12 5 7 7-7 7\"/></svg></a><a class=\"ds-ob-btn ds-ob-light\" href=\"#\">Meet the coaches</a></div></div>",
+      "css": ".ds-ob{overflow:hidden;border-radius:22px;font-family:var(--font-sans,\"Figtree Variable\",ui-sans-serif,system-ui,sans-serif)} .ds-ob-row{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:24px} .ds-ob-ivory{background:var(--color-ivory,#fbfbf0)} .ds-ob-night{background:var(--color-night,#0e0e0f)} .ds-ob-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:52px;padding:0 24px;border:0;border-radius:9999px;background:transparent;font-size:1rem;font-weight:500;white-space:nowrap;text-decoration:none;cursor:pointer;transition:background-color 150ms ease-out,transform 150ms ease-out} .ds-ob-btn:active{transform:scale(0.97)} .ds-ob-md{height:44px;padding:0 20px;font-size:0.9375rem} .ds-ob-lime{background:var(--color-lime,#daee63);color:var(--color-ink,#111111)} .ds-ob-lime:hover{background:var(--color-lime-strong,#cbe148)} .ds-ob-outline{color:var(--color-ink,#111111);box-shadow:inset 0 0 0 1.5px var(--color-ink,#111111)} .ds-ob-outline:hover{background:rgb(17 17 17 / 0.06)} .ds-ob-light{color:#ffffff;box-shadow:inset 0 0 0 1.5px rgb(255 255 255 / 0.75)} .ds-ob-light:hover{background:rgb(255 255 255 / 0.1)} .ds-ob-ivory .ds-ob-btn:focus-visible{outline:2px solid var(--color-ink,#111111);outline-offset:2px} .ds-ob-night .ds-ob-btn:focus-visible{outline:2px solid var(--color-lime,#daee63);outline-offset:2px}"
+    },
+    {
+      "name": "Website Hero and the Ball's Arc",
+      "kind": "custom",
+      "refersTo": "site-display",
+      "description": "The landing page's first screen: a two-tone serif headline (the quiet clause in Pewter), one line, a lime Enroll now and an outlined Message us, the next session, and the ball's arc: the academy's own words riding a pickleball's lob through an ivory ball pill (static here; in the build they drift with the scroll and hold still under reduced motion).",
+      "html": "<section class=\"ds-hero\"><h1 class=\"ds-hero-title\"><span class=\"ds-hero-quiet\">Train with purpose,</span> play with joy</h1><p class=\"ds-hero-line\">Juniors and Adults at Riverside Courts.</p><div class=\"ds-hero-actions\"><a class=\"ds-hero-btn ds-hero-lime\" href=\"#\">Enroll now <svg xmlns=\"http://www.w3.org/2000/svg\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"/><path d=\"m12 5 7 7-7 7\"/></svg></a><a class=\"ds-hero-btn ds-hero-outline\" href=\"#\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719\"/></svg>Message us</a></div><p class=\"ds-hero-next\">Next session Sat 14 Nov · 8:00 AM · Riverside Courts</p><svg class=\"ds-arc\" viewBox=\"0 0 720 260\" aria-hidden=\"true\" focusable=\"false\"><defs><path id=\"ds-arc-before\" d=\"M -43.2 41.6 C 115.2 26, 216 187, 292 187\"/><path id=\"ds-arc-after\" d=\"M 428 187 C 489.6 187, 590.4 130, 763.2 15.6\"/></defs><text dy=\"6.8\" class=\"ds-arc-before\"><textPath href=\"#ds-arc-before\">Juniors · Beginner · Ages 8–12 · 90 min · Adults · Intermediate · 2 hours · Juniors · Beginner ·</textPath></text><path d=\"M 428 187 C 489.6 187, 590.4 130, 763.2 15.6\" class=\"ds-arc-band\"/><text dy=\"6.8\" class=\"ds-arc-after\"><textPath href=\"#ds-arc-after\">Sat · 8:00 – 9:30 AM · Riverside Courts · Tue &amp; Thu · 7:00 – 9:00 PM ·</textPath></text><g transform=\"translate(360 187)\"><rect x=\"-68\" y=\"-30\" width=\"136\" height=\"60\" rx=\"30\" class=\"ds-arc-pill\"/><circle cx=\"-9.52\" cy=\"0\" r=\"5.4\" class=\"ds-arc-ink\"/><circle cx=\"-27.2\" cy=\"0\" r=\"4.2\" class=\"ds-arc-ink\" opacity=\"0.7\"/><circle cx=\"-44.88\" cy=\"0\" r=\"3\" class=\"ds-arc-ink\" opacity=\"0.4\"/><g transform=\"translate(27.2 0)\"><circle r=\"19.2\" class=\"ds-arc-ball\"/><circle cx=\"0\" cy=\"-9.6\" r=\"2.7\" class=\"ds-arc-ink\"/><circle cx=\"-8.064\" cy=\"-3.456\" r=\"2.7\" class=\"ds-arc-ink\"/><circle cx=\"8.064\" cy=\"-3.456\" r=\"2.7\" class=\"ds-arc-ink\"/><circle cx=\"0\" cy=\"1.152\" r=\"2.7\" class=\"ds-arc-ink\"/><circle cx=\"-5.76\" cy=\"7.296\" r=\"2.7\" class=\"ds-arc-ink\"/><circle cx=\"5.76\" cy=\"7.296\" r=\"2.7\" class=\"ds-arc-ink\"/></g></g><g transform=\"translate(360 123)\"><rect x=\"-69.3\" y=\"-17\" width=\"138.6\" height=\"34\" rx=\"17\" class=\"ds-arc-tag\"/><text text-anchor=\"middle\" dy=\"5.5\" class=\"ds-arc-tag-text\">Enrolling now</text></g></svg></section>",
+      "css": ".ds-hero{overflow:hidden;padding:56px 0 0;border-radius:22px;background:var(--color-ivory,#fbfbf0);color:var(--color-ink,#111111);text-align:center;font-family:var(--font-sans,\"Figtree Variable\",ui-sans-serif,system-ui,sans-serif)} .ds-hero-title{max-width:15ch;margin:0 auto;padding:0 16px;font-family:var(--font-display,\"EB Garamond Variable\",ui-serif,Georgia,\"Times New Roman\",serif);font-size:2.75rem;font-weight:400;line-height:1.02;letter-spacing:-0.02em;text-wrap:balance} .ds-hero-quiet{color:var(--color-ink-3,#8a8b91)} .ds-hero-line{max-width:34rem;margin:24px auto 0;padding:0 16px;font-size:1rem;line-height:1.45;text-wrap:balance} .ds-hero-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin-top:32px;padding:0 16px} .ds-hero-btn{display:inline-flex;align-items:center;gap:8px;height:52px;padding:0 24px;border-radius:9999px;font-size:1rem;font-weight:500;text-decoration:none;white-space:nowrap;transition:background-color 150ms ease-out,transform 150ms ease-out} .ds-hero-btn:active{transform:scale(0.97)} .ds-hero-btn:focus-visible{outline:2px solid var(--color-ink,#111111);outline-offset:2px} .ds-hero-lime{background:var(--color-lime,#daee63);color:var(--color-ink,#111111)} .ds-hero-lime:hover{background:var(--color-lime-strong,#cbe148)} .ds-hero-outline{color:var(--color-ink,#111111);box-shadow:inset 0 0 0 1.5px var(--color-ink,#111111)} .ds-hero-outline:hover{background:rgb(17 17 17 / 0.06)} .ds-hero-next{margin:20px 0 0;font-size:0.8125rem;color:var(--color-ink-2,#5f6066);font-variant-numeric:tabular-nums lining-nums} .ds-arc{display:block;width:100%;height:auto;margin-top:16px} .ds-arc-before{fill:var(--color-ink-3,#8a8b91);font-size:20px;font-weight:500;letter-spacing:0.01em} .ds-arc-band{fill:none;stroke:var(--color-ink,#111111);stroke-width:44px} .ds-arc-after{fill:var(--color-ivory,#fbfbf0);font-size:20px;font-weight:600;letter-spacing:0.01em} .ds-arc-pill{fill:var(--color-ivory,#fbfbf0);stroke:var(--color-ink,#111111);stroke-width:3px} .ds-arc-ink{fill:var(--color-ink,#111111)} .ds-arc-ball{fill:var(--color-lime,#daee63);stroke:var(--color-ink,#111111);stroke-width:2px} .ds-arc-tag{fill:var(--color-court,#0f4a3b)} .ds-arc-tag-text{fill:var(--color-court-ink,#f1f7f1);font-size:14.5px;font-weight:600} @media (min-width:640px){.ds-hero{padding-top:80px}.ds-hero-title{font-size:4.5rem}.ds-hero-line{font-size:1.125rem}}"
+    },
+    {
+      "name": "Slabs",
+      "kind": "card",
+      "refersTo": "slab",
+      "description": "Full-width website sheets with large corners (32px, 48px from 640px, 64px from 1024px): the black Programs slab with outlined program pills (the chosen one lime), outlined chips, light tabular times, and its lime and outline-light pair; then the one Court Green slab of the coaches' proof, tucked 64px up behind it so the two read as stacked sheets.",
+      "html": "<div class=\"ds-slabs\"><section class=\"ds-slab ds-slab-night\"><h2 class=\"ds-slab-title\">Choose a program</h2><ul class=\"ds-slab-pills\"><li><a href=\"#\" aria-current=\"true\">Juniors</a></li><li><a href=\"#\">Adults</a></li><li><a href=\"#\">Clinics</a></li></ul><h3 class=\"ds-slab-name\">Juniors</h3><ul class=\"ds-slab-chips\"><li>Beginner</li><li>Ages 8–12</li><li>90 min</li></ul><p class=\"ds-slab-times\">Sat · 8:00 – 9:30&nbsp;AM</p><p class=\"ds-slab-from\"><span>From </span><strong>₱4,800</strong><span> per head</span></p><div class=\"ds-slab-actions\"><a class=\"ds-slab-btn ds-slab-lime\" href=\"#\">Enroll in Juniors <svg xmlns=\"http://www.w3.org/2000/svg\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"/><path d=\"m12 5 7 7-7 7\"/></svg></a><a class=\"ds-slab-btn ds-slab-light\" href=\"#\">Meet the coaches</a></div></section><section class=\"ds-slab ds-slab-court\"><h2 class=\"ds-slab-title\">The coaches</h2><p class=\"ds-slab-names\">Jun Park and Mia Santos</p><a class=\"ds-proof\" href=\"#\"><span class=\"ds-proof-text\">A highlight from the coach's own profile (sample)</span><span class=\"ds-proof-arrow\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"28\" height=\"28\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M7 7h10v10\"/><path d=\"M7 17 17 7\"/></svg></span><span class=\"ds-proof-who\"><span class=\"ds-proof-face\">JP</span><span><b>Jun Park</b><small>Head coach</small></span></span></a></section></div>",
+      "css": ".ds-slabs{isolation:isolate;padding:16px 0;border-radius:22px;background:var(--color-ivory,#fbfbf0);font-family:var(--font-sans,\"Figtree Variable\",ui-sans-serif,system-ui,sans-serif)} .ds-slab{position:relative;padding:48px 24px;border-radius:32px} .ds-slab + .ds-slab::before{content:\"\";position:absolute;left:0;right:0;top:-64px;height:64px;z-index:-1;background:inherit} .ds-slab-night{background:var(--color-night,#0e0e0f);color:var(--color-night-ink,#ffffff)} .ds-slab-court{background:var(--color-court,#0f4a3b);color:var(--color-court-ink,#f1f7f1)} .ds-slab-title{margin:0;font-family:var(--font-display,\"EB Garamond Variable\",ui-serif,Georgia,\"Times New Roman\",serif);font-size:2.5rem;font-weight:400;line-height:1.02;letter-spacing:-0.02em} .ds-slab-pills{display:flex;flex-wrap:wrap;gap:8px;margin:28px 0 0;padding:0;list-style:none} .ds-slab-pills a{display:inline-flex;align-items:center;height:44px;padding:0 18px;border-radius:9999px;color:#ffffff;text-decoration:none;font-size:0.9375rem;font-weight:500;box-shadow:inset 0 0 0 1.5px rgb(255 255 255 / 0.55);transition:background-color 150ms ease-out} .ds-slab-pills a:hover{background:rgb(255 255 255 / 0.1)} .ds-slab-pills a[aria-current]{background:var(--color-lime,#daee63);color:var(--color-ink,#111111);box-shadow:inset 0 0 0 1.5px var(--color-lime,#daee63)} .ds-slab-name{margin:40px 0 0;font-family:var(--font-display,\"EB Garamond Variable\",ui-serif,Georgia,\"Times New Roman\",serif);font-size:2rem;font-weight:400;line-height:1.25;letter-spacing:-0.02em} .ds-slab-chips{display:flex;flex-wrap:wrap;gap:6px;margin:16px 0 0;padding:0;list-style:none} .ds-slab-chips li{display:inline-flex;align-items:center;height:28px;padding:0 12px;border-radius:9999px;font-size:0.8125rem;font-weight:500;box-shadow:inset 0 0 0 1px rgb(255 255 255 / 0.45)} .ds-slab-times{margin:28px 0 0;font-size:1.5rem;font-weight:300;line-height:1.25;letter-spacing:-0.01em;font-variant-numeric:tabular-nums lining-nums} .ds-slab-from{margin:24px 0 0;font-size:1rem} .ds-slab-from span{color:var(--color-night-ink-2,#a3a3a9)} .ds-slab-from strong{font-size:1.375rem;font-weight:600;font-variant-numeric:tabular-nums lining-nums} .ds-slab-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:32px} .ds-slab-btn{display:inline-flex;align-items:center;gap:8px;height:52px;padding:0 24px;border-radius:9999px;text-decoration:none;font-size:1rem;font-weight:500;white-space:nowrap;transition:background-color 150ms ease-out,transform 150ms ease-out} .ds-slab-btn:active{transform:scale(0.97)} .ds-slab-lime{background:var(--color-lime,#daee63);color:var(--color-ink,#111111)} .ds-slab-lime:hover{background:var(--color-lime-strong,#cbe148)} .ds-slab-light{color:#ffffff;box-shadow:inset 0 0 0 1.5px rgb(255 255 255 / 0.75)} .ds-slab-light:hover{background:rgb(255 255 255 / 0.1)} .ds-slab a:focus-visible{outline:2px solid var(--color-lime,#daee63);outline-offset:2px} .ds-slab-names{margin:16px 0 0;font-size:1rem;color:var(--color-court-ink-2,#b8d2c3)} .ds-proof{position:relative;display:flex;flex-direction:column;justify-content:space-between;gap:40px;min-height:208px;margin-top:40px;padding:24px;border-radius:28px;background:var(--color-court-2,#175b4a);color:inherit;text-decoration:none;outline:none} .ds-proof:hover{box-shadow:0 0 0 1px rgb(241 247 241 / 0.3)} .ds-proof-text{padding-right:40px;font-family:var(--font-display,\"EB Garamond Variable\",ui-serif,Georgia,\"Times New Roman\",serif);font-size:1.75rem;line-height:1.12;letter-spacing:-0.02em} .ds-proof-arrow{position:absolute;top:24px;right:24px;display:flex;color:var(--color-court-ink-2,#b8d2c3);transition:transform 200ms ease-out} .ds-proof:hover .ds-proof-arrow{transform:translate(2px,-2px);color:var(--color-court-ink,#f1f7f1)} .ds-proof-who{display:flex;align-items:center;gap:12px} .ds-proof-face{display:inline-flex;flex-shrink:0;width:36px;height:36px;align-items:center;justify-content:center;border-radius:9999px;background:var(--color-mint,#bfe9d0);color:var(--color-ink,#111111);font-size:0.75rem;font-weight:600;box-shadow:0 0 0 2px rgb(241 247 241 / 0.35)} .ds-proof-who b{display:block;font-size:0.9375rem;font-weight:600;line-height:1.2} .ds-proof-who small{display:block;margin-top:2px;font-size:0.8125rem;color:var(--color-court-ink-2,#b8d2c3)} @media (min-width:640px){.ds-slab{padding:64px 32px;border-radius:48px}.ds-slab-title{font-size:3.5rem}.ds-slab-name{font-size:2.5rem}.ds-slab-times{font-size:1.75rem}.ds-proof{padding:32px}.ds-proof-text{font-size:2rem}} @media (min-width:1024px){.ds-slab{border-radius:64px}.ds-slab-title{font-size:4rem}}"
+    },
+    {
+      "name": "What's Included",
+      "kind": "custom",
+      "refersTo": "included-pill",
+      "description": "A black 32px card listing one real package's inclusions (the featured one, else the one that lists the most; never a blend) as Court Green half-pills with a 2px white ring, aligned right and running off the card's edge, each longer than the one above, then a lime Choose a package.",
+      "html": "<div class=\"ds-inc\"><h3 class=\"ds-inc-title\">What's included</h3><p class=\"ds-inc-meta\">In Monthly plus, ₱7,000 per head</p><ul class=\"ds-inc-list\"><li style=\"--i:0\">Court fees included</li><li style=\"--i:1\">Game review</li><li style=\"--i:2\">Training uniform included</li></ul><a class=\"ds-inc-btn\" href=\"#\">Choose a package <svg xmlns=\"http://www.w3.org/2000/svg\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"/><path d=\"m12 5 7 7-7 7\"/></svg></a></div>",
+      "css": ".ds-inc{overflow:hidden;padding:40px 0 40px 40px;border-radius:32px;background:var(--color-night,#0e0e0f);color:#ffffff;font-family:var(--font-sans,\"Figtree Variable\",ui-sans-serif,system-ui,sans-serif)} .ds-inc-title{margin:0;padding-right:40px;font-size:1.5rem;font-weight:600;line-height:1.25} .ds-inc-meta{margin:4px 0 0;padding-right:40px;font-size:0.9375rem;color:var(--color-night-ink-2,#a3a3a9);font-variant-numeric:tabular-nums lining-nums} .ds-inc-list{display:flex;flex-direction:column;align-items:flex-end;gap:8px;margin:32px 0 0;padding:0;list-style:none} .ds-inc-list li{display:flex;align-items:center;min-height:44px;max-width:calc(100% + 16px);margin-right:-16px;padding:8px calc(2.5rem + var(--i) * min(6vw, 1.75rem)) 8px 20px;border-radius:9999px 0 0 9999px;background:var(--color-court,#0f4a3b);color:var(--color-court-ink,#f1f7f1);box-shadow:inset 0 0 0 2px #ffffff;font-size:0.9375rem;font-weight:500;line-height:1.375} .ds-inc-btn{display:inline-flex;align-items:center;gap:8px;height:44px;margin-top:36px;padding:0 20px;border-radius:9999px;background:var(--color-lime,#daee63);color:var(--color-ink,#111111);text-decoration:none;font-size:0.9375rem;font-weight:500;transition:background-color 150ms ease-out,transform 150ms ease-out} .ds-inc-btn:hover{background:var(--color-lime-strong,#cbe148)} .ds-inc-btn:active{transform:scale(0.97)} .ds-inc-btn:focus-visible{outline:2px solid var(--color-lime,#daee63);outline-offset:2px}"
+    },
+    {
+      "name": "Ivory Tier Card",
+      "kind": "card",
+      "refersTo": "tier-card-ivory",
+      "description": "The shared tier card as Enroll now shows it: Ball Ivory with a 1.5px Ivory Rule ring and an Ivory Wash Who it's for well, the price per head in 44px light tabular figures, ink check circles, and a 52px ink Enroll at the foot; the featured tier stays lime with a white Featured pill.",
+      "html": "<div class=\"ds-itiers\"><article class=\"ds-itier\"><h3 class=\"ds-itier-name\">Monthly</h3><p class=\"ds-itier-meta\">4–6 sessions</p><p class=\"ds-itier-price\">₱6,000 <span>per head</span></p><p class=\"ds-itier-valid\">Valid until the end of the month</p><ul class=\"ds-itier-list\"><li><span class=\"ds-itier-check\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 6 9 17l-5-5\"/></svg></span>Court fees included</li><li><span class=\"ds-itier-check\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 6 9 17l-5-5\"/></svg></span>Game review</li></ul><div class=\"ds-itier-well\"><p class=\"ds-itier-label\">Who it's for</p><p class=\"ds-itier-who\">Players who train every week</p></div><div class=\"ds-itier-foot\"><a class=\"ds-itier-enroll\" href=\"#\">Enroll <svg xmlns=\"http://www.w3.org/2000/svg\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"/><path d=\"m12 5 7 7-7 7\"/></svg></a></div></article><article class=\"ds-itier ds-itier-featured\"><h3 class=\"ds-itier-name\">Monthly plus <span class=\"ds-itier-flag\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.25\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z\"/></svg>Featured</span></h3><p class=\"ds-itier-meta\">7–9 sessions</p><p class=\"ds-itier-price\">₱7,000 <span>per head</span></p><p class=\"ds-itier-valid\">Valid until the end of the month</p><ul class=\"ds-itier-list\"><li><span class=\"ds-itier-check\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 6 9 17l-5-5\"/></svg></span>Court fees included</li><li><span class=\"ds-itier-check\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 6 9 17l-5-5\"/></svg></span>Game review</li></ul><div class=\"ds-itier-foot\"><a class=\"ds-itier-enroll\" href=\"#\">Enroll <svg xmlns=\"http://www.w3.org/2000/svg\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"/><path d=\"m12 5 7 7-7 7\"/></svg></a></div></article></div>",
+      "css": ".ds-itiers{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;padding:16px;border-radius:22px;background:var(--color-ivory,#fbfbf0);color:var(--color-ink,#111111);font-family:var(--font-sans,\"Figtree Variable\",ui-sans-serif,system-ui,sans-serif)} .ds-itier{display:flex;flex-direction:column;padding:24px;border-radius:28px;background:var(--color-ivory,#fbfbf0);box-shadow:inset 0 0 0 1.5px var(--color-ivory-line,#d6d7c2)} .ds-itier-featured{background:var(--color-lime,#daee63);box-shadow:none} .ds-itier-name{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin:0;font-size:1.375rem;font-weight:300;line-height:1.25;letter-spacing:-0.01em} .ds-itier-flag{display:inline-flex;flex-shrink:0;align-items:center;gap:4px;height:24px;padding:0 10px;border-radius:9999px;background:var(--color-card,#ffffff);font-size:0.75rem;font-weight:500;letter-spacing:0} .ds-itier-meta{margin:4px 0 0;font-size:0.875rem;color:var(--color-ink-2,#5f6066);font-variant-numeric:tabular-nums lining-nums} .ds-itier-price{margin:20px 0 0;font-size:2.75rem;font-weight:300;line-height:1;letter-spacing:-0.03em;font-variant-numeric:tabular-nums lining-nums} .ds-itier-price span{font-size:0.9375rem;letter-spacing:0;color:var(--color-ink-2,#5f6066)} .ds-itier-featured .ds-itier-meta,.ds-itier-featured .ds-itier-price span{color:rgb(17 17 17 / 0.75)} .ds-itier-valid{margin:12px 0 0;font-size:0.875rem;font-weight:500} .ds-itier-list{display:flex;flex-direction:column;gap:10px;margin:20px 0 0;padding:0;list-style:none;font-size:0.9375rem} .ds-itier-list li{display:flex;align-items:flex-start;gap:12px} .ds-itier-check{display:inline-flex;flex-shrink:0;width:22px;height:22px;align-items:center;justify-content:center;border-radius:9999px;background:var(--color-ink,#111111);color:#ffffff} .ds-itier-featured .ds-itier-check{color:var(--color-lime,#daee63)} .ds-itier-well{margin-top:20px;padding:16px;border-radius:22px;background:var(--color-ivory-2,#f1f2df)} .ds-itier-label{margin:0;font-size:0.8125rem;font-weight:500;color:var(--color-ink-2,#5f6066)} .ds-itier-who{margin:2px 0 0;font-size:0.9375rem} .ds-itier-foot{margin-top:auto;padding-top:20px} .ds-itier-enroll{display:flex;align-items:center;justify-content:center;gap:8px;height:52px;border-radius:9999px;background:var(--color-ink,#111111);color:#ffffff;text-decoration:none;font-size:1rem;font-weight:500;transition:background-color 150ms ease-out,transform 150ms ease-out} .ds-itier-enroll:hover{background:var(--color-night-3,#29292c)} .ds-itier-enroll:active{transform:scale(0.97)} .ds-itier-enroll:focus-visible{outline:2px solid var(--color-ink,#111111);outline-offset:2px}"
+    },
+    {
+      "name": "Questions Box",
+      "kind": "custom",
+      "refersTo": "questions-box",
+      "description": "The website's last word before the footer: a 28px box ruled in 2px ink, a serif question, and the ways to reach the academy as violet pills ringed in 1.5px ink (hover Bento Lavender), with the policies behind an underlined link.",
+      "html": "<section class=\"ds-q\"><h2 class=\"ds-q-title\">Questions before you enroll?</h2><p class=\"ds-q-line\">Message or call Riverside Pickleball Academy.</p><ul class=\"ds-q-list\"><li><a class=\"ds-q-pill\" href=\"#\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719\"/></svg>Message us</a></li><li><a class=\"ds-q-pill\" href=\"#\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384\"/></svg>Call 0900 000 0000</a></li></ul><p class=\"ds-q-policies\"><a href=\"#\">Read the policies</a></p></section>",
+      "css": ".ds-q{padding:40px 20px;border:2px solid var(--color-ink,#111111);border-radius:28px;background:var(--color-ivory,#fbfbf0);color:var(--color-ink,#111111);text-align:center;font-family:var(--font-sans,\"Figtree Variable\",ui-sans-serif,system-ui,sans-serif)} .ds-q-title{margin:0;font-family:var(--font-display,\"EB Garamond Variable\",ui-serif,Georgia,\"Times New Roman\",serif);font-size:2.5rem;font-weight:400;line-height:1.05;letter-spacing:-0.02em;text-wrap:balance} .ds-q-line{max-width:40ch;margin:12px auto 0;font-size:1rem;color:var(--color-ink-2,#5f6066)} .ds-q-list{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin:28px 0 0;padding:0;list-style:none} .ds-q-pill{display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 20px;border-radius:9999px;background:var(--color-violet,#c9befb);color:var(--color-ink,#111111);box-shadow:inset 0 0 0 1.5px var(--color-ink,#111111);text-decoration:none;font-size:0.9375rem;font-weight:500;white-space:nowrap;transition:background-color 150ms ease-out,transform 150ms ease-out} .ds-q-pill:hover{background:var(--color-lavender,#b3a8f5)} .ds-q-pill:active{transform:scale(0.97)} .ds-q-policies{margin:32px 0 0} .ds-q-policies a{display:inline-flex;padding:8px 12px;border-radius:9999px;color:inherit;font-size:0.9375rem;font-weight:500;text-decoration:underline;text-decoration-color:rgb(17 17 17 / 0.4);text-underline-offset:4px} .ds-q-policies a:hover{text-decoration-color:var(--color-ink,#111111)} .ds-q-pill:focus-visible,.ds-q-policies a:focus-visible{outline:2px solid var(--color-ink,#111111);outline-offset:2px} @media (min-width:640px){.ds-q{padding:56px 40px}.ds-q-title{font-size:3rem}}"
+    },
+    {
+      "name": "Site Footer",
+      "kind": "custom",
+      "refersTo": "footer-wordmark",
+      "description": "The website's foot: columns under Pewter serif headings, the academy's name set huge in Figtree 800 (decorative, hidden from screen readers), and a quiet credit row over an Ivory Rule with the BallMark.",
+      "html": "<footer class=\"ds-foot\"><div class=\"ds-foot-cols\"><div><h2>Programs</h2><ul><li><a href=\"#\">Juniors</a></li><li><a href=\"#\">Adults</a></li></ul></div><div><h2>The academy</h2><ul><li><a href=\"#\">Home</a></li><li><a href=\"#\">Meet the team</a></li><li><a href=\"#\">Enroll now</a></li><li><a href=\"#\">Printable rates</a></li></ul></div><div><h2>Contact</h2><ul><li><a href=\"#\">hello@example.com</a></li></ul></div></div><p class=\"ds-foot-mark\" aria-hidden=\"true\">Riverside Pickleball Academy</p><div class=\"ds-foot-base\"><span>© 2026 Riverside Pickleball Academy</span><a href=\"#\"><svg viewBox=\"0 0 32 32\" width=\"20\" height=\"20\" aria-hidden=\"true\"><circle cx=\"16\" cy=\"16\" r=\"15\" fill=\"#daee63\"/><circle cx=\"16\" cy=\"7.2\" r=\"1.9\" fill=\"#111111\"/><circle cx=\"9.6\" cy=\"10.6\" r=\"1.9\" fill=\"#111111\"/><circle cx=\"22.4\" cy=\"10.6\" r=\"1.9\" fill=\"#111111\"/><circle cx=\"16\" cy=\"16\" r=\"1.9\" fill=\"#111111\"/><circle cx=\"8.4\" cy=\"18.4\" r=\"1.9\" fill=\"#111111\"/><circle cx=\"23.6\" cy=\"18.4\" r=\"1.9\" fill=\"#111111\"/><circle cx=\"12\" cy=\"24.4\" r=\"1.9\" fill=\"#111111\"/><circle cx=\"20\" cy=\"24.4\" r=\"1.9\" fill=\"#111111\"/></svg>Made with CoachMan</a></div></footer>",
+      "css": ".ds-foot{padding:48px 24px 24px;border-radius:22px;background:var(--color-ivory,#fbfbf0);color:var(--color-ink,#111111);font-family:var(--font-sans,\"Figtree Variable\",ui-sans-serif,system-ui,sans-serif)} .ds-foot-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:40px} .ds-foot h2{margin:0;font-family:var(--font-display,\"EB Garamond Variable\",ui-serif,Georgia,\"Times New Roman\",serif);font-size:1.75rem;font-weight:400;line-height:1;letter-spacing:-0.01em;color:var(--color-ink-3,#8a8b91)} .ds-foot ul{display:flex;flex-direction:column;align-items:flex-start;gap:12px;margin:20px 0 0;padding:0;list-style:none} .ds-foot ul a{border-radius:2px;color:inherit;font-size:0.9375rem;text-decoration:none} .ds-foot ul a:hover{text-decoration:underline;text-underline-offset:3px} .ds-foot-mark{margin:80px 0 0;font-size:clamp(3rem,10.5vw,9.5rem);font-weight:800;line-height:0.92;letter-spacing:-0.04em;overflow-wrap:break-word;text-wrap:balance} .ds-foot-base{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px 24px;margin-top:40px;padding-top:24px;border-top:1px solid var(--color-ivory-line,#d6d7c2);font-size:0.8125rem;color:var(--color-ink-2,#5f6066)} .ds-foot-base a{display:inline-flex;align-items:center;gap:8px;border-radius:9999px;color:inherit;text-decoration:none} .ds-foot-base a:hover{color:var(--color-ink,#111111)} .ds-foot a:focus-visible{outline:2px solid var(--color-ink,#111111);outline-offset:2px}"
     }
   ],
   "narrative": {
     "northStar": "The Courtside Command Panel",
-    "overview": "CoachMan is a calm, premium CRM for courts. Every screen splits into two zones: a black command panel that holds navigation and the live list (today's sessions, the client worklist, who owes), and a soft-gray daylight canvas where the selected session or client opens as rounded white cards. Lime is the single signal across both zones. It lights whatever is live, selected, or the next action, so a coach glancing at a phone between games finds \"now\" without reading.\n\nHeadings and figures are large and light; everything a coach acts on is regular or medium weight and at least 36px tall, mostly 44px or more. Status speaks in soft pastel pills that always carry ink text. Depth is tonal (gray canvas, a lighter folder panel, white cards), and shadows appear only on things that float. Containers take generous 22–32px corners, and every control is a pill or a circle. People appear as initials on soft tints unless the coach uploads a photo. There is no stock or illustrative imagery, and the lime BallMark is the only sport motif.\n\nThe visual authority is a reference the user pinned: the Dribbble shot \"Microsoft Dynamics CRM – Lead Relationship Management Platform\" by Jack R. for RonDesignLab, translated from sales to coaching. It replaced a themed \"Court Lines\" build and a plain \"clean and light\" plan, both rejected; the system refuses flat admin tables and sport-themed costume. Where the reference sets white text on pastel pills, CoachMan sets ink, because task surfaces have to read in outdoor sun.\n\nThe academy release carries the same world to three more audiences without a second visual language. The **family portal** is the calm register: the command panel becomes a black header block that holds the academy's own logo tile and name, the page title, and (on laptops) the navigation as pills; the work sits on the gray canvas as white cards, with lime spent on one thing per screen (the next session, the amount due). The **public academy page and its rates sheet** are a Persuade surface inside the system: the dark block becomes the academy's program pass and its first action, the canvas holds the tiers as white cards (the featured one lime), and the rates sheet prints as a plain letterhead document. The **enrollment wizard** is an Operate flow in the academy's frame: the dark panel holds the academy, the tier, and the steps; one white card holds one question. The **team page** turns the program pass toward people: the dark block keeps the academy and its programs, and the canvas gives each of the chosen program's coaches a white card led by a 4:5 half-body portrait. An academy brings only its name, logo, words, and its team's photos; the CoachMan palette is never recolored for it.",
+    "overview": "CoachMan is a calm, premium CRM for courts. Every app screen splits into two zones: a black command panel that holds navigation and the live list (today's sessions, the client worklist, who owes), and a soft-gray daylight canvas where the selected session or client opens as rounded white cards. Lime is the single signal across both zones. It lights whatever is live, selected, or the next action, so a coach glancing at a phone between games finds \"now\" without reading.\n\nHeadings and figures are large and light; everything a coach acts on is regular or medium weight and at least 36px tall, mostly 44px or more. Status speaks in soft pastel pills that always carry ink text. Depth is tonal (gray canvas, a lighter folder panel, white cards), and shadows appear only on things that float. Containers take generous 22–32px corners, and every control is a pill or a circle. People appear as initials on soft tints unless the coach uploads a photo. There is no stock or illustrative imagery, and in the app the lime BallMark is the only sport motif.\n\nThe visual authority is a reference the user pinned: the Dribbble shot \"Microsoft Dynamics CRM – Lead Relationship Management Platform\" by Jack R. for RonDesignLab, translated from sales to coaching. It replaced a themed \"Court Lines\" build and a plain \"clean and light\" plan, both rejected; the system refuses flat admin tables and sport-themed costume. Where the reference sets white text on pastel pills, CoachMan sets ink, because task surfaces have to read in outdoor sun.\n\nThe academy release carries the same world to the people around the coaches. The **family portal** is the calm register: the command panel becomes a black header block that holds the academy's own logo tile and name, the page title, and (on laptops) the navigation as pills; the work sits on the gray canvas as white cards, with lime spent on one thing per screen (the next session, the amount due). The **enrollment wizard** is an Operate flow in the academy's frame: the dark panel holds the academy, the tier, and the steps; one white card holds one question. The **rates sheet** prints the live catalog as a plain letterhead document. An academy brings only its name, logo, words, and photos (its team's portraits, a cover, and its own court photos); the CoachMan palette is never recolored for it.\n\nThe **academy website** (`/a/<slug>`: the landing page, Enroll now, and Meet the team inside one site frame) is where the system changes register, because it is the academy's public face for families and players deciding whether to train there. After the Wispr Flow landing page the user pinned, it is a calm, generous Persuade surface built from CoachMan's own materials so it stays in the family: Command Black, ink, lime, violet, and Figtree, set on a ball-tinted ivory ground instead of the gray canvas, with full-width black slabs whose large corners stack like sheets, one court-green slab that carries the coaches' proof, outlined pills and buttons, and an EB Garamond display for its headlines. Its signature is the ball's arc: the academy's own programs, days, and times ride a pickleball's lob across the first screen and drift as the page scrolls. Every word, photo, and figure on it comes from the academy's own data, and it refuses the sports-academy template (a dark full-bleed hero photo with a centered slogan, three icon features, plan columns, a testimonial carousel). Its tokens and rules hold inside the website (`.site-root`) only; the staff app, the family portal, the wizard, and the rates sheet keep the system above.",
     "keyCharacteristics": [
       "Two zones: a black command panel (icon rail plus list column) beside a soft-gray canvas of white cards.",
       "Lime marks live, selected, and primary, and nothing else.",
-      "Figtree throughout: light (300) for headings and figures, tabular numerals for every compared number.",
+      "Figtree throughout the app: light (300) for headings and figures, tabular numerals for every compared number; the academy website adds an EB Garamond display for its headlines.",
       "Pastel status pills with ink text, never white.",
       "Tonal depth; shadows only on floating layers.",
-      "22–32px container corners; pills and circles for every control.",
+      "22–32px container corners (the website's slabs grow to 64px); pills and circles for every control.",
       "Records open into fused folder tabs over a lighter panel, with lavender and lime bentos beside them.",
       "Touch-first sizing: 44px controls, 48px check-in circles, 52px action circles.",
-      "One world, four audiences: staff (command panel), families (black header block), visitors (program pass and tier cards), applicants (wizard frame).",
+      "One world, four audiences: staff (command panel), families (black header block), visitors (the academy website: ivory ground, stacked black slabs, a serif display), applicants (wizard frame).",
       "A visible keyboard focus everywhere: a 2px ring at 2px offset, ink on the canvas, lime in the dark zone."
     ],
     "rules": [
@@ -779,12 +1040,22 @@
       },
       {
         "name": "The One Lime Block Rule",
-        "body": "A screen holds at most one lime block, and it is the thing to act on now: the live session (Today), the next session (the family's Home), the amount due (Pay), the featured tier (the academy page). Offers that sit beside it (turn on reminders, renew for next month) are white cards with a lime icon circle, never a second lime slab.",
+        "body": "A screen holds at most one lime block, and it is the thing to act on now: the live session (Today), the next session (the family's Home), the amount due (Pay), the featured tier (Enroll now). Offers that sit beside it (turn on reminders, renew for next month) are white cards with a lime icon circle, never a second lime slab.",
+        "section": "colors"
+      },
+      {
+        "name": "The Ivory Ground Rule",
+        "body": "The website stands on Ball Ivory and never shows the gray canvas or a white card. Ivory surfaces are told apart by a ruled edge (Ivory Rule) and Ivory Wash wells; weight comes from black slabs and black cards.",
+        "section": "colors"
+      },
+      {
+        "name": "The Court Proof Rule",
+        "body": "Court Green speaks only for the academy's own evidence: its coaches' highlights and certifications, what one real package includes, and whether it is enrolling now. It never fills a button or decorates a section.",
         "section": "colors"
       },
       {
         "name": "The Light Heading Rule",
-        "body": "Every heading and figure from 22px up is set at weight 300 with slight negative tracking (-0.01em to -0.03em). Bold (700) does not exist in this system; the wordmark (22px, 500) is the only large text that isn't light.",
+        "body": "Across the app (staff, family portal, wizard, rates sheet), every heading and figure from 22px up is set at weight 300 with slight negative tracking (-0.01em to -0.03em). Bold (700) does not exist in this system; in the app the wordmark (22px, 500) is the only large text that isn't light. The academy website follows its own Serif Headline Rule below.",
         "section": "typography"
       },
       {
@@ -793,8 +1064,18 @@
         "section": "typography"
       },
       {
+        "name": "The Serif Headline Rule",
+        "body": "On the website, EB Garamond sets page, section, and card titles, the coaches' highlights, and the footer's headings, always at its regular weight (400); Figtree sets every control, body line, label, price, schedule, and number. The serif never appears in the app or on a button.",
+        "section": "typography"
+      },
+      {
+        "name": "The Two-Tone Headline Rule",
+        "body": "A website headline written with a clause break (a comma, semicolon, colon, or dash, with at least two words on each side) sets its opening clause in Pewter and the rest in ink: \"Train with purpose,\" then \"play with joy\". Any other headline stays ink; the page never inserts a break of its own.",
+        "section": "typography"
+      },
+      {
         "name": "The Two-Zone Rule",
-        "body": "Night tones belong to the command panel and its phone forms (the header block and the tab bar); the canvas, the folder panel, and white cards hold the work. A component that lives in both zones ships two tones, a charcoal tile in the panel and a white card on the canvas, never a dark card on the canvas.",
+        "body": "In the app, night tones belong to the command panel and its phone forms (the header block and the tab bar); the canvas, the folder panel, and white cards hold the work. A component that lives in both zones ships two tones, a charcoal tile in the panel and a white card on the canvas, never a dark card on the canvas. The academy website has no canvas: its black slabs and black cards on ivory are native (see The Stacked Slab Rule).",
         "section": "layout"
       },
       {
@@ -818,8 +1099,18 @@
         "section": "elevation"
       },
       {
+        "name": "The Drawn Edge Rule",
+        "body": "On the website an edge is drawn once, as a ring or a rule: Ivory Rule between ivory and ivory, ink (white on black) around what a family acts on, and a 2px ink rule around the questions box. A slab or card there never casts a shadow.",
+        "section": "elevation"
+      },
+      {
         "name": "The Step-Down Radius Rule",
         "body": "A shape nested in a container takes a smaller radius than the container: a 32px panel holds 24px list tiles and 22px KPI tiles; a 28px card holds 22px wells and 16px controls.",
+        "section": "shapes"
+      },
+      {
+        "name": "The Stacked Slab Rule",
+        "body": "A slab spans the full width with large corners all round (32px, 48px from 640px, 64px from 1024px). When one slab follows another, the second reaches 64px up behind the first, so its color, not the ivory, fills the first one's lower corners and the two read as stacked sheets. Slabs belong to the website alone.",
         "section": "shapes"
       },
       {
@@ -829,10 +1120,10 @@
       }
     ],
     "dos": [
-      "Do split every screen into the two zones: the night command panel (84px rail and 328px list column on desktop, a black header block on phones) and the gray canvas of white cards.",
+      "Do split every app screen into the two zones: the night command panel (84px rail and 328px list column on desktop, a black header block on phones) and the gray canvas of white cards.",
       "Do reserve lime (#daee63) for live, selected, and primary: current navigation, the selected tile, action circles, the checked-in toggle, the primary bento.",
       "Do set every pastel and lime fill with ink (#111111) text and icons.",
-      "Do set headings and figures from 22px up at weight 300: record titles 44px and page titles 40px from 1024px, both 32px on phones.",
+      "Do set the app's headings and figures from 22px up at weight 300: record titles 44px and page titles 40px from 1024px, both 32px on phones.",
       "Do give every compared number tabular lining numerals (`.num`).",
       "Do open records into folder tabs that fuse into the Folder Gray panel, with the lavender and lime bentos in a 340px column from 1280px.",
       "Do keep controls at 44px or more (fields and check-in toggles 48px, action circles 52px), and use the 36px small button only for secondary actions inside cards, sheets, bentos, and toasts.",
@@ -841,27 +1132,34 @@
       "Do show people as initials on a soft wash unless the coach has uploaded a photo.",
       "Do show an academy's logo as uploaded, on a white tile, and keep the CoachMan palette around it unchanged.",
       "Do spend lime once per screen in the family portal (the next session, the amount due); make offers white cards with a lime icon circle.",
-      "Do put the academy page's first action (Enroll while enrollment is open) and its tiers within the first phone screen.",
+      "Do keep the academy website's way in on its first phone screen: the lime Enroll now in the nav and the hero while the academy takes requests, else Message us.",
       "Do introduce people on the public pages with 4:5 half-body portraits (else the square photo, else initials on a soft wash), the name and title beside or under the image, never on it. On phones a coach's own card leads with a full-width portrait and the rest of the team scrolls sideways; faces in a stack stay circles.",
-      "Do keep a visible keyboard focus ring on every control: ink on the canvas, lime in the dark zone.",
-      "Do give a text link set apart from prose a 44px tap area, and open a sideways-scrolling row with its current item in view."
+      "Do keep a visible keyboard focus ring on every control: ink on the canvas and on ivory, lime in the dark zone (the website's slabs and black cards included).",
+      "Do give a text link set apart from prose a 44px tap area, and open a sideways-scrolling row with its current item in view.",
+      "Do set the academy website on Ball Ivory (#fbfbf0) with full-width Command Black slabs whose corners grow from 32px to 48px (640px) and 64px (1024px), and give the coaches' proof the one Court Green slab.",
+      "Do set the website's page, section, and card titles in EB Garamond at 400 (the hero 96px and section titles 64px from 1024px), two-toned only on a written clause break, and keep every control, body line, and number in Figtree.",
+      "Do build every website section from the academy's own data and leave out a section with nothing real to show; show what's included from one real package, never a blend.",
+      "Do let the ball's arc move only while it is on screen, and hold it still under reduced motion."
     ],
     "donts": [
       "Don't use lime to mark a category, a tag, or a chart series; categories take the pastels.",
       "Don't put white text on lime or on any pastel, even though the reference does.",
-      "Don't set any text at weight 700, or a heading of 22px or more above weight 300.",
+      "Don't set any app text at weight 700, or an app heading of 22px or more above weight 300. On the website the serif runs at 400, and only the footer wordmark (800) goes past 600.",
       "Don't put an eyebrow or kicker above a heading, and don't uppercase labels. A field label above its value is data, not a kicker; a status pill or a date line above a title is a kicker (put it under the title).",
       "Don't add a colored side stripe to a card, row, or alert.",
-      "Don't use gradient text; the KPI tile's corner glow is the system's one decorative gradient.",
+      "Don't use gradient text; the KPI tile's corner glow is the system's one decorative gradient (the website's closing scrim is there for legibility, not decoration).",
       "Don't shadow a card, tile, or panel, and don't give a resting element both a 1px line and a shadow.",
       "Don't use icons from any set but Lucide, or glyphs and emoji as icons.",
-      "Don't put a dark card on the canvas or a white card in the command panel.",
+      "Don't put a dark card on the app's gray canvas or a white card in the command panel; on the website, black cards on ivory are native and white cards don't appear.",
       "Don't introduce a hex outside the `@theme` tokens in `src/app/styles.css`; declare a new color there first.",
       "Don't use stock or illustrative images of people.",
-      "Don't reintroduce the rejected themed costume (\"Court Lines\") or flat admin tables; the BallMark is the only sport motif.",
+      "Don't reintroduce the rejected themed costume (\"Court Lines\") or flat admin tables; the BallMark is the app's only sport motif, and the ball's arc (with its dotted path in the closing call) the website's.",
       "Don't stack two lime blocks, or recolor any part of the system to an academy's brand colors.",
       "Don't set a dismissal (\"Not now\", \"Cancel\") as an underlined link beside a button; it is a ghost or white button.",
-      "Don't mark more than one link in a navigation as the current page."
+      "Don't mark more than one link in a navigation as the current page.",
+      "Don't carry the website's ivory, court green, serif display, slabs, or outline and violet buttons into the staff app, the family portal, the wizard, or the rates sheet.",
+      "Don't use Court Green for a button or for decoration; it carries only the academy's own proof.",
+      "Don't give the website the sports-academy template: a dark full-bleed hero photo with a centered slogan, three icon features, plan columns, or a testimonial carousel."
     ]
   }
 }

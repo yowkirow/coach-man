@@ -1203,14 +1203,21 @@ export interface PortalConsentsDto {
 
 /** A coach as the public page shows them (a profile they chose to make public). */
 export interface PublicCoachDto {
-  /** The coach profile's id (not the person's account id). */
+  /**
+   * A team page person: the coach profile's id for staff (not the person's account id), or the
+   * display-only profile's id for people the academy adds who don't sign in.
+   */
   id: string;
   name: string;
   title: string | null;
   bio: string | null;
-  /** Public R2 key (`ws/<id>/public/coaches/…`): /api/public/files. */
+  /** Public R2 key (`ws/<id>/public/coaches/…`): /api/public/files. A square photo; staff only. */
   photoKey: string | null;
+  /** Public R2 key of the half-body team page photo, cropped 4:5 (`ws/<id>/public/…`). */
+  portraitKey: string | null;
   certifications: string[];
+  /** Tournament results, titles, and milestones, in the order written. */
+  highlights: string[];
   specialties: string[];
   languages: string[];
   yearsCoaching: number | null;

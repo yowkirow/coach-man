@@ -2,7 +2,7 @@ import type { PublicAcademyDto } from "@shared/api-types";
 import { ACADEMY_SOCIAL_LABELS, ACADEMY_SOCIALS } from "@shared/domain";
 import { Link } from "@tanstack/react-router";
 import { ArrowUpRight, Mail, Menu, MessageCircle, Phone, X } from "lucide-react";
-import { type ReactNode, useEffect, useId, useState } from "react";
+import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 import { BallMark } from "../../components/brand";
 import { buttonClass, tapArea } from "../../components/ui/button";
 import { LegalLinks } from "../public-info/legal-links";
@@ -53,6 +53,25 @@ export function ScheduleText({ line }: { line: string }) {
 /** Whether the website has a way to reach the academy, or its policies, to show at "Contact". */
 function hasContact(a: PublicAcademyDto) {
   return contactActions(a).length > 0 || Boolean(a.policies);
+}
+
+/** Grows the phone nav's 36px pill to a 44px tap area without making the bar any taller. */
+const navTap = "before:absolute before:-inset-y-1 before:inset-x-0";
+
+/**
+ * Keeps a sideways-scrolling row's current item in view, on arrival and whenever it changes (the
+ * row needs `position: relative`, so the item's offset is measured from it).
+ */
+export function useCurrentInView<C extends HTMLElement>(currentKey: string | null | undefined) {
+  const list = useRef<HTMLUListElement>(null);
+  const current = useRef<C>(null);
+  useEffect(() => {
+    const row = list.current;
+    const item = current.current;
+    if (!row || !item || !currentKey || row.scrollWidth <= row.clientWidth) return;
+    row.scrollTo({ left: Math.max(0, item.offsetLeft - (row.clientWidth - item.offsetWidth) / 2) });
+  }, [currentKey]);
+  return { list, current };
 }
 
 /**
@@ -166,12 +185,19 @@ export function SiteNav({
               to="/a/$slug/enroll"
               params={{ slug }}
               search={search}
-              className={buttonClass("lime", "sm", "px-3.5 sm:h-11 sm:px-5 sm:text-[0.9375rem]")}
+              className={buttonClass(
+                "lime",
+                "sm",
+                `px-3.5 ${navTap} sm:h-11 sm:px-5 sm:text-[0.9375rem]`,
+              )}
             >
               Enroll now
             </Link>
           ) : message ? (
-            <a href={message.href} className={buttonClass("outline", "sm", "sm:h-11 sm:px-5")}>
+            <a
+              href={message.href}
+              className={buttonClass("outline", "sm", `${navTap} sm:h-11 sm:px-5`)}
+            >
               {message.id === "messenger" ? "Message us" : contactLabel(message, null)}
             </a>
           ) : null}
@@ -180,7 +206,7 @@ export function SiteNav({
             aria-expanded={open}
             aria-controls={menuId}
             onClick={() => setOpen((v) => !v)}
-            className="flex size-10 items-center justify-center rounded-full outline-none hover:bg-ink/6 focus-visible:outline-2 focus-visible:outline-ink md:hidden"
+            className="relative flex size-10 items-center justify-center rounded-full outline-none before:absolute before:-inset-0.5 hover:bg-ink/6 focus-visible:outline-2 focus-visible:outline-ink md:hidden"
           >
             {open ? <X aria-hidden className="size-5" /> : <Menu aria-hidden className="size-5" />}
             <span className="sr-only">{open ? "Close the menu" : "Menu"}</span>

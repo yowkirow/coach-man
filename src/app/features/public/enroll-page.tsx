@@ -7,7 +7,14 @@ import { EnrollSlot } from "../enrollment/enroll-slot";
 import { TeamFace } from "./people";
 import { ProgramPlaceRows } from "./public-ui";
 import type { PublicPage } from "./queries";
-import { canEnroll, previewSearch, QuestionsBox, ScheduleText, SiteFrame } from "./site";
+import {
+  canEnroll,
+  previewSearch,
+  QuestionsBox,
+  ScheduleText,
+  SiteFrame,
+  useCurrentInView,
+} from "./site";
 import { headlineParts } from "./site-data";
 import { programTeams } from "./team";
 import { agesLabel, scheduleLines, sessionLength, tiersOf } from "./text";
@@ -133,6 +140,9 @@ export function EnrollNowPage({
   const tiers = program ? tiersOf(academy.packages, program.id) : [];
   const others = tiersOf(academy.packages, null);
   const open = canEnroll(academy);
+  const pills = useCurrentInView<HTMLAnchorElement>(
+    programs.length > 1 ? (program?.id ?? null) : null,
+  );
   const { quiet, strong } = headlineParts(
     !academy.packages.length
       ? "Packages are on their way"
@@ -167,12 +177,16 @@ export function EnrollNowPage({
         </p>
         {programs.length > 1 ? (
           <nav aria-label="Programs" className="mt-9">
-            <ul className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:justify-center sm:overflow-visible sm:px-0">
+            <ul
+              ref={pills.list}
+              className="relative -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:justify-center sm:overflow-visible sm:px-0"
+            >
               {programs.map((p) => {
                 const on = p.id === program?.id;
                 return (
                   <li key={p.id} className="shrink-0">
                     <Link
+                      ref={on ? pills.current : undefined}
                       to="/a/$slug/enroll"
                       params={{ slug }}
                       search={{ ...search, program: p.id }}

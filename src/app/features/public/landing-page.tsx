@@ -16,6 +16,7 @@ import {
   QuestionsBox,
   ScheduleText,
   SiteFrame,
+  useCurrentInView,
 } from "./site";
 import {
   academyVenues,
@@ -495,6 +496,7 @@ function ProgramsSlab({
   const from = fromPriceMinor(academy.packages, program.id);
   const enroll = canEnroll(academy) && tiers.length > 0;
   const Name = several ? "h3" : "h2";
+  const pills = useCurrentInView<HTMLAnchorElement>(several ? program.id : null);
   return (
     <section
       id="programs"
@@ -512,12 +514,16 @@ function ProgramsSlab({
                 Choose a program
               </h2>
               <nav aria-label="Programs" className="mt-7">
-                <ul className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
+                <ul
+                  ref={pills.list}
+                  className="relative -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0"
+                >
                   {academy.programs.map((p) => {
                     const on = p.id === program.id;
                     return (
                       <li key={p.id} className="shrink-0">
                         <Link
+                          ref={on ? pills.current : undefined}
                           to="/a/$slug"
                           params={{ slug }}
                           search={{ ...search, program: p.id }}
@@ -965,8 +971,19 @@ function WhereWePlay({
   return (
     <section aria-labelledby="where-title" className="mx-auto max-w-[1100px] px-4 sm:px-6">
       <div className="rounded-[32px] bg-violet px-5 py-14 text-center sm:px-10 sm:py-20">
+        <h2
+          id="where-title"
+          className={`${display} text-[2.5rem] leading-[1.05] break-words sm:text-[3.5rem] lg:text-[4rem]`}
+        >
+          {title}
+        </h2>
+        {(venues.length <= 1 ? (first?.address ?? academy.address) : academy.address) ? (
+          <p className="mx-auto mt-4 max-w-[48ch] text-[1rem] sm:text-[1.125rem]">
+            {venues.length <= 1 ? (first?.address ?? academy.address) : academy.address}
+          </p>
+        ) : null}
         {venues.length > 1 ? (
-          <ul aria-label="Venues" className="flex flex-wrap justify-center gap-2">
+          <ul aria-label="Venues" className="mt-7 flex flex-wrap justify-center gap-2">
             {venues.map((v) => (
               <li key={`${v.name}-${v.address ?? ""}`}>
                 <a
@@ -981,17 +998,6 @@ function WhereWePlay({
               </li>
             ))}
           </ul>
-        ) : null}
-        <h2
-          id="where-title"
-          className={`${display} text-[2.5rem] leading-[1.05] break-words sm:text-[3.5rem] lg:text-[4rem] ${venues.length > 1 ? "mt-7" : ""}`}
-        >
-          {title}
-        </h2>
-        {(venues.length <= 1 ? (first?.address ?? academy.address) : academy.address) ? (
-          <p className="mx-auto mt-4 max-w-[48ch] text-[1rem] sm:text-[1.125rem]">
-            {venues.length <= 1 ? (first?.address ?? academy.address) : academy.address}
-          </p>
         ) : null}
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           {directions && venues.length <= 1 ? (

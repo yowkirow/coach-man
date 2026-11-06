@@ -4,6 +4,7 @@ import { persistQueryClientSave } from "@tanstack/react-query-persist-client";
 import { useEffect, useSyncExternalStore } from "react";
 import { api } from "./api";
 import { switchCacheOwner } from "./cache-owner";
+import { clearEnrollDrafts } from "./enroll-drafts";
 import { isOfflineMutationKey, resumeQueuedChanges } from "./outbox";
 import { CACHE_BUSTER, keys, persistDehydrateOptions, persisterNow, queryClient } from "./query";
 
@@ -67,9 +68,11 @@ let resumed = false;
  * Call once the signed-in coach is known and the cache has been restored. A different coach on
  * this device starts clean; the same coach signing back in keeps their cache, and their saved
  * changes go out: those queued offline, and court changes that were in flight when the app closed.
+ * Enrollment answers someone else left unsent on this device are deleted too.
  */
 export function claimCache(userId: string) {
   if (switchCacheOwner(userId, queryClient, deviceStorage())) lastPack = 0;
+  clearEnrollDrafts(deviceStorage(), userId);
   if (!resumed) {
     resumed = true;
     void resumeQueuedChanges(queryClient).then(() => queryClient.invalidateQueries());
@@ -145,8 +148,12 @@ export async function requestPersistentStorage() {
   }
 }
 
-/** Wipe local caches on sign-out so the next coach on this device starts clean. */
+/**
+ * Wipe local caches on sign-out so the next coach on this device starts clean, unsent enrollment
+ * answers included.
+ */
 export async function clearLocalData() {
+  clearEnrollDrafts(deviceStorage());
   queryClient.clear();
   queryClient.getMutationCache().clear();
   const { clear } = await import("idb-keyval");

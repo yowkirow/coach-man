@@ -546,7 +546,7 @@ export function ExportSection() {
       <SectionHead title="Export your data" />
       <p className="px-5 text-[0.9375rem] text-ink-2">
         Your data stays yours. Download spreadsheets you can open anywhere, or a full backup of
-        everything in this workspace.
+        every record in this workspace (photos aren't included).
       </p>
       <ul className="flex flex-wrap gap-2 px-5 pt-4 pb-5">
         {EXPORTS.map((e) => (

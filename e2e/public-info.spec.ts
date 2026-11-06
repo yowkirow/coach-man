@@ -49,7 +49,7 @@ test.describe("CoachMan's public pages", () => {
     await expect(page).toHaveURL(/\/privacy$/);
     await expect(page.getByRole("heading", { name: "Privacy policy", level: 1 })).toBeVisible();
     await expect(page).toHaveTitle("Privacy policy · CoachMan");
-    await expect(page.getByText("Last updated November 5, 2026")).toBeVisible();
+    await expect(page.getByText("Last updated November 6, 2026")).toBeVisible();
     await expect(page.getByText("Republic Act No. 10173", { exact: false })).toBeVisible();
     await expect(page.getByText("National Privacy Commission", { exact: false })).toBeVisible();
     const sections = page.getByRole("navigation", { name: "On this page" });
@@ -64,7 +64,7 @@ test.describe("CoachMan's public pages", () => {
     await visit(page, "/terms");
     await expect(page.getByRole("heading", { name: "Terms of use", level: 1 })).toBeVisible();
     await expect(page).toHaveTitle("Terms of use · CoachMan");
-    await expect(page.getByText("Last updated November 5, 2026")).toBeVisible();
+    await expect(page.getByText("Last updated November 6, 2026")).toBeVisible();
     await expect(
       page.getByText("governed by the laws of the Republic of the Philippines", { exact: false }),
     ).toBeVisible();

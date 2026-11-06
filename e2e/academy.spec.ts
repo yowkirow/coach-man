@@ -4,6 +4,7 @@ import type {
   ClientDetailDto,
   ClientListItemDto,
   EventDto,
+  FamilyInviteCreatedDto,
   GroupDto,
   LessonDetailDto,
   MeDto,
@@ -12,9 +13,11 @@ import type {
 import {
   addMember,
   BYPASS_HEADER,
+  bornYearsAgo,
   bypassSecret,
   type Coach,
   expect,
+  inviteToken,
   linkFamily,
   type Personas,
   signIn,
@@ -322,6 +325,60 @@ test.describe("owners and admins", () => {
       data: { workspaceId: uuid() },
     });
     expect(elsewhere.status()).toBe(403);
+  });
+
+  test("export a full backup: the academy's records too, never an invite link's secret", async ({
+    seeded,
+  }, info) => {
+    const kid = await seeded.api.post<{ id: string }>("/clients", {
+      firstName: "Ana",
+      lastName: "Reyes",
+      birthDate: bornYearsAgo(10),
+      isJunior: true,
+    });
+    const linked = await linkFamily(seeded.request, {
+      clientId: kid.id,
+      email: testEmail("export-parent", info),
+      name: "Pia Reyes",
+      relation: "guardian",
+    });
+    expect(linked.status).toBe(201);
+    const invite = await seeded.api.post<FamilyInviteCreatedDto>(
+      `/clients/${kid.id}/family/invites`,
+      { relation: "guardian" },
+    );
+
+    const res = await seeded.api.raw("GET", "/export/workspace.json");
+    expect(res.status, res.text).toBe(200);
+    const backup = res.json as Record<string, unknown>;
+    expect(backup.format).toBe("coachman-export-v1");
+    expect(backup.academy).toEqual({ name: expect.any(String), slug: expect.any(String) });
+    for (const key of [
+      "clients",
+      "lessons",
+      "payments",
+      "academyProfile",
+      "coachProfiles",
+      "studentCoaches",
+      "familyAccess",
+      "enrollmentRequests",
+      "paymentProofs",
+      "consentDocuments",
+      "consentDocumentVersions",
+      "consentSignatures",
+      "pickupPeople",
+      "announcements",
+      "auditLog",
+    ]) {
+      expect(Array.isArray(backup[key]), key).toBe(true);
+    }
+    expect((backup.familyAccess as { clientId: string }[]).map((a) => a.clientId)).toContain(
+      kid.id,
+    );
+    // Invite links stay out: a backup file must never be a way in.
+    expect(Object.keys(backup).filter((k) => /invite/i.test(k))).toEqual([]);
+    expect(res.text).not.toContain("tokenHash");
+    expect(res.text).not.toContain(inviteToken(invite.link));
   });
 });
 

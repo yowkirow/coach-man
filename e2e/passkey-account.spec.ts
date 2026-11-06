@@ -138,9 +138,23 @@ test.describe("passkey-only family accounts", () => {
     await cleanUp(seeded.request, userId, 48);
     expect(await userExists(seeded.request, userId)).toBe(true);
 
-    // Sign out, then back in with the passkey.
+    // Sign out, then back in with the passkey. Enrollment answers left unsent on the device, even
+    // this parent's own, go with the sign-out (a shared tablet).
+    await page.evaluate(
+      (id) =>
+        localStorage.setItem(
+          "coachman.enroll.v1:any-academy:any-tier",
+          JSON.stringify({ v: 1, userId: id, step: "contact" }),
+        ),
+      userId,
+    );
     await page.getByRole("button", { name: "Sign out" }).click();
     await expect(page).toHaveURL(/\/sign-in/);
+    expect(
+      await page.evaluate(() =>
+        Object.keys(localStorage).filter((k) => k.startsWith("coachman.enroll.v1:")),
+      ),
+    ).toEqual([]);
     await page.getByRole("button", { name: "Sign in with a passkey" }).click();
     await expect(page).toHaveURL(/\/my\/?$/);
     await expect(page.getByRole("heading", { name: "Mia Santos" })).toBeVisible();

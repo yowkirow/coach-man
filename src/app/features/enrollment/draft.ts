@@ -1,8 +1,10 @@
 import { uuidv7 } from "@shared/ids";
+import { clearEnrollDrafts, ENROLL_DRAFT_PREFIX } from "../../lib/enroll-drafts";
 
 // The enrollment wizard's answers, kept on this device while someone works through it: going
 // back, reloading, or signing in with Google halfway never loses what they typed. Only the person
-// who started it gets it back (it carries their user id), and sending the request clears it.
+// who started it gets it back (it carries their user id), and sending the request clears it, as
+// does signing out (lib/offline.ts clearLocalData).
 
 export type StepId = "who" | "level" | "contact" | "when" | "consents" | "review";
 
@@ -73,11 +75,12 @@ export function emptyDraft(userId: string | null): WizardDraft {
   };
 }
 
-const KEY = (slug: string, packageId: string) => `coachman.enroll.v1:${slug}:${packageId}`;
+const KEY = (slug: string, packageId: string) => `${ENROLL_DRAFT_PREFIX}${slug}:${packageId}`;
 
-/** The draft this person left for this tier, if any (anyone else's is dropped). */
+/** The draft this person left for this tier, if any (anyone else's, for any tier, is dropped). */
 export function loadDraft(slug: string, packageId: string, userId: string): WizardDraft | null {
   try {
+    clearEnrollDrafts(localStorage, userId);
     const raw = localStorage.getItem(KEY(slug, packageId));
     if (!raw) return null;
     const draft = JSON.parse(raw) as WizardDraft;

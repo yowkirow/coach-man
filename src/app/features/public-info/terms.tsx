@@ -1,8 +1,8 @@
-// OWNER REVIEW REQUIRED before Google sign-in is published for everyone: these terms of use were
-// written in plain language from how CoachMan works today, as a starting point. They are not legal
-// advice. Have them reviewed under Philippine law, correct anything that doesn't match how
-// CoachMan is run (who provides it, support, termination, liability), then update the "Last
-// updated" date. The contact address comes from PUBLIC_CONTACT_EMAIL (wrangler.jsonc).
+// Reviewed for accuracy against the code on 2026-11-06: every statement here should stay true of
+// how CoachMan works, so change them together. Written in plain language as a starting point; it
+// is not legal advice. A lawyer's review under Philippine law is still recommended (who provides
+// CoachMan, support, termination, liability). The contact address comes from
+// PUBLIC_CONTACT_EMAIL (wrangler.jsonc).
 
 import { Link } from "@tanstack/react-router";
 import { ContactEmail } from "./legal-links";
@@ -11,7 +11,7 @@ import { Bullets, type DocSection, DocumentPage } from "./shell";
 const link =
   "rounded-sm font-medium underline decoration-line-strong underline-offset-4 outline-none hover:decoration-ink focus-visible:outline-2 focus-visible:outline-ink";
 
-export const TERMS_UPDATED = "November 5, 2026";
+export const TERMS_UPDATED = "November 6, 2026";
 
 const SECTIONS: DocSection[] = [
   {
@@ -49,7 +49,8 @@ const SECTIONS: DocSection[] = [
         <li>One account per person. Use your own name and keep your details accurate.</li>
         <li>
           Staff join an academy through an invite link from its owner or an admin. Families join
-          through their academy's invite link, or by enrolling from its CoachMan page.
+          through their academy's invite link, or by enrolling from its CoachMan page. Anyone can
+          also set up CoachMan for their own coaching or academy.
         </li>
         <li>
           Children under 13 don't get their own login; a parent or guardian follows their training.
@@ -89,8 +90,9 @@ const SECTIONS: DocSection[] = [
           academy is responsible for the texts it publishes and has signed.
         </p>
         <p>
-          The academy's information is the academy's. It can export it at any time. We use it only
-          to provide CoachMan, as the privacy policy describes.
+          The academy's information is the academy's. It can export its records at any time, and ask
+          us for anything the export doesn't include, such as photos. We use it only to provide
+          CoachMan, as the privacy policy describes.
         </p>
       </>
     ),
@@ -146,7 +148,7 @@ const SECTIONS: DocSection[] = [
           develops.
         </p>
         <p>
-          Keep your own copies of anything critical: academies can export their data at any time.
+          Keep your own copies of anything critical: academies can export their records at any time.
         </p>
       </>
     ),

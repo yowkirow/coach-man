@@ -36,7 +36,11 @@ const EXPORTS = [
   { file: "payments.csv", label: "Payments", body: "Amounts, methods, references, and voids" },
   { file: "charges.csv", label: "Charges", body: "Sessions, packages, events, and adjustments" },
   { file: "packages.csv", label: "Client packages", body: "Credits bought, left, and expiry" },
-  { file: "workspace.json", label: "Everything", body: "A full backup of your academy" },
+  {
+    file: "workspace.json",
+    label: "Full backup",
+    body: "All your academy's records, without photos",
+  },
 ] as const;
 
 function Block({

@@ -60,7 +60,7 @@ const CAPABILITIES: { icon: LucideIcon; title: string; body: string }[] = [
   {
     icon: FileUp,
     title: "Your data stays yours",
-    body: "Bring clients over from a spreadsheet, and export everything as CSV files or a full backup.",
+    body: "Bring clients over from a spreadsheet, and export your records as CSV files or one full backup file.",
   },
 ];
 

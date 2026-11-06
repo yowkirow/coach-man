@@ -1,8 +1,9 @@
-// OWNER REVIEW REQUIRED before Google sign-in is published for everyone: this privacy policy was
-// written from what the code does (see README "Public pages"), in plain language, as a starting
-// point. It is not legal advice. Have it reviewed (Data Privacy Act of 2012, RA 10173, and the NPC's
-// rules) and correct anything that doesn't match how CoachMan is actually run, then update the
-// "Last updated" date. The contact address comes from PUBLIC_CONTACT_EMAIL (wrangler.jsonc).
+// Reviewed for accuracy against the code on 2026-11-06 (what's collected, who sees it, how long
+// it's kept, what's public): every statement here should stay true of the code, so change them
+// together. Written in plain language as a starting point; it is not legal advice. A lawyer's
+// review under the Data Privacy Act of 2012 (RA 10173) and the NPC's rules is still recommended,
+// as is naming who runs CoachMan. The contact address comes from PUBLIC_CONTACT_EMAIL
+// (wrangler.jsonc).
 
 import { Link } from "@tanstack/react-router";
 import { ContactEmail } from "./legal-links";
@@ -11,7 +12,7 @@ import { Bullets, type DocSection, DocumentPage, Sub } from "./shell";
 const link =
   "rounded-sm font-medium underline decoration-line-strong underline-offset-4 outline-none hover:decoration-ink focus-visible:outline-2 focus-visible:outline-ink";
 
-export const PRIVACY_UPDATED = "November 5, 2026";
+export const PRIVACY_UPDATED = "November 6, 2026";
 
 const SECTIONS: DocSection[] = [
   {
@@ -118,12 +119,18 @@ const SECTIONS: DocSection[] = [
             pages can be tried (to stop guessing and abuse).
           </li>
           <li>
-            If you turn on notifications: your browser's push address and keys, and which reminders
-            were sent, so the same one isn't sent twice.
+            If you turn on notifications: your browser's push address and keys, which browser it is,
+            and which reminders were sent, so the same one isn't sent twice.
           </li>
           <li>
-            An offline copy on your device of what you opened, so the app works without signal. It's
-            cleared when you sign out or when someone else signs in on the same device.
+            A log of each request to the app, as on any website: the address asked for, the time,
+            and connection details such as the IP address, approximate location, and browser. It's
+            used to find faults and stop abuse.
+          </li>
+          <li>
+            An offline copy on your device of what you opened, so the app works without signal, and
+            the answers of an enrollment form you haven't sent yet. Both are cleared when you sign
+            out or when someone else signs in on the same device.
           </li>
         </Bullets>
       </>
@@ -146,8 +153,9 @@ const SECTIONS: DocSection[] = [
             pick them up;
           </li>
           <li>
-            to sign you in and keep accounts secure: sessions, passkeys, rate limits, and records of
-            who changed what (our legitimate interest in a safe service, and the academy's);
+            to sign you in and keep accounts secure: sessions, passkeys, rate limits, request logs,
+            and records of who changed what (our legitimate interest in a safe service, and the
+            academy's);
           </li>
           <li>to send the reminders and notifications you turn on (your consent);</li>
           <li>to keep the records the academy needs, such as signed consents and payments.</li>
@@ -200,13 +208,20 @@ const SECTIONS: DocSection[] = [
           their academy, coaches see students and progress but no money, and families see only their
           own students. Academies don't see each other's information.
         </p>
+        <p>
+          An academy can also publish a public page. Anyone can see what it puts there (such as its
+          contact details, programs, schedules, and prices) and its coaches' profiles: name, photo,
+          title, bio, certifications, rating, specialties, languages, and years coaching. A coach
+          can keep their profile off the page with “Show on the academy page”. Student and family
+          information is never public.
+        </p>
         <p>Outside the academy, we use a small number of service providers:</p>
         <Bullets>
           <li>
-            <strong className="font-medium">Cloudflare</strong> hosts CoachMan and stores its
-            database and files (in its Asia-Pacific region), and protects it on the way in. Like any
-            website, requests pass through Cloudflare's network, which may be outside the
-            Philippines.
+            <strong className="font-medium">Cloudflare</strong> hosts CoachMan, stores its database
+            and files (in its Asia-Pacific region), keeps its request logs, and protects it on the
+            way in. Like any website, requests pass through Cloudflare's network, which may be
+            outside the Philippines.
           </li>
           <li>
             <strong className="font-medium">Google</strong>, only if you choose to sign in with
@@ -233,14 +248,18 @@ const SECTIONS: DocSection[] = [
         <p>
           An academy's records stay while the academy uses CoachMan, so its history (credits,
           payments, consents) can be explained. Academies can archive or delete students, and export
-          their data at any time. When an academy closes its account, we delete its data on request.
-          Your account stays until you ask us to delete it.
+          their records at any time. When an academy closes its account, we delete its data on
+          request. Your account stays until you ask us to delete it.
         </p>
         <p>Some things are removed on their own:</p>
         <Bullets>
-          <li>sign-in sessions end after 30 days without use;</li>
-          <li>our rate-limit counters are cleared within a day;</li>
-          <li>passkey-only accounts that never got a passkey are deleted after a day;</li>
+          <li>
+            sign-in sessions end when you sign out or after 30 days without use, and are deleted
+            within a day of ending;
+          </li>
+          <li>our rate-limit counters are cleared within two days;</li>
+          <li>request logs are deleted after 7 days at most;</li>
+          <li>passkey-only accounts that never got a passkey are deleted within two days;</li>
           <li>the record of which notifications were sent is deleted after 90 days;</li>
           <li>
             the short-term records used to sync offline changes exactly once are deleted after 30
@@ -264,12 +283,14 @@ const SECTIONS: DocSection[] = [
         </li>
         <li>
           There are no passwords to steal: you sign in with Google or a passkey. Invite links are
-          single-use, expire after 7 days, and are stored only in a scrambled (hashed) form.
+          single-use and expire after 7 days, and our database keeps them only in a scrambled
+          (hashed) form.
         </li>
         <li>
           Every request is checked against your role and your links: coaches never get money
-          details, and families only reach their own students. Photos, payment proofs, and pickup
-          photos are private files served only to people allowed to see them.
+          details, and families only reach their own students. Students' photos, payment proofs, and
+          pickup photos are private files served only to people allowed to see them. Only what an
+          academy publishes, such as its logo and its coaches' photos, is public.
         </li>
         <li>
           Important changes are logged with who made them and when: access given or ended, consents,

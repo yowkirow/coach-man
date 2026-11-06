@@ -307,7 +307,7 @@ function ProfileFields({
         <Switch
           isSelected={draft.isPublic}
           onChange={(v) => set("isPublic", v)}
-          description="Your name, photo, title, and about text can appear on the academy's public page and to its students and parents. Your email never does."
+          description="Your name, photo, title, about text, and coaching details (certifications, rating, specialties, languages, years coaching) can appear on the academy's public page and to its students and parents. Your email never does."
         >
           Show on the academy page
         </Switch>

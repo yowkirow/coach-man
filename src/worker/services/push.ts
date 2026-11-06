@@ -4,6 +4,7 @@ import { can } from "../../shared/roles";
 import { addDays, localDate, localTime, todayIn } from "../../shared/time";
 import type { Db } from "../db/client";
 import {
+  session as authSession,
   clientCoach,
   clientPackage,
   familyNotificationQueue,
@@ -229,6 +230,9 @@ export async function runMaintenance(
   // Rate-limit counters (ours in lib/rate-limit.ts, and Better Auth's sign-in limits) last a minute
   // or an hour; a day-old one is clutter, and it holds an IP address (the privacy policy says so).
   await db.delete(rateLimit).where(lt(rateLimit.lastRequest, now.getTime() - 86_400_000));
+  // A sign-in that ran out can't be used again, yet its row keeps the IP address and browser it
+  // came from: delete it (signing out already deletes the row; the privacy policy says both).
+  await db.delete(authSession).where(lt(authSession.expiresAt, now));
   // Family notifications held for quiet hours go out within a day; a week-old one is stale. The
   // test sink keeps a day of payloads (tests read theirs within minutes).
   await db

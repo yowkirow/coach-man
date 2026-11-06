@@ -314,10 +314,29 @@ export const dataRoutes = new Hono<AppBindings>()
         goals: schema.goal,
         notes: schema.note,
         ratings: schema.ratingSnapshot,
+        // The academy's own records from the academy features: a full backup has them too. Invite
+        // links aren't records (and hold token hashes), so they stay out.
+        academyProfile: schema.academyProfile,
+        coachProfiles: schema.coachProfile,
+        studentCoaches: schema.clientCoach,
+        familyAccess: schema.clientAccess,
+        enrollmentRequests: schema.enrollmentRequest,
+        paymentProofs: schema.paymentSubmission,
+        consentDocuments: schema.consentDocument,
+        consentDocumentVersions: schema.consentDocumentVersion,
+        consentSignatures: schema.consentSignature,
+        pickupPeople: schema.authorizedPickup,
+        announcements: schema.announcement,
+        auditLog: schema.auditLog,
       } as const;
+      const [academy] = await db
+        .select({ name: schema.organization.name, slug: schema.organization.slug })
+        .from(schema.organization)
+        .where(eq(schema.organization.id, workspaceId));
       const out: Record<string, unknown> = {
         exportedAt: new Date().toISOString(),
         format: "coachman-export-v1",
+        academy: academy ?? null,
       };
       for (const [name, table] of Object.entries(tables)) {
         out[name] = await db.select().from(table).where(eq(table.workspaceId, workspaceId));

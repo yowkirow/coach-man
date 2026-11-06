@@ -126,6 +126,17 @@ export function firstSentence(text: string | null | undefined, max = 180): strin
   return sentence.length <= max ? sentence : null;
 }
 
+/**
+ * A schedule line set large ("Tue & Thu · 7:00 – 10:00 PM") split after its last dot, so the time
+ * range can be held on one line and a narrow column breaks after the dot, never inside
+ * "10:00 PM". (No-break spaces can't do it: browsers still break after the dash.)
+ */
+export function scheduleLineParts(line: string): { lead: string; time: string } {
+  const at = line.lastIndexOf(" · ");
+  if (at < 0) return { lead: line, time: "" };
+  return { lead: line.slice(0, at + 3), time: line.slice(at + 3) };
+}
+
 /** Words for the ball's arc: the parts joined with dots, ending on one so it repeats cleanly. */
 export function ribbonText(parts: (string | null | undefined)[]): string {
   const clean = parts.map((p) => p?.trim()).filter((p): p is string => Boolean(p));

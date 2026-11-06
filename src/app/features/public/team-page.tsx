@@ -19,7 +19,7 @@ import type { Format } from "../../lib/format";
 import { TeamFace, TeamPortrait } from "./people";
 import { ContactBar, ProgramPlaceRows, useScrolledPast } from "./public-ui";
 import type { PublicPage } from "./queries";
-import { QuestionsBox, SiteFrame } from "./site";
+import { QuestionsBox, ScheduleText, SiteFrame } from "./site";
 import {
   EVERYONE,
   type ProgramTeam,
@@ -161,7 +161,7 @@ function ProgramTimes({ program, fmt }: { program: PublicProgramDto; fmt: Format
           key={l}
           className="num text-[1.5rem] leading-tight font-light tracking-[-0.01em] sm:text-[1.75rem]"
         >
-          {l}
+          <ScheduleText line={l} />
         </p>
       ))}
     </div>
@@ -380,7 +380,7 @@ function CoachSpace({
     years ? { term: "Coaching", value: `${years} ${years === 1 ? "year" : "years"}` } : null,
     person.duprRating != null ? { term: "DUPR rating", value: person.duprRating.toFixed(2) } : null,
   ].filter((f): f is { term: string; value: string } => f !== null);
-  // Phones pair the numbers in two columns; the languages (a list) and a lone number take the row.
+  // The numbers pair in two columns; the languages (a list) and a lone number take the row.
   const facts = [
     ...numbers.map((f) => ({ ...f, wide: numbers.length === 1 })),
     ...(person.languages.length
@@ -397,9 +397,9 @@ function CoachSpace({
     <li id={`coach-${person.id}`} className="scroll-mt-4">
       <article
         aria-labelledby={nameId}
-        className="overflow-clip rounded-[28px] bg-ivory ring-[1.5px] ring-ivory-line ring-inset md:grid md:grid-cols-[minmax(0,17.5rem)_minmax(0,1fr)] md:gap-1 md:p-2 xl:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]"
+        className="overflow-clip rounded-[28px] bg-ivory ring-[1.5px] ring-ivory-line ring-inset md:grid md:grid-cols-[minmax(0,17.5rem)_minmax(0,1fr)] md:gap-1 md:p-2 lg:grid-cols-[minmax(0,15rem)_minmax(0,1fr)]"
       >
-        <div className="md:sticky md:top-3 md:self-start">
+        <div className="md:sticky md:top-[100px] md:self-start">
           <TeamPortrait
             person={person}
             size="lg"
@@ -428,11 +428,11 @@ function CoachSpace({
             ) : null}
           </header>
           {facts.length ? (
-            <dl className="grid grid-cols-2 gap-2 md:grid-cols-[repeat(auto-fill,minmax(9rem,1fr))]">
+            <dl className="grid grid-cols-2 gap-2">
               {facts.map((f) => (
                 <div
                   key={f.term}
-                  className={`rounded-[18px] bg-ivory-2 px-4 py-3 ${f.wide ? "max-md:col-span-2" : ""}`}
+                  className={`rounded-[18px] bg-ivory-2 px-4 py-3 ${f.wide ? "col-span-2" : ""}`}
                 >
                   <dt className="text-[0.8125rem] text-ink-2">{f.term}</dt>
                   <dd className="num mt-0.5 text-[1.375rem] leading-tight font-light tracking-[-0.01em] break-words">

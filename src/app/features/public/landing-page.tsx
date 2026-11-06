@@ -14,6 +14,7 @@ import {
   contactLabel,
   previewSearch,
   QuestionsBox,
+  ScheduleText,
   SiteFrame,
 } from "./site";
 import {
@@ -572,7 +573,7 @@ function ProgramsSlab({
                   key={l}
                   className="num text-[1.5rem] leading-tight font-light tracking-[-0.01em] sm:text-[1.75rem]"
                 >
-                  {l}
+                  <ScheduleText line={l} />
                 </p>
               ))
             ) : (

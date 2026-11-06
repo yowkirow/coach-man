@@ -11,6 +11,7 @@ import {
   programVenue,
   ribbonCopies,
   ribbonText,
+  scheduleLineParts,
   showcaseTier,
   tierInclusions,
 } from "../../src/app/features/public/site-data";
@@ -179,6 +180,17 @@ describe("the hero's words", () => {
     expect(firstSentence("No full stop here")).toBe("No full stop here");
     expect(firstSentence(`${"long ".repeat(50)}.`)).toBeNull();
     expect(firstSentence(null)).toBeNull();
+  });
+
+  it("splits a schedule line after its last dot, so the time range can stay on one line", () => {
+    expect(scheduleLineParts("Tue & Thu · 7:00 – 10:00 PM")).toEqual({
+      lead: "Tue & Thu · ",
+      time: "7:00 – 10:00 PM",
+    });
+    expect(scheduleLineParts("Saturdays, 8 to 11")).toEqual({
+      lead: "Saturdays, 8 to 11",
+      time: "",
+    });
   });
 
   it("joins the arc's words with dots and ends on one, so the line repeats cleanly", () => {

@@ -8,6 +8,7 @@ import { buttonClass, tapArea } from "../../components/ui/button";
 import { LegalLinks } from "../public-info/legal-links";
 import { AcademyLogo, PreviewBanner } from "./public-ui";
 import type { PublicPage } from "./queries";
+import { scheduleLineParts } from "./site-data";
 import { type ContactAction, contactActions } from "./text";
 
 /** Which page of the academy's website is open (its nav marks it). */
@@ -36,6 +37,17 @@ export function contactLabel(a: ContactAction, phone: string | null): string {
   if (a.id === "text") return "Send a text";
   if (a.id === "call") return phone ? `Call ${phone}` : "Call";
   return "Email us";
+}
+
+/** A schedule line set large, its time range kept on one line. */
+export function ScheduleText({ line }: { line: string }) {
+  const { lead, time } = scheduleLineParts(line);
+  return (
+    <>
+      {lead}
+      {time ? <span className="whitespace-nowrap">{time}</span> : null}
+    </>
+  );
 }
 
 /** Whether the website has a way to reach the academy, or its policies, to show at "Contact". */

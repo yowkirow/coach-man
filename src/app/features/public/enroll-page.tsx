@@ -7,7 +7,7 @@ import { EnrollSlot } from "../enrollment/enroll-slot";
 import { TeamFace } from "./people";
 import { ProgramPlaceRows } from "./public-ui";
 import type { PublicPage } from "./queries";
-import { canEnroll, previewSearch, QuestionsBox, SiteFrame } from "./site";
+import { canEnroll, previewSearch, QuestionsBox, ScheduleText, SiteFrame } from "./site";
 import { headlineParts } from "./site-data";
 import { programTeams } from "./team";
 import { agesLabel, scheduleLines, sessionLength, tiersOf } from "./text";
@@ -75,7 +75,7 @@ function ProgramCard({
                 key={l}
                 className="num text-[1.5rem] leading-tight font-light tracking-[-0.01em] sm:text-[1.75rem]"
               >
-                {l}
+                <ScheduleText line={l} />
               </p>
             ))}
           </div>

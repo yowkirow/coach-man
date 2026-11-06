@@ -19,6 +19,7 @@ import type {
   consentDocument,
   lessonSeries,
   packageTemplate,
+  teamPerson,
   trainingGroup,
   venue,
   workspaceSettings,
@@ -31,6 +32,7 @@ type PackageRow = typeof packageTemplate.$inferSelect;
 type SeriesRow = typeof lessonSeries.$inferSelect;
 type VenueRow = typeof venue.$inferSelect;
 type ConsentRow = typeof consentDocument.$inferSelect;
+type TeamPersonRow = typeof teamPerson.$inferSelect;
 
 /** Whether an academy's page is public: listed, under a real public address (not `ws-…`). */
 export function isListed(
@@ -40,14 +42,21 @@ export function isListed(
   return Boolean(profile?.listed) && isAcademySlug(org.slug);
 }
 
-/** A coach's public profile, from their team row (only coaches who chose to appear). */
+/**
+ * A person on the team page as the public sees them: a staff member's coach profile (only
+ * coaches who chose to appear), or a display-only person the academy shows (only public ones).
+ */
 export interface PublicCoachFacts {
+  /** The coach profile's id, or the display-only person's id. */
   profileId: string;
   name: string;
   title: string | null;
   bio: string | null;
+  /** The square photo; display-only people have none. */
   photoKey: string | null;
+  portraitKey: string | null;
   certifications: string[];
+  highlights: string[];
   specialties: string[];
   languages: string[];
   yearsCoaching: number | null;
@@ -61,7 +70,9 @@ export function toPublicCoach(c: PublicCoachFacts): PublicCoachDto {
     title: c.title,
     bio: c.bio,
     photoKey: c.photoKey,
+    portraitKey: c.portraitKey,
     certifications: [...c.certifications],
+    highlights: [...c.highlights],
     specialties: [...c.specialties],
     languages: [...c.languages],
     yearsCoaching: c.yearsCoaching,
@@ -69,10 +80,50 @@ export function toPublicCoach(c: PublicCoachFacts): PublicCoachDto {
   };
 }
 
+/** A display-only person's public facts: never who added them, their order, or the switch. */
+export function teamPersonFacts(p: TeamPersonRow): PublicCoachFacts {
+  return {
+    profileId: p.id,
+    name: p.name,
+    title: p.title,
+    bio: p.bio,
+    photoKey: null,
+    portraitKey: p.portraitKey,
+    certifications: p.certifications ?? [],
+    highlights: p.highlights ?? [],
+    specialties: p.specialties ?? [],
+    languages: p.languages ?? [],
+    yearsCoaching: p.yearsCoaching,
+    duprRating: p.duprRating,
+  };
+}
+
+/** `lead`: the program's lead coach (false for anyone else, and outside programs). */
 export function toPublicCoachRef(
   c: Pick<PublicCoachFacts, "profileId" | "name" | "title" | "photoKey">,
+  lead: boolean,
 ): PublicCoachRefDto {
-  return { id: c.profileId, name: c.name, title: c.title, photoKey: c.photoKey };
+  return { id: c.profileId, name: c.name, title: c.title, photoKey: c.photoKey, lead };
+}
+
+/**
+ * A program's coaches as the public page names them: the lead first, then the assistants, only
+ * those with public profiles (`coaches`, by user id). Only the program's own lead is marked
+ * `lead`, so a hidden lead never makes an assistant look like the lead.
+ */
+export function toProgramCoachRefs(
+  program: Pick<GroupRow, "coachUserId" | "assistantCoachIds">,
+  coaches: ReadonlyMap<string, PublicCoachFacts>,
+): PublicCoachRefDto[] {
+  const out: PublicCoachRefDto[] = [];
+  const seen = new Set<string>();
+  for (const userId of [program.coachUserId, ...(program.assistantCoachIds ?? [])]) {
+    if (!userId || seen.has(userId)) continue;
+    seen.add(userId);
+    const c = coaches.get(userId);
+    if (c) out.push(toPublicCoachRef(c, userId === program.coachUserId));
+  }
+  return out;
 }
 
 export function toPublicVenue(v: Pick<VenueRow, "name" | "address">): PublicVenueDto {

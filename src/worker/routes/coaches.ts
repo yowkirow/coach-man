@@ -25,7 +25,9 @@ async function targetCoach(c: Context<AppBindings>) {
   const row = (await staffRows(ctx.db, ctx.workspaceId)).find((s) => s.userId === userId);
   if (!row) throw notFound("Coach");
   // Members from before profiles existed get one before their first change (reads use defaults).
-  if (c.req.method !== "GET") await ensureCoachProfile(ctx.db, ctx.workspaceId, userId);
+  if (c.req.method !== "GET" && !row.profileId) {
+    await ensureCoachProfile(ctx.db, ctx.workspaceId, userId);
+  }
   return { ctx, row };
 }
 
@@ -38,10 +40,21 @@ async function loadProfile(ctx: Ctx, userId: string) {
 const profileWhere = (ctx: Ctx, userId: string) =>
   and(eq(coachProfile.workspaceId, ctx.workspaceId), eq(coachProfile.userId, userId));
 
+/** The id of a member's coach profile (made by `targetCoach` for changes, if it was missing). */
+async function profileIdOf(ctx: Ctx, userId: string): Promise<string> {
+  const p = await ctx.db.query.coachProfile.findFirst({
+    where: profileWhere(ctx, userId),
+    columns: { id: true },
+  });
+  if (!p) throw notFound("Coach");
+  return p.id;
+}
+
 /**
  * Coach profiles (staff API). Everyone on the team lists the coaches (pickers, avatars); each person
- * edits their own profile, and people who manage the team (`team`) edit anyone's. Photos are public
- * R2 keys (ws/<id>/public/coaches/…) because the academy page shows them.
+ * edits their own profile, and people who manage the team (`team`) edit anyone's. Photos (square)
+ * and team page photos (half-body, 4:5) are public R2 keys (ws/<id>/public/coaches/…) because the
+ * academy's public pages show them.
  */
 export const coachRoutes = new Hono<AppBindings>()
   .get("/coaches", async (c) => {
@@ -73,7 +86,11 @@ export const coachRoutes = new Hono<AppBindings>()
   .put("/coaches/:userId/photo", async (c) => {
     const { ctx, row } = await targetCoach(c);
     const image = await readImage(c, "photo");
-    const key = publicKey.coachPhoto(ctx.workspaceId, row.userId, image.ext);
+    const key = publicKey.coachPhoto(
+      ctx.workspaceId,
+      row.profileId ?? (await profileIdOf(ctx, row.userId)),
+      image.ext,
+    );
     await ctx.env.FILES.put(key, image.body, { httpMetadata: { contentType: image.type } });
     await ctx.db.update(coachProfile).set({ photoKey: key }).where(profileWhere(ctx, row.userId));
     if (row.photoKey) await ctx.env.FILES.delete(row.photoKey);
@@ -84,5 +101,35 @@ export const coachRoutes = new Hono<AppBindings>()
     const { ctx, row } = await targetCoach(c);
     await ctx.db.update(coachProfile).set({ photoKey: null }).where(profileWhere(ctx, row.userId));
     if (row.photoKey) await ctx.env.FILES.delete(row.photoKey);
+    return c.body(null, 204);
+  })
+
+  /** The half-body team page photo (the app crops it 4:5); replacing it deletes the old one. */
+  .put("/coaches/:userId/portrait", async (c) => {
+    const { ctx, row } = await targetCoach(c);
+    const image = await readImage(c, "photo");
+    const key = publicKey.coachPortrait(
+      ctx.workspaceId,
+      row.profileId ?? (await profileIdOf(ctx, row.userId)),
+      image.ext,
+    );
+    await ctx.env.FILES.put(key, image.body, { httpMetadata: { contentType: image.type } });
+    await runBatch(ctx, [
+      ctx.db.update(coachProfile).set({ portraitKey: key }).where(profileWhere(ctx, row.userId)),
+      auditEntry(ctx, "upload", "coach_portrait", row.userId),
+    ]);
+    if (row.portraitKey) await ctx.env.FILES.delete(row.portraitKey);
+    return c.json({ portraitKey: key });
+  })
+
+  .delete("/coaches/:userId/portrait", async (c) => {
+    const { ctx, row } = await targetCoach(c);
+    if (row.portraitKey) {
+      await runBatch(ctx, [
+        ctx.db.update(coachProfile).set({ portraitKey: null }).where(profileWhere(ctx, row.userId)),
+        auditEntry(ctx, "remove", "coach_portrait", row.userId),
+      ]);
+      await ctx.env.FILES.delete(row.portraitKey);
+    }
     return c.body(null, 204);
   });

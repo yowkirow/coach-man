@@ -2,7 +2,7 @@
 // shared link (they never run the app), so the Worker answers /a/* with the app's index.html plus
 // these tags. Everything here is pure and escapes every value it writes.
 
-import type { PublicAcademyDto, PublicConfigDto } from "../../shared/api-types";
+import type { PublicAcademyDto, PublicCoachDto, PublicConfigDto } from "../../shared/api-types";
 
 /** The app shell's own tags (index.html), used for unknown and unlisted academies. */
 export const DEFAULT_TITLE = "CoachMan";
@@ -46,7 +46,7 @@ export function publicImageUrl(appUrl: string, key: string): string {
   return `${origin(appUrl)}/api/public/files/${key.split("/").map(encodeURIComponent).join("/")}`;
 }
 
-export type PublicPageKind = "home" | "rates" | "enroll";
+export type PublicPageKind = "home" | "rates" | "enroll" | "team";
 
 /** The page of /a/<slug>[/<rest>] a request is for, or null when the path isn't an academy page. */
 export function parseAcademyPath(pathname: string): { slug: string; page: PublicPageKind } | null {
@@ -58,20 +58,31 @@ export function parseAcademyPath(pathname: string): { slug: string; page: Public
   } catch {
     return null;
   }
-  const page = match[2] === "rates" ? "rates" : match[2] === "enroll" ? "enroll" : "home";
+  const rest = match[2];
+  const page = rest === "rates" || rest === "enroll" || rest === "team" ? rest : "home";
   return { slug, page };
+}
+
+/** "Ana Cruz, Ben Reyes, and 3 more": the first names on the team, for a preview line. */
+function teamNames(people: { name: string }[], shown = 3): string {
+  const names = people.slice(0, shown).map((p) => p.name);
+  const more = people.length - names.length;
+  if (more > 0) return `${names.join(", ")}, and ${more} more`;
+  if (names.length < 3) return names.join(" and ");
+  return `${names.slice(0, -1).join(", ")}, and ${names.at(-1)}`;
 }
 
 /**
  * The preview of a page: the academy's name, tagline (or the start of its about text), and logo
  * (or cover) when it's listed; CoachMan's own tags otherwise, so an unlisted academy's name never
- * shows up in a preview.
+ * shows up in a preview. The team page names its first people and shows the first one's photo.
  */
 export function academyPageMeta(input: {
-  academy: Pick<
-    PublicAcademyDto,
-    "name" | "slug" | "tagline" | "about" | "logoKey" | "coverKey"
-  > | null;
+  academy:
+    | (Pick<PublicAcademyDto, "name" | "slug" | "tagline" | "about" | "logoKey" | "coverKey"> & {
+        coaches?: Pick<PublicCoachDto, "name" | "portraitKey" | "photoKey">[];
+      })
+    | null;
   page: PublicPageKind;
   appUrl: string;
 }): PageMeta {
@@ -88,6 +99,22 @@ export function academyPageMeta(input: {
   }
   const path = `/a/${encodeURIComponent(a.slug)}${input.page === "home" ? "" : `/${input.page}`}`;
   const about = a.tagline?.trim() || (a.about ? summarize(a.about) : "");
+  if (input.page === "team") {
+    const people = a.coaches ?? [];
+    const face = people.map((p) => p.portraitKey ?? p.photoKey).find((k): k is string => !!k);
+    const imageKey = face ?? a.coverKey ?? a.logoKey;
+    return {
+      title: `Meet the team · ${a.name}`,
+      description: summarize(
+        people.length
+          ? `Meet the team at ${a.name}: ${teamNames(people)}.`
+          : `Meet the team at ${a.name}.`,
+      ),
+      image: imageKey ? publicImageUrl(base, imageKey) : `${base}/icons/icon-512.png`,
+      twitterCard: !face && a.coverKey ? "summary_large_image" : "summary",
+      url: `${base}${path}`,
+    };
+  }
   const description =
     input.page === "rates"
       ? summarize(`Rates and packages at ${a.name}${about ? `. ${about}` : "."}`)

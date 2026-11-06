@@ -85,6 +85,13 @@ export function sessionsLabel(t: Pick<PublicPackageDto, "sessionsLabel" | "credi
   return t.sessionsLabel?.trim() || plural(t.credits, "session");
 }
 
+/** Where a program meets: the first of its weekly sessions with a venue, else its default venue. */
+export function programVenue(
+  p: Pick<PublicProgramDto, "schedule" | "venue">,
+): PublicVenueDto | null {
+  return p.schedule.find((s) => s.venue)?.venue ?? p.venue;
+}
+
 /** A maps search for a venue (the academy's own map link is used for its address). */
 export function directionsUrl(v: PublicVenueDto): string {
   const q = [v.name, v.address].filter(Boolean).join(", ");

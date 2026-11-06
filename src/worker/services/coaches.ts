@@ -12,6 +12,7 @@ import type { Db } from "../db/client";
 import { clientCoach, coachProfile, member, user } from "../db/schema";
 import { badRequest } from "../lib/errors";
 import { inList, unique } from "../lib/sql";
+import { teamPageEnd } from "../lib/workspace";
 import type { Ctx } from "../types";
 
 /** A current staff member with their coach profile (or its defaults when they have none yet). */
@@ -22,11 +23,15 @@ export interface StaffRow {
   email: string;
   image: string | null;
   joinedAt: number;
+  /** Null until the member's coach profile row exists (members from before profiles). */
+  profileId: string | null;
   displayName: string | null;
   title: string | null;
   bio: string | null;
   photoKey: string | null;
+  portraitKey: string | null;
   certifications: string[];
+  highlights: string[];
   duprRating: number | null;
   specialties: string[];
   languages: string[];
@@ -62,11 +67,14 @@ export async function staffRows(db: Db, workspaceId: string): Promise<StaffRow[]
       email: u.email,
       image: u.image ?? null,
       joinedAt: m.createdAt.getTime(),
+      profileId: p?.id ?? null,
       displayName: p?.displayName ?? null,
       title: p?.title ?? null,
       bio: p?.bio ?? null,
       photoKey: p?.photoKey ?? null,
+      portraitKey: p?.portraitKey ?? null,
       certifications: p?.certifications ?? [],
+      highlights: p?.highlights ?? [],
       duprRating: p?.duprRating ?? null,
       specialties: p?.specialties ?? [],
       languages: p?.languages ?? [],
@@ -100,6 +108,8 @@ export function toCoachProfile(r: StaffRow): CoachProfileDto {
     specialties: r.specialties,
     languages: r.languages,
     yearsCoaching: r.yearsCoaching,
+    portraitKey: r.portraitKey,
+    highlights: r.highlights,
     isPublic: r.isPublic,
     sortOrder: r.sortOrder,
   };
@@ -199,9 +209,16 @@ export async function coachRefs(
   return out;
 }
 
-/** Creates the member's coach profile if it's missing (members from before profiles existed). */
+/**
+ * Creates the member's coach profile if it's missing (members from before profiles existed), at
+ * the end of the team page.
+ */
 export async function ensureCoachProfile(db: Db, workspaceId: string, userId: string) {
-  await db.insert(coachProfile).values({ id: uuidv7(), workspaceId, userId }).onConflictDoNothing();
+  const sortOrder = await teamPageEnd(db, workspaceId);
+  await db
+    .insert(coachProfile)
+    .values({ id: uuidv7(), workspaceId, userId, sortOrder })
+    .onConflictDoNothing();
 }
 
 /** A student's current coaches and who coached them before (newest first). */

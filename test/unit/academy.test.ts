@@ -121,6 +121,8 @@ describe("public images", () => {
       publicKey.logo(ws, "png"),
       publicKey.paymentQr(ws, "jpg"),
       publicKey.coachPhoto(ws, "01a1a990-35d2-76ad-a71b-a2be5c7c3de3", "webp"),
+      publicKey.coachPortrait(ws, "01a1a990-35d2-76ad-a71b-a2be5c7c3de4", "jpg"),
+      publicKey.teamPersonPortrait(ws, "01a1a990-35d2-76ad-a71b-a2be5c7c3de5", "jpg"),
     ]) {
       expect(PUBLIC_KEY_RE.test(key)).toBe(true);
     }

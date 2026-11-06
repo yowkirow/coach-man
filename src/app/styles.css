@@ -136,6 +136,23 @@
       /* biome-ignore lint/complexity/noImportantStyles: reduced motion must beat component transitions. */
       transition-duration: 1ms !important;
     }
+    ::view-transition-group(*),
+    ::view-transition-old(*),
+    ::view-transition-new(*) {
+      /* biome-ignore lint/complexity/noImportantStyles: reduced motion must beat view transitions. */
+      animation: none !important;
+    }
+  }
+
+  /* The team page's program switch is a view transition: each portrait glides to its new place on
+     the system's ease-out while the rest of the page cross-fades quickly underneath. */
+  ::view-transition-group(*) {
+    animation-duration: 340ms;
+    animation-timing-function: var(--ease-out-expo);
+  }
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 180ms;
   }
 }
 

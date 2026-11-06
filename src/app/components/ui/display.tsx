@@ -64,7 +64,8 @@ const AVATAR_TINTS = [
   "#ececef",
 ];
 
-function tintFor(seed: string) {
+/** The soft wash behind someone's initials, the same for the same name everywhere. */
+export function tintFor(seed: string) {
   let h = 0;
   for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
   return AVATAR_TINTS[h % AVATAR_TINTS.length];

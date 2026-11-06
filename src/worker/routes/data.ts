@@ -318,6 +318,7 @@ export const dataRoutes = new Hono<AppBindings>()
         // links aren't records (and hold token hashes), so they stay out.
         academyProfile: schema.academyProfile,
         coachProfiles: schema.coachProfile,
+        teamPeople: schema.teamPerson,
         studentCoaches: schema.clientCoach,
         familyAccess: schema.clientAccess,
         enrollmentRequests: schema.enrollmentRequest,

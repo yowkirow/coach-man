@@ -163,7 +163,11 @@ export interface CoachProfileDto extends CoachSummaryDto {
   specialties: string[];
   languages: string[];
   yearsCoaching: number | null;
-  /** Shown on the academy's public page. */
+  /** The half-body team page photo, cropped 4:5 (a public key, like `photoKey`). */
+  portraitKey: string | null;
+  /** Tournament results, titles, and milestones, in the order written. */
+  highlights: string[];
+  /** Shown on the academy's public pages (the academy page and its team page). */
   isPublic: boolean;
   sortOrder: number;
 }
@@ -206,6 +210,70 @@ export interface TeamDto {
 export interface StaffInviteCreatedDto {
   invite: StaffInviteDto;
   link: string;
+}
+
+// --- The team page (staff side) -----------------------------------------------------------------
+//
+// The academy's public team page shows staff coach profiles and display-only people (people the
+// academy shows who don't sign in) in one order the academy sets. Owners and admins (`team`)
+// manage it through /api/v1/team-page.
+
+/** A display-only person on the team page (GET/PATCH /api/v1/team-page/people/:id). */
+export interface TeamPersonDto {
+  id: string;
+  name: string;
+  title: string | null;
+  bio: string | null;
+  /** The half-body team page photo, cropped 4:5 (a public key under `ws/<id>/public/coaches/`). */
+  portraitKey: string | null;
+  certifications: string[];
+  /** Tournament results, titles, and milestones, in the order written. */
+  highlights: string[];
+  duprRating: number | null;
+  specialties: string[];
+  languages: string[];
+  yearsCoaching: number | null;
+  /** Shown on the team page. */
+  isPublic: boolean;
+  sortOrder: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
+/** Someone on the team page: a staff member (by user id) or a display-only person (by id). */
+export type TeamPageEntryDto =
+  | {
+      kind: "staff";
+      userId: string;
+      name: string;
+      title: string | null;
+      role: StaffRole;
+      /** The square photo. */
+      photoKey: string | null;
+      portraitKey: string | null;
+      /** Their coach profile is public. */
+      isPublic: boolean;
+      sortOrder: number;
+    }
+  | {
+      kind: "listed";
+      id: string;
+      name: string;
+      title: string | null;
+      /** Display-only people have only the team page photo. */
+      photoKey: null;
+      portraitKey: string | null;
+      isPublic: boolean;
+      sortOrder: number;
+    };
+
+/** GET /api/v1/team-page (and PUT /api/v1/team-page/order): everyone, in the page's order. */
+export interface TeamPageDto {
+  entries: TeamPageEntryDto[];
+  /** The academy's public pages are listed (under a real public address). */
+  listed: boolean;
+  /** organization.slug: the team page is `/a/<slug>/team` (legacy `ws-…` slugs aren't public). */
+  slug: string;
 }
 
 /** GET /api/invites/:token (public): just enough to say who invited whom, no other personal data. */
@@ -1229,6 +1297,8 @@ export interface PublicCoachRefDto {
   name: string;
   title: string | null;
   photoKey: string | null;
+  /** The program's lead coach (the rest assist). Hidden profiles are left out, lead included. */
+  lead: boolean;
 }
 
 export interface PublicVenueDto {

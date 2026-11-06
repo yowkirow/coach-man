@@ -882,10 +882,43 @@ export const coachProfile = sqliteTable(
     yearsCoaching: integer(),
     isPublic: integer({ mode: "boolean" }).notNull().default(true),
     sortOrder: integer().notNull().default(0),
+    /** The half-body team page photo, cropped 4:5 (a public key, like `photoKey`). */
+    portraitKey: text(),
+    /** Tournament results, titles, and milestones, in the order written. */
+    highlights: text({ mode: "json" }).$type<string[]>().notNull().default([]),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
   (t) => [uniqueIndex("coach_profile_ws_user_unique").on(t.workspaceId, t.userId)],
+);
+
+/**
+ * People on the academy's team page who don't sign in to CoachMan (display-only): shown with the
+ * staff coaches in one order (`sortOrder` shared with coach_profile).
+ */
+export const teamPerson = sqliteTable(
+  "team_person",
+  {
+    id: text().primaryKey(),
+    workspaceId: workspaceId(),
+    name: text().notNull(),
+    title: text(),
+    bio: text(),
+    /** The half-body team page photo, cropped 4:5 (a public key). */
+    portraitKey: text(),
+    certifications: text({ mode: "json" }).$type<string[]>().notNull().default([]),
+    highlights: text({ mode: "json" }).$type<string[]>().notNull().default([]),
+    duprRating: real(),
+    specialties: text({ mode: "json" }).$type<string[]>().notNull().default([]),
+    languages: text({ mode: "json" }).$type<string[]>().notNull().default([]),
+    yearsCoaching: integer(),
+    isPublic: integer({ mode: "boolean" }).notNull().default(true),
+    sortOrder: integer().notNull().default(0),
+    createdBy: text(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index("team_person_ws_order_idx").on(t.workspaceId, t.sortOrder)],
 );
 
 /** A student's coaches over time. At most one current primary per client (enforced in code). */

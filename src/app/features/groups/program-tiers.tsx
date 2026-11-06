@@ -40,7 +40,13 @@ export function ProgramTiersCard({ group }: { group: GroupDto }) {
                 tier={tierPreview(
                   t,
                   coach
-                    ? { id: coach.userId, name: coach.name, title: coach.title, photoKey: null }
+                    ? {
+                        id: coach.userId,
+                        name: coach.name,
+                        title: coach.title,
+                        photoKey: null,
+                        lead: false,
+                      }
                     : null,
                 )}
                 fmt={fmt}

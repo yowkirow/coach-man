@@ -1,4 +1,4 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, max } from "drizzle-orm";
 import { DEFAULT_PAYMENT_METHODS } from "../../shared/domain";
 import { uuidv7 } from "../../shared/ids";
 import { normalizeRole, type StaffRole } from "../../shared/roles";
@@ -11,8 +11,10 @@ import {
   notificationPref,
   organization,
   skill,
+  teamPerson,
   workspaceSettings,
 } from "../db/schema";
+import { nextTeamPagePlace } from "./team-page";
 
 export interface Membership {
   workspaceId: string;
@@ -51,6 +53,25 @@ export async function firstWorkspaceForUser(db: Db, userId: string): Promise<str
 export async function ownedWorkspaceForUser(db: Db, userId: string): Promise<string | null> {
   const all = await membershipsForUser(db, userId);
   return all.find((m) => normalizeRole(m.role) === "owner")?.workspaceId ?? null;
+}
+
+/**
+ * The place one past the end of an academy's team page, across every coach profile and
+ * display-only person it has: where a new coach profile or person goes, so nobody new lands above
+ * an order the academy arranged.
+ */
+export async function teamPageEnd(db: Db, workspaceId: string): Promise<number> {
+  const [staff, people] = await db.batch([
+    db
+      .select({ highest: max(coachProfile.sortOrder) })
+      .from(coachProfile)
+      .where(eq(coachProfile.workspaceId, workspaceId)),
+    db
+      .select({ highest: max(teamPerson.sortOrder) })
+      .from(teamPerson)
+      .where(eq(teamPerson.workspaceId, workspaceId)),
+  ]);
+  return nextTeamPagePlace([staff[0]?.highest, people[0]?.highest]);
 }
 
 export function skillRows(workspaceId: string, sport: string) {
@@ -106,7 +127,13 @@ export async function provisionWorkspace(
         role: "owner",
         createdAt: now,
       }),
-      db.insert(coachProfile).values({ id: uuidv7(), workspaceId, userId: user.id }),
+      db.insert(coachProfile).values({
+        id: uuidv7(),
+        workspaceId,
+        userId: user.id,
+        // A new academy's team page is empty: its owner comes first.
+        sortOrder: nextTeamPagePlace([]),
+      }),
       db.insert(academyProfile).values({ workspaceId }),
       db.insert(workspaceSettings).values({ workspaceId, paymentMethods: DEFAULT_PAYMENT_METHODS }),
       ...(hasPrefs ? [] : [db.insert(notificationPref).values({ userId: user.id, workspaceId })]),
@@ -125,19 +152,23 @@ export async function provisionWorkspace(
 }
 
 /**
- * Adds a user to a workspace's staff with a role, with a coach profile and (when they have none
- * yet) notification preferences. Re-adding an existing member updates their role.
+ * Adds a user to a workspace's staff with a role, with a coach profile (at the end of the team
+ * page) and (when they have none yet) notification preferences. Re-adding an existing member
+ * updates their role; someone who had a coach profile here before keeps it, and its place.
  */
 export async function addStaffMember(
   db: Db,
   input: { workspaceId: string; userId: string; role: StaffRole },
 ): Promise<void> {
   const { workspaceId, userId, role } = input;
-  const existing = await db
-    .select({ id: member.id })
-    .from(member)
-    .where(and(eq(member.organizationId, workspaceId), eq(member.userId, userId)))
-    .limit(1);
+  const [existing, place] = await Promise.all([
+    db
+      .select({ id: member.id })
+      .from(member)
+      .where(and(eq(member.organizationId, workspaceId), eq(member.userId, userId)))
+      .limit(1),
+    teamPageEnd(db, workspaceId),
+  ]);
   await db.batch([
     existing[0]
       ? db.update(member).set({ role }).where(eq(member.id, existing[0].id))
@@ -148,7 +179,10 @@ export async function addStaffMember(
           role,
           createdAt: new Date(),
         }),
-    db.insert(coachProfile).values({ id: uuidv7(), workspaceId, userId }).onConflictDoNothing(),
+    db
+      .insert(coachProfile)
+      .values({ id: uuidv7(), workspaceId, userId, sortOrder: place })
+      .onConflictDoNothing(),
     db.insert(notificationPref).values({ userId, workspaceId }).onConflictDoNothing(),
   ]);
 }

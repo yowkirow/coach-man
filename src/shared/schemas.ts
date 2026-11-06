@@ -184,20 +184,52 @@ export const memberRoleSchema = z.object({ role: z.enum(STAFF_ROLES) });
 
 export const transferOwnershipSchema = z.object({ userId });
 
-export const coachProfileUpdateSchema = z.object({
-  /** Empty = use the account's name. */
-  displayName: optionalText(80),
+/** What a coach shows families, on a staff coach profile and on a display-only person alike. */
+const coachingFields = {
   title: optionalText(80),
   bio: optionalText(2000),
   certifications: z.array(trimmed(80).min(1)).max(20).optional(),
+  /** Tournament results, titles, and milestones, in the order written. */
+  highlights: z.array(trimmed(120).min(1)).max(12).optional(),
   duprRating: z.number().min(1).max(8).nullable().optional(),
   specialties: z.array(trimmed(60).min(1)).max(20).optional(),
   languages: z.array(trimmed(40).min(1)).max(10).optional(),
   yearsCoaching: z.number().int().min(0).max(80).nullable().optional(),
+};
+
+export const coachProfileUpdateSchema = z.object({
+  /** Empty = use the account's name. */
+  displayName: optionalText(80),
+  ...coachingFields,
   isPublic: z.boolean().optional(),
   sortOrder: z.number().int().min(0).max(1000).optional(),
 });
 export type CoachProfileUpdateInput = z.infer<typeof coachProfileUpdateSchema>;
+
+/** POST /team-page/people: someone on the team page who doesn't sign in (added at the end). */
+export const teamPersonSchema = z.object({
+  name: trimmed(80).min(1, "Add their name."),
+  ...coachingFields,
+  /** Shown on the team page (default yes). */
+  isPublic: z.boolean().optional(),
+});
+export type TeamPersonInput = z.infer<typeof teamPersonSchema>;
+
+/** PATCH /team-page/people/:id: only what changed. */
+export const teamPersonUpdateSchema = teamPersonSchema.partial();
+export type TeamPersonUpdateInput = z.infer<typeof teamPersonUpdateSchema>;
+
+/**
+ * PUT /team-page/order: the team page top to bottom (staff by user id). Anyone left out keeps
+ * their place after the people listed.
+ */
+export const teamPageOrderSchema = z.object({
+  entries: z
+    .array(z.object({ kind: z.enum(["staff", "listed"]), id: z.string().trim().min(1).max(64) }))
+    .min(1)
+    .max(500),
+});
+export type TeamPageOrderInput = z.infer<typeof teamPageOrderSchema>;
 
 /** PUT /clients/:id/coaches: the student's current coaches; history is kept by the server. */
 export const clientCoachesSchema = z.object({

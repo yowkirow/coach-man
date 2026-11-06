@@ -7,6 +7,7 @@ import type {
 import { ACADEMY_SOCIAL_LABELS, ACADEMY_SOCIALS } from "@shared/domain";
 import { Link } from "@tanstack/react-router";
 import {
+  ArrowRight,
   ArrowUpRight,
   CalendarClock,
   Mail,
@@ -25,12 +26,15 @@ import { publicFileUrl } from "../../lib/api";
 import { type Format, initials } from "../../lib/format";
 import { LegalLinks } from "../public-info/legal-links";
 import { orderedWeekdays, weekdayName } from "../schedule/dates";
+import { TeamPortrait } from "./people";
 import type { PublicPage } from "./queries";
+import { EVERYONE, programTeams } from "./team";
 import {
   agesLabel,
   type ContactAction,
   contactActions,
   directionsUrl,
+  programVenue,
   scheduleLines,
   sessionLength,
   tiersOf,
@@ -187,11 +191,61 @@ function WeekStrip({ days, fmt }: { days: number[]; fmt: Format }) {
   );
 }
 
+/**
+ * Where a program meets (with directions) and when it next meets, as rows of a `dl` on the dark
+ * block: the program pass here, and the team page's panel.
+ */
+export function ProgramPlaceRows({ program, fmt }: { program: PublicProgramDto; fmt: Format }) {
+  const venue = programVenue(program);
+  return (
+    <>
+      {venue ? (
+        <div className="flex items-start gap-3">
+          <dt className="sr-only">Where</dt>
+          <MapPin aria-hidden className="mt-0.5 size-4.5 shrink-0 text-night-ink-2" />
+          <dd className="min-w-0">
+            <span className="block">{venue.name}</span>
+            {venue.address ? <span className="block text-night-ink-2">{venue.address}</span> : null}
+            <a
+              href={directionsUrl(venue)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-1 inline-flex min-h-11 items-center gap-1.5 rounded-full text-[0.875rem] font-medium text-night-ink underline underline-offset-4"
+            >
+              Directions
+              <ArrowUpRight aria-hidden className="size-4" />
+            </a>
+          </dd>
+        </div>
+      ) : null}
+      {program.nextSessionAt ? (
+        <div className="flex items-start gap-3">
+          <dt className="sr-only">Next session</dt>
+          <CalendarClock aria-hidden className="mt-0.5 size-4.5 shrink-0 text-night-ink-2" />
+          <dd className="num">
+            Next session {fmt.day(fmt.dayOf(program.nextSessionAt))} ·{" "}
+            {fmt.time(program.nextSessionAt)}
+          </dd>
+        </div>
+      ) : null}
+    </>
+  );
+}
+
 /** The program pass: when and where it meets, who coaches, and when it next meets. */
-function ProgramPass({ program, fmt }: { program: PublicProgramDto; fmt: Format }) {
+function ProgramPass({
+  program,
+  fmt,
+  slug,
+  preview,
+}: {
+  program: PublicProgramDto;
+  fmt: Format;
+  slug: string;
+  preview: boolean;
+}) {
   const days = trainingDays(program, fmt.weekStartsOn);
   const lines = scheduleLines(program, fmt);
-  const venue = program.schedule.find((s) => s.venue)?.venue ?? program.venue;
   const ages = agesLabel(program.ageMin, program.ageMax);
   const length = program.schedule[0]?.durationMinutes;
   const chips = [program.level, ages, length ? sessionLength(length) : null].filter(
@@ -231,42 +285,22 @@ function ProgramPass({ program, fmt }: { program: PublicProgramDto; fmt: Format 
         </p>
       )}
       <dl className="flex flex-col gap-3 text-[0.9375rem]">
-        {venue ? (
-          <div className="flex items-start gap-3">
-            <dt className="sr-only">Where</dt>
-            <MapPin aria-hidden className="mt-0.5 size-4.5 shrink-0 text-night-ink-2" />
-            <dd className="min-w-0">
-              <span className="block">{venue.name}</span>
-              {venue.address ? (
-                <span className="block text-night-ink-2">{venue.address}</span>
-              ) : null}
-              <a
-                href={directionsUrl(venue)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-1 inline-flex min-h-11 items-center gap-1.5 rounded-full text-[0.875rem] font-medium text-night-ink underline underline-offset-4"
-              >
-                Directions
-                <ArrowUpRight aria-hidden className="size-4" />
-              </a>
-            </dd>
-          </div>
-        ) : null}
-        {program.nextSessionAt ? (
-          <div className="flex items-start gap-3">
-            <dt className="sr-only">Next session</dt>
-            <CalendarClock aria-hidden className="mt-0.5 size-4.5 shrink-0 text-night-ink-2" />
-            <dd className="num">
-              Next session {fmt.day(fmt.dayOf(program.nextSessionAt))} ·{" "}
-              {fmt.time(program.nextSessionAt)}
-            </dd>
-          </div>
-        ) : null}
+        <ProgramPlaceRows program={program} fmt={fmt} />
         {program.coaches.length ? (
           <div className="flex items-start gap-3">
             <dt className="sr-only">Coaches</dt>
             <UsersRound aria-hidden className="mt-0.5 size-4.5 shrink-0 text-night-ink-2" />
-            <dd className="min-w-0">{program.coaches.map((c) => c.name).join(", ")}</dd>
+            <dd className="min-w-0">
+              <Link
+                to="/a/$slug/team"
+                params={{ slug }}
+                search={{ program: program.id, ...(preview ? { preview: 1 as const } : {}) }}
+                className="rounded-sm underline decoration-night-ink-2 underline-offset-4 outline-none hover:decoration-night-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime"
+              >
+                {program.coaches.map((c) => c.name).join(", ")}
+                <span className="sr-only">: meet the coaches of {program.name}</span>
+              </Link>
+            </dd>
           </div>
         ) : null}
       </dl>
@@ -336,74 +370,64 @@ function SectionCard({
   );
 }
 
-function CoachPhoto({ coach }: { coach: PublicCoachDto }) {
-  const src = publicFileUrl(coach.photoKey);
-  const [first = "", ...rest] = coach.name.split(/\s+/);
-  if (src) {
-    return (
-      <img
-        src={src}
-        alt={coach.name}
-        width={64}
-        height={64}
-        loading="lazy"
-        className="size-16 shrink-0 rounded-full bg-panel object-cover"
-      />
-    );
-  }
+/**
+ * The academy's team on its page: a row of 4:5 portraits with names and titles, the program on
+ * show's coaches first (lead first), each opening that person on the team page (on that program
+ * when they coach it), and the way into the whole team (on the program on show).
+ */
+function TeamSection({
+  people,
+  slug,
+  program,
+  preview,
+}: {
+  people: PublicCoachDto[];
+  slug: string;
+  program: PublicProgramDto | null;
+  preview: boolean;
+}) {
+  const staffPreview = preview ? { preview: 1 as const } : {};
+  const coaching = program
+    ? (programTeams({ programs: [program], coaches: people })[0]?.people ?? [])
+    : [];
+  const inProgram = new Set(coaching.map((p) => p.id));
+  const ordered = [...coaching, ...people.filter((p) => !inProgram.has(p.id))];
   return (
-    <span
-      aria-hidden
-      className="flex size-16 shrink-0 items-center justify-center rounded-full bg-lavender-soft text-[1.125rem] font-semibold text-ink"
-    >
-      {initials({ firstName: first, lastName: rest.join(" ") })}
-    </span>
-  );
-}
-
-function CoachCard({ coach }: { coach: PublicCoachDto }) {
-  const facts = [
-    coach.yearsCoaching ? `${coach.yearsCoaching} years coaching` : null,
-    coach.duprRating ? `DUPR ${coach.duprRating.toFixed(2)}` : null,
-    coach.languages.length ? coach.languages.join(", ") : null,
-  ].filter(Boolean);
-  return (
-    <li className="flex items-start gap-4">
-      <CoachPhoto coach={coach} />
-      <div className="min-w-0 flex-1">
-        <h3 className="text-[1.125rem] font-medium">{coach.name}</h3>
-        {coach.title ? <p className="text-[0.875rem] text-ink-2">{coach.title}</p> : null}
-        {coach.certifications.length || coach.specialties.length ? (
-          <ul
-            className="mt-2 flex flex-wrap gap-1.5"
-            aria-label={`${coach.name}'s certifications and specialties`}
-          >
-            {coach.certifications.map((c) => (
-              <li
-                key={`c-${c}`}
-                className="inline-flex h-6 items-center rounded-full bg-sky px-2.5 text-[0.75rem] font-medium text-ink"
-              >
-                {c}
-              </li>
-            ))}
-            {coach.specialties.map((s) => (
-              <li
-                key={`s-${s}`}
-                className="inline-flex h-6 items-center rounded-full ring-1 ring-line-strong px-2.5 text-[0.75rem] font-medium text-ink-2"
-              >
-                {s}
-              </li>
-            ))}
-          </ul>
-        ) : null}
-        {coach.bio ? (
-          <p className="mt-2 max-w-[65ch] text-[0.9375rem] whitespace-pre-line">{coach.bio}</p>
-        ) : null}
-        {facts.length ? (
-          <p className="num mt-1.5 text-[0.8125rem] text-ink-2">{facts.join(" · ")}</p>
-        ) : null}
-      </div>
-    </li>
+    <SectionCard id="team-title" title="The team">
+      <ul className="-mx-5 flex snap-x scroll-px-5 gap-3 overflow-x-auto px-5 pb-1 [scrollbar-width:none] sm:-mx-6 sm:scroll-px-6 sm:px-6">
+        {ordered.map((p) => (
+          <li key={p.id} className="w-32 shrink-0 snap-start sm:w-36">
+            <Link
+              to="/a/$slug/team"
+              params={{ slug }}
+              search={{
+                program: program && inProgram.has(p.id) ? program.id : EVERYONE,
+                ...staffPreview,
+              }}
+              hash={`coach-${p.id}`}
+              className="group block rounded-[20px] outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+            >
+              <TeamPortrait person={p} size="sm" className="rounded-[20px]" />
+              <span className="mt-2 block text-[0.9375rem] leading-tight font-medium underline-offset-4 group-hover:underline">
+                {p.name}
+              </span>
+              {p.title ? (
+                <span className="mt-0.5 block text-[0.8125rem] text-ink-2">{p.title}</span>
+              ) : null}
+            </Link>
+          </li>
+        ))}
+      </ul>
+      <Link
+        to="/a/$slug/team"
+        params={{ slug }}
+        search={{ ...(program ? { program: program.id } : {}), ...staffPreview }}
+        className={buttonClass("dark", "md", "mt-5")}
+      >
+        Meet the team
+        <ArrowRight aria-hidden className="size-4.5" />
+      </Link>
+    </SectionCard>
   );
 }
 
@@ -553,31 +577,42 @@ function Rates({
   );
 }
 
-/** Shown to staff looking at their own page through Settings (never to families). */
+/** Shown to staff looking at their own page through Settings or Team (never to families). */
 export function PreviewBanner({
   listed,
   publicUrl,
+  page = "academy",
 }: {
   listed: boolean;
   publicUrl: string | null;
+  page?: "academy" | "team";
 }) {
+  const team = page === "team";
   return (
     <div
       role="note"
       className="mb-3 rounded-[22px] bg-amber-soft px-4 py-3 text-[0.875rem] text-ink lg:mb-0"
     >
-      <p className="font-medium">Preview of your academy page</p>
+      <p className="font-medium">Preview of your {team ? "team page" : "academy page"}</p>
       <p className="mt-0.5 text-ink/80">
         {listed && publicUrl
-          ? `Families see this page at ${publicUrl}. It shows only published programs and tiers.`
+          ? team
+            ? `Families see this page at ${publicUrl}/team. It shows only the people set to appear on it.`
+            : `Families see this page at ${publicUrl}. It shows only published programs and tiers.`
           : "Only your team can see this. Turn on “Show the academy page” in Settings, Academy profile, to share it."}{" "}
-        <Link
-          to="/settings"
-          hash="academy-profile"
-          className="font-medium underline underline-offset-4"
-        >
-          Academy profile
-        </Link>
+        {team ? (
+          <Link to="/team" className="font-medium underline underline-offset-4">
+            Team
+          </Link>
+        ) : (
+          <Link
+            to="/settings"
+            hash="academy-profile"
+            className="font-medium underline underline-offset-4"
+          >
+            Academy profile
+          </Link>
+        )}
       </p>
     </div>
   );
@@ -637,17 +672,7 @@ export function AcademyPage({
   const nothing = !academy.programs.length && !academy.packages.length;
   // The phone's contact bar joins once the block's own buttons have scrolled away, so the first
   // screen has one set of actions and the rates start at the fold.
-  const contactRef = useRef<HTMLDivElement>(null);
-  const [barShown, setBarShown] = useState(false);
-  useEffect(() => {
-    const el = contactRef.current;
-    if (!el || !actions.length || typeof IntersectionObserver === "undefined") return;
-    const io = new IntersectionObserver(([entry]) => {
-      if (entry) setBarShown(!entry.isIntersecting && entry.boundingClientRect.top < 0);
-    });
-    io.observe(el);
-    return () => io.disconnect();
-  }, [actions.length]);
+  const [contactRef, barShown] = useScrolledPast(actions.length > 0);
   return (
     <div className="min-h-dvh lg:grid lg:grid-cols-[minmax(0,400px)_minmax(0,1fr)] lg:gap-3 lg:p-3 xl:grid-cols-[440px_minmax(0,1fr)]">
       <a
@@ -674,7 +699,9 @@ export function AcademyPage({
           slug={slug}
           preview={preview}
         />
-        {program ? <ProgramPass key={program.id} program={program} fmt={fmt} /> : null}
+        {program ? (
+          <ProgramPass key={program.id} program={program} fmt={fmt} slug={slug} preview={preview} />
+        ) : null}
         {actions.length || enroll ? (
           <div ref={contactRef}>
             <ContactButtons actions={actions} enroll={enroll} />
@@ -734,13 +761,7 @@ export function AcademyPage({
         ) : null}
 
         {academy.coaches.length ? (
-          <SectionCard id="coaches-title" title="Coaches">
-            <ul className="flex flex-col gap-6">
-              {academy.coaches.map((c) => (
-                <CoachCard key={c.id} coach={c} />
-              ))}
-            </ul>
-          </SectionCard>
+          <TeamSection people={academy.coaches} slug={slug} program={program} preview={preview} />
         ) : null}
 
         <ContactCard academy={academy} />
@@ -765,50 +786,91 @@ export function AcademyPage({
           ) : (
             <span />
           )}
-          <div className="flex flex-col items-start gap-2 sm:items-end">
-            <Link
-              to="/about"
-              className="inline-flex items-center gap-2 rounded-full text-[0.8125rem] text-ink-2 outline-none hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
-            >
-              <BallMark className="size-5" holes="#111111" />
-              Made with CoachMan
-            </Link>
-            <LegalLinks about={false} label="CoachMan policies" />
-          </div>
+          <MadeWithCoachMan />
         </footer>
       </main>
 
       {actions.length ? (
-        <nav
-          aria-label={`Contact ${academy.name}`}
-          inert={!barShown}
-          className={`dark-zone fixed inset-x-3 bottom-[calc(12px+env(safe-area-inset-bottom))] z-40 rounded-full bg-night p-1.5 shadow-pop transition-[translate,opacity] duration-200 ease-out lg:hidden ${
-            barShown ? "" : "pointer-events-none translate-y-[calc(100%+24px)] opacity-0"
-          }`}
-        >
-          <ul className="flex gap-1.5">
-            {contactPair(actions).map((a, i) => (
-              <li key={a.id} className="min-w-0 flex-1">
-                <a
-                  href={a.href}
-                  className={`flex h-12 w-full items-center justify-center gap-2 rounded-full text-[0.9375rem] font-medium outline-none focus-visible:outline-2 focus-visible:outline-lime ${
-                    i === 0 ? "bg-lime text-ink" : "bg-night-3 text-night-ink"
-                  }`}
-                >
-                  {actionIcon[a.id]}
-                  {a.id === "messenger"
-                    ? "Message"
-                    : a.id === "text"
-                      ? "Text"
-                      : a.id === "call"
-                        ? "Call"
-                        : "Email"}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </nav>
+        <ContactBar academyName={academy.name} actions={actions} shown={barShown} />
       ) : null}
+    </div>
+  );
+}
+
+/**
+ * Tracks whether an element (the dark block's own contact buttons) has scrolled up out of view, so
+ * the phone's contact bar can join only then: the first screen keeps one set of actions.
+ */
+export function useScrolledPast(enabled: boolean) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [past, setPast] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || !enabled || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(([entry]) => {
+      if (entry) setPast(!entry.isIntersecting && entry.boundingClientRect.top < 0);
+    });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [enabled]);
+  return [ref, past] as const;
+}
+
+/** The phone's floating contact bar: the most direct way to reach the academy, and a call. */
+export function ContactBar({
+  academyName,
+  actions,
+  shown,
+}: {
+  academyName: string;
+  actions: ContactAction[];
+  shown: boolean;
+}) {
+  return (
+    <nav
+      aria-label={`Contact ${academyName}`}
+      inert={!shown}
+      className={`dark-zone fixed inset-x-3 bottom-[calc(12px+env(safe-area-inset-bottom))] z-40 rounded-full bg-night p-1.5 shadow-pop transition-[translate,opacity] duration-200 ease-out lg:hidden ${
+        shown ? "" : "pointer-events-none translate-y-[calc(100%+24px)] opacity-0"
+      }`}
+    >
+      <ul className="flex gap-1.5">
+        {contactPair(actions).map((a, i) => (
+          <li key={a.id} className="min-w-0 flex-1">
+            <a
+              href={a.href}
+              className={`flex h-12 w-full items-center justify-center gap-2 rounded-full text-[0.9375rem] font-medium outline-none focus-visible:outline-2 focus-visible:outline-lime ${
+                i === 0 ? "bg-lime text-ink" : "bg-night-3 text-night-ink"
+              }`}
+            >
+              {actionIcon[a.id]}
+              {a.id === "messenger"
+                ? "Message"
+                : a.id === "text"
+                  ? "Text"
+                  : a.id === "call"
+                    ? "Call"
+                    : "Email"}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  );
+}
+
+/** The foot of every public academy page: CoachMan's mark and its policies. */
+export function MadeWithCoachMan() {
+  return (
+    <div className="flex flex-col items-start gap-2 sm:items-end">
+      <Link
+        to="/about"
+        className="inline-flex items-center gap-2 rounded-full text-[0.8125rem] text-ink-2 outline-none hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+      >
+        <BallMark className="size-5" holes="#111111" />
+        Made with CoachMan
+      </Link>
+      <LegalLinks about={false} label="CoachMan policies" />
     </div>
   );
 }

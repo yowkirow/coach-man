@@ -49,6 +49,9 @@ export const keys = {
   team: ["team"] as const,
   coaches: ["coaches"] as const,
   coachProfile: (userId: string) => ["coach-profile", userId] as const,
+  /** The team page's people and order, for owners and admins (never persisted). */
+  teamPage: ["team-page"] as const,
+  teamPerson: (id: string) => ["team-person", id] as const,
   familyAccess: (clientId: string) => ["family-access", clientId] as const,
   consentDocuments: ["consent-documents"] as const,
   clientConsents: (clientId: string) => ["client-consents", clientId] as const,

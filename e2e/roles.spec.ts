@@ -136,6 +136,7 @@ async function academyWithEverything(owner: Coach, info: TestInfo) {
     email: testEmail("probe-invitee", info),
     role: "coach",
   });
+  const teamPerson = await api.post<{ id: string }>("/team-page/people", { name: "Pia Probe" });
   const familyInvite = await api.post<FamilyInviteCreatedDto>(
     `/clients/${student.id}/family/invites`,
     { relation: "guardian" },
@@ -179,6 +180,7 @@ async function academyWithEverything(owner: Coach, info: TestInfo) {
     announcementId: news.id,
     skillIds: skills.map((s) => s.id),
     staffInviteId: staffInvite.invite.id,
+    teamPersonId: teamPerson.id,
     familyInviteId: familyInvite.invite.id,
     accessId: access.links[0]?.id ?? "",
     parentEmail,
@@ -282,6 +284,66 @@ function capabilityProbes(w: World, self: string): Probe[] {
       name: "DELETE /coaches/:other/photo",
       method: "DELETE",
       path: `/coaches/${w.ownerId}/photo`,
+    },
+    {
+      cap: "team",
+      name: "PUT /coaches/:other/portrait",
+      method: "PUT",
+      path: `/coaches/${w.ownerId}/portrait`,
+      image: true,
+    },
+    {
+      cap: "team",
+      name: "DELETE /coaches/:other/portrait",
+      method: "DELETE",
+      path: `/coaches/${w.ownerId}/portrait`,
+    },
+    { cap: "team", name: "GET /team-page", method: "GET", path: "/team-page" },
+    {
+      cap: "team",
+      name: "POST /team-page/people",
+      method: "POST",
+      path: "/team-page/people",
+      body: { name: "Probe Person" },
+    },
+    {
+      cap: "team",
+      name: "GET /team-page/people/:id",
+      method: "GET",
+      path: `/team-page/people/${w.teamPersonId}`,
+    },
+    {
+      cap: "team",
+      name: "PATCH /team-page/people/:id",
+      method: "PATCH",
+      path: `/team-page/people/${w.teamPersonId}`,
+      body: { title: "Guest coach" },
+    },
+    {
+      cap: "team",
+      name: "PUT /team-page/people/:id/portrait",
+      method: "PUT",
+      path: `/team-page/people/${w.teamPersonId}/portrait`,
+      image: true,
+    },
+    {
+      cap: "team",
+      name: "DELETE /team-page/people/:id/portrait",
+      method: "DELETE",
+      path: `/team-page/people/${w.teamPersonId}/portrait`,
+    },
+    {
+      cap: "team",
+      name: "PUT /team-page/order",
+      method: "PUT",
+      path: "/team-page/order",
+      body: { entries: [{ kind: "listed", id: w.teamPersonId }] },
+    },
+    {
+      cap: "team",
+      name: "DELETE /team-page/people/:id",
+      method: "DELETE",
+      path: `/team-page/people/${w.teamPersonId}`,
     },
     {
       cap: "team",

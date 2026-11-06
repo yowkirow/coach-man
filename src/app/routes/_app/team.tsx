@@ -10,6 +10,7 @@ import { ErrorState, RowsSkeleton } from "../../components/ui/feedback";
 import { CoachProfileSheet } from "../../features/coaches/profile";
 import { ConnectionPill } from "../../features/settings/offline";
 import { InviteSheet, InvitesCard, MembersCard, TeamPanel } from "../../features/team/team";
+import { TeamPageCard } from "../../features/team/team-page";
 import { errorMessage } from "../../lib/api";
 import { plural } from "../../lib/format";
 import { useCan, useMe, useTeam } from "../../lib/hooks";
@@ -107,6 +108,7 @@ function TeamPage() {
           <>
             <MembersCard team={team.data} onEditProfile={editProfile} />
             {can.team ? <InvitesCard invites={team.data.invites} onInvite={invite} /> : null}
+            {can.team ? <TeamPageCard onEditStaff={editProfile} /> : null}
             {members.length === 1 && can.team ? (
               <p className="px-1 text-[0.875rem] text-ink-2">
                 Coaching on your own? You don't need anyone else here. Invite coaches when your

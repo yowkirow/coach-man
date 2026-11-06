@@ -47,6 +47,7 @@ import { Route as PortalMySettingsRouteImport } from './routes/_portal/my.settin
 import { Route as ASlugIndexRouteImport } from './routes/a.$slug.index'
 import { Route as ASlugEnrollRouteImport } from './routes/a.$slug.enroll'
 import { Route as ASlugRatesRouteImport } from './routes/a.$slug.rates'
+import { Route as ASlugTeamRouteImport } from './routes/a.$slug.team'
 import { Route as PortalMyClientIdIndexRouteImport } from './routes/_portal/my.$clientId.index'
 import { Route as PortalMyClientIdCoachesRouteImport } from './routes/_portal/my.$clientId.coaches'
 import { Route as PortalMyClientIdConsentsRouteImport } from './routes/_portal/my.$clientId.consents'
@@ -244,6 +245,11 @@ const ASlugRatesRoute = ASlugRatesRouteImport.update({
   path: '/a/$slug/rates',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ASlugTeamRoute = ASlugTeamRouteImport.update({
+  id: '/a/$slug/team',
+  path: '/a/$slug/team',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PortalMyClientIdIndexRoute = PortalMyClientIdIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -320,6 +326,7 @@ export interface FileRoutesByFullPath {
   '/my/settings': typeof PortalMySettingsRoute
   '/a/$slug/enroll': typeof ASlugEnrollRoute
   '/a/$slug/rates': typeof ASlugRatesRoute
+  '/a/$slug/team': typeof ASlugTeamRoute
   '/clients/': typeof AppClientsIndexRoute
   '/enrollments/': typeof AppEnrollmentsIndexRoute
   '/events/': typeof AppEventsIndexRoute
@@ -365,6 +372,7 @@ export interface FileRoutesByTo {
   '/my/settings': typeof PortalMySettingsRoute
   '/a/$slug/enroll': typeof ASlugEnrollRoute
   '/a/$slug/rates': typeof ASlugRatesRoute
+  '/a/$slug/team': typeof ASlugTeamRoute
   '/clients': typeof AppClientsIndexRoute
   '/enrollments': typeof AppEnrollmentsIndexRoute
   '/events': typeof AppEventsIndexRoute
@@ -414,6 +422,7 @@ export interface FileRoutesById {
   '/_portal/my/settings': typeof PortalMySettingsRoute
   '/a/$slug/enroll': typeof ASlugEnrollRoute
   '/a/$slug/rates': typeof ASlugRatesRoute
+  '/a/$slug/team': typeof ASlugTeamRoute
   '/_app/clients/': typeof AppClientsIndexRoute
   '/_app/enrollments/': typeof AppEnrollmentsIndexRoute
   '/_app/events/': typeof AppEventsIndexRoute
@@ -462,6 +471,7 @@ export interface FileRouteTypes {
     | '/my/settings'
     | '/a/$slug/enroll'
     | '/a/$slug/rates'
+    | '/a/$slug/team'
     | '/clients/'
     | '/enrollments/'
     | '/events/'
@@ -507,6 +517,7 @@ export interface FileRouteTypes {
     | '/my/settings'
     | '/a/$slug/enroll'
     | '/a/$slug/rates'
+    | '/a/$slug/team'
     | '/clients'
     | '/enrollments'
     | '/events'
@@ -555,6 +566,7 @@ export interface FileRouteTypes {
     | '/_portal/my/settings'
     | '/a/$slug/enroll'
     | '/a/$slug/rates'
+    | '/a/$slug/team'
     | '/_app/clients/'
     | '/_app/enrollments/'
     | '/_app/events/'
@@ -583,6 +595,7 @@ export interface RootRouteChildren {
   JoinTokenRoute: typeof JoinTokenRoute
   ASlugEnrollRoute: typeof ASlugEnrollRoute
   ASlugRatesRoute: typeof ASlugRatesRoute
+  ASlugTeamRoute: typeof ASlugTeamRoute
   ASlugIndexRoute: typeof ASlugIndexRoute
 }
 
@@ -854,6 +867,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ASlugRatesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/a/$slug/team': {
+      id: '/a/$slug/team'
+      path: '/a/$slug/team'
+      fullPath: '/a/$slug/team'
+      preLoaderRoute: typeof ASlugTeamRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_portal/my/$clientId/': {
       id: '/_portal/my/$clientId/'
       path: '/'
@@ -1019,6 +1039,7 @@ const rootRouteChildren: RootRouteChildren = {
   JoinTokenRoute: JoinTokenRoute,
   ASlugEnrollRoute: ASlugEnrollRoute,
   ASlugRatesRoute: ASlugRatesRoute,
+  ASlugTeamRoute: ASlugTeamRoute,
   ASlugIndexRoute: ASlugIndexRoute,
 }
 export const routeTree = rootRouteImport

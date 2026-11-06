@@ -41,13 +41,14 @@ export function RolePill({ role }: { role: StaffRole }) {
   return <Pill tone={ROLE_TONES[role]}>{STAFF_ROLE_LABELS[role]}</Pill>;
 }
 
-/** After any team change: the team, the coach lists, and (for your own role) your profile. */
+/** After any team change: the team, the coach lists, the team page, and your own role. */
 function useRefreshTeam() {
   const qc = useQueryClient();
   return (data?: TeamDto) => {
     if (data) qc.setQueryData(keys.team, data);
     void qc.invalidateQueries({ queryKey: keys.team });
     void qc.invalidateQueries({ queryKey: keys.coaches });
+    void qc.invalidateQueries({ queryKey: keys.teamPage });
     void qc.invalidateQueries({ queryKey: keys.me });
   };
 }

@@ -7,63 +7,40 @@ import { FileTrigger } from "react-aria-components";
 import { CoachAvatar } from "../../components/domain/coaches";
 import { Button } from "../../components/ui/button";
 import { ErrorState, InlineError, RowsSkeleton } from "../../components/ui/feedback";
-import { Switch, TextAreaField, TextField } from "../../components/ui/field";
+import { Switch, TextField } from "../../components/ui/field";
 import { Sheet } from "../../components/ui/overlay";
-import { api, errorMessage, fieldErrors } from "../../lib/api";
+import { api, errorMessage, fieldErrors, fileUrl } from "../../lib/api";
 import { prepareImage, putImage } from "../../lib/images";
 import { notify } from "../../lib/notify";
 import { useOnline } from "../../lib/offline";
 import { keys } from "../../lib/query";
-import { TagInput } from "../clients/client-form";
 import { OfflineNote } from "../settings/offline";
-import { changedFields, issuesToFields, wholeNumber } from "../settings/validation";
+import { changedFields, issuesToFields } from "../settings/validation";
+import {
+  COACHING_FRIENDLY,
+  type CoachingDraft,
+  CoachingFields,
+  coachingDraftOf,
+  coachingInput,
+} from "./coaching-fields";
+import { PortraitField, preparePortrait } from "./portrait";
 
-interface Draft {
+interface Draft extends CoachingDraft {
   displayName: string;
-  title: string;
-  bio: string;
-  certifications: string[];
-  specialties: string[];
-  languages: string[];
-  duprRating: string;
-  yearsCoaching: string;
   isPublic: boolean;
 }
 
 function draftOf(p: CoachProfileDto): Draft {
-  return {
-    displayName: p.displayName ?? "",
-    title: p.title ?? "",
-    bio: p.bio ?? "",
-    certifications: p.certifications,
-    specialties: p.specialties,
-    languages: p.languages,
-    duprRating: p.duprRating === null ? "" : String(p.duprRating),
-    yearsCoaching: p.yearsCoaching === null ? "" : String(p.yearsCoaching),
-    isPublic: p.isPublic,
-  };
+  return { displayName: p.displayName ?? "", ...coachingDraftOf(p), isPublic: p.isPublic };
 }
 
 function toInput(d: Draft) {
-  const rating = d.duprRating.trim() ? Number(d.duprRating.trim().replace(",", ".")) : null;
-  return {
-    displayName: d.displayName,
-    title: d.title,
-    bio: d.bio,
-    certifications: d.certifications,
-    specialties: d.specialties,
-    languages: d.languages,
-    duprRating: rating === null ? null : Number.isFinite(rating) ? rating : Number.NaN,
-    yearsCoaching: wholeNumber(d.yearsCoaching),
-    isPublic: d.isPublic,
-  };
+  return { displayName: d.displayName, ...coachingInput(d), isPublic: d.isPublic };
 }
 
 const FRIENDLY: Record<string, string> = {
   displayName: "Keep the name under 80 characters.",
-  title: "Keep the title under 80 characters.",
-  duprRating: "Use a DUPR rating from 1.0 to 8.0, or leave it empty.",
-  yearsCoaching: "Use a whole number of years, or leave it empty.",
+  ...COACHING_FRIENDLY,
 };
 
 export function useCoachProfile(userId: string, enabled = true) {
@@ -79,7 +56,15 @@ function useRefreshCoach() {
   const qc = useQueryClient();
   return (profile: CoachProfileDto) => {
     qc.setQueryData(keys.coachProfile(profile.userId), profile);
-    for (const key of [keys.coaches, keys.team, ["client"], ["progress"], ["lesson"]]) {
+    for (const key of [
+      keys.coaches,
+      keys.team,
+      keys.teamPage,
+      keys.publicPreview,
+      ["client"],
+      ["progress"],
+      ["lesson"],
+    ]) {
       void qc.invalidateQueries({ queryKey: key });
     }
   };
@@ -131,17 +116,18 @@ function useCoachProfileForm(profile: CoachProfileDto | undefined, onSaved?: () 
     setErrors({});
     save.reset();
   };
-  /** Changes one field and clears its error (a stale error would also keep the field invalid). */
-  const set = <K extends keyof Draft>(k: K, v: Draft[K]) => {
-    setDraft((d) => (d ? { ...d, [k]: v } : d));
-    setErrors((e) => {
-      if (!(k in e)) return e;
-      const { [k]: _cleared, ...rest } = e;
-      return rest;
-    });
+  /** Changes some fields and clears their errors (a stale error would keep a field invalid). */
+  const update = (patch: Partial<Draft>) => {
+    setDraft((d) => (d ? { ...d, ...patch } : d));
+    setErrors((e) =>
+      Object.keys(patch).some((k) => k in e)
+        ? Object.fromEntries(Object.entries(e).filter(([k]) => !(k in patch)))
+        : e,
+    );
   };
+  const set = <K extends keyof Draft>(k: K, v: Draft[K]) => update({ [k]: v } as Partial<Draft>);
   const err = (k: string) => errors[k];
-  return { draft, set, dirty, save, submit, reset, err };
+  return { draft, set, update, dirty, save, submit, reset, err };
 }
 
 /** Upload, change, or remove a coach's photo (square-cropped; shown to the team and on the academy page). */
@@ -217,6 +203,49 @@ export function CoachPhoto({ profile }: { profile: CoachProfileDto }) {
   );
 }
 
+/** The coach's half-body team page photo (4:5), uploaded at once like the photo above it. */
+function CoachPortrait({ profile }: { profile: CoachProfileDto }) {
+  const online = useOnline();
+  const refresh = useRefreshCoach();
+  const upload = useMutation({
+    meta: { silent: true },
+    mutationFn: async (file: File) =>
+      putImage<{ portraitKey: string }>(
+        `/coaches/${profile.userId}/portrait`,
+        await preparePortrait(file),
+      ),
+    onSuccess: ({ portraitKey }) => {
+      refresh({ ...profile, portraitKey });
+      notify({ tone: "success", title: "Team page photo updated" });
+    },
+  });
+  const remove = useMutation({
+    meta: { silent: true },
+    mutationFn: () => api.del(`/coaches/${profile.userId}/portrait`),
+    onSuccess: () => {
+      refresh({ ...profile, portraitKey: null });
+      notify({
+        tone: "neutral",
+        title: "Team page photo removed",
+        body: profile.photoKey
+          ? "The team page shows the square photo instead."
+          : "The team page shows initials instead.",
+      });
+    },
+  });
+  const error = upload.error ?? remove.error;
+  return (
+    <PortraitField
+      src={fileUrl(profile.portraitKey)}
+      onChoose={(file) => upload.mutate(file)}
+      onRemove={() => remove.mutate()}
+      pending={upload.isPending ? "choose" : remove.isPending ? "remove" : null}
+      isDisabled={!online}
+      error={error ? errorMessage(error) : null}
+    />
+  );
+}
+
 function ProfileFields({
   profile,
   form,
@@ -224,90 +253,33 @@ function ProfileFields({
   profile: CoachProfileDto;
   form: ReturnType<typeof useCoachProfileForm>;
 }) {
-  const { draft, set, err } = form;
+  const { draft, set, update, err } = form;
   if (!draft) return null;
   return (
     <div className="flex flex-col gap-5">
       <CoachPhoto profile={profile} />
-      <div className="grid gap-x-4 gap-y-5 sm:grid-cols-2">
-        <TextField
-          label="Name shown"
-          value={draft.displayName}
-          onChange={(v) => set("displayName", v)}
-          placeholder={profile.accountName}
-          description="Leave empty to use the name on the account."
-          error={err("displayName")}
-        />
-        <TextField
-          label="Title"
-          value={draft.title}
-          onChange={(v) => set("title", v)}
-          placeholder="e.g. Head coach"
-          error={err("title")}
-        />
-        <TextAreaField
-          label="About"
-          value={draft.bio}
-          onChange={(v) => set("bio", v)}
-          rows={4}
-          placeholder="How you coach, who you work with, what you play"
-          error={err("bio")}
-          className="sm:col-span-2"
-        />
-        <TextField
-          label="DUPR rating"
-          inputMode="decimal"
-          value={draft.duprRating}
-          onChange={(v) => set("duprRating", v)}
-          placeholder="e.g. 4.25"
-          error={err("duprRating")}
-        />
-        <TextField
-          label="Years coaching"
-          type="number"
-          inputMode="numeric"
-          min="0"
-          max="80"
-          value={draft.yearsCoaching}
-          onChange={(v) => set("yearsCoaching", v)}
-          error={err("yearsCoaching")}
-        />
-        <div className="sm:col-span-2">
-          <TagInput
-            label="Certifications"
-            value={draft.certifications}
-            onChange={(v) => set("certifications", v)}
-            placeholder="Type one, then Enter"
-            description="Coaching licenses and courses."
-            maxLength={80}
-            error={err("certifications")}
+      <CoachPortrait profile={profile} />
+      <CoachingFields
+        voice="you"
+        draft={draft}
+        set={update}
+        err={err}
+        name={
+          <TextField
+            label="Name shown"
+            value={draft.displayName}
+            onChange={(v) => set("displayName", v)}
+            placeholder={profile.accountName}
+            description="Leave empty to use the name on the account."
+            error={err("displayName")}
           />
-        </div>
-        <TagInput
-          label="Specialties"
-          value={draft.specialties}
-          onChange={(v) => set("specialties", v)}
-          placeholder="Type one, then Enter"
-          description="For example juniors, beginners, or tournament play."
-          maxLength={60}
-          error={err("specialties")}
-        />
-        <TagInput
-          label="Languages"
-          value={draft.languages}
-          onChange={(v) => set("languages", v)}
-          placeholder="Type one, then Enter"
-          description="The languages you coach in."
-          max={10}
-          maxLength={40}
-          error={err("languages")}
-        />
-      </div>
+        }
+      />
       <div className="rounded-[22px] bg-panel px-4 py-2">
         <Switch
           isSelected={draft.isPublic}
           onChange={(v) => set("isPublic", v)}
-          description="Your name, photo, title, about text, and coaching details (certifications, rating, specialties, languages, years coaching) can appear on the academy's public page and to its students and parents. Your email never does."
+          description="Your name, photos, title, about text, highlights, and coaching details (certifications, rating, specialties, languages, years coaching) can appear on the academy's public pages and to its students and parents. Your email never does."
         >
           Show on the academy page
         </Switch>

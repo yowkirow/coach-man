@@ -272,7 +272,9 @@ export function PackageTemplateSheet({
       asksSelfRating: d.asksSelfRating,
       highlight: d.highlight,
     },
-    coach ? { id: coach.userId, name: coach.name, title: coach.title, photoKey: null } : null,
+    coach
+      ? { id: coach.userId, name: coach.name, title: coach.title, photoKey: null, lead: false }
+      : null,
   );
   const publicNote = !d.isPublic
     ? "Only your team sees it."

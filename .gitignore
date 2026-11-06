@@ -25,6 +25,7 @@ coverage/
 .impeccable/mocks/
 .impeccable/review/
 .impeccable/build/
+.impeccable/questions/
 .impeccable/config.local.json
 
 # OS / editors

@@ -2,6 +2,7 @@ import AxeBuilder from "@axe-core/playwright";
 import type {
   ConsentDocumentDto,
   FamilyInviteCreatedDto,
+  MeDto,
   StaffInviteCreatedDto,
 } from "../src/shared/api-types";
 import {
@@ -25,6 +26,7 @@ import {
   test,
   testEmail,
   toggle,
+  uploadPng,
   visit,
 } from "./support";
 
@@ -307,10 +309,26 @@ test.describe("accessibility of the family portal", () => {
 test.describe("accessibility of the academy page and consents", () => {
   test.use({ serviceWorkers: "block" });
 
-  test("/a/<slug> and its rates sheet have no serious violations", async ({
+  test("/a/<slug>, its rates sheet, and its team page have no serious violations", async ({
     browser,
     seeded,
   }, info) => {
+    const me = await seeded.api.get<MeDto>("/me");
+    await seeded.api.patch(`/coaches/${me.user.id}`, {
+      isPublic: true,
+      title: "Head coach",
+      certifications: ["RPO licensed coach"],
+      highlights: ["Gold, Mixed Doubles 4.0, Manila Open 2025"],
+      yearsCoaching: 8,
+      duprRating: 4.25,
+      languages: ["English", "Filipino"],
+    });
+    await uploadPng(seeded.request, `/coaches/${me.user.id}/portrait`, pngImage(40));
+    await seeded.api.post("/team-page/people", {
+      name: "Lia Santos",
+      title: "Junior program coordinator",
+      highlights: ["Ran 12 summer camps"],
+    });
     const slug = await listAcademy(seeded.api, info, {
       tagline: "Train with purpose, play with joy",
       about: "Evening training with drills, live play, and honest feedback.",
@@ -322,7 +340,12 @@ test.describe("accessibility of the academy page and consents", () => {
     const visitor = await browser.newContext({ serviceWorkers: "block" });
     const page = await visitor.newPage();
     const found: Record<string, unknown> = {};
-    for (const path of [`/a/${slug}`, `/a/${slug}/rates`]) {
+    for (const path of [
+      `/a/${slug}`,
+      `/a/${slug}/rates`,
+      `/a/${slug}/team`,
+      `/a/${slug}/team?program=all`,
+    ]) {
       await visit(page, path);
       await page.waitForLoadState("networkidle");
       await expect(page.locator("h1").first()).toBeVisible();

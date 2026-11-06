@@ -65,6 +65,7 @@ const PUBLIC_KEYS = new Set([
   "nextSessionAt",
   "title",
   "photoKey",
+  "lead",
   // packages
   "programId",
   "priceMinor",
@@ -79,9 +80,11 @@ const PUBLIC_KEYS = new Set([
   "asksSelfRating",
   "highlight",
   "coach",
-  // coaches
+  // coaches and the team page's other people
   "bio",
+  "portraitKey",
   "certifications",
+  "highlights",
   "specialties",
   "languages",
   "yearsCoaching",
@@ -179,10 +182,13 @@ test.describe("the public academy page", () => {
     await expect(page.getByRole("region", { name: `About ${PROFILE.name}` })).toContainText(
       PROFILE.about,
     );
-    const coaches = page.getByRole("region", { name: "Coaches" });
-    await expect(coaches).toContainText("Robin Coach");
-    await expect(coaches).toContainText("Head coach");
-    await expect(coaches).toContainText("RPO licensed coach");
+    const team = page.getByRole("region", { name: "The team" });
+    await expect(team).toContainText("Robin Coach");
+    await expect(team).toContainText("Head coach");
+    await expect(team.getByRole("link", { name: "Meet the team" })).toHaveAttribute(
+      "href",
+      `/a/${slug}/team?program=${program.id}`,
+    );
     const contact = page.getByRole("region", { name: "Contact" });
     await expect(contact.getByRole("link", { name: PROFILE.contactPhone })).toHaveAttribute(
       "href",

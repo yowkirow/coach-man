@@ -19,6 +19,7 @@ import {
   member,
   organization,
   packageTemplate,
+  teamPerson,
   trainingGroup,
   user,
   venue,
@@ -27,6 +28,8 @@ import {
 import {
   isListed,
   type PublicCoachFacts,
+  teamPersonFacts,
+  toProgramCoachRefs,
   toPublicAcademy,
   toPublicCoach,
   toPublicCoachRef,
@@ -37,6 +40,7 @@ import {
   toPublicWeeklySession,
 } from "../lib/public-dto";
 import { inList, unique } from "../lib/sql";
+import { type TeamPageItem, teamPageOrder } from "../lib/team-page";
 import { coachName } from "./coaches";
 import { programSessions, toPublicSession } from "./enrollment-core";
 
@@ -91,47 +95,68 @@ async function findAcademy(db: Db, target: PublicTarget, preview: boolean) {
   return { org, profile: profile ?? null };
 }
 
-/** Current staff with a public coach profile, in the academy's coach order. */
-async function publicCoaches(db: Db, workspaceId: string): Promise<Map<string, PublicCoachFacts>> {
-  const rows = await db
-    .select({ userId: member.userId, accountName: user.name, p: coachProfile })
-    .from(member)
-    .innerJoin(user, eq(user.id, member.userId))
-    .innerJoin(
-      coachProfile,
-      and(eq(coachProfile.userId, member.userId), eq(coachProfile.workspaceId, workspaceId)),
-    )
-    .where(and(eq(member.organizationId, workspaceId), eq(coachProfile.isPublic, true)));
-  const sorted = rows.sort(
-    (a, b) =>
-      a.p.sortOrder - b.p.sortOrder ||
-      coachName({ displayName: a.p.displayName, accountName: a.accountName }).localeCompare(
-        coachName({ displayName: b.p.displayName, accountName: b.accountName }),
-      ),
-  );
-  const out = new Map<string, PublicCoachFacts>();
-  for (const r of sorted) {
-    if (out.has(r.userId)) continue;
-    out.set(r.userId, {
+/**
+ * The team page's people: current staff with a public coach profile and the academy's public
+ * display-only people, merged in the academy's order (`team`). `byUser` holds the staff among
+ * them by user id: program and tier coach refs name staff only.
+ */
+async function publicCoaches(
+  db: Db,
+  workspaceId: string,
+): Promise<{ team: PublicCoachFacts[]; byUser: Map<string, PublicCoachFacts> }> {
+  const [rows, people] = await Promise.all([
+    db
+      .select({ userId: member.userId, accountName: user.name, p: coachProfile })
+      .from(member)
+      .innerJoin(user, eq(user.id, member.userId))
+      .innerJoin(
+        coachProfile,
+        and(eq(coachProfile.userId, member.userId), eq(coachProfile.workspaceId, workspaceId)),
+      )
+      .where(and(eq(member.organizationId, workspaceId), eq(coachProfile.isPublic, true))),
+    db
+      .select()
+      .from(teamPerson)
+      .where(and(eq(teamPerson.workspaceId, workspaceId), eq(teamPerson.isPublic, true))),
+  ]);
+  type Placed = TeamPageItem & { facts: PublicCoachFacts };
+  const byUser = new Map<string, PublicCoachFacts>();
+  const staff: Placed[] = [];
+  for (const r of rows) {
+    if (byUser.has(r.userId)) continue;
+    const name = coachName({ displayName: r.p.displayName, accountName: r.accountName });
+    const facts: PublicCoachFacts = {
       profileId: r.p.id,
-      name: coachName({ displayName: r.p.displayName, accountName: r.accountName }),
+      name,
       title: r.p.title,
       bio: r.p.bio,
       photoKey: r.p.photoKey,
+      portraitKey: r.p.portraitKey,
       certifications: r.p.certifications ?? [],
+      highlights: r.p.highlights ?? [],
       specialties: r.p.specialties ?? [],
       languages: r.p.languages ?? [],
       yearsCoaching: r.p.yearsCoaching,
       duprRating: r.p.duprRating,
-    });
+    };
+    byUser.set(r.userId, facts);
+    staff.push({ kind: "staff", id: r.userId, name, sortOrder: r.p.sortOrder, facts });
   }
-  return out;
+  const listed: Placed[] = people.map((p) => ({
+    kind: "listed",
+    id: p.id,
+    name: p.name,
+    sortOrder: p.sortOrder,
+    facts: teamPersonFacts(p),
+  }));
+  return { team: teamPageOrder(staff, listed).map((e) => e.facts), byUser };
 }
 
 /**
  * Everything the public academy page shows, from published rows only: the profile when listed,
  * public programs with their running weekly series, public tiers that are for sale (in public
- * programs, or in none), public coach profiles, and the titles of active required consents.
+ * programs, or in none), the team page's people (public coach profiles and public display-only
+ * people, in the academy's order), and the titles of active required consents.
  * Null when the page isn't public (or, for a preview, when the academy doesn't exist).
  */
 export async function loadPublicAcademy(
@@ -228,9 +253,10 @@ export async function loadPublicAcademy(
         .where(and(eq(venue.workspaceId, ws), inList(venue.id, venueIds)))
     : [];
   const venueById = new Map(venues.map((v) => [v.id, v]));
-  const coachRef = (userId: string | null): PublicCoachRefDto | null => {
-    const c = userId ? coaches.get(userId) : undefined;
-    return c ? toPublicCoachRef(c) : null;
+  // A coach-specific tier names its coach; `lead` is about programs only.
+  const tierCoach = (userId: string | null): PublicCoachRefDto | null => {
+    const c = userId ? coaches.byUser.get(userId) : undefined;
+    return c ? toPublicCoachRef(c, false) : null;
   };
 
   const nextByProgram = new Map(next.map((n) => [n.groupId, Number(n.startsAt)]));
@@ -240,9 +266,7 @@ export async function loadPublicAcademy(
         .filter((s) => s.groupId === g.id)
         .map((s) => toPublicWeeklySession(s, venueById.get(s.venueId ?? "") ?? null)),
       venue: venueById.get(g.defaultVenueId ?? "") ?? null,
-      coaches: unique([g.coachUserId, ...(g.assistantCoachIds ?? [])])
-        .map(coachRef)
-        .filter((c): c is PublicCoachRefDto => c !== null),
+      coaches: toProgramCoachRefs(g, coaches.byUser),
       nextSessionAt: nextByProgram.get(g.id) ?? null,
     }),
   );
@@ -250,12 +274,12 @@ export async function loadPublicAcademy(
   const tiers = packages
     // A tier of an unpublished (or archived) program is unpublished with it.
     .filter((p) => !p.programId || publicPrograms.has(p.programId))
-    .map((p) => toPublicPackage(p, coachRef(p.coachUserId)));
+    .map((p) => toPublicPackage(p, tierCoach(p.coachUserId)));
 
   const academy = toPublicAcademy(org, profile, settings, {
     programs,
     packages: tiers,
-    coaches: [...coaches.values()].map(toPublicCoach),
+    coaches: coaches.team.map(toPublicCoach),
     consents: consents.map(toPublicConsentRef),
     today,
   });

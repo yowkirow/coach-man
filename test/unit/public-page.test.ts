@@ -5,6 +5,7 @@ import type {
   consentDocument,
   lessonSeries,
   packageTemplate,
+  teamPerson,
   trainingGroup,
   workspaceSettings,
 } from "../../src/worker/db/schema";
@@ -22,6 +23,8 @@ import {
 } from "../../src/worker/lib/page-meta";
 import {
   isListed,
+  teamPersonFacts,
+  toProgramCoachRefs,
   toPublicAcademy,
   toPublicCoach,
   toPublicCoachRef,
@@ -162,7 +165,9 @@ const coach = {
   title: "Head coach",
   bio: "Ten years on court.",
   photoKey: "ws/abc/public/coaches/u-1.png",
+  portraitKey: "ws/abc/public/coaches/u-1-portrait-1.jpg",
   certifications: ["RPO licensed"],
+  highlights: ["Gold, Women's Doubles 4.5, Manila Open 2025"],
   specialties: ["Juniors"],
   languages: ["English", "Filipino"],
   yearsCoaching: 10,
@@ -170,17 +175,16 @@ const coach = {
 };
 
 function academy(): PublicAcademyDto {
-  const ref = toPublicCoachRef(coach);
   return toPublicAcademy({ name: "Riverside Academy", slug: "riverside" }, profile(), settings, {
     programs: [
       toPublicProgram(group, {
         schedule: [toPublicWeeklySession(series, { name: "Riverside Courts", address: null })],
         venue: { name: "Riverside Courts", address: "Riverside Park" },
-        coaches: [ref],
+        coaches: [toPublicCoachRef(coach, true)],
         nextSessionAt: 1_800_000_000_000,
       }),
     ],
-    packages: [toPublicPackage(tier, ref)],
+    packages: [toPublicPackage(tier, toPublicCoachRef(coach, false))],
     coaches: [toPublicCoach(coach)],
     consents: [toPublicConsentRef(consent)],
     today: "2026-11-05",
@@ -216,8 +220,17 @@ describe("public academy DTOs", () => {
       // A month-end tier's day count would mislead.
       validityDays: null,
       highlight: true,
-      coach: { id: "coach-profile-1", name: "Coach Ana" },
+      coach: { id: "coach-profile-1", name: "Coach Ana", lead: false },
     });
+    expect(a.programs[0]?.coaches).toEqual([
+      {
+        id: "coach-profile-1",
+        name: "Coach Ana",
+        title: "Head coach",
+        photoKey: "ws/abc/public/coaches/u-1.png",
+        lead: true,
+      },
+    ]);
     expect(a.consents).toEqual([
       {
         id: "doc-1",
@@ -235,6 +248,93 @@ describe("public academy DTOs", () => {
     expect(isListed({ slug: "riverside" }, { listed: false })).toBe(false);
     expect(isListed({ slug: "riverside" }, null)).toBe(false);
     expect(isListed({ slug: "ws-0192c7a1" }, { listed: true })).toBe(false);
+  });
+
+  it("name a program's lead, and never an assistant in a hidden lead's place", () => {
+    const kim = { ...coach, profileId: "coach-profile-2", name: "Coach Kim" };
+    const lee = { ...coach, profileId: "coach-profile-3", name: "Coach Lee" };
+    const shown = new Map([
+      ["user-ana", coach],
+      ["user-kim", kim],
+      ["user-lee", lee],
+    ]);
+    const refs = (
+      program: { coachUserId: string | null; assistantCoachIds: string[] },
+      coaches = shown,
+    ) => toProgramCoachRefs(program, coaches).map((r) => [r.name, r.lead]);
+    // The lead first, then the assistants in their order; the lead is listed once.
+    expect(
+      refs({ coachUserId: "user-kim", assistantCoachIds: ["user-lee", "user-kim", "user-ana"] }),
+    ).toEqual([
+      ["Coach Kim", true],
+      ["Coach Lee", false],
+      ["Coach Ana", false],
+    ]);
+    // A lead whose profile is hidden (or who left) isn't named, and nobody takes their place.
+    const hidden = new Map([...shown].filter(([id]) => id !== "user-kim"));
+    expect(
+      refs({ coachUserId: "user-kim", assistantCoachIds: ["user-lee", "user-ana"] }, hidden),
+    ).toEqual([
+      ["Coach Lee", false],
+      ["Coach Ana", false],
+    ]);
+    expect(refs({ coachUserId: null, assistantCoachIds: ["user-ana"] })).toEqual([
+      ["Coach Ana", false],
+    ]);
+    expect(refs({ coachUserId: "user-gone", assistantCoachIds: [] })).toEqual([]);
+  });
+
+  it("carry a team page person's portrait and highlights, copied", () => {
+    const dto = toPublicCoach(coach);
+    expect(dto).toEqual({
+      id: "coach-profile-1",
+      name: "Coach Ana",
+      title: "Head coach",
+      bio: "Ten years on court.",
+      photoKey: "ws/abc/public/coaches/u-1.png",
+      portraitKey: "ws/abc/public/coaches/u-1-portrait-1.jpg",
+      certifications: ["RPO licensed"],
+      highlights: ["Gold, Women's Doubles 4.5, Manila Open 2025"],
+      specialties: ["Juniors"],
+      languages: ["English", "Filipino"],
+      yearsCoaching: 10,
+      duprRating: 4.5,
+    });
+    // The DTO owns its lists: changing it never changes the facts it came from.
+    dto.highlights.push("Changed");
+    expect(coach.highlights).toEqual(["Gold, Women's Doubles 4.5, Manila Open 2025"]);
+  });
+
+  it("show a display-only person without who added them, their order, or the switch", () => {
+    const person = {
+      id: "person-1",
+      workspaceId: `${LEAK}-ws`,
+      name: "Coach Ben",
+      title: "Visiting coach",
+      bio: "Plays the pro tour.",
+      portraitKey: "ws/abc/public/coaches/person-person-1-1.jpg",
+      certifications: ["PPR"],
+      highlights: ["Silver, Mixed Doubles Open, PNG 2024"],
+      duprRating: 5.1,
+      specialties: ["Dinking"],
+      languages: ["English"],
+      yearsCoaching: 6,
+      isPublic: true,
+      sortOrder: 4,
+      createdBy: `${LEAK}-user`,
+      createdAt: 1,
+      updatedAt: 2,
+    } satisfies typeof teamPerson.$inferSelect;
+    const dto = toPublicCoach(teamPersonFacts(person));
+    expect(dto).toMatchObject({
+      id: "person-1",
+      name: "Coach Ben",
+      photoKey: null,
+      portraitKey: "ws/abc/public/coaches/person-person-1-1.jpg",
+      highlights: ["Silver, Mixed Doubles Open, PNG 2024"],
+    });
+    expect(Object.keys(dto).sort()).toEqual(Object.keys(toPublicCoach(coach)).sort());
+    expect(JSON.stringify(dto)).not.toContain(LEAK);
   });
 });
 

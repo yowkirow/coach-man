@@ -142,13 +142,24 @@ export async function readImage(c: Context<AppBindings>, noun = "photo") {
   return { body, type, ext };
 }
 
-/** Public R2 keys (spec §8): anything under ws/<id>/public/ may be shown to anyone. */
+/**
+ * Public R2 keys (spec §8): anything under ws/<id>/public/ may be shown to anyone. Coach images are
+ * named by the coach profile's id (public already), never the account's user id; photos uploaded
+ * before that keep their old names until replaced.
+ */
 export const publicKey = {
   logo: (workspaceId: string, ext: string) => `ws/${workspaceId}/public/logo-${uuidv7()}.${ext}`,
   paymentQr: (workspaceId: string, ext: string) =>
     `ws/${workspaceId}/public/payment-qr-${uuidv7()}.${ext}`,
-  coachPhoto: (workspaceId: string, userId: string, ext: string) =>
-    `ws/${workspaceId}/public/coaches/${userId}-${uuidv7()}.${ext}`,
+  /** A staff member's square photo. */
+  coachPhoto: (workspaceId: string, profileId: string, ext: string) =>
+    `ws/${workspaceId}/public/coaches/${profileId}-${uuidv7()}.${ext}`,
+  /** A staff member's half-body team page photo. */
+  coachPortrait: (workspaceId: string, profileId: string, ext: string) =>
+    `ws/${workspaceId}/public/coaches/${profileId}-portrait-${uuidv7()}.${ext}`,
+  /** A display-only team page person's photo. */
+  teamPersonPortrait: (workspaceId: string, personId: string, ext: string) =>
+    `ws/${workspaceId}/public/coaches/person-${personId}-${uuidv7()}.${ext}`,
 };
 
 /** ws/<workspaceId>/public/<file> or ws/<workspaceId>/public/coaches/<file>. */

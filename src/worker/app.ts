@@ -35,6 +35,7 @@ import { progressRoutes } from "./routes/progress";
 import { publicRoutes } from "./routes/public";
 import { pushRoutes } from "./routes/push";
 import { teamRoutes } from "./routes/team";
+import { teamPageRoutes } from "./routes/team-page";
 import { testRoutes } from "./routes/test";
 import type { AppBindings } from "./types";
 
@@ -46,6 +47,7 @@ const v1 = new Hono<AppBindings>()
   .route("/", academyRoutes)
   .route("/", teamRoutes)
   .route("/", coachRoutes)
+  .route("/", teamPageRoutes)
   .route("/", clientRoutes)
   .route("/", pickupRoutes)
   .route("/", familyRoutes)

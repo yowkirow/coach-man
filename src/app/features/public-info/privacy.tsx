@@ -67,7 +67,8 @@ const SECTIONS: DocSection[] = [
           </li>
           <li>
             Staff: your role at each academy and the coach profile you fill in (name shown, title,
-            bio, photo, certifications, rating, specialties, languages, years coaching).
+            bio, photos, certifications, highlights, rating, specialties, languages, years
+            coaching).
           </li>
         </Bullets>
 
@@ -209,10 +210,11 @@ const SECTIONS: DocSection[] = [
           own students. Academies don't see each other's information.
         </p>
         <p>
-          An academy can also publish a public page. Anyone can see what it puts there (such as its
-          contact details, programs, schedules, and prices) and its coaches' profiles: name, photo,
-          title, bio, certifications, rating, specialties, languages, and years coaching. A coach
-          can keep their profile off the page with “Show on the academy page”. Student and family
+          An academy can also publish a public page and a team page. Anyone can see what it puts
+          there: its contact details, programs, schedules, and prices; its coaches' profiles (name,
+          photos, title, bio, certifications, highlights, rating, specialties, languages, and years
+          coaching); and anyone else it adds to its team page, as it describes them. A coach can
+          keep their profile off these pages with “Show on the academy page”. Student and family
           information is never public.
         </p>
         <p>Outside the academy, we use a small number of service providers:</p>
@@ -290,7 +292,7 @@ const SECTIONS: DocSection[] = [
           Every request is checked against your role and your links: coaches never get money
           details, and families only reach their own students. Students' photos, payment proofs, and
           pickup photos are private files served only to people allowed to see them. Only what an
-          academy publishes, such as its logo and its coaches' photos, is public.
+          academy publishes, such as its logo and its team's photos, is public.
         </li>
         <li>
           Important changes are logged with who made them and when: access given or ended, consents,

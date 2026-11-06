@@ -359,6 +359,7 @@ test.describe("owners and admins", () => {
       "payments",
       "academyProfile",
       "coachProfiles",
+      "teamPeople",
       "studentCoaches",
       "familyAccess",
       "enrollmentRequests",

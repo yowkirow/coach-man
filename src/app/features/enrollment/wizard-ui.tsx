@@ -4,7 +4,7 @@ import { ArrowLeft, Check } from "lucide-react";
 import type { ReactNode } from "react";
 import { Radio } from "react-aria-components";
 import type { Format } from "../../lib/format";
-import { AcademyLogo } from "../public/academy-page";
+import { AcademyLogo } from "../public/public-ui";
 import { scheduleLines, sessionsLabel } from "../public/text";
 
 export interface WizardStep {

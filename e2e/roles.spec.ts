@@ -22,6 +22,7 @@ import {
   pngImage,
   test,
   testEmail,
+  uploadPng,
   uuid,
 } from "./support";
 
@@ -137,6 +138,7 @@ async function academyWithEverything(owner: Coach, info: TestInfo) {
     role: "coach",
   });
   const teamPerson = await api.post<{ id: string }>("/team-page/people", { name: "Pia Probe" });
+  const photo = await uploadPng<{ id: string }>(request, "/academy/photos", pngImage(), "POST");
   const familyInvite = await api.post<FamilyInviteCreatedDto>(
     `/clients/${student.id}/family/invites`,
     { relation: "guardian" },
@@ -181,6 +183,7 @@ async function academyWithEverything(owner: Coach, info: TestInfo) {
     skillIds: skills.map((s) => s.id),
     staffInviteId: staffInvite.invite.id,
     teamPersonId: teamPerson.id,
+    photoId: photo.id,
     familyInviteId: familyInvite.invite.id,
     accessId: access.links[0]?.id ?? "",
     parentEmail,
@@ -588,6 +591,42 @@ function capabilityProbes(w: World, self: string): Probe[] {
     },
     {
       cap: "settings",
+      name: "PUT /academy/cover",
+      method: "PUT",
+      path: "/academy/cover",
+      image: true,
+    },
+    { cap: "settings", name: "DELETE /academy/cover", method: "DELETE", path: "/academy/cover" },
+    // Website photos: one is added, captioned, put in order, and removed (the world's own last).
+    {
+      cap: "settings",
+      name: "POST /academy/photos",
+      method: "POST",
+      path: "/academy/photos",
+      image: true,
+    },
+    {
+      cap: "settings",
+      name: "PATCH /academy/photos/:id",
+      method: "PATCH",
+      path: `/academy/photos/${w.photoId}`,
+      body: { caption: "Taken over" },
+    },
+    {
+      cap: "settings",
+      name: "PUT /academy/photos/order",
+      method: "PUT",
+      path: "/academy/photos/order",
+      body: { ids: [w.photoId] },
+    },
+    {
+      cap: "settings",
+      name: "DELETE /academy/photos/:id",
+      method: "DELETE",
+      path: `/academy/photos/${w.photoId}`,
+    },
+    {
+      cap: "settings",
       name: "PATCH /workspace",
       method: "PATCH",
       path: "/workspace",
@@ -928,6 +967,7 @@ function openProbes(w: World, self: string): Open[] {
       body: { title: "Junior coach" },
     },
     { name: "GET /academy", method: "GET", path: "/academy" },
+    { name: "GET /academy/photos", method: "GET", path: "/academy/photos" },
     { name: "GET /announcements (live)", method: "GET", path: "/announcements" },
     { name: "GET /clients/:id/consents", method: "GET", path: `/clients/${s}/consents` },
     {

@@ -31,6 +31,7 @@ import {
   teamPersonFacts,
   toProgramCoachRefs,
   toPublicAcademy,
+  toPublicAcademyPhoto,
   toPublicCoach,
   toPublicCoachRef,
   toPublicConsentDocument,
@@ -41,6 +42,7 @@ import {
 } from "../lib/public-dto";
 import { inList, unique } from "../lib/sql";
 import { type TeamPageItem, teamPageOrder } from "../lib/team-page";
+import { academyPhotos } from "./academy-photos";
 import { coachName } from "./coaches";
 import { programSessions, toPublicSession } from "./enrollment-core";
 
@@ -153,10 +155,11 @@ async function publicCoaches(
 }
 
 /**
- * Everything the public academy page shows, from published rows only: the profile when listed,
- * public programs with their running weekly series, public tiers that are for sale (in public
- * programs, or in none), the team page's people (public coach profiles and public display-only
- * people, in the academy's order), and the titles of active required consents.
+ * Everything the public academy page shows, from published rows only: the profile when listed
+ * (its cover photo among it), public programs with their running weekly series, public tiers that
+ * are for sale (in public programs, or in none), the team page's people (public coach profiles and
+ * public display-only people, in the academy's order), the website photos in the academy's order,
+ * and the titles of active required consents.
  * Null when the page isn't public (or, for a preview, when the academy doesn't exist).
  */
 export async function loadPublicAcademy(
@@ -170,7 +173,7 @@ export async function loadPublicAcademy(
   const ws = org.id;
   const now = opts.now ?? Date.now();
 
-  const [settings, groups, coaches, consents] = await Promise.all([
+  const [settings, groups, coaches, consents, photos] = await Promise.all([
     db.query.workspaceSettings.findFirst({ where: eq(workspaceSettings.workspaceId, ws) }),
     db
       .select()
@@ -195,6 +198,7 @@ export async function loadPublicAcademy(
         ),
       )
       .orderBy(asc(consentDocument.createdAt)),
+    academyPhotos(db, ws),
   ]);
   const today = todayIn(settings?.timezone ?? "UTC", now);
   const programIds = groups.map((g) => g.id);
@@ -280,6 +284,7 @@ export async function loadPublicAcademy(
     programs,
     packages: tiers,
     coaches: coaches.team.map(toPublicCoach),
+    photos: photos.map(toPublicAcademyPhoto),
     consents: consents.map(toPublicConsentRef),
     today,
   });

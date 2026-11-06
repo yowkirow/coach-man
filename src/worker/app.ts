@@ -11,6 +11,7 @@ import {
   withServices,
 } from "./middleware";
 import { academyRoutes } from "./routes/academy";
+import { academyPhotoRoutes } from "./routes/academy-photos";
 import { accountRoutes } from "./routes/account";
 import { announcementRoutes } from "./routes/announcements";
 import { catalogRoutes } from "./routes/catalog";
@@ -45,6 +46,7 @@ const v1 = new Hono<AppBindings>()
   .use("*", originGuard, requireWorkspace, redactMoneyForRole)
   .route("/", meRoutes)
   .route("/", academyRoutes)
+  .route("/", academyPhotoRoutes)
   .route("/", teamRoutes)
   .route("/", coachRoutes)
   .route("/", teamPageRoutes)

@@ -471,10 +471,10 @@ export function EnrollWizard({
     return frame(
       <>
         <StepHeading title="This package isn't offered any more">
-          {academy.name} may have changed its rates. Pick a package from its page.
+          {academy.name} may have changed its packages. Pick one from Enroll now.
         </StepHeading>
-        <Link to="/a/$slug" params={{ slug }} className={buttonClass("dark", "lg")}>
-          See {academy.name}'s rates
+        <Link to="/a/$slug/enroll" params={{ slug }} className={buttonClass("dark", "lg")}>
+          See {academy.name}'s packages
         </Link>
       </>,
       [],

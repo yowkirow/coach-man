@@ -46,6 +46,8 @@ export const keys = {
   balances: ["balances"] as const,
   notificationPrefs: ["notification-prefs"] as const,
   academy: ["academy"] as const,
+  /** The academy's website photos, in its order (persisted, so Settings reads them offline). */
+  academyPhotos: ["academy-photos"] as const,
   team: ["team"] as const,
   coaches: ["coaches"] as const,
   coachProfile: (userId: string) => ["coach-profile", userId] as const,
@@ -120,6 +122,7 @@ const PERSISTED = new Set([
   "skills",
   "coaches",
   "academy",
+  "academy-photos",
   // The family portal reads offline too (its keys carry the person's id).
   "portal",
   // The public pages' contact address (not personal, the same for everyone).

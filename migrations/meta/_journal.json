@@ -64,6 +64,13 @@
       "when": 1793929108684,
       "tag": "0008_team_page",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1793953292444,
+      "tag": "0009_academy_photos",
+      "breakpoints": true
     }
   ]
 }

@@ -8,6 +8,7 @@ import {
   Database,
   FileSignature,
   Globe,
+  Images,
   KeyRound,
   ListChecks,
   MapPin,
@@ -24,6 +25,7 @@ import { scrollToId } from "./scroll";
 export const SETTINGS_SECTIONS = [
   { id: "academy", label: "Academy", icon: BadgeCheck },
   { id: "academy-profile", label: "Academy profile", icon: Building2, cap: "settings" },
+  { id: "website-photos", label: "Website photos", icon: Images, cap: "settings" },
   { id: "coach-profile", label: "My coach profile", icon: UserRound },
   { id: "workspace", label: "Regional settings", icon: Globe, cap: "settings" },
   { id: "policies", label: "Policies", icon: Scale, cap: "settings" },

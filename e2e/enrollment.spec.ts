@@ -60,11 +60,17 @@ test.describe("enrolling from the academy page", () => {
     await addConsents(api);
     const enrollUrl = `/a/${setup.slug}/enroll?package=${setup.monthly.id}`;
 
-    // A parent opens the academy page and taps Enroll on Monthly: signing in comes first.
+    // A parent opens the academy's website, goes to Enroll now, and taps Enroll on Monthly: signing
+    // in comes first.
     const context = await browser.newContext({ serviceWorkers: "block" });
     const w = await context.newPage();
     const errors = watchErrors(w);
     await visit(w, `/a/${setup.slug}`);
+    await w
+      .getByRole("navigation", { name: setup.academy.name })
+      .getByRole("link", { name: "Enroll now" })
+      .click();
+    await expect(w).toHaveURL(new RegExp(`/a/${setup.slug}/enroll$`));
     await w.getByRole("link", { name: "Enroll in Monthly", exact: true }).click();
     await expect(w).toHaveURL((url) => url.pathname === `/a/${setup.slug}/enroll`);
     await expect(w.getByRole("heading", { name: "Sign in to enroll" })).toBeVisible();
@@ -632,10 +638,14 @@ test.describe("deciding requests", () => {
     await seeded.api.post(`/enrollments/${sent.request.id}/approve`, {});
     await seeded.api.patch("/academy", { enrollmentOpen: false });
 
-    // The page shows no Enroll buttons, and the wizard says it's closed.
+    // The website offers no Enroll buttons, Enroll now says it's closed on every package, and the
+    // wizard says it's closed.
     const visitor = await browser.newContext({ serviceWorkers: "block" });
     const v = await visitor.newPage();
     await visit(v, `/a/${setup.slug}`);
+    await expect(v.getByRole("heading", { level: 1 })).toBeVisible();
+    await expect(v.getByRole("link", { name: /enroll/i })).toHaveCount(0);
+    await visit(v, `/a/${setup.slug}/enroll`);
     await expect(v.getByText("Enrollment is closed for now").first()).toBeVisible();
     await expect(v.getByRole("link", { name: /^Enroll in/ })).toHaveCount(0);
     await visit(v, `/a/${setup.slug}/enroll?package=${setup.monthly.id}`);

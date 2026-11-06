@@ -84,6 +84,10 @@ const SECTIONS: DocSection[] = [
             put someone on its team page only with their agreement, and take them off when they ask;
           </li>
           <li>
+            publish photos of people (its cover photo and website photos) only with their
+            permission, including a parent's or guardian's consent for a minor;
+          </li>
+          <li>
             answer its students' and parents' requests about their information (access, corrections,
             deletion), with our help where needed.
           </li>

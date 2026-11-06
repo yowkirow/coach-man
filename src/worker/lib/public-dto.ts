@@ -4,6 +4,7 @@
 
 import type {
   PublicAcademyDto,
+  PublicAcademyPhotoDto,
   PublicCoachDto,
   PublicCoachRefDto,
   PublicConsentDocumentDto,
@@ -15,6 +16,7 @@ import type {
 } from "../../shared/api-types";
 import { ACADEMY_SOCIALS, type AcademySocial, isAcademySlug } from "../../shared/domain";
 import type {
+  academyPhoto,
   academyProfile,
   consentDocument,
   lessonSeries,
@@ -26,6 +28,7 @@ import type {
 } from "../db/schema";
 
 type ProfileRow = typeof academyProfile.$inferSelect;
+type PhotoRow = typeof academyPhoto.$inferSelect;
 type SettingsRow = typeof workspaceSettings.$inferSelect;
 type GroupRow = typeof trainingGroup.$inferSelect;
 type PackageRow = typeof packageTemplate.$inferSelect;
@@ -197,6 +200,13 @@ export function toPublicConsentDocument(d: ConsentRow): PublicConsentDocumentDto
   return { ...toPublicConsentRef(d), body: d.body };
 }
 
+/** A website photo: its file and caption, never its place in the order or when it was added. */
+export function toPublicAcademyPhoto(
+  p: Pick<PhotoRow, "id" | "key" | "caption">,
+): PublicAcademyPhotoDto {
+  return { id: p.id, key: p.key, caption: p.caption };
+}
+
 /** The academy's public profile: no payment details, no internal settings. */
 export function toPublicAcademy(
   org: { name: string; slug: string },
@@ -209,6 +219,8 @@ export function toPublicAcademy(
     programs: PublicProgramDto[];
     packages: PublicPackageDto[];
     coaches: PublicCoachDto[];
+    /** The website photos, in the academy's order. */
+    photos: PublicAcademyPhotoDto[];
     consents: PublicConsentRefDto[];
     today: string;
   },
@@ -239,6 +251,7 @@ export function toPublicAcademy(
     programs: parts.programs,
     packages: parts.packages,
     coaches: parts.coaches,
+    photos: parts.photos,
     consents: parts.consents,
     today: parts.today,
     updatedAt: profile?.updatedAt ?? 0,

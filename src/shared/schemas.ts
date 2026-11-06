@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MAX_ACADEMY_PHOTOS, normalizeCaption, PHOTO_CAPTION_MAX } from "./academy-photos";
 import {
   ANNOUNCEMENT_BODY_MAX,
   ANNOUNCEMENT_STATES,
@@ -157,6 +158,23 @@ export const academyUpdateSchema = z.object({
   listed: z.boolean().optional(),
 });
 export type AcademyUpdateInput = z.infer<typeof academyUpdateSchema>;
+
+/** PATCH /academy/photos/:id: the line under a website photo (empty clears it). */
+export const academyPhotoUpdateSchema = z.object({
+  caption: z
+    .string()
+    .trim()
+    .max(PHOTO_CAPTION_MAX, `Keep the caption to ${PHOTO_CAPTION_MAX} characters.`)
+    .transform(normalizeCaption)
+    .nullable(),
+});
+export type AcademyPhotoUpdateInput = z.infer<typeof academyPhotoUpdateSchema>;
+
+/** PUT /academy/photos/order: every one of the academy's website photos, once, first to last. */
+export const academyPhotoOrderSchema = z.object({
+  ids: z.array(id).max(MAX_ACADEMY_PHOTOS),
+});
+export type AcademyPhotoOrderInput = z.infer<typeof academyPhotoOrderSchema>;
 
 /** POST /team/invites: owners are made from inside the team, so invites are for admins and coaches. */
 export const staffInviteSchema = z.object({

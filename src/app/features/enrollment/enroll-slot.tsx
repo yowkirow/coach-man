@@ -1,21 +1,8 @@
 import type { PublicAcademyDto, PublicPackageDto } from "@shared/api-types";
 import { Link } from "@tanstack/react-router";
-import { ArrowDown, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { buttonClass } from "../../components/ui/button";
 import { contactActions } from "../public/text";
-
-/**
- * The academy page's first action on phones while it takes enrollment requests: down to the
- * rates, where each package has its own Enroll.
- */
-export function EnrollJump() {
-  return (
-    <a href="#rates-title" className={buttonClass("lime", "md")}>
-      Enroll
-      <ArrowDown aria-hidden className="size-4.5" />
-    </a>
-  );
-}
 
 /**
  * The foot of a tier card on the academy page: Enroll (to the wizard), or, while the academy isn't

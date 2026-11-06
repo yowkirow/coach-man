@@ -862,6 +862,22 @@ export const academyProfile = sqliteTable("academy_profile", {
   updatedAt: updatedAt(),
 });
 
+/** Photos on the academy's website (courts, sessions, camps), in the order the academy sets. */
+export const academyPhoto = sqliteTable(
+  "academy_photo",
+  {
+    id: text().primaryKey(),
+    workspaceId: workspaceId(),
+    /** A public key under `ws/<id>/public/photos/`. */
+    key: text().notNull().unique(),
+    caption: text(),
+    sortOrder: integer().notNull().default(0),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index("academy_photo_ws_order_idx").on(t.workspaceId, t.sortOrder)],
+);
+
 export const coachProfile = sqliteTable(
   "coach_profile",
   {

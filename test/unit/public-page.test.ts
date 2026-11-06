@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { PublicAcademyDto } from "../../src/shared/api-types";
 import type {
+  academyPhoto,
   academyProfile,
   consentDocument,
   lessonSeries,
@@ -26,6 +27,7 @@ import {
   teamPersonFacts,
   toProgramCoachRefs,
   toPublicAcademy,
+  toPublicAcademyPhoto,
   toPublicCoach,
   toPublicCoachRef,
   toPublicConsentDocument,
@@ -174,6 +176,16 @@ const coach = {
   duprRating: 4.5,
 };
 
+const photo = {
+  id: "photo-1",
+  workspaceId: `${LEAK}-ws`,
+  key: "ws/abc/public/photos/0196-1.jpg",
+  caption: "Evening drills on court 3",
+  sortOrder: 7,
+  createdAt: 1,
+  updatedAt: 2,
+} satisfies typeof academyPhoto.$inferSelect;
+
 function academy(): PublicAcademyDto {
   return toPublicAcademy({ name: "Riverside Academy", slug: "riverside" }, profile(), settings, {
     programs: [
@@ -186,6 +198,7 @@ function academy(): PublicAcademyDto {
     ],
     packages: [toPublicPackage(tier, toPublicCoachRef(coach, false))],
     coaches: [toPublicCoach(coach)],
+    photos: [toPublicAcademyPhoto(photo)],
     consents: [toPublicConsentRef(consent)],
     today: "2026-11-05",
   });
@@ -241,6 +254,22 @@ describe("public academy DTOs", () => {
       },
     ]);
     expect(toPublicConsentDocument(consent).body).toBe("I understand the risks.");
+  });
+
+  it("carry the website photos as a file and a caption, nothing else", () => {
+    const a = academy();
+    expect(a.photos).toEqual([
+      {
+        id: "photo-1",
+        key: "ws/abc/public/photos/0196-1.jpg",
+        caption: "Evening drills on court 3",
+      },
+    ]);
+    expect(toPublicAcademyPhoto({ ...photo, caption: null })).toEqual({
+      id: "photo-1",
+      key: "ws/abc/public/photos/0196-1.jpg",
+      caption: null,
+    });
   });
 
   it("list an academy only when it chose to be listed under a real address", () => {

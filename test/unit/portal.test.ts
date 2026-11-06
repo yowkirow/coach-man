@@ -464,9 +464,11 @@ describe("portal scope", () => {
     expect(canReadPortalFile(scope, "ws/ws2/clients/c9/0192b.webp")).toBe(true);
     expect(canReadPortalFile(scope, "ws/ws1/public/logo-1.png")).toBe(true);
     expect(canReadPortalFile(scope, "ws/ws1/public/coaches/u-1.jpg")).toBe(true);
+    expect(canReadPortalFile(scope, "ws/ws1/public/photos/0196a.jpg")).toBe(true);
     // Other students, other academies, and someone with no links.
     expect(canReadPortalFile(scope, "ws/ws1/clients/c3/0192.jpg")).toBe(false);
     expect(canReadPortalFile(scope, "ws/ws3/public/logo-1.png")).toBe(false);
+    expect(canReadPortalFile(scope, "ws/ws3/public/photos/0196a.jpg")).toBe(false);
     expect(canReadPortalFile(scope, "ws/ws2/clients/c1/0192.jpg")).toBe(false);
     expect(canReadPortalFile(empty, "ws/ws1/clients/c1/0192.jpg")).toBe(false);
   });
@@ -488,6 +490,8 @@ describe("portal scope", () => {
       "ws/ws1/clients/c1/.hidden.jpg",
       "/ws/ws1/clients/c1/0192.jpg",
       "ws/ws1/public/../clients/c3/0192.jpg",
+      "ws/ws1/public/photos/../../clients/c3/0192.jpg",
+      "ws/ws1/public/photos/a/0192.jpg",
       "ws\\ws1\\public\\logo.png",
       "",
     ]) {

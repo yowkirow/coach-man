@@ -2,7 +2,6 @@ import type { PublicAcademyDto, PublicCoachDto, PublicProgramDto } from "@shared
 import { ACADEMY_SOCIAL_LABELS, ACADEMY_SOCIALS } from "@shared/domain";
 import { Link } from "@tanstack/react-router";
 import {
-  ArrowLeft,
   ArrowRight,
   ArrowUpRight,
   Globe,
@@ -17,16 +16,10 @@ import {
 import { type ReactNode, useEffect, useRef } from "react";
 import { buttonClass, tapArea } from "../../components/ui/button";
 import type { Format } from "../../lib/format";
-import {
-  AcademyLogo,
-  ContactBar,
-  MadeWithCoachMan,
-  PreviewBanner,
-  ProgramPlaceRows,
-  useScrolledPast,
-} from "./academy-page";
 import { TeamFace, TeamPortrait } from "./people";
+import { ContactBar, ProgramPlaceRows, useScrolledPast } from "./public-ui";
 import type { PublicPage } from "./queries";
+import { QuestionsBox, SiteFrame } from "./site";
 import {
   EVERYONE,
   type ProgramTeam,
@@ -115,7 +108,7 @@ function TeamPicker({
     <nav aria-label="Programs">
       <ul
         ref={list}
-        className="relative -mx-4 flex scroll-px-4 gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:-mx-6 sm:scroll-px-6 sm:px-6 lg:mx-0 lg:flex-col lg:overflow-visible lg:px-0"
+        className="relative -mx-5 flex scroll-px-5 gap-2 overflow-x-auto px-5 pb-1 [scrollbar-width:none] sm:-mx-6 sm:scroll-px-6 sm:px-6 lg:mx-0 lg:flex-col lg:overflow-visible lg:px-0"
       >
         {items.map((it) => {
           const on = it.id === selected;
@@ -164,7 +157,10 @@ function ProgramTimes({ program, fmt }: { program: PublicProgramDto; fmt: Format
     <div className="flex flex-col gap-1">
       <p className="sr-only">{program.name} meets</p>
       {lines.map((l) => (
-        <p key={l} className="num text-[1.75rem] leading-tight font-light tracking-[-0.01em]">
+        <p
+          key={l}
+          className="num text-[1.5rem] leading-tight font-light tracking-[-0.01em] sm:text-[1.75rem]"
+        >
           {l}
         </p>
       ))}
@@ -283,8 +279,8 @@ function programAction(academy: PublicAcademyDto, program: PublicProgramDto | nu
 }
 
 /**
- * The dark block's actions: Enroll in the chosen program (to its rates on the academy page, where
- * each tier has its own Enroll) while the academy takes requests, then the ways to reach it. The
+ * The dark block's actions: Enroll in the chosen program (to its packages on Enroll now, where
+ * each has its own Enroll) while the academy takes requests, then the ways to reach it. The
  * first is lime; the rest are charcoal.
  */
 function TeamActions({
@@ -322,13 +318,12 @@ function TeamActions({
     <div className="flex flex-wrap gap-2">
       {program && action ? (
         <Link
-          to="/a/$slug"
+          to="/a/$slug/enroll"
           params={{ slug }}
           search={searchFor(program.id, preview)}
-          hash="rates-title"
           className={buttonClass(enroll ? "lime" : "night", "md")}
         >
-          {enroll ? "Enroll" : "See rates"}
+          {enroll ? "Enroll" : "See packages"}
           <span className="sr-only"> in {program.name}</span>
           <ArrowRight aria-hidden className="size-4.5" />
         </Link>
@@ -402,7 +397,7 @@ function CoachSpace({
     <li id={`coach-${person.id}`} className="scroll-mt-4">
       <article
         aria-labelledby={nameId}
-        className="overflow-clip rounded-[28px] bg-card md:grid md:grid-cols-[minmax(0,17.5rem)_minmax(0,1fr)] md:gap-1 md:p-2 xl:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]"
+        className="overflow-clip rounded-[28px] bg-ivory ring-[1.5px] ring-ivory-line ring-inset md:grid md:grid-cols-[minmax(0,17.5rem)_minmax(0,1fr)] md:gap-1 md:p-2 xl:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]"
       >
         <div className="md:sticky md:top-3 md:self-start">
           <TeamPortrait
@@ -417,7 +412,7 @@ function CoachSpace({
           <header>
             <h3
               id={nameId}
-              className="text-[1.75rem] leading-tight font-light tracking-[-0.01em] break-words"
+              className="font-display text-[2rem] leading-tight tracking-[-0.01em] break-words"
             >
               {person.name}
             </h3>
@@ -437,7 +432,7 @@ function CoachSpace({
               {facts.map((f) => (
                 <div
                   key={f.term}
-                  className={`rounded-[18px] bg-panel px-4 py-3 ${f.wide ? "max-md:col-span-2" : ""}`}
+                  className={`rounded-[18px] bg-ivory-2 px-4 py-3 ${f.wide ? "max-md:col-span-2" : ""}`}
                 >
                   <dt className="text-[0.8125rem] text-ink-2">{f.term}</dt>
                   <dd className="num mt-0.5 text-[1.375rem] leading-tight font-light tracking-[-0.01em] break-words">
@@ -459,7 +454,7 @@ function CoachSpace({
                     {person.certifications.map((c) => (
                       <li
                         key={c}
-                        className="inline-flex min-h-7 items-center rounded-full bg-sky px-3 py-1 text-[0.8125rem] font-medium text-ink"
+                        className="inline-flex min-h-7 items-center rounded-full px-3 py-1 text-[0.8125rem] font-medium text-ink ring-[1.5px] ring-ink ring-inset"
                       >
                         {c}
                       </li>
@@ -472,7 +467,7 @@ function CoachSpace({
                   <ul className="flex flex-col gap-2.5">
                     {person.highlights.map((h) => (
                       <li key={h} className="flex items-start gap-3">
-                        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-panel">
+                        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-ivory-2">
                           <Medal aria-hidden className="size-4" />
                         </span>
                         <span className="pt-1 text-[0.9375rem]">{h}</span>
@@ -492,7 +487,7 @@ function CoachSpace({
                     {person.specialties.map((s) => (
                       <li
                         key={s}
-                        className="inline-flex h-6 items-center rounded-full px-2.5 text-[0.75rem] font-medium text-ink-2 ring-1 ring-line-strong"
+                        className="inline-flex h-6 items-center rounded-full px-2.5 text-[0.75rem] font-medium text-ink-2 ring-1 ring-ivory-line"
                       >
                         {s}
                       </li>
@@ -508,7 +503,7 @@ function CoachSpace({
                         <li
                           key={p.id}
                           aria-current="true"
-                          className="inline-flex h-9 items-center rounded-full bg-panel px-3.5 text-[0.875rem] font-medium"
+                          className="inline-flex h-9 items-center rounded-full bg-ivory-2 px-3.5 text-[0.875rem] font-medium"
                         >
                           {p.name}
                         </li>
@@ -520,7 +515,7 @@ function CoachSpace({
                             search={searchFor(p.id, preview)}
                             hash={`coach-${person.id}`}
                             viewTransition
-                            className={buttonClass("light", "sm")}
+                            className={buttonClass("outline", "sm")}
                           >
                             {p.name}
                           </Link>
@@ -552,10 +547,13 @@ function AlsoOnTheTeam({
   preview: boolean;
 }) {
   return (
-    <section aria-labelledby="also-title" className="rounded-[28px] bg-card py-5 sm:p-6">
+    <section
+      aria-labelledby="also-title"
+      className="rounded-[28px] bg-ivory py-5 ring-[1.5px] ring-ivory-line ring-inset sm:p-6"
+    >
       <h2
         id="also-title"
-        className="px-5 text-[1.375rem] leading-tight font-light tracking-[-0.01em] sm:px-0"
+        className="px-5 font-display text-[2rem] leading-tight tracking-[-0.01em] sm:px-0"
       >
         Also on the team
       </h2>
@@ -613,164 +611,131 @@ export function TeamPage({
   const actions = contactActions(academy);
   const [actionsRef, barShown] = useScrolledPast(actions.length > 0);
   return (
-    <div className="min-h-dvh lg:grid lg:grid-cols-[minmax(0,400px)_minmax(0,1fr)] lg:gap-3 lg:p-3 xl:grid-cols-[440px_minmax(0,1fr)]">
-      <a
-        href="#team-title"
-        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-70 focus:rounded-full focus:bg-lime focus:px-5 focus:py-2.5 focus:font-semibold focus:text-ink"
-      >
-        Skip to the team
-      </a>
-      <aside className="dark-zone flex flex-col gap-6 rounded-b-[32px] bg-night px-4 pt-[calc(env(safe-area-inset-top)+20px)] pb-7 text-night-ink sm:px-6 lg:sticky lg:top-3 lg:max-h-[calc(100dvh-24px)] lg:overflow-y-auto lg:rounded-[32px] lg:p-6">
-        <header className="flex flex-col gap-5">
-          <Link
-            to="/a/$slug"
-            params={{ slug }}
-            search={searchFor(program?.id, preview)}
-            className="flex items-center gap-3 self-start rounded-[20px] pr-2 outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime"
-          >
-            <AcademyLogo name={academy.name} logoKey={academy.logoKey} size={48} />
-            <span className="min-w-0">
-              <span className="block text-[1rem] leading-tight font-medium break-words">
-                {academy.name}
-              </span>
-              <span className="mt-1 flex items-center gap-1 text-[0.8125rem] text-night-ink-2">
-                <ArrowLeft aria-hidden className="size-3.5" />
-                Academy page
-              </span>
-            </span>
-          </Link>
-          <h1 className="text-[2rem] leading-[1.08] font-light tracking-[-0.02em] lg:text-[2.5rem]">
+    <SiteFrame
+      page={page}
+      slug={slug}
+      current="team"
+      bar={
+        actions.length ? (
+          <ContactBar academyName={academy.name} actions={actions} shown={barShown} />
+        ) : undefined
+      }
+    >
+      <div className="mx-auto max-w-[1100px] px-3 pt-4 sm:px-6 lg:grid lg:grid-cols-[minmax(0,340px)_minmax(0,1fr)] lg:gap-4 lg:pt-10 xl:grid-cols-[minmax(0,360px)_minmax(0,1fr)]">
+        <aside className="dark-zone flex flex-col gap-6 rounded-[32px] bg-night px-5 pt-7 pb-7 text-night-ink sm:px-6 lg:sticky lg:top-[100px] lg:max-h-[calc(100dvh-116px)] lg:self-start lg:overflow-y-auto lg:p-6">
+          <h1 className="font-display text-[2.5rem] leading-[1.02] tracking-[-0.02em] lg:text-[3rem]">
             Meet the team
           </h1>
-        </header>
-        {teams.length ? (
-          <TeamPicker
-            teams={teams}
-            everyone={academy.coaches}
-            selected={program?.id ?? EVERYONE}
-            slug={slug}
-            preview={preview}
-            fmt={fmt}
-          />
-        ) : null}
-        {program ? <ProgramTimes program={program} fmt={fmt} /> : null}
-        {program ? <ProgramPlace program={program} fmt={fmt} /> : null}
-        <div ref={actionsRef}>
-          <TeamActions
-            program={program}
-            action={action}
-            actions={actions}
-            slug={slug}
-            preview={preview}
-          />
-        </div>
-        {program ? null : <AcademyContactRows academy={academy} />}
-        {academy.packages.length ? (
-          <div className="mt-auto hidden border-t border-night-line pt-5 lg:block">
-            <Link
-              to="/a/$slug/rates"
-              params={{ slug }}
-              search={searchFor(undefined, preview)}
-              className={buttonClass("night", "md")}
-            >
-              <Printer aria-hidden className="size-4.5" />
-              Printable rates
-            </Link>
+          {teams.length ? (
+            <TeamPicker
+              teams={teams}
+              everyone={academy.coaches}
+              selected={program?.id ?? EVERYONE}
+              slug={slug}
+              preview={preview}
+              fmt={fmt}
+            />
+          ) : null}
+          {program ? <ProgramTimes program={program} fmt={fmt} /> : null}
+          {program ? <ProgramPlace program={program} fmt={fmt} /> : null}
+          <div ref={actionsRef}>
+            <TeamActions
+              program={program}
+              action={action}
+              actions={actions}
+              slug={slug}
+              preview={preview}
+            />
           </div>
-        ) : null}
-      </aside>
+          {program ? null : <AcademyContactRows academy={academy} />}
+          {academy.packages.length ? (
+            <div className="mt-auto hidden border-t border-night-line pt-5 lg:block">
+              <Link
+                to="/a/$slug/rates"
+                params={{ slug }}
+                search={searchFor(undefined, preview)}
+                className={buttonClass("night", "md")}
+              >
+                <Printer aria-hidden className="size-4.5" />
+                Printable rates
+              </Link>
+            </div>
+          ) : null}
+        </aside>
 
-      <main
-        id="main"
-        className={`flex min-w-0 flex-col gap-4 px-3 pt-4 sm:px-6 lg:px-1 lg:pt-1 ${actions.length ? "pb-[calc(104px+env(safe-area-inset-bottom))] lg:pb-6" : "pb-8"}`}
-      >
-        {page.kind === "preview" ? (
-          <PreviewBanner
-            page="team"
-            listed={page.academy.listed}
-            publicUrl={page.academy.publicUrl}
-          />
-        ) : null}
-        {people.length ? (
-          <section aria-labelledby="team-title" className="flex flex-col gap-3">
-            <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-1 px-1">
+        <div className="flex min-w-0 flex-col gap-4 pt-8 lg:pt-0">
+          {people.length ? (
+            <section aria-labelledby="team-title" className="flex flex-col gap-3">
+              <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-3 px-1">
+                <h2
+                  id="team-title"
+                  className="scroll-mt-28 font-display text-[2.5rem] leading-[1.05] tracking-[-0.02em] lg:text-[3rem]"
+                >
+                  {program ? `${program.name} coaches` : "The whole team"}
+                </h2>
+                <p className="num text-[0.875rem] text-ink-2">
+                  {view.kind === "program"
+                    ? teamCountLine(view.team)
+                    : `${people.length} ${people.length === 1 ? "person" : "people"}`}
+                </p>
+              </div>
+              <ol className="flex flex-col gap-3">
+                {people.map((p, i) => (
+                  <CoachSpace
+                    key={p.id}
+                    person={p}
+                    lead={view.kind === "program" && view.team.leadId === p.id}
+                    programs={programsOf(teams, p.id)}
+                    current={program?.id ?? null}
+                    first={i === 0}
+                    slug={slug}
+                    preview={preview}
+                  />
+                ))}
+              </ol>
+            </section>
+          ) : (
+            <section
+              aria-labelledby="team-title"
+              className="rounded-[28px] bg-ivory p-5 ring-[1.5px] ring-ivory-line ring-inset sm:p-6"
+            >
+              <div className="flex size-12 items-center justify-center rounded-full bg-lime text-ink">
+                <UsersRound aria-hidden className="size-5" />
+              </div>
               <h2
                 id="team-title"
-                className="scroll-mt-4 text-[2rem] leading-tight font-light tracking-[-0.02em] lg:text-[2.5rem]"
+                className="mt-3 font-display text-[2rem] leading-tight tracking-[-0.01em]"
               >
-                {program ? `${program.name} coaches` : "The whole team"}
+                The team is on its way
               </h2>
-              <p className="num text-[0.875rem] text-ink-2">
-                {view.kind === "program"
-                  ? teamCountLine(view.team)
-                  : `${people.length} ${people.length === 1 ? "person" : "people"}`}
+              <p className="mt-2 max-w-[60ch] text-ink-2">
+                {academy.name} hasn't added its coaches here yet.
+                {actions.length ? " Message or call them to ask." : ""}
               </p>
-            </div>
-            <ol className="flex flex-col gap-3">
-              {people.map((p, i) => (
-                <CoachSpace
-                  key={p.id}
-                  person={p}
-                  lead={view.kind === "program" && view.team.leadId === p.id}
-                  programs={programsOf(teams, p.id)}
-                  current={program?.id ?? null}
-                  first={i === 0}
-                  slug={slug}
-                  preview={preview}
-                />
-              ))}
-            </ol>
-          </section>
-        ) : (
-          <section aria-labelledby="team-title" className="rounded-[28px] bg-card p-5 sm:p-6">
-            <div className="flex size-12 items-center justify-center rounded-full bg-lime text-ink">
-              <UsersRound aria-hidden className="size-5" />
-            </div>
-            <h2 id="team-title" className="mt-3 text-[1.375rem] leading-tight font-light">
-              The team is on its way
-            </h2>
-            <p className="mt-2 max-w-[60ch] text-ink-2">
-              {academy.name} hasn't added its coaches here yet.
-              {actions.length ? " Message or call them to ask." : ""}
-            </p>
-          </section>
-        )}
+            </section>
+          )}
 
-        {view.kind === "program" && view.others.length ? (
-          <AlsoOnTheTeam people={view.others} slug={slug} preview={preview} />
-        ) : null}
+          {view.kind === "program" && view.others.length ? (
+            <AlsoOnTheTeam people={view.others} slug={slug} preview={preview} />
+          ) : null}
 
-        {program && action === "enroll" ? (
-          // Phones: the decision comes after meeting the coaches, so Enroll closes the roster.
-          <Link
-            to="/a/$slug"
-            params={{ slug }}
-            search={searchFor(program.id, preview)}
-            hash="rates-title"
-            className={buttonClass("dark", "lg", "w-full lg:hidden")}
-          >
-            Enroll in {program.name}
-            <ArrowRight aria-hidden className="size-5" />
-          </Link>
-        ) : null}
-
-        <footer className="flex flex-wrap items-center justify-between gap-3 px-1 pt-2">
-          <Link
-            to="/a/$slug"
-            params={{ slug }}
-            search={searchFor(program?.id, preview)}
-            className={buttonClass("light", "md")}
-          >
-            <ArrowLeft aria-hidden className="size-4.5" />
-            Back to the academy page
-          </Link>
-          <MadeWithCoachMan />
-        </footer>
-      </main>
-
-      {actions.length ? (
-        <ContactBar academyName={academy.name} actions={actions} shown={barShown} />
-      ) : null}
-    </div>
+          {program && action === "enroll" ? (
+            // Phones: the decision comes after meeting the coaches, so Enroll closes the roster.
+            <Link
+              to="/a/$slug/enroll"
+              params={{ slug }}
+              search={searchFor(program.id, preview)}
+              className={buttonClass("dark", "lg", "w-full lg:hidden")}
+            >
+              Enroll in {program.name}
+              <ArrowRight aria-hidden className="size-5" />
+            </Link>
+          ) : null}
+        </div>
+      </div>
+      <div className="pt-20 sm:pt-28">
+        <QuestionsBox academy={academy} />
+      </div>
+    </SiteFrame>
   );
 }

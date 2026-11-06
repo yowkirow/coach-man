@@ -44,7 +44,7 @@ const STUDENT_PHOTO_RE = new RegExp(`^ws/(${SEGMENT})/clients/(${SEGMENT})/(${PH
 const STUDENT_FOLDER_RE = new RegExp(
   `^ws/(${SEGMENT})/clients/(${SEGMENT})/(${SEGMENT})/(${FILE})$`,
 );
-const PUBLIC_RE = new RegExp(`^ws/(${SEGMENT})/public/(?:coaches/)?(${FILE})$`);
+const PUBLIC_RE = new RegExp(`^ws/(${SEGMENT})/public/(?:(?:coaches|photos)/)?(${FILE})$`);
 
 /** An R2 key a family might ask for, by what it is (spec §8). */
 export type PortalFileKey =
@@ -94,8 +94,8 @@ const FOLDER_OWNER: Record<string, NonNullable<ProofOwner["kind"]>> = {
 
 /**
  * Whether the caller may read a file: their own students' photos, the public images (logos,
- * payment QR codes, coach photos) of the academies they belong to, payment proofs of their
- * students, and photos of their students' authorized pickup people. A file in a student's
+ * payment QR codes, coach photos, website photos) of the academies they belong to, payment proofs
+ * of their students, and photos of their students' authorized pickup people. A file in a student's
  * subfolder is checked against the row its key belongs to (`owner`: the payment_submission or
  * authorized_pickup found by that exact key), never by its folder alone: a key with no row, a row
  * from the other table, a row of someone else's student, or one from another academy is refused.

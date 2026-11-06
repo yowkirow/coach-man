@@ -9,6 +9,8 @@ import type { Format } from "../../lib/format";
 import { plural } from "../../lib/format";
 import { orderedWeekdays, weekdaysLabel } from "../schedule/dates";
 
+export { programVenue } from "./site-data";
+
 /** The month-end rule as the rates sheet says it. */
 export const MONTH_END_NOTE =
   "Valid until the end of the month; best to enroll early in the month.";
@@ -83,13 +85,6 @@ export function validityLine(t: Pick<PublicPackageDto, "validityMode" | "validit
 /** "4–6 sessions" as the academy labels it, else the number of sessions it pays for. */
 export function sessionsLabel(t: Pick<PublicPackageDto, "sessionsLabel" | "credits">): string {
   return t.sessionsLabel?.trim() || plural(t.credits, "session");
-}
-
-/** Where a program meets: the first of its weekly sessions with a venue, else its default venue. */
-export function programVenue(
-  p: Pick<PublicProgramDto, "schedule" | "venue">,
-): PublicVenueDto | null {
-  return p.schedule.find((s) => s.venue)?.venue ?? p.venue;
 }
 
 /** A maps search for a venue (the academy's own map link is used for its address). */

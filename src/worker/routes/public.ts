@@ -23,7 +23,8 @@ const PUBLIC_DATA_CACHE = "public, max-age=60";
 
 /**
  * Unauthenticated reads (/api/public, rate-limited per connection): the academy's public images
- * (logo, payment QR, coach photos) under ws/<id>/public/, and a listed academy's public page data.
+ * (logo, cover and website photos, payment QR, coach photos) under ws/<id>/public/, and a listed
+ * academy's public page data.
  * Unlisted academies, legacy `ws-…` addresses, and unknown ones all answer the same 404.
  */
 export const publicRoutes = new Hono<AppBindings>()
@@ -56,7 +57,7 @@ export const publicRoutes = new Hono<AppBindings>()
     });
   })
 
-  /** The public academy page: profile, programs, tiers with prices, coaches, consent titles. */
+  /** The public academy page: profile, programs, tiers with prices, coaches, photos, consent titles. */
   .get("/academies/:slug", async (c) => {
     const found = await loadPublicAcademy(c.var.db, { slug: c.req.param("slug") });
     if (!found) throw notFound("Academy");

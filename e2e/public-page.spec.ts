@@ -46,6 +46,7 @@ const PUBLIC_KEYS = new Set([
   "programs",
   "packages",
   "coaches",
+  "photos",
   "consents",
   "today",
   "updatedAt",
@@ -93,6 +94,9 @@ const PUBLIC_KEYS = new Set([
   "kind",
   "version",
   "appliesTo",
+  // website photos (and their "id")
+  "key",
+  "caption",
 ]);
 
 /** Keys of a JSON value, recursively (the socials map's keys are its networks). */
@@ -149,21 +153,79 @@ test.describe("the public academy page", () => {
     const page = await visitor.newPage();
     const errors = watchErrors(page);
     await visit(page, `/a/${slug}`);
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText(PROFILE.name);
-    await expect(page.getByText(PROFILE.tagline)).toBeVisible();
+    // The landing page leads with the academy's own line, its name read first.
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+      `${PROFILE.name}: ${PROFILE.tagline}`,
+    );
     await expect(page).toHaveTitle(`${PROFILE.name} · ${PROFILE.tagline}`);
+    await expect(page.getByRole("navigation", { name: PROFILE.name })).toBeVisible();
 
-    // The program: its days and times from the weekly sessions, venue, and coaches.
-    const pass = page.locator("section", {
-      has: page.getByRole("heading", { name: "Evening program", level: 2 }),
-    });
-    await expect(pass).toContainText("Tue");
-    await expect(pass).toContainText("Thu");
-    await expect(pass).toContainText("Riverside Park Courts");
-    await expect(pass.getByRole("link", { name: /Directions/ })).toBeVisible();
+    // The program: its days and times from the weekly sessions, venue, and its price from.
+    const programs = page.getByRole("region", { name: "Evening program" });
+    await expect(programs).toContainText("Tue");
+    await expect(programs).toContainText("Thu");
+    await expect(programs).toContainText("Riverside Park Courts");
+    await expect(programs.getByRole("link", { name: /Directions/ })).toBeVisible();
+    await expect(programs).toContainText("From ₱1,500 per head");
 
-    // Its tiers, the featured one marked, prices per head, month-end validity, inclusions.
-    await expect(page.getByRole("heading", { name: "Rates", level: 2 })).toBeVisible();
+    // About, the coaches (proved by their own profiles), and the ways to reach the academy.
+    await expect(page.getByRole("region", { name: `About ${PROFILE.name}` })).toContainText(
+      PROFILE.about,
+    );
+    const coaches = page.getByRole("region", { name: "The coaches" });
+    await expect(coaches).toContainText("Robin Coach");
+    await expect(coaches).toContainText("RPO licensed coach");
+    await expect(coaches).toContainText("Head coach");
+    await expect(coaches.getByRole("link", { name: "Meet the team" })).toHaveAttribute(
+      "href",
+      `/a/${slug}/team`,
+    );
+    await expect(page.getByRole("link", { name: "Message us" }).first()).toHaveAttribute(
+      "href",
+      "https://m.me/riversidepickleball",
+    );
+    const questions = page.getByRole("region", { name: "Questions?" });
+    await expect(
+      questions.getByRole("link", { name: `Call ${PROFILE.contactPhone}` }),
+    ).toHaveAttribute("href", "tel:+639175550100");
+    await questions.getByText("Read the policies").click();
+    await expect(questions).toContainText(PROFILE.policies);
+    const footer = page.getByRole("contentinfo");
+    await expect(footer.getByRole("link", { name: PROFILE.contactPhone })).toHaveAttribute(
+      "href",
+      "tel:+639175550100",
+    );
+    await expect(footer.getByRole("link", { name: PROFILE.address })).toHaveAttribute(
+      "href",
+      PROFILE.mapUrl,
+    );
+    await expect(footer.getByRole("link", { name: /Facebook/ })).toHaveAttribute(
+      "href",
+      PROFILE.socials.facebook,
+    );
+
+    // Nothing unpublished, and no way to enroll while the academy isn't taking enrollments.
+    const nothingHidden = async () => {
+      for (const hidden of [
+        "Secret squad",
+        "Hidden tier",
+        "Draft tier",
+        "Retired tier",
+        "Beginners",
+      ]) {
+        await expect(page.getByText(hidden)).toHaveCount(0);
+      }
+      await expect(page.getByRole("button", { name: /enrol/i })).toHaveCount(0);
+      await expect(page.getByRole("link", { name: /enrol/i })).toHaveCount(0);
+    };
+    await nothingHidden();
+
+    // The packages have their own page: prices per head, month-end validity, inclusions. Its
+    // tiers say enrollment is closed and how to get in touch instead.
+    await programs.getByRole("link", { name: "See packages" }).click();
+    await expect(page).toHaveURL(new RegExp(`/a/${slug}/enroll\\?program=${program.id}$`));
+    await expect(page.getByRole("heading", { name: "Packages and rates", level: 1 })).toBeVisible();
+    await expect(page).toHaveTitle(`Enroll now · ${PROFILE.name}`);
     const tiers = page.getByRole("article");
     await expect(tiers).toHaveCount(3);
     await expect(page.getByRole("article", { name: "Trial" })).toContainText("₱1,500");
@@ -174,55 +236,13 @@ test.describe("the public academy page", () => {
     await expect(monthly).toContainText("Best to enroll early in the month.");
     await expect(monthly).toContainText("Court fees included");
     await expect(monthly).toContainText("Who it's for");
+    await expect(monthly).toContainText("Enrollment is closed for now");
     const plus = page.getByRole("article", { name: "Monthly plus" });
     await expect(plus).toContainText("Featured");
     await expect(plus).toContainText("₱7,000");
+    await nothingHidden();
 
-    // About, coaches, contact, and policies.
-    await expect(page.getByRole("region", { name: `About ${PROFILE.name}` })).toContainText(
-      PROFILE.about,
-    );
-    const team = page.getByRole("region", { name: "The team" });
-    await expect(team).toContainText("Robin Coach");
-    await expect(team).toContainText("Head coach");
-    await expect(team.getByRole("link", { name: "Meet the team" })).toHaveAttribute(
-      "href",
-      `/a/${slug}/team?program=${program.id}`,
-    );
-    const contact = page.getByRole("region", { name: "Contact" });
-    await expect(contact.getByRole("link", { name: PROFILE.contactPhone })).toHaveAttribute(
-      "href",
-      "tel:+639175550100",
-    );
-    await expect(contact.getByRole("link", { name: /Open the map/ })).toHaveAttribute(
-      "href",
-      PROFILE.mapUrl,
-    );
-    await expect(contact.getByRole("link", { name: /Facebook/ })).toHaveAttribute(
-      "href",
-      PROFILE.socials.facebook,
-    );
-    await expect(page.getByRole("link", { name: "Message us" })).toHaveAttribute(
-      "href",
-      "https://m.me/riversidepickleball",
-    );
-    await expect(page.getByRole("region", { name: "Policies" })).toContainText(PROFILE.policies);
-
-    // Nothing unpublished, and no enroll button while the academy isn't taking enrollments (its
-    // tiers say enrollment is closed and how to get in touch instead).
-    for (const hidden of [
-      "Secret squad",
-      "Hidden tier",
-      "Draft tier",
-      "Retired tier",
-      "Beginners",
-    ]) {
-      await expect(page.getByText(hidden)).toHaveCount(0);
-    }
-    await expect(page.getByRole("button", { name: /enrol/i })).toHaveCount(0);
-    await expect(page.getByRole("link", { name: /enrol/i })).toHaveCount(0);
-
-    await page.getByRole("link", { name: "View printable rates" }).click();
+    await page.getByRole("main").getByRole("link", { name: "Printable rates" }).click();
     await expect(page).toHaveURL(new RegExp(`/a/${slug}/rates$`));
     await expect(page.getByRole("heading", { name: "Rates and packages" })).toBeVisible();
     expect(errors).toEqual([]);
@@ -419,6 +439,14 @@ test.describe("the public academy page", () => {
       body: "Not yet.",
       active: false,
     });
+    // A website photo with a caption: the page gets its file and caption, and nothing else.
+    const photo = await uploadPng<{ id: string; key: string }>(
+      seeded.request,
+      "/academy/photos",
+      pngImage(),
+      "POST",
+    );
+    await api.patch(`/academy/photos/${photo.id}`, { caption: "Saturday clinic" });
     const slug = await listAcademy(api, info, {
       ...PROFILE,
       paymentInstructions: "INTERNAL-PAYMENT-NOTE",
@@ -442,6 +470,7 @@ test.describe("the public academy page", () => {
     expect(data.coaches.map((c) => c.name)).toEqual(["Robin Coach"]);
     expect(data.consents.map((c) => c.title)).toEqual(["Activity waiver"]);
     expect(data.packages.every((p) => typeof p.priceMinor === "number")).toBe(true);
+    expect(data.photos).toEqual([{ id: photo.id, key: photo.key, caption: "Saturday clinic" }]);
 
     const consents = await request.get(`/api/public/academies/${slug}/consents`);
     expect(consents.status()).toBe(200);

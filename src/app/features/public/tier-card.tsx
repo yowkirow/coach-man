@@ -2,10 +2,10 @@ import type { PublicPackageDto } from "@shared/api-types";
 import { CalendarRange, Check, Shirt, Star } from "lucide-react";
 import type { ReactNode } from "react";
 import type { Format } from "../../lib/format";
+import { tierInclusions, UNIFORM_WORDS } from "./site-data";
 import { MONTH_END_ADVICE, sessionsLabel, validityLine } from "./text";
 
-/** Inclusions that already name the uniform (so it isn't listed twice). */
-export const UNIFORM_WORDS = /uniform|shirt|jersey/i;
+export { UNIFORM_WORDS };
 
 /**
  * One package tier as families see it, on the public page and in the staff editor's preview:
@@ -24,22 +24,36 @@ export function TierCard({
   fmt: Format;
   headingLevel?: 2 | 3 | 4;
   enroll?: ReactNode;
-  /** The card's own tone when it isn't the featured tier: white, or panel grey on white. */
-  surface?: "card" | "panel";
+  /**
+   * The card's own tone when it isn't the featured tier: white, panel grey on white, or ivory with
+   * a ruled edge (the academy's website).
+   */
+  surface?: "card" | "panel" | "ivory";
   className?: string;
 }) {
   const Heading = `h${headingLevel}` as "h2" | "h3" | "h4";
   const featured = tier.highlight;
   const headingId = `tier-${tier.id}`;
   const quiet = featured ? "text-ink/75" : "text-ink-2";
-  const inclusions = [...tier.inclusions];
-  if (tier.includesUniform && !inclusions.some((i) => UNIFORM_WORDS.test(i))) {
-    inclusions.push("Training uniform included");
-  }
+  const inclusions = tierInclusions(tier);
+  const tone = featured
+    ? "bg-lime"
+    : surface === "ivory"
+      ? "bg-ivory ring-[1.5px] ring-ivory-line ring-inset"
+      : surface === "panel"
+        ? "bg-panel"
+        : "bg-card";
+  const well = featured
+    ? "bg-white/45"
+    : surface === "ivory"
+      ? "bg-ivory-2"
+      : surface === "panel"
+        ? "bg-card"
+        : "bg-panel";
   return (
     <article
       aria-labelledby={headingId}
-      className={`flex flex-col rounded-[28px] p-5 sm:p-6 ${featured ? "bg-lime" : surface === "panel" ? "bg-panel" : "bg-card"} ${className}`}
+      className={`flex flex-col rounded-[28px] p-5 sm:p-6 ${tone} ${className}`}
     >
       <div className="flex items-start justify-between gap-3">
         <Heading
@@ -97,9 +111,7 @@ export function TierCard({
       ) : null}
 
       {tier.audience || tier.commitmentNote || tier.asksSelfRating ? (
-        <div
-          className={`mt-5 flex flex-col gap-3 rounded-[22px] p-4 ${featured ? "bg-white/45" : surface === "panel" ? "bg-card" : "bg-panel"}`}
-        >
+        <div className={`mt-5 flex flex-col gap-3 rounded-[22px] p-4 ${well}`}>
           {tier.audience ? (
             <div>
               <p className={`text-[0.8125rem] font-medium ${quiet}`}>Who it's for</p>

@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { ArrowLeft, Check, Printer } from "lucide-react";
 import { Button, buttonClass } from "../../components/ui/button";
 import type { Format } from "../../lib/format";
-import { AcademyLogo, PreviewBanner } from "./academy-page";
+import { AcademyLogo, PreviewBanner } from "./public-ui";
 import type { PublicPage } from "./queries";
 import {
   agesLabel,

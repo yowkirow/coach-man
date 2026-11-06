@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "@fontsource-variable/figtree/wght.css";
+@import "@fontsource-variable/eb-garamond/wght.css";
 
 /*
  * CoachMan design system, pinned to the user's reference (Dynamics CRM concept by RonDesignLab):
@@ -8,6 +9,8 @@
  */
 @theme {
   --font-sans: "Figtree Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* The academy website's headlines (public pages only); everything else stays Figtree. */
+  --font-display: "EB Garamond Variable", ui-serif, Georgia, "Times New Roman", serif;
 
   /* Light zone */
   --color-canvas: #e5e5e7;
@@ -44,6 +47,15 @@
   --color-mint: #bfe9d0;
   --color-sync: #fb923c;
 
+  /* The academy website: a ball-tinted ivory ground, and court green for the coaches' proof. */
+  --color-ivory: #fbfbf0;
+  --color-ivory-2: #f1f2df;
+  --color-ivory-line: #d6d7c2;
+  --color-court: #0f4a3b;
+  --color-court-2: #175b4a;
+  --color-court-ink: #f1f7f1;
+  --color-court-ink-2: #b8d2c3;
+
   --shadow-pop: 0 24px 48px -16px rgb(17 17 17 / 0.28), 0 8px 20px -10px rgb(17 17 17 / 0.14);
   --shadow-lift: 0 1px 2px rgb(17 17 17 / 0.06), 0 4px 12px -4px rgb(17 17 17 / 0.08);
 
@@ -72,6 +84,12 @@
     font-size: 0.9375rem;
     line-height: 1.45;
     overscroll-behavior-y: none;
+  }
+
+  /* The academy website sits on ivory, overscroll included. */
+  html:has(.site-root),
+  html:has(.site-root) body {
+    background: var(--color-ivory);
   }
 
   ::selection {
@@ -159,6 +177,38 @@
 @layer components {
   .num {
     font-variant-numeric: tabular-nums lining-nums;
+  }
+
+  /* The academy website. Its root isolates stacking, so a slab's tucked corners stay above the
+     page's own ground. */
+  .site-root {
+    isolation: isolate;
+  }
+
+  /* A slab: a full-width sheet with large corners. One that follows another reaches up behind it,
+     so its color shows in the corners above (stacked sheets). */
+  .slab {
+    position: relative;
+    border-radius: 32px;
+  }
+  .slab + .slab::before {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    top: -64px;
+    height: 64px;
+    z-index: -1;
+    background: inherit;
+  }
+  @media (min-width: 640px) {
+    .slab {
+      border-radius: 48px;
+    }
+  }
+  @media (min-width: 1024px) {
+    .slab {
+      border-radius: 64px;
+    }
   }
 
   .safe-bottom {

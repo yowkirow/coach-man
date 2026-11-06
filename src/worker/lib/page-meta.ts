@@ -119,7 +119,7 @@ export function academyPageMeta(input: {
     input.page === "rates"
       ? summarize(`Rates and packages at ${a.name}${about ? `. ${about}` : "."}`)
       : input.page === "enroll"
-        ? summarize(`Enroll at ${a.name}${about ? `. ${about}` : "."}`)
+        ? summarize(`Packages and enrollment at ${a.name}${about ? `. ${about}` : "."}`)
         : about || `Programs, schedule, rates, and coaches at ${a.name}.`;
   const imageKey = a.coverKey ?? a.logoKey;
   return {
@@ -127,7 +127,7 @@ export function academyPageMeta(input: {
       input.page === "rates"
         ? `Rates and packages · ${a.name}`
         : input.page === "enroll"
-          ? `Enroll · ${a.name}`
+          ? `Enroll now · ${a.name}`
           : a.name,
     description,
     image: imageKey ? publicImageUrl(base, imageKey) : `${base}/icons/icon-512.png`,

@@ -132,12 +132,28 @@ export interface AcademyDto {
   socials: Partial<Record<AcademySocial, string>>;
   /** Public R2 keys (`ws/<id>/public/…`): staff read them through /api/v1/files, anyone through /api/public/files. */
   logoKey: string | null;
+  /** The big photo on the academy's website (landscape, at most 1800 px on its long side). */
+  coverKey: string | null;
   paymentInstructions: string | null;
   paymentQrKey: string | null;
   policies: string | null;
   enrollmentOpen: boolean;
   listed: boolean;
   updatedAt: number;
+}
+
+/**
+ * GET /api/v1/academy/photos (everyone on the team; changes take `settings`): a photo on the
+ * academy's website, in the academy's order.
+ */
+export interface AcademyPhotoDto {
+  id: string;
+  /** Public R2 key (`ws/<id>/public/photos/…`). */
+  key: string;
+  /** The line under the photo, or null. */
+  caption: string | null;
+  sortOrder: number;
+  createdAt: number;
 }
 
 /** A staff member as pickers and avatars need them (GET /api/v1/coaches, current staff only). */
@@ -1374,6 +1390,15 @@ export interface PublicConsentDocumentDto extends PublicConsentRefDto {
   body: string;
 }
 
+/** A photo on the academy's website (courts, sessions, camps), in the academy's order. */
+export interface PublicAcademyPhotoDto {
+  id: string;
+  /** Public R2 key (`ws/<id>/public/photos/…`): /api/public/files. */
+  key: string;
+  /** A short line under the photo, or null. */
+  caption: string | null;
+}
+
 export interface PublicAcademyDto {
   slug: string;
   name: string;
@@ -1399,6 +1424,8 @@ export interface PublicAcademyDto {
   /** Published tiers, in the academy's order (grouped by `programId` on the page). */
   packages: PublicPackageDto[];
   coaches: PublicCoachDto[];
+  /** The website photos, in the academy's order (none until the academy uploads some). */
+  photos: PublicAcademyPhotoDto[];
   /** Active, required consent documents (titles; the enrollment wizard reads the texts). */
   consents: PublicConsentRefDto[];
   /** Today in the academy's time zone (YYYY-MM-DD), for "as of" lines and start months. */

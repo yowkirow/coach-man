@@ -20,6 +20,7 @@ import {
 } from "../../features/settings/sections";
 import { SecuritySection } from "../../features/settings/security";
 import { VenuesSection } from "../../features/settings/venues";
+import { WebsitePhotosSection } from "../../features/settings/website-photos";
 import { PoliciesSection, WorkspaceSection } from "../../features/settings/workspace-settings";
 import { useCan, useMe } from "../../lib/hooks";
 
@@ -46,7 +47,12 @@ function SettingsPage() {
         />
         {desktop ? null : <SectionChips onJump={jump} />}
         <AcademySection />
-        {can.settings ? <AcademyProfileSection /> : null}
+        {can.settings ? (
+          <>
+            <AcademyProfileSection />
+            <WebsitePhotosSection />
+          </>
+        ) : null}
         <SettingsSection
           id="coach-profile"
           title="My coach profile"

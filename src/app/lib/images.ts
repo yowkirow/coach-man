@@ -5,8 +5,9 @@ export { portraitCrop } from "./image-crop";
 
 /**
  * Shrinks an image in the browser before upload (the API takes up to 1.5 MB). "cover" crops to a
- * square, for faces; "contain" keeps the whole picture, for logos and QR codes; "portrait" crops
- * 4:5 for half-body team page photos (see `portraitCrop`), and `maxEdge` is then its height.
+ * square, for faces; "contain" keeps the whole picture, for logos, QR codes, and website photos;
+ * "portrait" crops 4:5 for half-body team page photos (see `portraitCrop`), and `maxEdge` is then
+ * its height. A JPEG is saved at `quality` (0.86 unless asked otherwise).
  */
 export async function prepareImage(
   file: File,
@@ -14,10 +15,12 @@ export async function prepareImage(
     mode,
     maxEdge,
     type,
+    quality = 0.86,
   }: {
     mode: "cover" | "contain" | "portrait";
     maxEdge: number;
     type: "image/jpeg" | "image/png";
+    quality?: number;
   },
 ): Promise<Blob> {
   let bitmap: ImageBitmap;
@@ -58,22 +61,60 @@ export async function prepareImage(
     const scale = Math.min(1, maxEdge / Math.max(bitmap.width, bitmap.height));
     canvas.width = Math.max(1, Math.round(bitmap.width * scale));
     canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+    if (type === "image/jpeg") {
+      // A JPEG has no transparency: a cut-out's clear parts would turn black.
+      ctx.fillStyle = "white";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
     ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
   }
   bitmap.close();
   const blob = await new Promise<Blob | null>((resolve) =>
-    canvas.toBlob(resolve, type, type === "image/jpeg" ? 0.86 : undefined),
+    canvas.toBlob(resolve, type, type === "image/jpeg" ? quality : undefined),
   );
   if (!blob) throw new Error("This browser can't prepare images.");
   return blob;
 }
 
+/** What a website photo should weigh at most: under the API's 1.5 MB, with room to spare. */
+const WEBSITE_PHOTO_BYTES = 1_400_000;
+
+/** Ever lighter, then smaller, versions of a website photo, tried in turn until one fits. */
+const WEBSITE_PHOTO_STEPS = [
+  { maxEdge: 1800, quality: 0.86 },
+  { maxEdge: 1800, quality: 0.72 },
+  { maxEdge: 1400, quality: 0.72 },
+  { maxEdge: 1100, quality: 0.65 },
+] as const;
+
+/**
+ * A photo for the academy's website (its cover, or one for its gallery) ready to upload: the whole
+ * picture, aspect ratio kept, as a JPEG at most 1800 px on its long side. A very detailed photo
+ * that's still too heavy is saved lighter, then smaller, until it fits.
+ */
+export async function prepareWebsitePhoto(file: File): Promise<Blob> {
+  for (const step of WEBSITE_PHOTO_STEPS) {
+    const blob = await prepareImage(file, { mode: "contain", type: "image/jpeg", ...step });
+    if (blob.size <= WEBSITE_PHOTO_BYTES) return blob;
+  }
+  throw new Error("That photo is too large to upload, even made smaller. Try another photo.");
+}
+
 /** PUT an image to a staff API path; resolves with the JSON the API answers. */
-export async function putImage<T>(path: string, body: Blob): Promise<T> {
+export function putImage<T>(path: string, body: Blob): Promise<T> {
+  return sendImage<T>("PUT", path, body);
+}
+
+/** POST an image to a staff API path (a new website photo); resolves with the JSON answered. */
+export function postImage<T>(path: string, body: Blob): Promise<T> {
+  return sendImage<T>("POST", path, body);
+}
+
+async function sendImage<T>(method: "PUT" | "POST", path: string, body: Blob): Promise<T> {
   let res: Response;
   try {
     res = await fetch(`/api/v1${path}`, {
-      method: "PUT",
+      method,
       headers: { "Content-Type": body.type, Accept: "application/json" },
       credentials: "same-origin",
       body,

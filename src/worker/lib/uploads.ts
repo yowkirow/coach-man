@@ -149,6 +149,8 @@ export async function readImage(c: Context<AppBindings>, noun = "photo") {
  */
 export const publicKey = {
   logo: (workspaceId: string, ext: string) => `ws/${workspaceId}/public/logo-${uuidv7()}.${ext}`,
+  /** The big photo on the academy's website. */
+  cover: (workspaceId: string, ext: string) => `ws/${workspaceId}/public/cover-${uuidv7()}.${ext}`,
   paymentQr: (workspaceId: string, ext: string) =>
     `ws/${workspaceId}/public/payment-qr-${uuidv7()}.${ext}`,
   /** A staff member's square photo. */
@@ -160,7 +162,13 @@ export const publicKey = {
   /** A display-only team page person's photo. */
   teamPersonPortrait: (workspaceId: string, personId: string, ext: string) =>
     `ws/${workspaceId}/public/coaches/person-${personId}-${uuidv7()}.${ext}`,
+  /** A photo on the academy's website (its gallery). */
+  academyPhoto: (workspaceId: string, ext: string) =>
+    `ws/${workspaceId}/public/photos/${uuidv7()}.${ext}`,
 };
 
-/** ws/<workspaceId>/public/<file> or ws/<workspaceId>/public/coaches/<file>. */
-export const PUBLIC_KEY_RE = /^ws\/[A-Za-z0-9-]+\/public\/(coaches\/)?[A-Za-z0-9._-]+$/;
+/**
+ * ws/<workspaceId>/public/<file>, or a file in one of its folders: coaches/ (coach and team page
+ * photos) or photos/ (website photos). Nothing deeper.
+ */
+export const PUBLIC_KEY_RE = /^ws\/[A-Za-z0-9-]+\/public\/((coaches|photos)\/)?[A-Za-z0-9._-]+$/;

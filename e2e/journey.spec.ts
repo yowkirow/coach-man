@@ -231,7 +231,13 @@ test(
 
       await test.step("4. A parent finds the academy page and enrolls a new child in Monthly", async () => {
         await visit(family, `/a/${slug}`);
-        await expect(family.getByRole("heading", { level: 1 })).toHaveText(academyName);
+        // The academy's own line leads, its name read first.
+        await expect(family.getByRole("heading", { level: 1 })).toHaveText(
+          `${academyName}: No noise, all game`,
+        );
+        // The landing page leads to Enroll now, where the packages from the admin site wait.
+        await family.getByRole("main").getByRole("link", { name: "Enroll now" }).first().click();
+        await expect(family).toHaveURL(new RegExp(`/a/${slug}/enroll$`));
         for (const tier of ["Trial", "Monthly", "Monthly plus"]) {
           await expect(family.getByRole("article", { name: tier, exact: true })).toBeVisible();
         }

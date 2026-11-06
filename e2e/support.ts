@@ -397,15 +397,23 @@ export function pngImage(size = 32, rgb: [number, number, number] = [214, 236, 9
   ]);
 }
 
-/** PUTs a PNG to a staff upload route (/api/v1/…/photo, /academy/logo, /academy/payment-qr). */
-export async function uploadPng(request: APIRequestContext, path: string, image = pngImage()) {
+/**
+ * Sends a PNG to a staff upload route (/api/v1/…/photo, /academy/logo, /academy/payment-qr with
+ * PUT; a new website photo, /academy/photos, with POST).
+ */
+export async function uploadPng<T = { key?: string; photoKey?: string }>(
+  request: APIRequestContext,
+  path: string,
+  image = pngImage(),
+  method: "PUT" | "POST" = "PUT",
+): Promise<T> {
   const res = await request.fetch(`/api/v1${path}`, {
-    method: "PUT",
+    method,
     data: image,
     headers: { "Content-Type": "image/png" },
   });
   expect(res.ok(), await res.text()).toBe(true);
-  return (await res.json()) as { key?: string; photoKey?: string };
+  return (await res.json()) as T;
 }
 
 // --- Programs, tiers, and the public academy page ------------------------------------------------

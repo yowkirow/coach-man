@@ -3,7 +3,7 @@ import { type ReactNode, useEffect } from "react";
 import { ErrorState, Skeleton } from "../../components/ui/feedback";
 import { ApiRequestError, errorMessage } from "../../lib/api";
 import type { Format } from "../../lib/format";
-import { NotFoundPage } from "./academy-page";
+import { NotFoundPage } from "./public-ui";
 import { type PublicPage, usePublicAcademy, usePublicFormat } from "./queries";
 
 /** The tab title while the page is open (the Worker already wrote it into the HTML). */

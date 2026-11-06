@@ -153,10 +153,13 @@ test.describe("the team page", () => {
       page.getByRole("heading", { name: "Evening program coaches", level: 2 }),
     ).toBeVisible();
 
-    // And back to the academy page, on the same program, where the team has its own section.
-    await page.getByRole("link", { name: "Back to the academy page" }).click();
-    await expect(page).toHaveURL(new RegExp(`/a/${slug}\\?program=${program.id}`));
-    const team = page.getByRole("region", { name: "The team" });
+    // And home through the website's nav, where the coaches have their own section.
+    await page
+      .getByRole("navigation", { name: "Riverside Team Academy" })
+      .getByRole("link", { name: "Riverside Team Academy" })
+      .click();
+    await expect(page).toHaveURL(new RegExp(`/a/${slug}$`));
+    const team = page.getByRole("region", { name: "The coaches" });
     await expect(team).toContainText("Lia Santos");
     await expect(team).not.toContainText("Quinn Hidden");
     expect(errors).toEqual([]);

@@ -119,10 +119,13 @@ describe("public images", () => {
   it("serves only keys under ws/<id>/public/", () => {
     for (const key of [
       publicKey.logo(ws, "png"),
+      publicKey.cover(ws, "jpg"),
       publicKey.paymentQr(ws, "jpg"),
       publicKey.coachPhoto(ws, "01a1a990-35d2-76ad-a71b-a2be5c7c3de3", "webp"),
       publicKey.coachPortrait(ws, "01a1a990-35d2-76ad-a71b-a2be5c7c3de4", "jpg"),
       publicKey.teamPersonPortrait(ws, "01a1a990-35d2-76ad-a71b-a2be5c7c3de5", "jpg"),
+      publicKey.academyPhoto(ws, "jpg"),
+      `ws/${ws}/public/photos/01a1a990-35d2-76ad-a71b-a2be5c7c3de6.webp`,
     ]) {
       expect(PUBLIC_KEY_RE.test(key)).toBe(true);
     }
@@ -131,11 +134,19 @@ describe("public images", () => {
       `ws/${ws}/clients/c1/payments/proof.jpg`,
       `ws/${ws}/public/../clients/c1/photo.jpg`,
       `ws/${ws}/public/coaches/a/b.jpg`,
+      `ws/${ws}/public/photos/../x`,
+      `ws/${ws}/public/photos/a/b.jpg`,
+      `ws/${ws}/public/photos/`,
+      `ws/${ws}/public/albums/a.jpg`,
       `ws/${ws}/public/`,
       `public/logo.png`,
     ]) {
       expect(PUBLIC_KEY_RE.test(key)).toBe(false);
     }
+    expect(publicKey.cover(ws, "jpg")).toMatch(new RegExp(`^ws/${ws}/public/cover-[\\w-]+\\.jpg$`));
+    expect(publicKey.academyPhoto(ws, "png")).toMatch(
+      new RegExp(`^ws/${ws}/public/photos/[\\w-]+\\.png$`),
+    );
   });
 
   it("checks that an upload really is the image type it claims", () => {

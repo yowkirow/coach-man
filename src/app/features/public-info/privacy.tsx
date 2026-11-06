@@ -211,11 +211,13 @@ const SECTIONS: DocSection[] = [
         </p>
         <p>
           An academy can also publish a public page and a team page. Anyone can see what it puts
-          there: its contact details, programs, schedules, and prices; its coaches' profiles (name,
-          photos, title, bio, certifications, highlights, rating, specialties, languages, and years
+          there: its contact details, programs, schedules, and prices; its cover photo and the
+          website photos it uploads, with their captions; its coaches' profiles (name, photos,
+          title, bio, certifications, highlights, rating, specialties, languages, and years
           coaching); and anyone else it adds to its team page, as it describes them. A coach can
           keep their profile off these pages with “Show on the academy page”. Student and family
-          information is never public.
+          records are never public. If the academy's photos show people, the academy needs their
+          permission to publish them, and a parent's or guardian's for a child.
         </p>
         <p>Outside the academy, we use a small number of service providers:</p>
         <Bullets>
@@ -292,7 +294,8 @@ const SECTIONS: DocSection[] = [
           Every request is checked against your role and your links: coaches never get money
           details, and families only reach their own students. Students' photos, payment proofs, and
           pickup photos are private files served only to people allowed to see them. Only what an
-          academy publishes, such as its logo and its team's photos, is public.
+          academy publishes, such as its logo, its cover and website photos, and its team's photos,
+          is public.
         </li>
         <li>
           Important changes are logged with who made them and when: access given or ended, consents,

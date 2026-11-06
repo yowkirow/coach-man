@@ -317,6 +317,8 @@ export const dataRoutes = new Hono<AppBindings>()
         // The academy's own records from the academy features: a full backup has them too. Invite
         // links aren't records (and hold token hashes), so they stay out.
         academyProfile: schema.academyProfile,
+        // The website photos' rows (captions and order); the image files aren't in the backup.
+        academyPhotos: schema.academyPhoto,
         coachProfiles: schema.coachProfile,
         teamPeople: schema.teamPerson,
         studentCoaches: schema.clientCoach,

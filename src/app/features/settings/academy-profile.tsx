@@ -9,7 +9,7 @@ import {
 import { type AcademyUpdateInput, academyUpdateSchema } from "@shared/schemas";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { Copy, Eye, ImagePlus, QrCode, Trash2 } from "lucide-react";
+import { Copy, Eye, Image as ImageIcon, ImagePlus, QrCode, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { FileTrigger } from "react-aria-components";
 import { copyText } from "../../components/domain/invite-link";
@@ -19,7 +19,7 @@ import { Switch, TextAreaField, TextField } from "../../components/ui/field";
 import { api, errorMessage, fieldErrors, fileUrl } from "../../lib/api";
 import { initials } from "../../lib/format";
 import { useAcademy } from "../../lib/hooks";
-import { prepareImage, putImage } from "../../lib/images";
+import { prepareImage, prepareWebsitePhoto, putImage } from "../../lib/images";
 import { notify } from "../../lib/notify";
 import { useOnline } from "../../lib/offline";
 import { keys } from "../../lib/query";
@@ -77,7 +77,7 @@ const FRIENDLY: Record<string, string> = {
   mapUrl: "Use a full link that starts with https://",
 };
 
-/** After a save: the profile, and the name everywhere it shows (header, switcher). */
+/** After a save: the profile, the name everywhere it shows (header, switcher), and the public page. */
 function useStoreAcademy() {
   const qc = useQueryClient();
   return (academy: AcademyDto) => {
@@ -86,35 +86,63 @@ function useStoreAcademy() {
       old ? { ...old, workspace: { ...old.workspace, name: academy.name } } : old,
     );
     void qc.invalidateQueries({ queryKey: keys.account });
+    // The public page and its preview show the profile (and the cover photo).
+    void qc.invalidateQueries({ queryKey: keys.publicPreview });
+    void qc.invalidateQueries({ queryKey: keys.publicAcademy(academy.slug) });
   };
 }
 
-/** Logo or payment QR: upload (resized in the browser), replace, or remove. */
-function ImageControl({ kind, academy }: { kind: "logo" | "payment-qr"; academy: AcademyDto }) {
+/** The academy's images: what each is called, where its key is kept, and how it's prepared. */
+const IMAGES = {
+  logo: {
+    title: "Logo",
+    noun: "logo",
+    field: "logoKey",
+    icon: ImagePlus,
+    prepare: (file: File) =>
+      prepareImage(file, { mode: "contain", maxEdge: 512, type: "image/png" }),
+  },
+  // The whole photo, landscape or not: the website decides how to frame it.
+  cover: {
+    title: "Cover photo",
+    noun: "cover photo",
+    field: "coverKey",
+    icon: ImagePlus,
+    prepare: prepareWebsitePhoto,
+  },
+  "payment-qr": {
+    title: "QR code",
+    noun: "QR code",
+    field: "paymentQrKey",
+    icon: QrCode,
+    prepare: (file: File) =>
+      prepareImage(file, { mode: "contain", maxEdge: 1200, type: "image/jpeg" }),
+  },
+} as const;
+
+type ImageKind = keyof typeof IMAGES;
+
+/** Logo, cover photo, or payment QR: upload (resized in the browser), replace, or remove. */
+function ImageControl({ kind, academy }: { kind: ImageKind; academy: AcademyDto }) {
   const online = useOnline();
   const store = useStoreAcademy();
-  const current = kind === "logo" ? academy.logoKey : academy.paymentQrKey;
-  const noun = kind === "logo" ? "logo" : "QR code";
+  const { title, noun, field, icon: Icon, prepare } = IMAGES[kind];
+  const current = academy[field];
   const upload = useMutation({
     meta: { silent: true },
-    mutationFn: async (file: File) => {
-      const blob =
-        kind === "logo"
-          ? await prepareImage(file, { mode: "contain", maxEdge: 512, type: "image/png" })
-          : await prepareImage(file, { mode: "contain", maxEdge: 1200, type: "image/jpeg" });
-      return putImage<{ key: string }>(`/academy/${kind}`, blob);
-    },
+    mutationFn: async (file: File) =>
+      putImage<{ key: string }>(`/academy/${kind}`, await prepare(file)),
     onSuccess: ({ key }) => {
-      store(kind === "logo" ? { ...academy, logoKey: key } : { ...academy, paymentQrKey: key });
-      notify({ tone: "success", title: kind === "logo" ? "Logo updated" : "QR code updated" });
+      store({ ...academy, [field]: key });
+      notify({ tone: "success", title: `${title} updated` });
     },
   });
   const remove = useMutation({
     meta: { silent: true },
     mutationFn: () => api.del(`/academy/${kind}`),
     onSuccess: () => {
-      store(kind === "logo" ? { ...academy, logoKey: null } : { ...academy, paymentQrKey: null });
-      notify({ tone: "neutral", title: kind === "logo" ? "Logo removed" : "QR code removed" });
+      store({ ...academy, [field]: null });
+      notify({ tone: "neutral", title: `${title} removed` });
     },
   });
   const busy = upload.isPending || remove.isPending;
@@ -134,13 +162,7 @@ function ImageControl({ kind, academy }: { kind: "logo" | "payment-qr"; academy:
             size="sm"
             isDisabled={!online || busy}
             isPending={upload.isPending}
-            icon={
-              kind === "logo" ? (
-                <ImagePlus aria-hidden className="size-4" />
-              ) : (
-                <QrCode aria-hidden className="size-4" />
-              )
-            }
+            icon={<Icon aria-hidden className="size-4" />}
           >
             {current ? `Change ${noun}` : `Upload ${noun}`}
           </Button>
@@ -160,6 +182,31 @@ function ImageControl({ kind, academy }: { kind: "logo" | "payment-qr"; academy:
       </div>
       {error ? <InlineError>{errorMessage(error)}</InlineError> : null}
     </div>
+  );
+}
+
+/** The cover photo as a 16:9 frame (how wide screens show it), or the empty frame waiting for one. */
+function CoverPreview({ coverKey }: { coverKey: string | null }) {
+  const src = fileUrl(coverKey);
+  // A photo that can't load (offline, say) shows the empty frame instead of a broken image.
+  const [failed, setFailed] = useState<string | null>(null);
+  if (src && failed !== src) {
+    return (
+      <img
+        src={src}
+        alt="Your website's cover"
+        onError={() => setFailed(src)}
+        className="aspect-video w-full rounded-2xl bg-card object-cover"
+      />
+    );
+  }
+  return (
+    <span
+      aria-hidden
+      className="flex aspect-video w-full items-center justify-center rounded-2xl border border-dashed border-line-strong bg-card text-ink-3"
+    >
+      <ImageIcon className="size-8" />
+    </span>
   );
 }
 
@@ -203,9 +250,9 @@ function Preview({ academy, draft }: { academy: AcademyDto; draft: Draft }) {
 }
 
 /**
- * Settings: the academy's name, public address, logo, tagline, contact details, payment
- * instructions with a QR code, policies, and whether the public page and enrollment are open.
- * Owners and admins only (`settings`).
+ * Settings: the academy's name, public address, logo, its website's cover photo, tagline, contact
+ * details, payment instructions with a QR code, policies, and whether the public page and
+ * enrollment are open. Owners and admins only (`settings`).
  */
 export function AcademyProfileSection() {
   const online = useOnline();
@@ -298,6 +345,17 @@ export function AcademyProfileSection() {
                 on invites, your public page, and the family portal.
               </p>
               <ImageControl kind="logo" academy={academy} />
+            </div>
+          </div>
+
+          <div className="grid gap-4 rounded-[22px] bg-panel p-4 sm:grid-cols-[minmax(0,20rem)_minmax(0,1fr)] sm:items-start">
+            <CoverPreview coverKey={academy.coverKey} />
+            <div className="flex min-w-0 flex-col gap-2">
+              <p className="text-[0.9375rem] font-medium">Cover photo</p>
+              <p className="text-[0.8125rem] text-ink-2">
+                The big photo on your website. Landscape photos work best.
+              </p>
+              <ImageControl kind="cover" academy={academy} />
             </div>
           </div>
 

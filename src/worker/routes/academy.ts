@@ -56,6 +56,7 @@ export function toAcademyDto(
     mapUrl: p.mapUrl,
     socials,
     logoKey: p.logoKey,
+    coverKey: p.coverKey,
     paymentInstructions: p.paymentInstructions,
     paymentQrKey: p.paymentQrKey,
     policies: p.policies,
@@ -82,6 +83,7 @@ const SLUG_TAKEN = "That address is taken. Try another.";
 /** Which image an upload route manages. */
 const IMAGES = {
   logo: { column: "logoKey", noun: "logo", key: publicKey.logo },
+  cover: { column: "coverKey", noun: "cover photo", key: publicKey.cover },
   paymentQr: { column: "paymentQrKey", noun: "QR code", key: publicKey.paymentQr },
 } as const;
 
@@ -120,7 +122,8 @@ async function deleteImage(c: Context<AppBindings>, name: keyof typeof IMAGES) {
 /**
  * The academy profile (staff API). Everyone on the team reads it; owners and admins (`settings`)
  * change it, including the academy's name and its public address (organization.slug), and upload
- * its logo and payment QR code (public R2 keys).
+ * its logo, its website's cover photo, and its payment QR code (public R2 keys). The website's
+ * other photos are in routes/academy-photos.ts.
  */
 export const academyRoutes = new Hono<AppBindings>()
   .get("/academy", async (c) => c.json(await loadAcademy(c.var.db, c.var.workspaceId, c.env)))
@@ -203,5 +206,7 @@ export const academyRoutes = new Hono<AppBindings>()
 
   .put("/academy/logo", requireCap("settings"), (c) => putImage(c, "logo"))
   .delete("/academy/logo", requireCap("settings"), (c) => deleteImage(c, "logo"))
+  .put("/academy/cover", requireCap("settings"), (c) => putImage(c, "cover"))
+  .delete("/academy/cover", requireCap("settings"), (c) => deleteImage(c, "cover"))
   .put("/academy/payment-qr", requireCap("settings"), (c) => putImage(c, "paymentQr"))
   .delete("/academy/payment-qr", requireCap("settings"), (c) => deleteImage(c, "paymentQr"));

@@ -309,7 +309,7 @@ test.describe("accessibility of the family portal", () => {
 test.describe("accessibility of the academy page and consents", () => {
   test.use({ serviceWorkers: "block" });
 
-  test("/a/<slug>, its rates sheet, and its team page have no serious violations", async ({
+  test("/a/<slug>, Enroll now, its rates sheet, and its team page have no serious violations", async ({
     browser,
     seeded,
   }, info) => {
@@ -342,6 +342,7 @@ test.describe("accessibility of the academy page and consents", () => {
     const found: Record<string, unknown> = {};
     for (const path of [
       `/a/${slug}`,
+      `/a/${slug}/enroll`,
       `/a/${slug}/rates`,
       `/a/${slug}/team`,
       `/a/${slug}/team?program=all`,

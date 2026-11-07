@@ -5,7 +5,9 @@ import { defineConfig, devices } from "@playwright/test";
 //   E2E_BYPASS_SECRET   must equal the Worker's secret (falls back to .dev.vars locally)
 //   E2E_BASE_URL        target URL; when unset, Playwright starts/reuses `npm run dev`
 //   CF_ACCESS_CLIENT_ID / CF_ACCESS_CLIENT_SECRET  service token when the target sits behind Cloudflare Access
-//   PW_CHANNEL          e.g. "msedge" or "chrome" to use an installed browser instead of downloading Chromium
+//   PW_CHANNEL          the browser: "chromium" (Playwright's full Chromium, what CI uses) or an
+//                       installed "msedge" or "chrome". Unset, Playwright runs its headless shell,
+//                       which reports notifications as blocked, so the reminders specs fail there.
 const baseURL = process.env.E2E_BASE_URL ?? "http://localhost:5173";
 const channel = process.env.PW_CHANNEL || undefined;
 const accessHeaders =

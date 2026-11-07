@@ -509,7 +509,7 @@ Playwright reads these environment variables:
 | `E2E_BYPASS_SECRET` | Must equal the Worker's secret (falls back to `.dev.vars` locally) |
 | `E2E_BASE_URL` | Target URL; when unset, Playwright starts or reuses `npm run dev` |
 | `CF_ACCESS_CLIENT_ID` / `CF_ACCESS_CLIENT_SECRET` | Service token headers when staging sits behind Cloudflare Access |
-| `PW_CHANNEL` | Use an installed browser (`msedge`, `chrome`) instead of downloading Chromium |
+| `PW_CHANNEL` | The browser: `chromium` for Playwright's full Chromium (what CI uses), or an installed `msedge` or `chrome`. Unset, Playwright runs its headless shell, which reports notifications as blocked, so the family reminders specs fail |
 
 Each test signs in as a brand-new coach with its own workspace, so tests run in parallel and don't touch real data. Passkey tests use Chromium's virtual authenticator, so the target origin must match `APP_URL`.
 
@@ -579,7 +579,7 @@ E2E_BASE_URL=https://coachman-staging.jerrosyap05.workers.dev E2E_BYPASS_SECRET=
 $env:E2E_BASE_URL='https://coachman-staging.jerrosyap05.workers.dev'; $env:E2E_BYPASS_SECRET='<the staging secret>'; $env:PW_CHANNEL='msedge'; npm run test:smoke
 ```
 
-`PW_CHANNEL` picks an installed browser (`msedge`, `chrome`); leave it out where Playwright's Chromium is installed (`npx playwright install chromium`). With `E2E_BASE_URL` set, Playwright starts no local server and skips the warm-up. Add `CF_ACCESS_CLIENT_ID`/`CF_ACCESS_CLIENT_SECRET` when staging sits behind Cloudflare Access. In GitHub Actions, the deploy workflow's smoke job runs `npm run test:smoke` after each staging deploy once the repository variable `STAGING_URL` and the secret `STAGING_E2E_BYPASS_SECRET` are set (without the secret it says so and skips its steps).
+`PW_CHANNEL` picks the browser: `chromium` for Playwright's full Chromium (`npx playwright install chromium`; CI uses it), or an installed `msedge` or `chrome`. Without it Playwright runs its headless shell, which reports notifications as blocked even when a spec allows them. With `E2E_BASE_URL` set, Playwright starts no local server and skips the warm-up. Add `CF_ACCESS_CLIENT_ID`/`CF_ACCESS_CLIENT_SECRET` when staging sits behind Cloudflare Access. In GitHub Actions, the deploy workflow's smoke job runs `npm run test:smoke` after each staging deploy once the repository variable `STAGING_URL` and the secret `STAGING_E2E_BYPASS_SECRET` are set (without the secret it says so and skips its steps).
 
 ## Deploying to Cloudflare
 

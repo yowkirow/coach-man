@@ -35,6 +35,9 @@ jobs:
     env:
       # Ephemeral CI environment: the bypass only exists in this job's local Worker.
       E2E_BYPASS_SECRET: ${{ secrets.E2E_BYPASS_SECRET || 'ci-only-bypass-secret-change-me' }}
+      # Full Chromium in its new headless mode, like a real browser. Playwright's default
+      # headless shell reports notifications as blocked, even after the specs grant them.
+      PW_CHANNEL: chromium
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

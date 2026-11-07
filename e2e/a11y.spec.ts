@@ -43,6 +43,18 @@ const SCREENS = [
 ];
 
 async function seriousViolations(page: import("@playwright/test").Page) {
+  // Let entrance animations (a sheet sliding up, a fade) finish first: axe measures contrast as
+  // painted, and text mid-fade reads as too faint. Endless ones (spinners) are left alone.
+  await page.evaluate(async () => {
+    const finite = document.getAnimations().filter((a) => {
+      const iterations = a.effect?.getComputedTiming().iterations;
+      return iterations !== undefined && Number.isFinite(iterations);
+    });
+    await Promise.race([
+      Promise.all(finite.map((a) => a.finished.catch(() => undefined))),
+      new Promise((resolve) => setTimeout(resolve, 2000)),
+    ]);
+  });
   const results = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
     .analyze();

@@ -1,0 +1,1235 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-06T20:39:35.661Z",
+  "title": "Design System: CoachMan",
+  "extensions": {
+    "colorMeta": {
+      "lime": {
+        "role": "primary",
+        "displayName": "Signal Lime",
+        "canonical": "#daee63",
+        "tonalRamp": [
+          "#0a0d00",
+          "#232800",
+          "#3f4700",
+          "#5e6900",
+          "#7e8c00",
+          "#9fb10b",
+          "#c3d648",
+          "#e8fc72"
+        ]
+      },
+      "lime-strong": {
+        "role": "primary",
+        "displayName": "Pressed Lime",
+        "canonical": "#cbe148",
+        "tonalRamp": [
+          "#0a0d00",
+          "#232900",
+          "#3f4700",
+          "#5d6900",
+          "#7d8c00",
+          "#9eb100",
+          "#c1d73b",
+          "#e6fd68"
+        ]
+      },
+      "lime-soft": {
+        "role": "primary",
+        "displayName": "Lime Wash",
+        "canonical": "#f2f8cf",
+        "tonalRamp": [
+          "#0b0d00",
+          "#252804",
+          "#414522",
+          "#606541",
+          "#818661",
+          "#a4a983",
+          "#c8cea6",
+          "#edf3ca"
+        ]
+      },
+      "lavender": {
+        "role": "secondary",
+        "displayName": "Bento Lavender",
+        "canonical": "#b3a8f5",
+        "tonalRamp": [
+          "#0e002b",
+          "#271555",
+          "#433477",
+          "#61559a",
+          "#8276bf",
+          "#a499e5",
+          "#c8c0ff",
+          "#eeecff"
+        ]
+      },
+      "lavender-soft": {
+        "role": "secondary",
+        "displayName": "Lavender Wash",
+        "canonical": "#ebe8fd",
+        "tonalRamp": [
+          "#0c0916",
+          "#252332",
+          "#423f50",
+          "#615f70",
+          "#828092",
+          "#a5a2b6",
+          "#c9c6db",
+          "#eeecff"
+        ]
+      },
+      "violet": {
+        "role": "tertiary",
+        "displayName": "Group Violet",
+        "canonical": "#c9befb",
+        "tonalRamp": [
+          "#0f002a",
+          "#281a4a",
+          "#44386b",
+          "#63588d",
+          "#8479b1",
+          "#a69bd6",
+          "#cabffc",
+          "#efecff"
+        ]
+      },
+      "coral": {
+        "role": "tertiary",
+        "displayName": "Owes Coral",
+        "canonical": "#f87171",
+        "tonalRamp": [
+          "#1f0002",
+          "#4d000a",
+          "#800018",
+          "#ac2933",
+          "#d35053",
+          "#fc7474",
+          "#ffb2ae",
+          "#ffe8e7"
+        ]
+      },
+      "coral-soft": {
+        "role": "tertiary",
+        "displayName": "Coral Wash",
+        "canonical": "#fde3e3",
+        "tonalRamp": [
+          "#150607",
+          "#321f20",
+          "#503c3c",
+          "#715b5b",
+          "#937c7c",
+          "#b69e9e",
+          "#dbc2c2",
+          "#ffe8e8"
+        ]
+      },
+      "sky": {
+        "role": "tertiary",
+        "displayName": "Info Sky",
+        "canonical": "#a9dceb",
+        "tonalRamp": [
+          "#000e13",
+          "#002a34",
+          "#174956",
+          "#396977",
+          "#5a8b99",
+          "#7daebd",
+          "#a0d3e2",
+          "#d4f5ff"
+        ]
+      },
+      "sky-soft": {
+        "role": "tertiary",
+        "displayName": "Sky Wash",
+        "canonical": "#e2f3f8",
+        "tonalRamp": [
+          "#030d10",
+          "#1a272b",
+          "#374549",
+          "#556468",
+          "#76858a",
+          "#98a8ad",
+          "#bccdd1",
+          "#e1f2f7"
+        ]
+      },
+      "amber": {
+        "role": "tertiary",
+        "displayName": "Expiry Amber",
+        "canonical": "#f8d477",
+        "tonalRamp": [
+          "#100a00",
+          "#302300",
+          "#533f00",
+          "#785d00",
+          "#9f7d12",
+          "#c3a142",
+          "#e9c568",
+          "#ffedc1"
+        ]
+      },
+      "amber-soft": {
+        "role": "tertiary",
+        "displayName": "Amber Wash",
+        "canonical": "#fcf1d2",
+        "tonalRamp": [
+          "#100a00",
+          "#2d240a",
+          "#4a4127",
+          "#6a6146",
+          "#8c8266",
+          "#afa587",
+          "#d3c9ab",
+          "#f9eecf"
+        ]
+      },
+      "mint": {
+        "role": "tertiary",
+        "displayName": "Paid Mint",
+        "canonical": "#bfe9d0",
+        "tonalRamp": [
+          "#000f06",
+          "#052d1b",
+          "#264b37",
+          "#456b56",
+          "#668d76",
+          "#88b099",
+          "#abd5bc",
+          "#d0fbe1"
+        ]
+      },
+      "sync": {
+        "role": "tertiary",
+        "displayName": "Sync Orange",
+        "canonical": "#fb923c",
+        "tonalRamp": [
+          "#160700",
+          "#3c1b00",
+          "#663200",
+          "#934b00",
+          "#c36600",
+          "#ee872e",
+          "#ffb784",
+          "#ffeadc"
+        ]
+      },
+      "danger-text": {
+        "role": "tertiary",
+        "displayName": "Alert Red",
+        "canonical": "#b42318",
+        "tonalRamp": [
+          "#1f0000",
+          "#4d0100",
+          "#800200",
+          "#b12015",
+          "#da4a3b",
+          "#ff7461",
+          "#ffb3a7",
+          "#ffe9e5"
+        ],
+        "note": "Not declared in the @theme block of src/app/styles.css; the build hard-codes it in nineteen files (and a darker #7a1212 for text on Coral Wash in four)."
+      },
+      "night": {
+        "role": "neutral",
+        "displayName": "Command Black",
+        "canonical": "#0e0e0f",
+        "tonalRamp": [
+          "#0b0b0c",
+          "#252526",
+          "#424243",
+          "#616162",
+          "#828283",
+          "#a5a5a6",
+          "#c9c9ca",
+          "#eeeef0"
+        ]
+      },
+      "night-2": {
+        "role": "neutral",
+        "displayName": "Tile Charcoal",
+        "canonical": "#1c1c1e",
+        "tonalRamp": [
+          "#0b0b0d",
+          "#252527",
+          "#424244",
+          "#616163",
+          "#828284",
+          "#a5a5a7",
+          "#c9c9cb",
+          "#eeeef1"
+        ]
+      },
+      "night-3": {
+        "role": "neutral",
+        "displayName": "Raised Charcoal",
+        "canonical": "#29292c",
+        "tonalRamp": [
+          "#0b0b0d",
+          "#252528",
+          "#424245",
+          "#616164",
+          "#828285",
+          "#a4a4a8",
+          "#c9c9cd",
+          "#eeeef2"
+        ]
+      },
+      "night-4": {
+        "role": "neutral",
+        "displayName": "Dark Outline",
+        "canonical": "#38383c",
+        "tonalRamp": [
+          "#0b0b0e",
+          "#252528",
+          "#414146",
+          "#616165",
+          "#828286",
+          "#a4a4a9",
+          "#c8c8cd",
+          "#eeeef3"
+        ]
+      },
+      "night-line": {
+        "role": "neutral",
+        "displayName": "Panel Seam",
+        "canonical": "#2e2e32",
+        "tonalRamp": [
+          "#0b0b0e",
+          "#252528",
+          "#414146",
+          "#616165",
+          "#828286",
+          "#a4a4a9",
+          "#c8c8ce",
+          "#eeeef3"
+        ]
+      },
+      "night-ink": {
+        "role": "neutral",
+        "displayName": "Night White",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#a5a5a5",
+          "#c9c9c9",
+          "#eeeeee"
+        ]
+      },
+      "night-ink-2": {
+        "role": "neutral",
+        "displayName": "Night Mist",
+        "canonical": "#a3a3a9",
+        "tonalRamp": [
+          "#0b0b0f",
+          "#252429",
+          "#414146",
+          "#616166",
+          "#828287",
+          "#a4a4aa",
+          "#c8c8cf",
+          "#eeeef4"
+        ]
+      },
+      "canvas": {
+        "role": "neutral",
+        "displayName": "Courtside Gray",
+        "canonical": "#e5e5e7",
+        "tonalRamp": [
+          "#0b0b0c",
+          "#252526",
+          "#424243",
+          "#616163",
+          "#828284",
+          "#a5a5a7",
+          "#c9c9cb",
+          "#eeeef0"
+        ]
+      },
+      "panel": {
+        "role": "neutral",
+        "displayName": "Folder Gray",
+        "canonical": "#f3f3f4",
+        "tonalRamp": [
+          "#0b0b0c",
+          "#252526",
+          "#424243",
+          "#616162",
+          "#828283",
+          "#a5a5a6",
+          "#c9c9ca",
+          "#eeeeef"
+        ]
+      },
+      "card": {
+        "role": "neutral",
+        "displayName": "Card White",
+        "canonical": "#ffffff",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#a5a5a5",
+          "#c9c9c9",
+          "#eeeeee"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "#111111",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#a5a5a5",
+          "#c9c9c9",
+          "#eeeeee"
+        ]
+      },
+      "ink-2": {
+        "role": "neutral",
+        "displayName": "Slate",
+        "canonical": "#5f6066",
+        "tonalRamp": [
+          "#0a0b0f",
+          "#24252a",
+          "#414247",
+          "#606167",
+          "#818288",
+          "#a3a4ab",
+          "#c7c9cf",
+          "#edeef5"
+        ]
+      },
+      "ink-3": {
+        "role": "neutral",
+        "displayName": "Pewter",
+        "canonical": "#8a8b91",
+        "tonalRamp": [
+          "#0a0b0f",
+          "#242529",
+          "#414247",
+          "#606166",
+          "#818288",
+          "#a3a5ab",
+          "#c8c9cf",
+          "#edeef5"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "canonical": "#e4e4e7",
+        "tonalRamp": [
+          "#0b0b0d",
+          "#252527",
+          "#424244",
+          "#616163",
+          "#828285",
+          "#a5a5a7",
+          "#c9c9cc",
+          "#eeeef1"
+        ]
+      },
+      "line-strong": {
+        "role": "neutral",
+        "displayName": "Outline Gray",
+        "canonical": "#cfcfd4",
+        "tonalRamp": [
+          "#0b0b0e",
+          "#252528",
+          "#414146",
+          "#616165",
+          "#828286",
+          "#a4a4a9",
+          "#c8c8cd",
+          "#eeeef3"
+        ]
+      },
+      "club-ball": {
+        "role": "primary",
+        "displayName": "Ball Lime",
+        "canonical": "#cde35a",
+        "tonalRamp": [
+          "#0a0d00",
+          "#232900",
+          "#3f4800",
+          "#5c6900",
+          "#7c8c00",
+          "#9eb116",
+          "#c1d74c",
+          "#e6fd75"
+        ],
+        "note": "Academy website only (.site-root); a CSS custom property, so a per-academy club-colors setting can drive it. The loudest color and the way in: the slanted Enroll now, the Packages field, the chosen tab, the loud stickers; numerals, icons, and the focus ring on Deep Green, Jersey Blue, and Club Ink. Never type on Club Green (about 2.5:1)."
+      },
+      "club": {
+        "role": "secondary",
+        "displayName": "Club Green",
+        "canonical": "#2f9a74",
+        "tonalRamp": [
+          "#000f08",
+          "#002d1e",
+          "#004f37",
+          "#007352",
+          "#2b9771",
+          "#56bb94",
+          "#7ce1b7",
+          "#c0ffe2"
+        ],
+        "note": "Academy website only (.site-root); a CSS custom property, so a per-academy club-colors setting can drive it. The tarp: the hero, Enroll now's title band, On court, and the team page's ground, always under the halftone. White type on it only at large sizes (about 3.5:1)."
+      },
+      "club-deep": {
+        "role": "secondary",
+        "displayName": "Deep Green",
+        "canonical": "#0e4a3a",
+        "tonalRamp": [
+          "#000f09",
+          "#002d21",
+          "#124d3d",
+          "#366d5c",
+          "#588f7d",
+          "#7bb39f",
+          "#9ed8c3",
+          "#c3fde8"
+        ],
+        "note": "Academy website only (.site-root); a CSS custom property, so a per-academy club-colors setting can drive it. The club's dark: the nav, program panels (by turns with Jersey Blue), How to enroll, strips, the team panel, the contact bar; the halftone's dots at 20%."
+      },
+      "club-blue": {
+        "role": "tertiary",
+        "displayName": "Jersey Blue",
+        "canonical": "#0a4fbf",
+        "tonalRamp": [
+          "#000825",
+          "#001f5a",
+          "#003995",
+          "#1658c9",
+          "#3a7cf0",
+          "#6fa4ff",
+          "#abcaff",
+          "#e6efff"
+        ],
+        "note": "Academy website only (.site-root); a CSS custom property, so a per-academy club-colors setting can drive it. The second field: program panels, Find us, the questions panel, the featured package, certification stickers."
+      },
+      "club-ink": {
+        "role": "neutral",
+        "displayName": "Club Ink",
+        "canonical": "#0d1311",
+        "tonalRamp": [
+          "#070d0b",
+          "#202724",
+          "#3d4441",
+          "#5c6361",
+          "#7d8482",
+          "#9fa7a4",
+          "#c3cbc8",
+          "#e8f1ee"
+        ],
+        "note": "Academy website only (.site-root); a CSS custom property, so a per-academy club-colors setting can drive it. The footer and the page's ground through overscroll; type, outlined pills, and the ink slanted Enroll on white and Ball Lime."
+      },
+      "club-mist": {
+        "role": "neutral",
+        "displayName": "Club Mist",
+        "canonical": "#c9d6d1",
+        "tonalRamp": [
+          "#050d0a",
+          "#1e2824",
+          "#3a4541",
+          "#596460",
+          "#7a8681",
+          "#9ca8a4",
+          "#c0cdc8",
+          "#e5f2ed"
+        ],
+        "note": "Academy website only (.site-root); a CSS custom property, so a per-academy club-colors setting can drive it. Quiet text on dark fields, and the 2px keyline that lets a white edge read on the white field."
+      },
+      "club-metal": {
+        "role": "neutral",
+        "displayName": "Club Metal",
+        "canonical": "#c5cdca",
+        "tonalRamp": [
+          "#070d0b",
+          "#212724",
+          "#3d4441",
+          "#5c6360",
+          "#7d8481",
+          "#9fa7a4",
+          "#c3cbc8",
+          "#e8f1ee"
+        ],
+        "note": "Academy website only (.site-root); a CSS custom property, so a per-academy club-colors setting can drive it. The rings of the tarp's grommets, and nothing else."
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Hero figures (the Money page's received total) and the sign-in statement."
+      },
+      "display-sm": {
+        "displayName": "Display (phone)",
+        "purpose": "Hero figures on phones, and the family's balance and amount due."
+      },
+      "figure-lg": {
+        "displayName": "Tier Price",
+        "purpose": "A tier's price per head on the portal's Enroll page and in the staff app's tier previews."
+      },
+      "headline-lg": {
+        "displayName": "Record Title",
+        "purpose": "Session, client, group, and event titles from 1024px."
+      },
+      "headline-md": {
+        "displayName": "Page Title",
+        "purpose": "Page titles from 1024px."
+      },
+      "headline-sm": {
+        "displayName": "Phone Title",
+        "purpose": "Page and record titles below 1024px, including the phone header's \"Today\"."
+      },
+      "headline-panel": {
+        "displayName": "Panel Title",
+        "purpose": "The title at the top of the command panel, and the tier in the wizard's frame."
+      },
+      "figure": {
+        "displayName": "KPI Figure",
+        "purpose": "KPI tile values, tabular."
+      },
+      "title-lg": {
+        "displayName": "Sheet Title",
+        "purpose": "Sheet titles and the phone's live-session card."
+      },
+      "title-md": {
+        "displayName": "Bento Title",
+        "purpose": "Bento, hero-card, offer, settings-section, tier-name, and empty-state titles."
+      },
+      "title-sm": {
+        "displayName": "Card Heading",
+        "purpose": "Card headings on the light canvas, with a regular-weight count beside them."
+      },
+      "title-dark": {
+        "displayName": "Panel Section Heading",
+        "purpose": "Section headings inside the command panel."
+      },
+      "body-lg": {
+        "displayName": "Tile Name",
+        "purpose": "List-tile names in the command panel (regular); roster names use 500."
+      },
+      "body-md": {
+        "displayName": "Body",
+        "purpose": "Default body text; descriptions cap at 52–65ch."
+      },
+      "body-sm": {
+        "displayName": "Meta",
+        "purpose": "Meta lines, help text, and secondary lines."
+      },
+      "label-lg": {
+        "displayName": "Button",
+        "purpose": "Default 44px buttons and figure pills."
+      },
+      "label-md": {
+        "displayName": "Small Button",
+        "purpose": "36px buttons, segmented options, attendance choices, filter chips, and text actions."
+      },
+      "label-sm": {
+        "displayName": "Field Label",
+        "purpose": "Labels above fields."
+      },
+      "label-xs": {
+        "displayName": "Pill",
+        "purpose": "Status pills."
+      },
+      "label-2xs": {
+        "displayName": "Tab Label",
+        "purpose": "The phone tab bars' labels (staff and portal) and the initials in 28px avatars."
+      },
+      "site-name": {
+        "displayName": "Site Name",
+        "purpose": "The academy's name in the hero, fitted by measurement (fitLines, DISPLAY_EM) so its widest line fills the column: at most 168px from 1024px (two lines), 150px from 640px, 30% of the column below (up to three lines).",
+        "note": "Academy website only (.site-root). Display caps: Archivo at 62% width, 900, italic, uppercase, 0.08em extra word spacing."
+      },
+      "site-display-xl": {
+        "displayName": "Site Display XL",
+        "purpose": "Enroll now's title (64px on phones) and the 'drop soon' stickers (44–66px on phones), from 1024px.",
+        "note": "Academy website only (.site-root). Display caps: Archivo at 62% width, 900, italic, uppercase, 0.08em extra word spacing."
+      },
+      "site-display": {
+        "displayName": "Site Section Title",
+        "purpose": "Every section title from 1024px (56–80px on phones by length), a featured coach's name, and a program's times on one line (up to 84px on phones).",
+        "note": "Academy website only (.site-root). Display caps: Archivo at 62% width, 900, italic, uppercase, 0.08em extra word spacing."
+      },
+      "site-display-sm": {
+        "displayName": "Site Section Title (phone)",
+        "purpose": "Section titles on phones, and the team page's roster title from 1024px (52px on phones).",
+        "note": "Academy website only (.site-root). Display caps: Archivo at 62% width, 900, italic, uppercase, 0.08em extra word spacing."
+      },
+      "site-headline": {
+        "displayName": "Site Headline",
+        "purpose": "A program's name (up to 58px on phones), a coach's name and the program's times on the team page (52px on phones), and a package's price (62px from 1024px).",
+        "note": "Academy website only (.site-root). Display caps: Archivo at 62% width, 900, italic, uppercase, 0.08em extra word spacing."
+      },
+      "site-strip": {
+        "displayName": "Strip",
+        "purpose": "The hero strip's programs and times (24px on phones); a coach's specialties run 44px (26px on phones).",
+        "note": "Academy website only (.site-root). Display caps: Archivo at 62% width, 900, italic, uppercase, 0.08em extra word spacing."
+      },
+      "site-caps": {
+        "displayName": "Secondary Caps",
+        "purpose": "A package's name, a step's title (at 900), and a coach's title; package groups, the hero's sport line, and a venue's address take 34px.",
+        "note": "Academy website only (.site-root). Secondary caps: Archivo at 75% width, italic, uppercase."
+      },
+      "site-caps-sm": {
+        "displayName": "Tab Caps",
+        "purpose": "The team page's program tabs and the medium slanted action; the nav's academy name is 19px at 800 (15px on phones).",
+        "note": "Academy website only (.site-root). Secondary caps: Archivo at 75% width, italic, uppercase."
+      },
+      "site-action": {
+        "displayName": "Slanted Action",
+        "purpose": "The large slanted Enroll (20px on phones); the nav's small one is 17px (15px on phones).",
+        "note": "Academy website only (.site-root). Secondary caps: Archivo at 75% width, italic, uppercase."
+      },
+      "site-sticker": {
+        "displayName": "Sticker",
+        "purpose": "Featured and the team page's certifications; stickers run 15–28px by their job, and a round sticker sets its figure in display caps at 2.35em.",
+        "note": "Academy website only (.site-root). Secondary caps: Archivo at 75% width, italic, uppercase."
+      },
+      "site-lead": {
+        "displayName": "Site Lead",
+        "purpose": "The line beside or under a big title, and the hero's next session (20px on phones, at 700 in the hero and on Enroll now).",
+        "note": "Academy website only (.site-root). Archivo at normal width, roman."
+      },
+      "site-body-lg": {
+        "displayName": "Site Body Large",
+        "purpose": "A program's description (38ch) and the academy's about in Find us (44ch); 18px on phones.",
+        "note": "Academy website only (.site-root). Archivo at normal width, roman."
+      },
+      "site-body": {
+        "displayName": "Site Body",
+        "purpose": "A package card's details, the policies, and the footer; a coach's highlights and about run 17px.",
+        "note": "Academy website only (.site-root). Archivo at normal width, roman."
+      },
+      "site-label": {
+        "displayName": "Site Label",
+        "purpose": "Chips (level, ages, session length, specialties) and the labels over a coach's details.",
+        "note": "Academy website only (.site-root). Archivo at normal width, roman."
+      },
+      "site-pill": {
+        "displayName": "Site Pill",
+        "purpose": "Pills (16px on phones) and the contact bar's buttons; links in the nav and the footer are 16px at 600.",
+        "note": "Academy website only (.site-root). Archivo at normal width, roman."
+      }
+    },
+    "shadows": [
+      {
+        "name": "pop",
+        "value": "0 24px 48px -16px rgb(17 17 17 / 0.28), 0 8px 20px -10px rgb(17 17 17 / 0.14)",
+        "purpose": "Floating layers only: sheets and dialogs, popovers and menus, toasts, the phone tab bar, and the phone's quick-add circle."
+      },
+      {
+        "name": "lift",
+        "value": "0 1px 2px rgb(17 17 17 / 0.06), 0 4px 12px -4px rgb(17 17 17 / 0.08)",
+        "purpose": "A thumb or segment raised above its own track: the selected segment of a segmented control and the switch thumb."
+      },
+      {
+        "name": "focus-glow",
+        "value": "0 0 0 4px rgb(218 238 99 / 0.55)",
+        "purpose": "A field's focus state, paired with an ink border. It marks state, not elevation."
+      },
+      {
+        "name": "tile-glow",
+        "value": "radial-gradient(120% 90% at 0% 0%, var(--tile-tint) 0%, transparent 60%)",
+        "purpose": "Background, not a shadow: lights a KPI tile's top-left corner; --tile-tint is the tile's own pastel at about 22%."
+      },
+      {
+        "name": "focus-ring",
+        "value": "outline: 2px solid var(--color-ink); outline-offset: 2px (lime inside .dark-zone). Website: outline: 3px solid var(--focus); outline-offset: 2px on every focusable part (3px on actions, pills, and tabs; inset on the photo reel), drawn by one :where(.site-root) :focus-visible rule in the utilities layer so outline-none cannot blank it. --focus is inherited per field: var(--color-club-ink) on .site-root and on white cards inside dark fields, var(--color-club-ball) on .pm-dark, #fff on .pm-halftone (Club Green).",
+        "purpose": "Keyboard focus on every control. App: ink on the canvas, lime in the dark zone. Website: Club Ink on the white and Ball Lime fields and on white cards, Ball Lime on Deep Green, Jersey Blue, and Club Ink, white on Club Green (3.5:1; Ball Lime would read about 2.5:1 there). State, not elevation."
+      },
+      {
+        "name": "halftone",
+        "value": "background-image: radial-gradient(circle, rgb(14 74 58 / 0.2) 0 2.2px, transparent 2.6px); background-size: 8px 8px; mask-image: linear-gradient(222deg, #000 0%, rgb(0 0 0 / 0.6) 34%, transparent 72%) (on .pm-halftone::before, behind the content)",
+        "purpose": "Texture, not a shadow and not a decorative gradient: a tarp's print dots, Deep Green at 20%, fading out from the top right of every Club Green field. Club Green only."
+      },
+      {
+        "name": "die-cut-edge",
+        "value": "border: 3px solid #fff (stickers, tabs, the featured package); border: 8px solid #fff with 18px corners (photo stickers; 6px with 14px on the team page)",
+        "purpose": "Edge, not a shadow: the white cut that lifts a sticker, a photo, a tab, or the featured package off its field. On white it takes a keyline."
+      },
+      {
+        "name": "keyline",
+        "value": "box-shadow: 0 0 0 2px var(--color-club-mist) (the landing page's coach portraits on white); 0 0 0 1px rgb(13 19 17 / 0.1) (portraits in the team page's white cards)",
+        "purpose": "Edge, not a shadow: a ring without blur that lets a white die-cut edge read on white."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out-expo",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Entrances and the check-in settle: sheets, toasts, the settle keyframes."
+      },
+      {
+        "name": "state",
+        "value": "150ms ease-out",
+        "purpose": "Color, background, border, and shadow transitions on buttons, fields, tiles, and toggles."
+      },
+      {
+        "name": "press",
+        "value": "scale(0.97)",
+        "purpose": "Pressed state of buttons and circles."
+      },
+      {
+        "name": "switch",
+        "value": "200ms ease-out",
+        "purpose": "Switch thumb travel (20px)."
+      },
+      {
+        "name": "settle",
+        "value": "220ms ease-out-expo; scale 0.8, 1.08 at 60%, then 1",
+        "purpose": "The check-in toggle filling lime."
+      },
+      {
+        "name": "toast-in",
+        "value": "220ms ease-out-expo; slides up from translateY(32px) and opacity 0",
+        "purpose": "Toast entrance."
+      },
+      {
+        "name": "sheet-in",
+        "value": "240ms ease-out-expo; slides up from translateY(32px) and opacity 0",
+        "purpose": "Sheet and dialog entrance; the scrim fades in over 150ms."
+      },
+      {
+        "name": "popover-in",
+        "value": "120ms ease-out fade",
+        "purpose": "Popovers, menus, and select lists."
+      },
+      {
+        "name": "meter",
+        "value": "300ms ease-out",
+        "purpose": "Meter and chart bar width or height changes."
+      },
+      {
+        "name": "shimmer",
+        "value": "1.6s linear infinite",
+        "purpose": "Skeleton loading sweep."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "1ms",
+        "purpose": "prefers-reduced-motion collapses every animation and transition to 1ms and turns view transitions off; toasts and state changes still appear. On the website the sticker slap is removed outright (animation: none), so no delayed from-state shows."
+      },
+      {
+        "name": "sticker-slap",
+        "value": "@keyframes pm-slap: from scale 1.16 and rotate var(--rot) + 8deg, to scale 1 and rotate var(--rot); 560ms ease-out-expo both; delays 140ms, 260ms, 380ms",
+        "purpose": "The website hero's stickers landing in turn as the page opens: Now enrolling (or the phone's gap sticker), the round sticker, the photo. Visible from the first frame; reduced motion: no animation at all."
+      },
+      {
+        "name": "program-swap",
+        "value": "view transition: ::view-transition-group(*) 340ms ease-out-expo; ::view-transition-old/new(root) 180ms; each portrait named person-<id>",
+        "purpose": "The team page's program switch: people who coach both programs glide to their new places while the page cross-fades. Reduced motion: an instant swap."
+      },
+      {
+        "name": "contact-bar",
+        "value": "200ms ease-out; translate and opacity, from translateY(calc(100% + 24px)) and opacity 0",
+        "purpose": "The team page's phone contact bar joining once the panel's own buttons scroll away."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px",
+        "purpose": "Sheets become centered dialogs; page side padding steps from 16px to 24px. On the academy website: package cards pair up, the hero's name caps at 150px, the team page's gutter grows to 20px, coach cards pad 20px, and Also on the team turns from a reel into a grid."
+      },
+      {
+        "name": "md",
+        "value": "768px",
+        "purpose": "Wider form and list arrangements. On the academy website, a coach card's portrait becomes a sticky column beside the details."
+      },
+      {
+        "name": "lg",
+        "value": "1024px",
+        "purpose": "Desktop shell: the command panel and icon rail replace the phone header block and tab bar; titles step up to 40px and 44px. On the academy website: the nav shows its links (a menu below), the 1440px column takes 64px gutters, the hero becomes the tarp (grommets, a two-line name up to 168px, the strip across the photo's foot), program panels pair up, On court becomes a scatter, package cards go three to a row, the steps step down, and the team page's panel becomes a sticky 360px column."
+      },
+      {
+        "name": "xl",
+        "value": "1280px",
+        "purpose": "The folder panel splits into tab content and a 340px bento column."
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Ink pill for the main move on the canvas (\"Record payment\", \"Mark complete\").",
+      "html": "<button class=\"ds-btn-primary\" type=\"button\">Record payment</button>",
+      "css": ".ds-btn-primary{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 20px;border:0;border-radius:9999px;background:var(--color-ink,#111111);color:var(--color-night-ink,#ffffff);font-family:var(--font-sans,\"Figtree Variable\",ui-sans-serif,system-ui,sans-serif);font-size:0.9375rem;font-weight:500;white-space:nowrap;cursor:pointer;transition:background-color 150ms ease-out,transform 150ms ease-out} .ds-btn-primary:hover{background:var(--color-night-3,#29292c)} .ds-btn-primary:focus-visible{outline:2px solid var(--color-ink,#111111);outline-offset:2px} .ds-btn-primary:active{transform:scale(0.97)} .ds-btn-primary:disabled{opacity:0.45;cursor:not-allowed}"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "White pill with a 1px Outline Gray ring beside the primary; the 36px small size serves secondary actions in cards, sheets, and bentos.",
+      "html": "<div class=\"ds-btn2-row\"><button class=\"ds-btn2\" type=\"button\">Add charge</button><button class=\"ds-btn2 ds-btn2-sm\" type=\"button\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2\"/><circle cx=\"9\" cy=\"7\" r=\"4\"/><line x1=\"19\" x2=\"19\" y1=\"8\" y2=\"14\"/><line x1=\"22\" x2=\"16\" y1=\"11\" y2=\"11\"/></svg>Add player</button></div>",
+      "css": ".ds-btn2-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px} .ds-btn2{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 20px;border:0;border-radius:9999px;background:var(--color-card,#ffffff);color:var(--color-ink,#111111);box-shadow:0 0 0 1px var(--color-line-strong,#cfcfd4);font-family:var(--font-sans,\"Figtree Variable\",ui-sans-serif,system-ui,sans-serif);font-size:0.9375rem;font-weight:500;white-space:nowrap;cursor:pointer;transition:background-color 150ms ease-out,transform 150ms ease-out} .ds-btn2:hover{background:var(--color-panel,#f3f3f4)} .ds-btn2:focus-visible{outline:2px solid var(--color-ink,#111111);outline-offset:2px} .ds-btn2:active{transform:scale(0.97)} .ds-btn2-sm{height:36px;padding:0 16px;font-size:0.875rem}"
+    },
+    {
+      "name": "Lime Action Circles",
+      "kind": "button",
+      "refersTo": "action-circle",
+      "description": "A record's actions: 52px lime circles with 20px ink icons, then a white circle that opens the overflow menu.",
+      "html": "<div class=\"ds-actions\"><button class=\"ds-action\" type=\"button\" aria-label=\"Add player\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2\"/><circle cx=\"9\" cy=\"7\" r=\"4\"/><line x1=\"19\" x2=\"19\" y1=\"8\" y2=\"14\"/><line x1=\"22\" x2=\"16\" y1=\"11\" y2=\"11\"/></svg></button><button class=\"ds-action\" type=\"button\" aria-label=\"Add a note\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M13.4 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7.4\"/><path d=\"M2 6h4\"/><path d=\"M2 10h4\"/><path d=\"M2 14h4\"/><path d=\"M2 18h4\"/><path d=\"M21.378 5.626a1 1 0 1 0-3.004-3.004l-5.01 5.012a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506z\"/></svg></button><button class=\"ds-action\" type=\"button\" aria-label=\"Mark session complete\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M18 6 7 17l-5-5\"/><path d=\"m22 10-7.5 7.5L13 16\"/></svg></button><button class=\"ds-action ds-action-white\" type=\"button\" aria-label=\"More session actions\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"1\"/><circle cx=\"19\" cy=\"12\" r=\"1\"/><circle cx=\"5\" cy=\"12\" r=\"1\"/></svg></button></div>",
+      "css": ".ds-actions{display:inline-flex;align-items:center;gap:8px;padding:12px;border-radius:32px;background:var(--color-canvas,#e5e5e7)} .ds-action{display:inline-flex;align-items:center;justify-content:center;width:52px;height:52px;padding:0;border:0;border-radius:9999px;background:var(--color-lime,#daee63);color:var(--color-ink,#111111);cursor:pointer;transition:background-color 150ms ease-out,transform 150ms ease-out} .ds-action:hover{background:var(--color-lime-strong,#cbe148)} .ds-action:focus-visible{outline:2px solid var(--color-ink,#111111);outline-offset:2px} .ds-action:active{transform:scale(0.97)} .ds-action-white{background:var(--color-card,#ffffff)} .ds-action-white:hover{background:var(--color-panel,#f3f3f4)}"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "48px white field with a 16px radius; focus turns the border ink inside a 4px lime glow; errors turn the border coral with Alert Red text.",
+      "html": "<div class=\"ds-fields\"><label class=\"ds-field\"><span class=\"ds-field-label\">Client name</span><input class=\"ds-field-input\" type=\"text\" placeholder=\"First and last name\"></label><label class=\"ds-field\"><span class=\"ds-field-label\">Phone</span><input class=\"ds-field-input ds-field-invalid\" type=\"tel\" value=\"+1 555\" aria-invalid=\"true\"><span class=\"ds-field-error\">Enter the full number.</span></label></div>",
+      "css": ".ds-fields{display:flex;flex-direction:column;gap:16px;max-width:360px;font-family:var(--font-sans,\"Figtree Variable\",ui-sans-serif,system-ui,sans-serif);} .ds-field{display:flex;flex-direction:column;gap:6px} .ds-field-label{font-size:0.8125rem;font-weight:500;color:var(--color-ink-2,#5f6066)} .ds-field-input{box-sizing:border-box;width:100%;height:48px;padding:0 16px;border:1px solid var(--color-line-strong,#cfcfd4);border-radius:16px;background:var(--color-card,#ffffff);color:var(--color-ink,#111111);caret-color:var(--color-ink,#111111);font-family:inherit;font-size:0.9375rem;outline:none;transition:border-color 150ms,box-shadow 150ms} .ds-field-input::placeholder{color:var(--color-ink-2,#5f6066)} .ds-field-input:focus{border-color:var(--color-ink,#111111);box-shadow:0 0 0 4px rgb(218 238 99 / 0.55)} .ds-field-invalid{border-color:var(--color-coral,#f87171)} .ds-field-error{font-size:0.8125rem;font-weight:500;color:#b42318}"
+    },
+    {
+      "name": "Status Pills",
+      "kind": "chip",
+      "refersTo": "pill",
+      "description": "24px pastel pills, always with ink text: lime live, violet group, coral owes, sky info, amber expiring, mint paid, white on color, outline for tags.",
+      "html": "<div class=\"ds-pills\"><span class=\"ds-pill ds-pill-lime\">On court now</span><span class=\"ds-pill ds-pill-violet\">Beginners</span><span class=\"ds-pill ds-pill-coral\">Owes</span><span class=\"ds-pill ds-pill-sky\">Junior</span><span class=\"ds-pill ds-pill-amber\">1 left</span><span class=\"ds-pill ds-pill-mint\">Paid up</span><span class=\"ds-pill ds-pill-white\">Event session</span><span class=\"ds-pill ds-pill-outline\">Repeats weekly</span></div>",
+      "css": ".ds-pills{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:12px;border-radius:22px;background:var(--color-canvas,#e5e5e7);font-family:var(--font-sans,\"Figtree Variable\",ui-sans-serif,system-ui,sans-serif);} .ds-pill{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:9999px;color:var(--color-ink,#111111);font-size:0.75rem;font-weight:500;white-space:nowrap;font-variant-numeric:tabular-nums} .ds-pill-lime{background:var(--color-lime,#daee63)} .ds-pill-violet{background:var(--color-violet,#c9befb)} .ds-pill-coral{background:var(--color-coral,#f87171)} .ds-pill-sky{background:var(--color-sky,#a9dceb)} .ds-pill-amber{background:var(--color-amber,#f8d477)} .ds-pill-mint{background:var(--color-mint,#bfe9d0)} .ds-pill-white{background:var(--color-card,#ffffff)} .ds-pill-outline{box-shadow:0 0 0 1px var(--color-line-strong,#cfcfd4);color:var(--color-ink-2,#5f6066)}"
+    },
+    {
+      "name": "Icon Rail",
+      "kind": "nav",
+      "refersTo": "rail-link",
+      "description": "The command panel's 84px rail: BallMark, 48px charcoal circles, the current page in lime, a dashed quick-add circle.",
+      "html": "<nav class=\"ds-rail\" aria-label=\"Main\"><span class=\"ds-rail-mark\"><svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 32 32\" aria-hidden=\"true\"><circle cx=\"16\" cy=\"16\" r=\"15\" fill=\"#daee63\"/><circle cx=\"16\" cy=\"7.2\" r=\"1.9\" fill=\"#0e0e0f\"/><circle cx=\"9.6\" cy=\"10.6\" r=\"1.9\" fill=\"#0e0e0f\"/><circle cx=\"22.4\" cy=\"10.6\" r=\"1.9\" fill=\"#0e0e0f\"/><circle cx=\"16\" cy=\"16\" r=\"1.9\" fill=\"#0e0e0f\"/><circle cx=\"8.4\" cy=\"18.4\" r=\"1.9\" fill=\"#0e0e0f\"/><circle cx=\"23.6\" cy=\"18.4\" r=\"1.9\" fill=\"#0e0e0f\"/><circle cx=\"12\" cy=\"24.4\" r=\"1.9\" fill=\"#0e0e0f\"/><circle cx=\"20\" cy=\"24.4\" r=\"1.9\" fill=\"#0e0e0f\"/></svg></span><a class=\"ds-rail-link\" href=\"#\" aria-current=\"page\" aria-label=\"Today\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8\"/><path d=\"M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z\"/></svg></a><a class=\"ds-rail-link\" href=\"#\" aria-label=\"Schedule\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M8 2v3\"/><path d=\"M16 2v3\"/><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/><path d=\"M3 9h18\"/><path d=\"M8 13h.01\"/><path d=\"M12 13h.01\"/><path d=\"M16 13h.01\"/><path d=\"M8 17h.01\"/><path d=\"M12 17h.01\"/><path d=\"M16 17h.01\"/></svg></a><a class=\"ds-rail-link\" href=\"#\" aria-label=\"Clients\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M16 2v2\"/><path d=\"M7 21v-2a2 2 0 012-2h6a2 2 0 012 2v2\"/><path d=\"M8 2v2\"/><circle cx=\"12\" cy=\"10\" r=\"3\"/><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/></svg></a><a class=\"ds-rail-link\" href=\"#\" aria-label=\"Groups\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M18 21a8 8 0 0 0-16 0\"/><circle cx=\"10\" cy=\"8\" r=\"5\"/><path d=\"M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3\"/></svg></a><a class=\"ds-rail-link\" href=\"#\" aria-label=\"Money\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8\"/><path d=\"M12 18V6\"/></svg></a><button class=\"ds-rail-add\" type=\"button\" aria-label=\"Quick add\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"/><path d=\"M12 5v14\"/></svg></button></nav>",
+      "css": ".ds-rail{display:inline-flex;flex-direction:column;align-items:center;gap:10px;width:84px;padding:20px 0;border-radius:32px;background:var(--color-night,#0e0e0f);color:var(--color-night-ink,#ffffff)} .ds-rail-mark{display:block;width:40px;height:40px;margin-bottom:16px} .ds-rail-mark svg{display:block;width:40px;height:40px} .ds-rail-link{display:flex;align-items:center;justify-content:center;width:48px;height:48px;border-radius:9999px;background:var(--color-night-2,#1c1c1e);color:var(--color-night-ink,#ffffff);text-decoration:none;outline:none;transition:background-color 150ms ease-out,color 150ms ease-out} .ds-rail-link:hover{background:var(--color-night-3,#29292c)} .ds-rail-link[aria-current=\"page\"]{background:var(--color-lime,#daee63);color:var(--color-ink,#111111)} .ds-rail-link:focus-visible,.ds-rail-add:focus-visible{outline:2px solid var(--color-lime,#daee63);outline-offset:2px} .ds-rail-add{display:flex;align-items:center;justify-content:center;width:48px;height:48px;margin-top:8px;padding:0;border:1px dashed var(--color-night-4,#38383c);border-radius:9999px;background:transparent;color:var(--color-night-ink,#ffffff);cursor:pointer;transition:border-color 150ms ease-out,color 150ms ease-out} .ds-rail-add:hover{border-color:var(--color-lime,#daee63);color:var(--color-lime,#daee63)}"
+    },
+    {
+      "name": "Folder Tabs",
+      "kind": "nav",
+      "refersTo": "folder-tab",
+      "description": "Record sections as folder tabs: the selected tab takes the Folder Gray panel tone and fuses into it through 20px concave fillets; white cards sit inside.",
+      "html": "<div class=\"ds-folder\"><div class=\"ds-folder-tabs\" role=\"tablist\" aria-label=\"Session sections\"><button class=\"ds-folder-tab\" role=\"tab\" aria-selected=\"true\" type=\"button\">Roster · 2/3</button><button class=\"ds-folder-tab\" role=\"tab\" aria-selected=\"false\" type=\"button\">Notes</button><button class=\"ds-folder-tab\" role=\"tab\" aria-selected=\"false\" type=\"button\">Details</button></div><div class=\"ds-folder-panel\" role=\"tabpanel\"><section class=\"ds-folder-card\"><h2 class=\"ds-folder-title\">Check-in <span class=\"ds-folder-count\">2/3</span></h2><ul class=\"ds-folder-rows\"><li><span class=\"ds-folder-name\">Jun Park</span><span class=\"ds-folder-meta\">3 of 10 left · 10-session pack</span></li><li><span class=\"ds-folder-name\">Tessa Ruiz</span><span class=\"ds-folder-meta\">Covered by event registration</span></li></ul></section></div></div>",
+      "css": ".ds-folder{padding:16px;border-radius:28px;background:var(--color-canvas,#e5e5e7);color:var(--color-ink,#111111);font-family:var(--font-sans,\"Figtree Variable\",ui-sans-serif,system-ui,sans-serif);} .ds-folder-tabs{display:flex;gap:20px;padding:0 24px 0 40px} .ds-folder-tab{position:relative;display:flex;align-items:center;gap:8px;height:48px;padding:0 20px;border:0;border-radius:20px 20px 0 0;background:transparent;color:var(--color-ink-2,#5f6066);font-family:inherit;font-size:0.9375rem;white-space:nowrap;cursor:pointer;transition:color 150ms ease-out} .ds-folder-tab:hover{color:var(--color-ink,#111111)} .ds-folder-tab:focus-visible{outline:2px solid var(--color-ink,#111111);outline-offset:-4px} .ds-folder-tab[aria-selected=\"true\"]{background:var(--color-panel,#f3f3f4);color:var(--color-ink,#111111)} .ds-folder-tab[aria-selected=\"true\"]::before,.ds-folder-tab[aria-selected=\"true\"]::after{content:\"\";position:absolute;bottom:0;width:20px;height:20px;pointer-events:none} .ds-folder-tab[aria-selected=\"true\"]::before{left:-20px;background:radial-gradient(circle at 0 0,transparent 19.5px,var(--color-panel,#f3f3f4) 20px)} .ds-folder-tab[aria-selected=\"true\"]::after{right:-20px;background:radial-gradient(circle at 100% 0,transparent 19.5px,var(--color-panel,#f3f3f4) 20px)} .ds-folder-panel{padding:16px;border-radius:28px;background:var(--color-panel,#f3f3f4)} .ds-folder-card{padding:20px 20px 8px;border-radius:28px;background:var(--color-card,#ffffff)} .ds-folder-title{margin:0 0 4px;font-size:1.125rem;font-weight:500} .ds-folder-count{font-weight:400;color:var(--color-ink-2,#5f6066);font-variant-numeric:tabular-nums} .ds-folder-rows{margin:0;padding:0;list-style:none} .ds-folder-rows li{display:flex;flex-direction:column;gap:2px;padding:12px 0} .ds-folder-rows li+li{border-top:1px solid var(--color-line,#e4e4e7)} .ds-folder-name{font-size:1rem;font-weight:500} .ds-folder-meta{font-size:0.8125rem;color:var(--color-ink-2,#5f6066)}"
+    },
+    {
+      "name": "Command Panel List",
+      "kind": "custom",
+      "refersTo": "list-tile",
+      "description": "The 328px list column: panel title, glowing KPI tiles, an 18px light section heading, charcoal list tiles, and the selected tile in lime.",
+      "html": "<div class=\"ds-cmd\"><div class=\"ds-cmd-head\"><h2 class=\"ds-cmd-title\">Today</h2><p class=\"ds-cmd-date\">Thursday, October 15</p></div><div class=\"ds-kpis\"><div class=\"ds-kpi ds-kpi-lime\"><span class=\"ds-kpi-label\"><span class=\"ds-kpi-glyph\"></span>Sessions</span><span class=\"ds-kpi-value\">3</span></div><div class=\"ds-kpi ds-kpi-coral\"><span class=\"ds-kpi-label\"><span class=\"ds-kpi-glyph\"></span>Balances due</span><span class=\"ds-kpi-value\">2</span></div></div><h3 class=\"ds-cmd-section\">Sessions</h3><a class=\"ds-tile\" href=\"#\"><span class=\"ds-tile-top\"><span class=\"ds-tile-avatars\"><span class=\"ds-tile-avatar ds-tile-avatar-a\">LG</span></span><span class=\"ds-tile-text\"><span class=\"ds-tile-name\">Liam Gomez</span><span class=\"ds-tile-meta\">9:00–10:00 AM · Court 1</span></span><svg class=\"ds-tile-arrow\" xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M7 7h10v10\"/><path d=\"M7 17 17 7\"/></svg></span><span class=\"ds-tile-status\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"m16 9-5.5 5.5L8 12\"/></svg><span class=\"ds-tile-status-text\">Finished</span><span class=\"ds-tile-count\">0/1 in</span></span></a><a class=\"ds-tile ds-tile-selected\" href=\"#\" aria-current=\"true\"><span class=\"ds-tile-top\"><span class=\"ds-tile-avatars\"><span class=\"ds-tile-avatar ds-tile-avatar-b\">JP</span><span class=\"ds-tile-avatar ds-tile-avatar-c\">TR</span></span><span class=\"ds-tile-text\"><span class=\"ds-tile-name\">Summer Camp · Day 3</span><span class=\"ds-tile-meta\">4:00–6:00 PM · Court 2–3</span></span><svg class=\"ds-tile-arrow\" xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M7 7h10v10\"/><path d=\"M7 17 17 7\"/></svg></span><span class=\"ds-tile-status\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M16 14v2.2l1.6 1\"/><path d=\"M16 2v3\"/><path d=\"M21 7.338V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h2.338\"/><path d=\"M3 9h5.859\"/><path d=\"M8 2v3\"/><circle cx=\"16\" cy=\"16\" r=\"6\"/></svg><span class=\"ds-tile-status-text\">Starts in 3 h 33 min</span><span class=\"ds-tile-count\">0/3 in</span></span></a></div>",
+      "css": ".ds-cmd{display:flex;flex-direction:column;gap:10px;box-sizing:border-box;width:328px;padding:20px 16px;border-radius:32px;background:var(--color-night,#0e0e0f);color:var(--color-night-ink,#ffffff);font-family:var(--font-sans,\"Figtree Variable\",ui-sans-serif,system-ui,sans-serif);} .ds-cmd-head{padding:0 4px 10px} .ds-cmd-title{margin:0;font-size:1.75rem;line-height:1.25;font-weight:300;letter-spacing:-0.01em} .ds-cmd-date{margin:4px 0 0;font-size:0.875rem;color:var(--color-night-ink-2,#a3a3a9)} .ds-kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px} .ds-kpi{display:flex;flex-direction:column;box-sizing:border-box;height:104px;padding:16px;border-radius:22px;background-color:var(--color-night-2,#1c1c1e);background-image:radial-gradient(120% 90% at 0% 0%,var(--ds-tint,rgb(255 255 255 / 0.08)) 0%,transparent 60%)} .ds-kpi-lime{--ds-tint:rgb(218 238 99 / 0.22);--ds-edge:var(--color-lime,#daee63)} .ds-kpi-coral{--ds-tint:rgb(248 113 113 / 0.22);--ds-edge:var(--color-coral,#f87171)} .ds-kpi-label{display:flex;align-items:center;gap:8px;font-size:0.8125rem;color:rgb(255 255 255 / 0.85)} .ds-kpi-glyph{box-sizing:border-box;width:18px;height:18px;border:1.5px solid var(--ds-edge);border-radius:6px} .ds-kpi-value{margin-top:auto;align-self:flex-end;font-size:2rem;line-height:1;font-weight:300;font-variant-numeric:tabular-nums lining-nums} .ds-cmd-section{margin:10px 4px 0;font-size:1.125rem;font-weight:300} .ds-tile{--ds-ring:var(--color-night-2,#1c1c1e);display:block;padding:16px;border-radius:24px;background:var(--color-night-2,#1c1c1e);color:var(--color-night-ink,#ffffff);text-decoration:none;outline:none;transition:background-color 150ms ease-out} .ds-tile:hover{--ds-ring:var(--color-night-3,#29292c);background:var(--color-night-3,#29292c)} .ds-tile:focus-visible{outline:2px solid var(--color-lime,#daee63);outline-offset:2px} .ds-tile-selected,.ds-tile-selected:hover{--ds-ring:var(--color-lime,#daee63);background:var(--color-lime,#daee63);color:var(--color-ink,#111111)} .ds-tile-top{display:flex;align-items:flex-start;gap:12px} .ds-tile-avatars{display:flex;flex-shrink:0} .ds-tile-avatar{display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:9999px;color:var(--color-ink,#111111);font-size:0.75rem;font-weight:600;box-shadow:0 0 0 2px var(--ds-ring)} .ds-tile-avatar+.ds-tile-avatar{margin-left:-6px} .ds-tile-avatar-a{background:var(--color-lavender-soft,#ebe8fd)} .ds-tile-avatar-b{background:var(--color-sky-soft,#e2f3f8)} .ds-tile-avatar-c{background:var(--color-coral-soft,#fde3e3)} .ds-tile-text{flex:1;min-width:0} .ds-tile-name{display:block;font-size:1rem;line-height:1.375} .ds-tile-meta{display:block;font-size:0.75rem;color:var(--color-night-ink-2,#a3a3a9);font-variant-numeric:tabular-nums} .ds-tile-arrow{flex-shrink:0;color:var(--color-night-ink-2,#a3a3a9)} .ds-tile-selected .ds-tile-meta,.ds-tile-selected .ds-tile-arrow{color:rgb(17 17 17 / 0.7)} .ds-tile-status{display:flex;align-items:center;gap:8px;box-sizing:border-box;height:44px;margin-top:12px;padding:0 12px;border:1px solid var(--color-night-4,#38383c);border-radius:9999px;font-size:0.8125rem} .ds-tile-selected .ds-tile-status{border-color:rgb(17 17 17 / 0.15)} .ds-tile-status svg{flex-shrink:0} .ds-tile-status-text{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap} .ds-tile-count{display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:9999px;background:var(--color-sky,#a9dceb);color:var(--color-ink,#111111);font-size:0.75rem;font-weight:500;font-variant-numeric:tabular-nums} .ds-tile-selected .ds-tile-count{background:var(--color-card,#ffffff)}"
+    },
+    {
+      "name": "Bento Cards",
+      "kind": "card",
+      "refersTo": "bento-lavender",
+      "description": "Lavender and lime 28px cards for the record's right column: a light 22px title, then a checklist of translucent circles or a pair of small buttons.",
+      "html": "<div class=\"ds-bentos\"><section class=\"ds-bento ds-bento-lavender\"><h2 class=\"ds-bento-title\">Credits</h2><p class=\"ds-bento-sub\">2 of 3 covered by a package</p><ul class=\"ds-bento-checks\"><li><span class=\"ds-bento-dot\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 6 9 17l-5-5\"/></svg></span>Jun P. <span class=\"ds-bento-muted\">· 3 left</span></li><li><span class=\"ds-bento-dot\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 6 9 17l-5-5\"/></svg></span>Tessa R. <span class=\"ds-bento-muted\">· 1 left</span></li><li><span class=\"ds-bento-dot\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M18 6 6 18\"/><path d=\"m6 6 12 12\"/></svg></span>Zoe L. <span class=\"ds-bento-muted\">· pays per session</span></li></ul></section><section class=\"ds-bento ds-bento-lime\"><h2 class=\"ds-bento-title\">Session plan</h2><p class=\"ds-bento-sub\">Drills and focus for this session</p><p class=\"ds-bento-text\">Third-shot drops, then cross-court dinking patterns.</p><div class=\"ds-bento-actions\"><button class=\"ds-bento-btn ds-bento-btn-ink\" type=\"button\">Mark complete</button><button class=\"ds-bento-btn ds-bento-btn-white\" type=\"button\">Edit plan</button></div></section></div>",
+      "css": ".ds-bentos{display:flex;flex-direction:column;gap:16px;max-width:340px;font-family:var(--font-sans,\"Figtree Variable\",ui-sans-serif,system-ui,sans-serif);} .ds-bento{padding:20px;border-radius:28px;color:var(--color-ink,#111111)} .ds-bento-lavender{background:var(--color-lavender,#b3a8f5)} .ds-bento-lime{background:var(--color-lime,#daee63)} .ds-bento-title{margin:0;font-size:1.375rem;line-height:1.25;font-weight:300;letter-spacing:-0.01em} .ds-bento-sub{margin:4px 0 0;font-size:0.8125rem;color:rgb(17 17 17 / 0.75)} .ds-bento-checks{margin:16px 0 0;padding:0;list-style:none} .ds-bento-checks li{display:flex;align-items:center;gap:12px;padding:6px 0;font-size:0.875rem} .ds-bento-dot{display:flex;align-items:center;justify-content:center;width:24px;height:24px;flex-shrink:0;border-radius:9999px;background:rgb(255 255 255 / 0.45)} .ds-bento-muted{color:rgb(17 17 17 / 0.7)} .ds-bento-text{margin:16px 0 0;font-size:0.9375rem} .ds-bento-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px} .ds-bento-btn{height:36px;padding:0 16px;border:0;border-radius:9999px;font-family:inherit;font-size:0.875rem;font-weight:500;cursor:pointer;transition:background-color 150ms ease-out,transform 150ms ease-out} .ds-bento-btn:focus-visible{outline:2px solid var(--color-ink,#111111);outline-offset:2px} .ds-bento-btn:active{transform:scale(0.97)} .ds-bento-btn-ink{background:var(--color-ink,#111111);color:var(--color-night-ink,#ffffff)} .ds-bento-btn-ink:hover{background:var(--color-night-3,#29292c)} .ds-bento-btn-white{background:var(--color-card,#ffffff);color:var(--color-ink,#111111);box-shadow:0 0 0 1px var(--color-line-strong,#cfcfd4)} .ds-bento-btn-white:hover{background:var(--color-panel,#f3f3f4)}"
+    },
+    {
+      "name": "Check-in Toggle",
+      "kind": "custom",
+      "refersTo": "checkin-toggle",
+      "description": "Signature interaction: a 48px roster circle that fills lime with an ink check and settles in 220ms, answered by an ink toast with a lime Undo.",
+      "html": "<div class=\"ds-checkin-demo\"><div class=\"ds-roster\"><div class=\"ds-roster-row\"><span class=\"ds-roster-avatar ds-roster-avatar-a\" aria-hidden=\"true\">JP</span><span class=\"ds-roster-text\"><span class=\"ds-roster-name\">Jun Park</span><span class=\"ds-roster-line\">3 of 10 left · 10-session pack</span></span><button class=\"ds-checkin\" type=\"button\" aria-pressed=\"true\" aria-label=\"Jun Park is checked in. Undo check-in\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 6 9 17l-5-5\"/></svg></button></div><div class=\"ds-roster-row\"><span class=\"ds-roster-avatar ds-roster-avatar-b\" aria-hidden=\"true\">TR</span><span class=\"ds-roster-text\"><span class=\"ds-roster-name\">Tessa Ruiz</span><span class=\"ds-roster-line\">Covered by event registration</span></span><button class=\"ds-checkin\" type=\"button\" aria-pressed=\"false\" aria-label=\"Check in Tessa Ruiz\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 6 9 17l-5-5\"/></svg></button></div></div><div class=\"ds-toast\" role=\"status\"><svg class=\"ds-toast-icon\" xmlns=\"http://www.w3.org/2000/svg\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"m16 9-5.5 5.5L8 12\"/></svg><div class=\"ds-toast-text\"><p class=\"ds-toast-title\">Jun checked in</p><p class=\"ds-toast-body\">3 credits left on 10-session pack</p></div><button class=\"ds-toast-action\" type=\"button\">Undo</button><button class=\"ds-toast-dismiss\" type=\"button\" aria-label=\"Dismiss\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M18 6 6 18\"/><path d=\"m6 6 12 12\"/></svg></button></div></div>",
+      "css": ".ds-checkin-demo{display:flex;flex-direction:column;gap:16px;max-width:448px;padding:16px;border-radius:28px;background:var(--color-canvas,#e5e5e7);color:var(--color-ink,#111111);font-family:var(--font-sans,\"Figtree Variable\",ui-sans-serif,system-ui,sans-serif);} .ds-roster{padding:4px 20px;border-radius:28px;background:var(--color-card,#ffffff)} .ds-roster-row{display:flex;align-items:center;gap:12px;padding:12px 0} .ds-roster-row+.ds-roster-row{border-top:1px solid var(--color-line,#e4e4e7)} .ds-roster-avatar{display:flex;align-items:center;justify-content:center;width:44px;height:44px;flex-shrink:0;border-radius:9999px;font-size:0.875rem;font-weight:600} .ds-roster-avatar-a{background:var(--color-lavender-soft,#ebe8fd)} .ds-roster-avatar-b{background:var(--color-amber-soft,#fcf1d2)} .ds-roster-text{flex:1;min-width:0} .ds-roster-name{display:block;font-size:1rem;font-weight:500} .ds-roster-line{display:block;margin-top:2px;font-size:0.8125rem;color:var(--color-ink-2,#5f6066)} .ds-checkin{display:flex;align-items:center;justify-content:center;width:48px;height:48px;flex-shrink:0;padding:0;border:0;border-radius:9999px;background:var(--color-card,#ffffff);color:var(--color-ink-3,#8a8b91);box-shadow:0 0 0 1px var(--color-line-strong,#cfcfd4);cursor:pointer;transition:background-color 150ms ease-out,color 150ms ease-out} .ds-checkin:hover{background:var(--color-panel,#f3f3f4);color:var(--color-ink-2,#5f6066)} .ds-checkin:focus-visible{outline:2px solid var(--color-ink,#111111);outline-offset:2px} .ds-checkin[aria-pressed=\"true\"]{background:var(--color-lime,#daee63);color:var(--color-ink,#111111);box-shadow:none;animation:ds-settle 220ms var(--ease-out-expo,cubic-bezier(0.16,1,0.3,1))} @keyframes ds-settle{0%{transform:scale(0.8)}60%{transform:scale(1.08)}100%{transform:scale(1)}} .ds-toast{display:flex;align-items:center;gap:12px;padding:10px 10px 10px 16px;border-radius:22px;background:var(--color-ink,#111111);color:var(--color-night-ink,#ffffff);box-shadow:var(--shadow-pop,0 24px 48px -16px rgb(17 17 17 / 0.28),0 8px 20px -10px rgb(17 17 17 / 0.14));animation:ds-toast-in 220ms var(--ease-out-expo,cubic-bezier(0.16,1,0.3,1))} @keyframes ds-toast-in{from{transform:translateY(32px);opacity:0}to{transform:translateY(0);opacity:1}} .ds-toast-icon{flex-shrink:0;color:var(--color-lime,#daee63)} .ds-toast-text{flex:1;min-width:0} .ds-toast-title{margin:0;font-weight:500;line-height:1.25} .ds-toast-body{margin:2px 0 0;font-size:0.8125rem;color:var(--color-night-ink-2,#a3a3a9)} .ds-toast-action{height:36px;flex-shrink:0;padding:0 16px;border:0;border-radius:9999px;background:var(--color-lime,#daee63);color:var(--color-ink,#111111);font-family:inherit;font-size:0.875rem;font-weight:600;cursor:pointer} .ds-toast-action:hover{background:var(--color-lime-strong,#cbe148)} .ds-toast-action:focus-visible,.ds-toast-dismiss:focus-visible{outline:2px solid var(--color-lime,#daee63);outline-offset:2px} .ds-toast-dismiss{display:flex;align-items:center;justify-content:center;width:36px;height:36px;flex-shrink:0;padding:0;border:0;border-radius:9999px;background:transparent;color:var(--color-night-ink-2,#a3a3a9);cursor:pointer} .ds-toast-dismiss:hover{background:var(--color-night-3,#29292c)} @media (prefers-reduced-motion: reduce){.ds-checkin[aria-pressed=\"true\"],.ds-toast{animation-duration:1ms}.ds-checkin{transition-duration:1ms}}"
+    },
+    {
+      "name": "Photo Framer",
+      "kind": "custom",
+      "refersTo": "photo-framer",
+      "description": "Adjust: the academy's photo whole in its main frame (22px corners on Folder Gray), dragged to line it up with thirds while dragging, pinched to zoom; a full-width Zoom slider between soft 36px − and + circles with its value by the label, Left to right and Top to bottom side by side (dimmed where the photo already fills the frame), and live previews of its other shapes. Saves a point and a zoom, never a crop.",
+      "html": "<div class=\"ds-framer\"><div class=\"ds-framer-frame\" aria-hidden=\"true\"><span class=\"ds-framer-photo\"></span><span class=\"ds-framer-thirds\"></span></div><p class=\"ds-framer-hint\">Drag the photo to line it up, or pinch to zoom.</p><div class=\"ds-framer-field\"><div class=\"ds-framer-label\"><label for=\"ds-framer-zoom\">Zoom</label><output for=\"ds-framer-zoom\">1.4×</output></div><div class=\"ds-framer-row\"><button class=\"ds-framer-circle\" type=\"button\" aria-label=\"Zoom out\">−</button><input id=\"ds-framer-zoom\" type=\"range\" min=\"1\" max=\"3\" step=\"0.05\" value=\"1.4\" aria-valuetext=\"1.4 times\"><button class=\"ds-framer-circle\" type=\"button\" aria-label=\"Zoom in\">+</button></div></div><div class=\"ds-framer-pair\"><div class=\"ds-framer-field\"><div class=\"ds-framer-label\"><label for=\"ds-framer-x\">Left to right</label></div><input id=\"ds-framer-x\" type=\"range\" min=\"0\" max=\"100\" value=\"50\" aria-valuetext=\"50% across\"></div><div class=\"ds-framer-field\"><div class=\"ds-framer-label\"><label for=\"ds-framer-y\">Top to bottom</label></div><input id=\"ds-framer-y\" type=\"range\" min=\"0\" max=\"100\" value=\"20\" aria-valuetext=\"20% down\"></div></div><div class=\"ds-framer-previews\"><span class=\"ds-framer-face\" aria-hidden=\"true\"></span><span class=\"ds-framer-caption\">Team page faces</span></div></div>",
+      "css": ".ds-framer{display:flex;flex-direction:column;gap:16px;max-width:360px;padding:24px;border-radius:32px;background:var(--color-card,#ffffff);color:var(--color-ink,#111111);font-family:var(--font-sans,\"Figtree Variable\",ui-sans-serif,system-ui,sans-serif);} .ds-framer-frame{position:relative;align-self:center;width:216px;aspect-ratio:4/5;overflow:hidden;border-radius:22px;background:var(--color-panel,#f3f3f4);cursor:grab;touch-action:none} .ds-framer-photo{position:absolute;inset:0;background:radial-gradient(circle at 50% 30%,#3f5b4c 0 17%,transparent 17.5%),radial-gradient(ellipse 46% 40% at 50% 92%,#2d4536 0 99%,transparent 100%),linear-gradient(165deg,#b9d4c3,#8fb79f);transform:scale(1.4);transform-origin:50% 20%} .ds-framer-thirds{position:absolute;inset:0;background:linear-gradient(90deg,transparent calc(33.33% - 0.5px),rgb(255 255 255 / 0.7) calc(33.33% - 0.5px) calc(33.33% + 0.5px),transparent calc(33.33% + 0.5px) calc(66.67% - 0.5px),rgb(255 255 255 / 0.7) calc(66.67% - 0.5px) calc(66.67% + 0.5px),transparent calc(66.67% + 0.5px)),linear-gradient(180deg,transparent calc(33.33% - 0.5px),rgb(255 255 255 / 0.7) calc(33.33% - 0.5px) calc(33.33% + 0.5px),transparent calc(33.33% + 0.5px) calc(66.67% - 0.5px),rgb(255 255 255 / 0.7) calc(66.67% - 0.5px) calc(66.67% + 0.5px),transparent calc(66.67% + 0.5px));opacity:0;transition:opacity 150ms} .ds-framer-frame:active{cursor:grabbing} .ds-framer-frame:active .ds-framer-thirds{opacity:1} .ds-framer-hint{margin:-6px 0 0;text-align:center;font-size:0.8125rem;color:var(--color-ink-2,#5f6066)} .ds-framer-field{display:flex;flex-direction:column;gap:2px;min-width:0} .ds-framer-label{display:flex;align-items:baseline;justify-content:space-between;gap:8px;font-size:0.8125rem;font-weight:500;color:var(--color-ink-2,#5f6066)} .ds-framer-label output{color:var(--color-ink,#111111);font-variant-numeric:tabular-nums} .ds-framer-row{display:flex;align-items:center;gap:8px} .ds-framer input[type=range]{width:100%;min-width:0;height:36px;margin:0;accent-color:var(--color-ink,#111111);cursor:pointer} .ds-framer input[type=range]:disabled{opacity:0.4;cursor:not-allowed} .ds-framer-circle{display:flex;align-items:center;justify-content:center;width:36px;height:36px;flex-shrink:0;padding:0;border:0;border-radius:9999px;background:var(--color-panel,#f3f3f4);color:var(--color-ink,#111111);font-family:inherit;font-size:1.125rem;cursor:pointer} .ds-framer-circle:hover{background:var(--color-line,#e4e4e7)} .ds-framer-circle:focus-visible,.ds-framer input:focus-visible{outline:2px solid var(--color-ink,#111111);outline-offset:2px} .ds-framer-pair{display:grid;grid-template-columns:1fr 1fr;gap:0 20px} .ds-framer-previews{display:flex;align-items:center;gap:12px;padding-top:12px;border-top:1px solid var(--color-line,#e4e4e7)} .ds-framer-face{width:44px;height:44px;flex-shrink:0;border-radius:9999px;background:radial-gradient(circle at 50% 30%,#3f5b4c 0 17%,transparent 17.5%),radial-gradient(ellipse 46% 40% at 50% 92%,#2d4536 0 99%,transparent 100%),linear-gradient(165deg,#b9d4c3,#8fb79f);background-size:140%;background-position:50% 20%} .ds-framer-caption{font-size:0.75rem;color:var(--color-ink-2,#5f6066)} @media (prefers-reduced-motion: reduce){.ds-framer-thirds{transition-duration:1ms}}"
+    },
+    {
+      "name": "Tier Card",
+      "kind": "card",
+      "refersTo": "tier-card",
+      "description": "A package tier on the portal's Enroll page, a program's tiers in the staff app, and the package editor's preview: price per head in light tabular figures, validity, check-circle inclusions, a Who it's for well, and Enroll at the foot. The featured tier is lime. The website sets its packages as its own Package Card.",
+      "html": "<div class=\"ds-tiers\"><article class=\"ds-tier\"><h3 class=\"ds-tier-name\">Monthly</h3><p class=\"ds-tier-meta\">4–6 sessions</p><p class=\"ds-tier-price\">₱6,000 <span>per head</span></p><p class=\"ds-tier-valid\">Valid until the end of the month</p><ul class=\"ds-tier-list\"><li><span class=\"ds-check\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 6 9 17l-5-5\"/></svg></span>Court fees included</li><li><span class=\"ds-check\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 6 9 17l-5-5\"/></svg></span>Game review</li></ul><a class=\"ds-tier-enroll\" href=\"#\">Enroll <svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"/><path d=\"m12 5 7 7-7 7\"/></svg></a></article><article class=\"ds-tier ds-tier-featured\"><h3 class=\"ds-tier-name\">Monthly plus <span class=\"ds-tier-flag\">Featured</span></h3><p class=\"ds-tier-meta\">7–9 sessions</p><p class=\"ds-tier-price\">₱7,000 <span>per head</span></p><p class=\"ds-tier-valid\">Valid until the end of the month</p><ul class=\"ds-tier-list\"><li><span class=\"ds-check\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 6 9 17l-5-5\"/></svg></span>Court fees included</li><li><span class=\"ds-check\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 6 9 17l-5-5\"/></svg></span>Game review</li></ul><a class=\"ds-tier-enroll\" href=\"#\">Enroll <svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"/><path d=\"m12 5 7 7-7 7\"/></svg></a></article></div>",
+      "css": ".ds-tiers{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:12px;background:var(--color-canvas,#e5e5e7);border-radius:22px;font-family:var(--font-sans,\"Figtree Variable\",ui-sans-serif,system-ui,sans-serif)} .ds-tier{display:flex;flex-direction:column;padding:24px;border-radius:28px;background:var(--color-card,#fff);color:var(--color-ink,#111)} .ds-tier-featured{background:var(--color-lime,#daee63)} .ds-tier-name{margin:0;font-size:1.375rem;font-weight:300;letter-spacing:-0.01em;display:flex;justify-content:space-between;align-items:center} .ds-tier-flag{height:24px;padding:0 10px;border-radius:9999px;background:#fff;font-size:0.75rem;font-weight:500;display:inline-flex;align-items:center} .ds-tier-meta{margin:4px 0 0;font-size:0.875rem;color:var(--color-ink-2,#5f6066)} .ds-tier-price{margin:20px 0 0;font-size:2.75rem;font-weight:300;letter-spacing:-0.03em;line-height:1;font-variant-numeric:tabular-nums} .ds-tier-price span{font-size:0.9375rem;letter-spacing:0;color:var(--color-ink-2,#5f6066)} .ds-tier-valid{margin:12px 0 0;font-size:0.875rem;font-weight:500} .ds-tier-list{list-style:none;margin:20px 0 20px;padding:0;display:flex;flex-direction:column;gap:10px;font-size:0.9375rem} .ds-check{display:inline-flex;width:22px;height:22px;margin-right:12px;border-radius:9999px;background:var(--color-ink,#111);color:#fff;align-items:center;justify-content:center;font-size:12px} .ds-tier-enroll{margin-top:auto;display:flex;gap:8px;height:52px;align-items:center;justify-content:center;border-radius:9999px;background:var(--color-ink,#111);color:#fff;text-decoration:none;font-weight:500} .ds-tier-enroll:hover{background:var(--color-night-3,#29292c)} .ds-tier-enroll:focus-visible{outline:2px solid var(--color-ink,#111);outline-offset:2px}"
+    },
+    {
+      "name": "Family Portal Header",
+      "kind": "nav",
+      "refersTo": "portal-header",
+      "description": "The family portal's black header block: the academy's logo on a white tile and its name, the navigation as 44px pills on laptops (current lime), the page title, and the student switcher.",
+      "html": "<header class=\"ds-portal\"><div class=\"ds-portal-brand\"><span class=\"ds-portal-logo\">RP</span>Riverside Pickleball Academy</div><nav class=\"ds-portal-nav\"><a href=\"#\">Home</a><a href=\"#\" aria-current=\"page\">Progress</a><a href=\"#\">Schedule</a><a href=\"#\">Payments</a></nav><h1 class=\"ds-portal-title\">Progress</h1><p class=\"ds-portal-sub\">Jun Park</p></header>",
+      "css": ".ds-portal{padding:24px 32px 32px;border-radius:32px;background:var(--color-night,#0e0e0f);color:var(--color-night-ink,#fff);font-family:var(--font-sans,\"Figtree Variable\",ui-sans-serif,system-ui,sans-serif)} .ds-portal-brand{display:flex;align-items:center;gap:12px;font-weight:500} .ds-portal-logo{display:inline-flex;width:44px;height:44px;align-items:center;justify-content:center;border-radius:14px;background:#fff;color:#1f5f4a;font-weight:700} .ds-portal-nav{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px} .ds-portal-nav a{display:inline-flex;height:44px;align-items:center;padding:0 16px;border-radius:9999px;background:var(--color-night-2,#1c1c1e);color:#fff;text-decoration:none;font-size:0.9375rem} .ds-portal-nav a:hover{background:var(--color-night-3,#29292c)} .ds-portal-nav a[aria-current]{background:var(--color-lime,#daee63);color:var(--color-ink,#111)} .ds-portal-nav a:focus-visible{outline:2px solid var(--color-lime,#daee63);outline-offset:2px} .ds-portal-title{margin:32px 0 0;font-size:2.5rem;font-weight:300;letter-spacing:-0.02em;line-height:1.1} .ds-portal-sub{margin:6px 0 0;color:var(--color-night-ink-2,#a3a3a9)}"
+    },
+    {
+      "name": "Wizard Choice Card",
+      "kind": "input",
+      "refersTo": "choice-card",
+      "description": "One answer in an enrollment step: a Folder Gray card with a round check; the chosen one turns lime with an ink check.",
+      "html": "<div class=\"ds-choices\" role=\"radiogroup\" aria-label=\"Who's training\"><label class=\"ds-choice\"><input type=\"radio\" name=\"who\"><span class=\"ds-dot\"></span><span><b>Me</b><small>I'm 18 or older</small></span></label><label class=\"ds-choice\"><input type=\"radio\" name=\"who\" checked><span class=\"ds-dot\"></span><span><b>Add another child</b><small>Under 18, new to the academy</small></span></label></div>",
+      "css": ".ds-choices{display:flex;flex-direction:column;gap:8px;max-width:420px;padding:16px;background:#fff;border-radius:28px;font-family:var(--font-sans,\"Figtree Variable\",ui-sans-serif,system-ui,sans-serif)} .ds-choice{display:flex;align-items:flex-start;gap:12px;min-height:56px;padding:16px;border-radius:22px;background:var(--color-panel,#f3f3f4);cursor:pointer} .ds-choice:hover{background:var(--color-line,#e4e4e7)} .ds-choice input{position:absolute;opacity:0} .ds-dot{flex:none;width:24px;height:24px;border-radius:9999px;border:1px solid var(--color-line-strong,#cfcfd4);background:#fff} .ds-choice b{display:block;font-weight:500} .ds-choice small{display:block;margin-top:2px;font-size:0.875rem;color:var(--color-ink-2,#5f6066)} .ds-choice:has(input:checked){background:var(--color-lime,#daee63)} .ds-choice:has(input:checked) .ds-dot{border:0;background:var(--color-ink,#111)} .ds-choice:has(input:focus-visible){outline:2px solid var(--color-ink,#111);outline-offset:2px}"
+    },
+    {
+      "name": "Site Nav",
+      "kind": "nav",
+      "refersTo": "site-nav",
+      "description": "The academy website's slim Deep Green bar: the logo tile and the academy's name in secondary caps, its links (the current one underlined in Ball Lime), and the small slanted Enroll now; below 1024px the links fold behind a 44px menu button.",
+      "html": "<header class=\"ds-snav\"><nav class=\"ds-snav-bar\" aria-label=\"Riverside Pickleball Academy\"><a class=\"ds-snav-home\" href=\"#\"><span class=\"ds-snav-logo\">RP</span><span class=\"ds-snav-name\">Riverside Pickleball Academy</span></a><div class=\"ds-snav-links\"><a href=\"#\">Programs</a><a href=\"#\" aria-current=\"page\">Coaches</a><a href=\"#\">Packages</a><a href=\"#\">Contact</a></div><a class=\"ds-snav-enroll\" href=\"#\"><span>Enroll now</span></a><button class=\"ds-snav-menu\" type=\"button\" aria-label=\"Menu\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 5h16\"/><path d=\"M4 12h16\"/><path d=\"M4 19h16\"/></svg></button></nav></header>",
+      "css": ".ds-snav{border-radius:16px;overflow:hidden;background:var(--color-club-deep,#0e4a3a);color:#fff;font-family:var(--font-site,\"Archivo Variable\",ui-sans-serif,system-ui,sans-serif)} .ds-snav-bar{display:flex;align-items:center;gap:28px;height:64px;padding:0 24px} .ds-snav-home{display:flex;align-items:center;gap:10px;min-width:0;margin-right:auto;border-radius:4px;color:inherit;text-decoration:none;outline:none} .ds-snav-logo{display:inline-flex;flex-shrink:0;width:40px;height:40px;align-items:center;justify-content:center;border-radius:13px;background:#fff;color:#111;font-size:0.875rem;font-weight:600} .ds-snav-name{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:1.1875rem;font-stretch:75%;font-weight:800;font-style:italic;text-transform:uppercase;line-height:1} .ds-snav-links{display:flex;gap:28px} .ds-snav-links a{border-radius:4px;color:inherit;text-decoration:none;text-underline-offset:6px;font-size:1rem;font-weight:600;outline:none} .ds-snav-links a:hover{text-decoration:underline} .ds-snav-links a[aria-current]{text-decoration:underline;text-decoration-color:var(--color-club-ball,#cde35a);text-decoration-thickness:3px} .ds-snav-enroll{display:inline-flex;align-items:center;justify-content:center;padding:0 26px;text-decoration:none;font-stretch:75%;font-weight:900;font-style:italic;text-transform:uppercase;line-height:1;white-space:nowrap;transform:skewX(-8deg);transition:background-color 150ms,color 150ms;outline:none;min-height:44px;padding:0 20px;background:var(--color-club-ball,#cde35a);color:var(--color-club-ink,#0d1311);font-size:1.0625rem} .ds-snav-enroll>span{display:inline-block;transform:skewX(8deg)} .ds-snav-enroll:hover{background:#fff} .ds-snav-menu{display:none;width:44px;height:44px;flex-shrink:0;align-items:center;justify-content:center;border:0;border-radius:10px;background:transparent;color:inherit;cursor:pointer;outline:none} .ds-snav-menu:hover{background:rgb(255 255 255 / 0.1)} .ds-snav a:focus-visible,.ds-snav-menu:focus-visible{outline:3px solid var(--color-club-ball,#cde35a);outline-offset:3px} @media (max-width:1023px){.ds-snav-bar{height:56px;gap:8px;padding:0 6px 0 14px}.ds-snav-links{display:none}.ds-snav-name{font-size:0.9375rem}.ds-snav-enroll{min-height:38px;padding:0 14px;font-size:0.9375rem}.ds-snav-menu{display:inline-flex}}"
+    },
+    {
+      "name": "Slanted Enroll Action",
+      "kind": "button",
+      "refersTo": "button-enroll",
+      "description": "The website's one slanted shape, kept for the main move: a parallelogram skewed -8deg with an upright label in black italic caps. Ball Lime on dark fields (hover white); Club Ink on a plain package card and closing the team roster (hover Deep Green).",
+      "html": "<div class=\"ds-skw\"><div class=\"ds-skw-dark\"><a class=\"ds-skw-btn\" href=\"#\"><span>Enroll now <svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.25\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"/><path d=\"m12 5 7 7-7 7\"/></svg></span></a></div><div class=\"ds-skw-light\"><a class=\"ds-skw-btn ds-skw-ink\" href=\"#\"><span>Enroll <svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.25\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"/><path d=\"m12 5 7 7-7 7\"/></svg></span></a></div></div>",
+      "css": ".ds-skw{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border-radius:16px;overflow:hidden;font-family:var(--font-site,\"Archivo Variable\",ui-sans-serif,system-ui,sans-serif)} .ds-skw-dark,.ds-skw-light{display:flex;align-items:center;justify-content:center;padding:32px 20px} .ds-skw-dark{background:var(--color-club-deep,#0e4a3a)} .ds-skw-light{background:#fff} .ds-skw-btn{display:inline-flex;align-items:center;justify-content:center;padding:0 26px;text-decoration:none;font-stretch:75%;font-weight:900;font-style:italic;text-transform:uppercase;line-height:1;white-space:nowrap;transform:skewX(-8deg);transition:background-color 150ms,color 150ms;outline:none;min-height:56px;background:var(--color-club-ball,#cde35a);color:var(--color-club-ink,#0d1311);font-size:1.375rem} .ds-skw-btn>span{display:inline-flex;align-items:center;gap:10px;transform:skewX(8deg)} .ds-skw-btn:hover{background:#fff} .ds-skw-ink{background:var(--color-club-ink,#0d1311);color:var(--color-club-ball,#cde35a)} .ds-skw-ink:hover{background:var(--color-club-deep,#0e4a3a)} .ds-skw-dark .ds-skw-btn:focus-visible{outline:3px solid var(--color-club-ball,#cde35a);outline-offset:3px} .ds-skw-light .ds-skw-btn:focus-visible{outline:3px solid var(--color-club-ink,#0d1311);outline-offset:3px}"
+    },
+    {
+      "name": "Site Pills",
+      "kind": "button",
+      "refersTo": "site-pill",
+      "description": "Every website action that isn't the main move: 52px full pills at 17px/700. White with Deep Green type as the first move on a dark field, a 2px white ring beside it, and a 2px Club Ink ring on white and Ball Lime.",
+      "html": "<div class=\"ds-spills\"><div class=\"ds-spills-dark\"><a class=\"ds-spill ds-spill-white\" href=\"#\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M7.9 20A9 9 0 1 0 4 16.1L2 22Z\"/></svg> Message us</a><a class=\"ds-spill ds-spill-outline\" href=\"#\">Get directions</a></div><div class=\"ds-spills-light\"><a class=\"ds-spill ds-spill-ink\" href=\"#\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2\"/><path d=\"M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6\"/><rect x=\"6\" y=\"14\" width=\"12\" height=\"8\" rx=\"1\"/></svg> Printable rates</a></div></div>",
+      "css": ".ds-spills{border-radius:16px;overflow:hidden;font-family:var(--font-site,\"Archivo Variable\",ui-sans-serif,system-ui,sans-serif)} .ds-spills-dark,.ds-spills-light{display:flex;flex-wrap:wrap;gap:12px;padding:24px} .ds-spills-dark{background:var(--color-club-blue,#0a4fbf)} .ds-spills-light{background:var(--color-club-ball,#cde35a)} .ds-spill{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:52px;padding:0 22px;border-radius:9999px;font-size:1.0625rem;font-weight:700;text-decoration:none;white-space:nowrap;transition:background-color 150ms,color 150ms;outline:none} .ds-spill-white{background:#fff;color:var(--color-club-deep,#0e4a3a)} .ds-spill-white:hover{background:var(--color-club-ball,#cde35a);color:var(--color-club-ink,#0d1311)} .ds-spill-outline{color:#fff;box-shadow:inset 0 0 0 2px #fff} .ds-spill-outline:hover{background:#fff;color:var(--color-club-ink,#0d1311)} .ds-spill-ink{color:var(--color-club-ink,#0d1311);box-shadow:inset 0 0 0 2px var(--color-club-ink,#0d1311)} .ds-spill-ink:hover{background:var(--color-club-ink,#0d1311);color:#fff} .ds-spills-dark .ds-spill:focus-visible{outline:3px solid var(--color-club-ball,#cde35a);outline-offset:3px} .ds-spills-light .ds-spill:focus-visible{outline:3px solid var(--color-club-ink,#0d1311);outline-offset:3px}"
+    },
+    {
+      "name": "Stickers",
+      "kind": "chip",
+      "refersTo": "sticker-lime",
+      "description": "Facts slapped on by hand: one flat club color in a 3px white die-cut edge (14px corners), sticker caps, a few degrees off true. A round sticker holds one figure in display caps inside a printed ring; a certification keeps its own casing.",
+      "html": "<div class=\"ds-stk\"><span class=\"ds-stk-s ds-stk-lime\" style=\"--rot:-6deg\">Now enrolling</span><span class=\"ds-stk-s ds-stk-blue\" style=\"--rot:3deg\">PPR Certified Pro</span><span class=\"ds-stk-s ds-stk-deep\" style=\"--rot:-2deg\">Saturday drills</span><span class=\"ds-stk-round\" style=\"--rot:7deg\"><span class=\"ds-stk-sr\">From ₱1,500 per head</span><small aria-hidden=\"true\">From</small><b aria-hidden=\"true\">₱1,500</b><small aria-hidden=\"true\">/ head</small></span></div>",
+      "css": ".ds-stk{display:flex;flex-wrap:wrap;align-items:center;gap:24px;padding:32px 28px;border-radius:16px;background:var(--color-club,#2f9a74);font-family:var(--font-site,\"Archivo Variable\",ui-sans-serif,system-ui,sans-serif)} .ds-stk-s{display:inline-flex;align-items:center;justify-content:center;gap:0.28em;border:3px solid #fff;border-radius:14px;padding:0.5em 0.72em 0.44em;font-stretch:75%;font-weight:900;font-style:italic;text-transform:uppercase;line-height:1;letter-spacing:0.01em;white-space:nowrap;rotate:var(--rot,-4deg);font-size:1.125rem} .ds-stk-lime{background:var(--color-club-ball,#cde35a);color:var(--color-club-ink,#0d1311)} .ds-stk-blue{background:var(--color-club-blue,#0a4fbf);color:#fff;text-transform:none} .ds-stk-deep{background:var(--color-club-deep,#0e4a3a);color:#fff;font-size:0.9375rem} .ds-stk-round{position:relative;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;aspect-ratio:1;border:3px solid #fff;border-radius:50%;font-stretch:75%;font-weight:900;font-style:italic;text-transform:uppercase;line-height:1;letter-spacing:0.01em;rotate:var(--rot,7deg);width:128px;background:#fff;color:var(--color-club-ink,#0d1311);font-size:0.9375rem} .ds-stk-round::after{content:\"\";position:absolute;inset:5px;border:2px solid currentColor;border-radius:50%;pointer-events:none} .ds-stk-round small{font-size:0.875em;font-weight:800} .ds-stk-round b{font-size:2.35em;font-stretch:62%;font-weight:900;font-style:italic;text-transform:uppercase;line-height:0.86;letter-spacing:-0.01em;word-spacing:0.08em;line-height:0.9;font-variant-numeric:tabular-nums} .ds-stk-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}"
+    },
+    {
+      "name": "The Tarp",
+      "kind": "custom",
+      "refersTo": "field-green",
+      "description": "The website's first screen: Club Green under its halftone with a grommet in each corner, the academy's name in display caps, its own line, a photo sticker with Now enrolling over its corner, the round price sticker biting a Deep Green strip of programs and times, the slanted Enroll now with a white Message us, and the next session. Shown at a fixed size; the build fits the name by measurement and slaps the stickers on as the page opens.",
+      "html": "<section class=\"ds-tarp\" aria-label=\"Riverside Pickleball Academy\"><span class=\"ds-tarp-g ds-tarp-g1\"></span><span class=\"ds-tarp-g ds-tarp-g2\"></span><span class=\"ds-tarp-g ds-tarp-g3\"></span><span class=\"ds-tarp-g ds-tarp-g4\"></span><div class=\"ds-tarp-grid\"><div><h1 class=\"ds-tarp-name\">Riverside<br>Pickleball Academy</h1><p class=\"ds-tarp-line\">The academy's own line, from its profile.</p></div><div class=\"ds-tarp-photo\"><span class=\"ds-tarp-photo-label\">Academy photo</span><span class=\"ds-tarp-badge\">Now enrolling</span></div></div><div class=\"ds-tarp-band\"><span class=\"ds-tarp-round\"><small>From</small><b>₱1,500</b><small>/ head</small></span><p class=\"ds-tarp-strip\"><b>Evening program</b> · Tue &amp; Thu 7–10 PM · <b>Junior squad</b> · Saturdays 8–11 AM</p></div><div class=\"ds-tarp-actions\"><a class=\"ds-tarp-skew\" href=\"#\"><span>Enroll now <svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.25\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"/><path d=\"m12 5 7 7-7 7\"/></svg></span></a><a class=\"ds-tarp-pill\" href=\"#\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M7.9 20A9 9 0 1 0 4 16.1L2 22Z\"/></svg> Message us</a><p class=\"ds-tarp-next\">Next session Tue, Nov 10 · 7:00 PM</p></div></section>",
+      "css": ".ds-tarp{position:relative;isolation:isolate;overflow:hidden;padding:36px 32px 32px;border-radius:16px;background:var(--color-club,#2f9a74);color:#fff;font-family:var(--font-site,\"Archivo Variable\",ui-sans-serif,system-ui,sans-serif)} .ds-tarp::before{content:\"\";position:absolute;inset:0;z-index:-1;pointer-events:none;background-image:radial-gradient(circle,rgb(14 74 58 / 0.2) 0 2.2px,transparent 2.6px);background-size:8px 8px;-webkit-mask-image:linear-gradient(222deg,#000 0%,rgb(0 0 0 / 0.6) 34%,transparent 72%);mask-image:linear-gradient(222deg,#000 0%,rgb(0 0 0 / 0.6) 34%,transparent 72%)} .ds-tarp-g{position:absolute;width:12px;height:12px;box-sizing:border-box;border:2.5px solid var(--color-club-metal,#c5cdca);border-radius:50%;background:rgb(13 19 17 / 0.4)} .ds-tarp-g1{top:12px;left:12px} .ds-tarp-g2{top:12px;right:12px} .ds-tarp-g3{bottom:12px;left:12px} .ds-tarp-g4{bottom:12px;right:12px} .ds-tarp-grid{display:grid;grid-template-columns:minmax(0,1.75fr) minmax(0,1fr);gap:0 28px;align-items:start} .ds-tarp-name{margin:0;font-size:4.5rem;font-stretch:62%;font-weight:900;font-style:italic;text-transform:uppercase;line-height:0.86;letter-spacing:-0.01em;word-spacing:0.08em} .ds-tarp-line{margin:18px 0 0;max-width:22ch;font-size:1.375rem;font-weight:600;line-height:1.375} .ds-tarp-photo{position:relative;display:flex;align-items:flex-start;aspect-ratio:0.82;padding:10px;border:8px solid #fff;border-radius:18px;background:var(--color-club-deep,#0e4a3a);rotate:-3deg} .ds-tarp-photo-label{font-size:0.8125rem;font-weight:600;color:var(--color-club-mist,#c9d6d1)} .ds-tarp-badge{position:absolute;top:-18px;right:-16px;display:inline-flex;align-items:center;justify-content:center;gap:0.28em;border:3px solid #fff;border-radius:14px;padding:0.5em 0.72em 0.44em;font-stretch:75%;font-weight:900;font-style:italic;text-transform:uppercase;line-height:1;letter-spacing:0.01em;white-space:nowrap;rotate:var(--rot,-4deg);--rot:-6deg;background:var(--color-club-ball,#cde35a);color:var(--color-club-ink,#0d1311);font-size:1rem} .ds-tarp-band{position:relative;z-index:1;margin:-40px -64px 0} .ds-tarp-strip{margin:0;padding:14px 64px;background:var(--color-club-deep,#0e4a3a);rotate:-3deg;text-align:center;font-size:1.5rem;font-stretch:62%;font-weight:900;font-style:italic;text-transform:uppercase;line-height:0.86;letter-spacing:-0.01em;word-spacing:0.08em;line-height:1.06;letter-spacing:0.01em} .ds-tarp-strip b{color:var(--color-club-ball,#cde35a);font-weight:900} .ds-tarp-round{position:relative;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;aspect-ratio:1;border:3px solid #fff;border-radius:50%;font-stretch:75%;font-weight:900;font-style:italic;text-transform:uppercase;line-height:1;letter-spacing:0.01em;rotate:var(--rot,7deg);position:absolute;z-index:1;top:-116px;left:44%;width:120px;background:#fff;color:var(--color-club-ink,#0d1311);font-size:0.9375rem} .ds-tarp-round::after{content:\"\";position:absolute;inset:5px;border:2px solid currentColor;border-radius:50%;pointer-events:none} .ds-tarp-round small{font-size:0.875em;font-weight:800} .ds-tarp-round b{font-size:2.35em;font-stretch:62%;font-weight:900;font-style:italic;text-transform:uppercase;line-height:0.86;letter-spacing:-0.01em;word-spacing:0.08em;line-height:0.9;font-variant-numeric:tabular-nums} .ds-tarp-actions{display:flex;flex-wrap:wrap;align-items:center;gap:12px 14px;margin-top:30px} .ds-tarp-skew{display:inline-flex;align-items:center;justify-content:center;padding:0 26px;text-decoration:none;font-stretch:75%;font-weight:900;font-style:italic;text-transform:uppercase;line-height:1;white-space:nowrap;transform:skewX(-8deg);transition:background-color 150ms,color 150ms;outline:none;min-height:56px;background:var(--color-club-ball,#cde35a);color:var(--color-club-ink,#0d1311);font-size:1.375rem} .ds-tarp-skew>span{display:inline-flex;align-items:center;gap:10px;transform:skewX(8deg)} .ds-tarp-skew:hover{background:#fff} .ds-tarp-pill{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:52px;padding:0 22px;border-radius:9999px;font-size:1.0625rem;font-weight:700;text-decoration:none;white-space:nowrap;transition:background-color 150ms,color 150ms;outline:none;background:#fff;color:var(--color-club-deep,#0e4a3a)} .ds-tarp-pill:hover{background:var(--color-club-ball,#cde35a);color:var(--color-club-ink,#0d1311)} .ds-tarp-next{margin:0 0 0 auto;font-size:1.375rem;font-weight:600;font-variant-numeric:tabular-nums} /* As built: Ball Lime, about 2.5:1 against Club Green; the ring on this field is unsettled (DESIGN.md, Academy Website, Focus). */ .ds-tarp a:focus-visible{outline:3px solid var(--color-club-ball,#cde35a);outline-offset:3px}"
+    },
+    {
+      "name": "Program Panel",
+      "kind": "card",
+      "refersTo": "field-blue",
+      "description": "One program on its own field (Jersey Blue and Deep Green by turns): its name in display caps beside a white round from-price sticker, its days and times in giant Ball Lime numerals, its description and chips, fact rows with Ball Lime icons, and its own slanted Enroll now.",
+      "html": "<section class=\"ds-prog\" aria-labelledby=\"ds-prog-name\"><div class=\"ds-prog-head\"><h3 id=\"ds-prog-name\" class=\"ds-prog-name\">Evening program</h3><span class=\"ds-prog-round\"><small>From</small><b>₱1,500</b><small>/ head</small></span></div><p class=\"ds-prog-when\"><span>Tue &amp; Thu</span><span>7–10 PM</span></p><p class=\"ds-prog-desc\">Drills and live games for players at 3.0 and up.</p><ul class=\"ds-prog-chips\"><li>Intermediate</li><li>Ages 16+</li><li>3 hours</li></ul><ul class=\"ds-prog-facts\"><li><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0\"/><circle cx=\"12\" cy=\"10\" r=\"3\"/></svg><span>Riverside Park Courts <a href=\"#\">Directions</a></span></li></ul><a class=\"ds-prog-skew\" href=\"#\"><span>Enroll now <svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.25\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"/><path d=\"m12 5 7 7-7 7\"/></svg></span></a></section>",
+      "css": ".ds-prog{padding:44px 32px 48px;border-radius:16px;background:var(--color-club-blue,#0a4fbf);color:#fff;font-family:var(--font-site,\"Archivo Variable\",ui-sans-serif,system-ui,sans-serif)} .ds-prog-head{position:relative;padding-right:150px} .ds-prog-name{margin:0;font-size:3.5rem;font-stretch:62%;font-weight:900;font-style:italic;text-transform:uppercase;line-height:0.86;letter-spacing:-0.01em;word-spacing:0.08em} .ds-prog-round{position:relative;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;aspect-ratio:1;border:3px solid #fff;border-radius:50%;font-stretch:75%;font-weight:900;font-style:italic;text-transform:uppercase;line-height:1;letter-spacing:0.01em;rotate:var(--rot,7deg);position:absolute;top:-20px;right:0;width:130px;--rot:8deg;background:#fff;color:var(--color-club-ink,#0d1311);font-size:1rem} .ds-prog-round::after{content:\"\";position:absolute;inset:5px;border:2px solid currentColor;border-radius:50%;pointer-events:none} .ds-prog-round small{font-size:0.875em;font-weight:800} .ds-prog-round b{font-size:2.35em;font-stretch:62%;font-weight:900;font-style:italic;text-transform:uppercase;line-height:0.86;letter-spacing:-0.01em;word-spacing:0.08em;line-height:0.9;font-variant-numeric:tabular-nums} .ds-prog-when{margin:28px 0 0;color:var(--color-club-ball,#cde35a);font-size:4rem;font-stretch:62%;font-weight:900;font-style:italic;text-transform:uppercase;line-height:0.86;letter-spacing:-0.01em;word-spacing:0.08em;font-variant-numeric:tabular-nums} .ds-prog-when span{display:block;white-space:nowrap} .ds-prog-desc{margin:24px 0 0;max-width:38ch;font-size:1.1875rem;line-height:1.45} .ds-prog-chips{display:flex;flex-wrap:wrap;gap:8px;margin:20px 0 0;padding:0;list-style:none} .ds-prog-chips li{padding:5px 10px 6px;border:1.5px solid rgb(255 255 255 / 0.8);border-radius:6px;font-size:0.9375rem;font-weight:700;line-height:1.25} .ds-prog-facts{display:grid;gap:10px;margin:20px 0 0;padding:0;list-style:none;font-size:1.0625rem;font-weight:500;line-height:1.375} .ds-prog-facts li{display:flex;align-items:flex-start;gap:10px} .ds-prog-facts svg{flex-shrink:0;margin-top:2px;color:var(--color-club-ball,#cde35a)} .ds-prog-facts a{border-radius:2px;color:inherit;font-weight:600;text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:4px;outline:none} .ds-prog-facts a:hover{text-decoration-color:var(--color-club-ball,#cde35a)} .ds-prog-skew{display:inline-flex;align-items:center;justify-content:center;padding:0 26px;text-decoration:none;font-stretch:75%;font-weight:900;font-style:italic;text-transform:uppercase;line-height:1;white-space:nowrap;transform:skewX(-8deg);transition:background-color 150ms,color 150ms;outline:none;min-height:56px;margin-top:32px;background:var(--color-club-ball,#cde35a);color:var(--color-club-ink,#0d1311);font-size:1.375rem} .ds-prog-skew>span{display:inline-flex;align-items:center;gap:10px;transform:skewX(8deg)} .ds-prog-skew:hover{background:#fff} .ds-prog a:focus-visible{outline:3px solid var(--color-club-ball,#cde35a);outline-offset:3px}"
+    },
+    {
+      "name": "Package Card",
+      "kind": "card",
+      "refersTo": "package-card",
+      "description": "A package as a price sticker on the Ball Lime field: a white 16px card turned a hair, its name in secondary caps, the price per head in display caps, validity, inclusions with Club Green checks, and a slanted Club Ink Enroll. The featured tier is Jersey Blue in a white die-cut edge with a Ball Lime Featured sticker.",
+      "html": "<div class=\"ds-pkg\"><article class=\"ds-pkg-card\" style=\"--rot:-1.2deg\"><div class=\"ds-pkg-top\"><h4 class=\"ds-pkg-name\">Monthly</h4><p class=\"ds-pkg-sessions\">8 sessions</p></div><p class=\"ds-pkg-price\"><b>₱6,000</b> per head</p><p class=\"ds-pkg-valid\">Valid until the end of the month</p><ul class=\"ds-pkg-incl\"><li><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 6 9 17l-5-5\"/></svg> Court fees included</li><li><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 6 9 17l-5-5\"/></svg> Game review</li></ul><a class=\"ds-pkg-enroll\" href=\"#\"><span>Enroll <svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.25\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"/><path d=\"m12 5 7 7-7 7\"/></svg></span></a></article><article class=\"ds-pkg-card ds-pkg-featured\" style=\"--rot:0.9deg\"><span class=\"ds-pkg-flag\">Featured</span><div class=\"ds-pkg-top\"><h4 class=\"ds-pkg-name\">Monthly plus</h4><p class=\"ds-pkg-sessions\">12 sessions</p></div><p class=\"ds-pkg-price\"><b>₱8,000</b> per head</p><p class=\"ds-pkg-valid\">Valid until the end of the month</p><ul class=\"ds-pkg-incl\"><li><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 6 9 17l-5-5\"/></svg> Court fees included</li><li><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 6 9 17l-5-5\"/></svg> Training uniform included</li></ul><a class=\"ds-pkg-enroll\" href=\"#\"><span>Enroll <svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.25\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"/><path d=\"m12 5 7 7-7 7\"/></svg></span></a></article></div>",
+      "css": ".ds-pkg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:30px;padding:40px 28px 32px;border-radius:16px;background:var(--color-club-ball,#cde35a);font-family:var(--font-site,\"Archivo Variable\",ui-sans-serif,system-ui,sans-serif)} .ds-pkg-card{position:relative;display:flex;flex-direction:column;padding:20px 18px 22px;border-radius:16px;background:#fff;color:var(--color-club-ink,#0d1311);rotate:var(--rot,0deg)} .ds-pkg-featured{border:3px solid #fff;background:var(--color-club-blue,#0a4fbf);color:#fff} .ds-pkg-flag{position:absolute;top:-18px;right:16px;display:inline-flex;align-items:center;justify-content:center;gap:0.28em;border:3px solid #fff;border-radius:14px;padding:0.5em 0.72em 0.44em;font-stretch:75%;font-weight:900;font-style:italic;text-transform:uppercase;line-height:1;letter-spacing:0.01em;white-space:nowrap;rotate:var(--rot,-4deg);--rot:6deg;background:var(--color-club-ball,#cde35a);color:var(--color-club-ink,#0d1311);font-size:1.125rem} .ds-pkg-top{display:flex;align-items:baseline;justify-content:space-between;gap:12px} .ds-pkg-name{margin:0;font-size:1.875rem;font-stretch:75%;font-weight:800;font-style:italic;text-transform:uppercase;line-height:1} .ds-pkg-sessions{margin:0;font-size:1rem;font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums} .ds-pkg-price{margin:10px 0 0;font-size:1rem;font-weight:600} .ds-pkg-price b{margin-right:8px;font-size:3.5rem;font-stretch:62%;font-weight:900;font-style:italic;text-transform:uppercase;line-height:0.86;letter-spacing:-0.01em;word-spacing:0.08em;font-variant-numeric:tabular-nums} .ds-pkg-valid{margin:8px 0 0;font-size:1rem;line-height:1.375} .ds-pkg-incl{display:grid;gap:6px;margin:12px 0 0;padding:12px 0 0;border-top:1.5px solid rgb(13 19 17 / 0.15);list-style:none;font-size:1rem;line-height:1.375} .ds-pkg-featured .ds-pkg-incl{border-top-color:rgb(255 255 255 / 0.4)} .ds-pkg-incl li{display:flex;gap:8px} .ds-pkg-incl svg{flex-shrink:0;margin-top:2px;color:var(--color-club,#2f9a74)} .ds-pkg-featured .ds-pkg-incl svg{color:var(--color-club-ball,#cde35a)} .ds-pkg-enroll{display:inline-flex;align-items:center;justify-content:center;padding:0 26px;text-decoration:none;font-stretch:75%;font-weight:900;font-style:italic;text-transform:uppercase;line-height:1;white-space:nowrap;transform:skewX(-8deg);transition:background-color 150ms,color 150ms;outline:none;min-height:48px;margin-top:auto;padding:0 20px;background:var(--color-club-ink,#0d1311);color:var(--color-club-ball,#cde35a);font-size:1.1875rem} .ds-pkg-incl+.ds-pkg-enroll{margin-top:16px} .ds-pkg-enroll>span{display:inline-flex;align-items:center;gap:10px;transform:skewX(8deg)} .ds-pkg-enroll:hover{background:var(--color-club-deep,#0e4a3a)} .ds-pkg-featured .ds-pkg-enroll{background:var(--color-club-ball,#cde35a);color:var(--color-club-ink,#0d1311)} .ds-pkg-featured .ds-pkg-enroll:hover{background:#fff} .ds-pkg-enroll:focus-visible{outline:3px solid var(--color-club-ink,#0d1311);outline-offset:3px} .ds-pkg-featured .ds-pkg-enroll:focus-visible{outline-color:var(--color-club-ball,#cde35a)}"
+    },
+    {
+      "name": "Team Coach Card",
+      "kind": "card",
+      "refersTo": "coach-card",
+      "description": "A coach's space on the team page: a white 16px card on Club Green, the 4:5 portrait stuck on with a 6px white edge and a faint keyline, a Ball Lime DUPR round sticker, the name in display caps, Program lead as a sticker, certifications as Jersey Blue stickers, a highlight with a Club Green medal, specialties as chips, and the programs as pills (the one on show Ball Lime).",
+      "html": "<div class=\"ds-coach-ground\"><article class=\"ds-coach\"><div class=\"ds-coach-photo\"><span class=\"ds-coach-img\">Portrait</span><span class=\"ds-coach-dupr\"><small>DUPR</small><b>4.62</b></span></div><div class=\"ds-coach-body\"><h3 class=\"ds-coach-name\">Alex Cruz</h3><p class=\"ds-coach-title\">Head coach</p><p class=\"ds-coach-facts\"><span class=\"ds-coach-lead\">Program lead</span><span>8 years coaching · English, Filipino</span></p><dl class=\"ds-coach-dl\"><dt>Certifications</dt><dd><span class=\"ds-coach-cert\">PPR Certified Pro</span></dd><dt>Highlights</dt><dd class=\"ds-coach-hl\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M7.21 15 2.66 7.14a2 2 0 0 1 .13-2.2L4.4 2.8A2 2 0 0 1 6 2h12a2 2 0 0 1 1.6.8l1.6 2.14a2 2 0 0 1 .14 2.2L16.79 15\"/><path d=\"M11 12 5.12 2.2\"/><path d=\"m13 12 5.88-9.8\"/><path d=\"M8 7h8\"/><circle cx=\"12\" cy=\"17\" r=\"5\"/><path d=\"M12 18v-2h-.5\"/></svg><span>Gold, Mixed Doubles 4.5</span></dd><dt>Specialties</dt><dd><span class=\"ds-coach-chip\">Third-shot drops</span></dd><dt>Programs</dt><dd class=\"ds-coach-progs\"><span class=\"ds-coach-on\" aria-current=\"true\">Evening program</span><a class=\"ds-coach-prog\" href=\"#\">Junior squad</a></dd></dl></div></article></div>",
+      "css": ".ds-coach-ground{padding:24px;border-radius:16px;background:var(--color-club,#2f9a74);font-family:var(--font-site,\"Archivo Variable\",ui-sans-serif,system-ui,sans-serif)} .ds-coach{display:grid;grid-template-columns:minmax(0,15rem) minmax(0,1fr);gap:24px;padding:20px;border-radius:16px;background:#fff;color:var(--color-club-ink,#0d1311)} .ds-coach-photo{position:relative;align-self:start} .ds-coach-img{display:flex;align-items:flex-end;aspect-ratio:4/5;padding:10px;border:6px solid #fff;border-radius:14px;background:var(--color-club-deep,#0e4a3a);color:var(--color-club-mist,#c9d6d1);font-size:0.8125rem;font-weight:600;rotate:-1.5deg;box-shadow:0 0 0 1px rgb(13 19 17 / 0.1)} .ds-coach-dupr{position:relative;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;aspect-ratio:1;border:3px solid #fff;border-radius:50%;font-stretch:75%;font-weight:900;font-style:italic;text-transform:uppercase;line-height:1;letter-spacing:0.01em;rotate:var(--rot,7deg);position:absolute;top:-12px;left:-8px;width:104px;--rot:-8deg;background:var(--color-club-ball,#cde35a);color:var(--color-club-ink,#0d1311);font-size:0.8125rem} .ds-coach-dupr::after{content:\"\";position:absolute;inset:5px;border:2px solid currentColor;border-radius:50%;pointer-events:none} .ds-coach-dupr small{font-size:0.875em;font-weight:800} .ds-coach-dupr b{font-size:2.35em;font-stretch:62%;font-weight:900;font-style:italic;text-transform:uppercase;line-height:0.86;letter-spacing:-0.01em;word-spacing:0.08em;line-height:0.9;font-variant-numeric:tabular-nums} .ds-coach-name{margin:0;font-size:3.5rem;font-stretch:62%;font-weight:900;font-style:italic;text-transform:uppercase;line-height:0.86;letter-spacing:-0.01em;word-spacing:0.08em} .ds-coach-title{margin:8px 0 0;font-size:1.375rem;font-stretch:75%;font-weight:800;font-style:italic;text-transform:uppercase;line-height:1} .ds-coach-facts{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:12px 0 0;font-size:1.125rem;font-weight:600} .ds-coach-lead{display:inline-flex;align-items:center;justify-content:center;gap:0.28em;border:3px solid #fff;border-radius:14px;padding:0.5em 0.72em 0.44em;font-stretch:75%;font-weight:900;font-style:italic;text-transform:uppercase;line-height:1;letter-spacing:0.01em;white-space:nowrap;rotate:var(--rot,-4deg);--rot:-3deg;border-color:var(--color-club-ink,#0d1311);background:var(--color-club-ball,#cde35a);color:var(--color-club-ink,#0d1311);font-size:0.9375rem} .ds-coach-dl{display:grid;gap:8px;margin:20px 0 0} .ds-coach-dl dt{margin-top:12px;font-size:0.9375rem;font-weight:700} .ds-coach-dl dd{margin:0} .ds-coach-cert{display:inline-flex;align-items:center;justify-content:center;gap:0.28em;border:3px solid #fff;border-radius:14px;padding:0.5em 0.72em 0.44em;font-stretch:75%;font-weight:900;font-style:italic;text-transform:uppercase;line-height:1;letter-spacing:0.01em;white-space:nowrap;rotate:var(--rot,-4deg);--rot:-3deg;border-color:rgb(13 19 17 / 0.1);background:var(--color-club-blue,#0a4fbf);color:#fff;text-transform:none;font-size:1.125rem} .ds-coach-hl{display:flex;align-items:flex-start;gap:12px;font-size:1.0625rem;font-weight:600} .ds-coach-hl svg{flex-shrink:0;color:var(--color-club,#2f9a74)} .ds-coach-chip{display:inline-block;padding:5px 10px 6px;border:1.5px solid rgb(13 19 17 / 0.7);border-radius:6px;font-size:0.9375rem;font-weight:700;line-height:1.25} .ds-coach-progs{display:flex;flex-wrap:wrap;gap:8px} .ds-coach-on{display:inline-flex;align-items:center;min-height:44px;padding:0 16px;border-radius:9999px;background:var(--color-club-ball,#cde35a);font-size:1rem;font-weight:700} .ds-coach-prog{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:52px;padding:0 22px;border-radius:9999px;font-size:1.0625rem;font-weight:700;text-decoration:none;white-space:nowrap;transition:background-color 150ms,color 150ms;outline:none;min-height:44px;padding:0 18px;font-size:1rem;color:var(--color-club-ink,#0d1311);box-shadow:inset 0 0 0 2px var(--color-club-ink,#0d1311)} .ds-coach-prog:hover{background:var(--color-club-ink,#0d1311);color:#fff} .ds-coach-prog:focus-visible{outline:3px solid var(--color-club-ink,#0d1311);outline-offset:3px}"
+    },
+    {
+      "name": "Soon Block",
+      "kind": "custom",
+      "refersTo": "sticker-lime",
+      "description": "The website's empty state, never blank: the section keeps its field and sets what's coming as a fitted two-line sticker in display caps (22px corners, a white die-cut edge), with one plain line beside it (under it on phones).",
+      "html": "<section class=\"ds-soon\" aria-labelledby=\"ds-soon-title\"><h2 id=\"ds-soon-title\" class=\"ds-soon-sticker\">Programs<br>drop soon</h2><p class=\"ds-soon-line\">The academy is setting its schedule.</p></section>",
+      "css": ".ds-soon{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:24px 72px;padding:56px 32px;border-radius:16px;background:var(--color-club-blue,#0a4fbf);color:#fff;font-family:var(--font-site,\"Archivo Variable\",ui-sans-serif,system-ui,sans-serif)} .ds-soon-sticker{display:block;width:fit-content;max-width:100%;margin:0;padding:0.2em 0.28em 0.14em;border:3px solid #fff;border-radius:22px;background:var(--color-club-ball,#cde35a);color:var(--color-club-ink,#0d1311);font-size:4.5rem;font-stretch:62%;font-weight:900;font-style:italic;text-transform:uppercase;line-height:0.86;letter-spacing:-0.01em;word-spacing:0.08em;rotate:-4deg} .ds-soon-line{margin:0;max-width:30ch;font-size:1.5rem;font-weight:600;line-height:1.375} @media (max-width:640px){.ds-soon{grid-template-columns:1fr}.ds-soon-sticker{font-size:2.75rem}.ds-soon-line{font-size:1.25rem}}"
+    },
+    {
+      "name": "Site Footer",
+      "kind": "custom",
+      "refersTo": "site-footer",
+      "description": "The website's foot on Club Ink: the academy's name in secondary caps with its contacts in Club Mist, its pages as links with 44px tap areas, and a quiet row with the copyright and Made with CoachMan beside the BallMark, the only CoachMan mark on the website.",
+      "html": "<footer class=\"ds-sfoot\"><div class=\"ds-sfoot-top\"><div><p class=\"ds-sfoot-name\">Riverside Pickleball Academy</p><ul class=\"ds-sfoot-contact\"><li><a href=\"#\">0900 000 0000</a></li><li><a href=\"#\">hello@example.com</a></li></ul></div><nav aria-label=\"Website pages\"><ul class=\"ds-sfoot-links\"><li><a href=\"#\">Home</a></li><li><a href=\"#\">Meet the team</a></li><li><a href=\"#\">Enroll now</a></li><li><a href=\"#\">Printable rates</a></li></ul></nav></div><div class=\"ds-sfoot-base\"><p>© 2026 Riverside Pickleball Academy</p><a class=\"ds-sfoot-credit\" href=\"#\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 32 32\" aria-hidden=\"true\"><circle cx=\"16\" cy=\"16\" r=\"15\" fill=\"#daee63\"/><g fill=\"#0d1311\"><circle cx=\"16\" cy=\"7.2\" r=\"1.9\"/><circle cx=\"9.6\" cy=\"10.6\" r=\"1.9\"/><circle cx=\"22.4\" cy=\"10.6\" r=\"1.9\"/><circle cx=\"16\" cy=\"16\" r=\"1.9\"/><circle cx=\"8.4\" cy=\"18.4\" r=\"1.9\"/><circle cx=\"23.6\" cy=\"18.4\" r=\"1.9\"/><circle cx=\"12\" cy=\"24.4\" r=\"1.9\"/><circle cx=\"20\" cy=\"24.4\" r=\"1.9\"/></g></svg> Made with CoachMan</a></div></footer>",
+      "css": ".ds-sfoot{padding:40px 32px 32px;border-radius:16px;background:var(--color-club-ink,#0d1311);color:#fff;font-family:var(--font-site,\"Archivo Variable\",ui-sans-serif,system-ui,sans-serif)} .ds-sfoot-top{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:28px 48px} .ds-sfoot-name{margin:0;font-size:1.5rem;font-stretch:75%;font-weight:800;font-style:italic;text-transform:uppercase;line-height:1} .ds-sfoot-contact{display:flex;flex-direction:column;align-items:flex-start;gap:6px;margin:8px 0 0;padding:0;list-style:none} .ds-sfoot-links{display:flex;flex-wrap:wrap;gap:12px 24px;margin:0;padding:0;list-style:none} .ds-sfoot a{position:relative;border-radius:2px;color:inherit;text-decoration:none;text-underline-offset:4px;outline:none} .ds-sfoot a::before{content:\"\";position:absolute;inset:-10px 0} .ds-sfoot-contact a{color:var(--color-club-mist,#c9d6d1);font-size:1rem;font-weight:500;font-variant-numeric:tabular-nums} .ds-sfoot-contact a:hover{color:#fff} .ds-sfoot-links a{font-size:1rem;font-weight:600} .ds-sfoot-links a:hover{text-decoration:underline} .ds-sfoot-base{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px 24px;margin-top:36px;padding-top:24px;border-top:1px solid rgb(255 255 255 / 0.15);font-size:0.875rem;color:var(--color-club-mist,#c9d6d1)} .ds-sfoot-base p{margin:0} .ds-sfoot-base .ds-sfoot-credit{display:inline-flex;align-items:center;gap:8px;color:var(--color-club-mist,#c9d6d1)} .ds-sfoot-base .ds-sfoot-credit:hover{color:#fff} .ds-sfoot a:focus-visible{outline:3px solid var(--color-club-ball,#cde35a);outline-offset:3px}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Courtside Command Panel",
+    "overview": "CoachMan is a calm, premium CRM for courts. Every app screen splits into two zones: a black command panel that holds navigation and the live list (today's sessions, the client worklist, who owes), and a soft-gray daylight canvas where the selected session or client opens as rounded white cards. Lime is the single signal across both zones. It lights whatever is live, selected, or the next action, so a coach glancing at a phone between games finds \"now\" without reading.\n\nHeadings and figures are large and light; everything a coach acts on is regular or medium weight and at least 36px tall, mostly 44px or more. Status speaks in soft pastel pills that always carry ink text. Depth is tonal (gray canvas, a lighter folder panel, white cards), and shadows appear only on things that float. Containers take generous 22–32px corners, and every control is a pill or a circle. People appear as initials on soft tints unless the coach uploads a photo. There is no stock or illustrative imagery, and in the app the lime BallMark is the only sport motif.\n\nThe visual authority is a reference the user pinned: the Dribbble shot \"Microsoft Dynamics CRM – Lead Relationship Management Platform\" by Jack R. for RonDesignLab, translated from sales to coaching. It replaced a themed \"Court Lines\" build and a plain \"clean and light\" plan, both rejected; the system refuses flat admin tables and sport-themed costume. Where the reference sets white text on pastel pills, CoachMan sets ink, because task surfaces have to read in outdoor sun.\n\nThe academy release carries the same world to the people around the coaches. The **family portal** is the calm register: the command panel becomes a black header block that holds the academy's own logo tile and name, the page title, and (on laptops) the navigation as pills; the work sits on the gray canvas as white cards, with lime spent on one thing per screen (the next session, the amount due). The **enrollment wizard** is an Operate flow in the academy's frame: the dark panel holds the academy, the tier, and the steps; one white card holds one question. The **rates sheet** prints the live catalog as a plain letterhead document. In these surfaces an academy brings only its name, logo, words, and photos (its team's portraits, a cover, and its own court photos); the CoachMan palette is never recolored for it.\n\nThe **academy website** (`/a/<slug>`: the landing page, Enroll now, and Meet the team inside one site frame) is not a CoachMan screen. It is the academy's own public face, for families and players deciding whether to train there, and the owner gave it its own identity (2026-11-07), choosing the **Pubmat** from four mocked directions: the site is set like the enrollment pubmat Filipino families already stop scrolling for, and CoachMan appears on it only as a small \"Made with CoachMan\" in the footer. Every section is one full-bleed field of flat color in the club's colors, sampled from the first academy's own banner and jersey: Club Green under print-dot halftone, Jersey Blue, Deep Green, Ball Lime, white, and a Club Ink footer. Archivo sets all of it: the academy's name, titles, schedules, and prices in extra-condensed black italic caps, everything else at normal width. Stickers with a white die-cut edge, photos stuck on with a white border and a slight turn, schedules on strips laid across at an angle, and a slanted Ball Lime Enroll now carry the page. Every word, photo, and figure comes from the academy's own data, and a section with nothing yet says what's coming instead of falling silent. It refuses the sports-academy template (a dark full-bleed hero photo with a centered slogan, three icon features, plan columns, a testimonial carousel) and the quiet cream-and-serif page it replaced. Its tokens and rules hold inside the website (`.site-root`) only, and the two worlds don't mix: the staff app, the family portal, the wizard, and the rates sheet the website links to keep the system above, and the website shares only CoachMan's BallMark, in its footer credit.",
+    "keyCharacteristics": [
+      "Two zones: a black command panel (icon rail plus list column) beside a soft-gray canvas of white cards.",
+      "Lime marks live, selected, and primary, and nothing else.",
+      "Figtree throughout the app: light (300) for headings and figures, tabular numerals for every compared number.",
+      "Pastel status pills with ink text, never white.",
+      "Tonal depth; shadows only on floating layers.",
+      "22–32px container corners; pills and circles for every control.",
+      "Records open into fused folder tabs over a lighter panel, with lavender and lime bentos beside them.",
+      "Touch-first sizing: 44px controls, 48px check-in circles, 52px action circles.",
+      "One app world for three audiences: staff (command panel), families (black header block), and applicants (wizard frame). Visitors get the academy's own website, a separate world: an enrollment pubmat in the club's colors, set in Archivo caps.",
+      "A visible keyboard focus everywhere: in the app a 2px ring at 2px offset, ink on the canvas, lime in the dark zone; on the website a 3px ring at 3px offset."
+    ],
+    "rules": [
+      {
+        "name": "The Lime Is Now Rule",
+        "body": "Lime marks what is live, selected, or the primary action: the active rail circle, the selected tile, the action circles, the checked-in toggle, the primary bento. It never labels a category, a tag, or a chart series; categories take the pastels.",
+        "section": "colors"
+      },
+      {
+        "name": "The Ink-on-Pastel Rule",
+        "body": "Every lime and pastel fill carries ink (#111111) text and icons, never white. This is a deliberate accessibility deviation from the reference, whose pills set white on pastel: white on Owes Coral reads at about 2.8:1, ink at about 6.8:1.",
+        "section": "colors"
+      },
+      {
+        "name": "The Connection Color Rule",
+        "body": "Sync Orange speaks only about connection state (offline, syncing, a change waiting to sync), and nothing else wears it.",
+        "section": "colors"
+      },
+      {
+        "name": "The One Lime Block Rule",
+        "body": "A screen holds at most one lime block, and it is the thing to act on now: the live session (Today), the next session (the family's Home), the amount due (Pay), the featured tier (the portal's Enroll page). Offers that sit beside it (turn on reminders, renew for next month) are white cards with a lime icon circle, never a second lime slab.",
+        "section": "colors"
+      },
+      {
+        "name": "The Club Colors Rule",
+        "body": "The website wears the club's colors and white, and none of the app's: no Signal Lime, pastels, night tones, or gray canvas. Its colors live only in the `--color-club*` properties, so another academy's colors change values, never components.",
+        "section": "colors"
+      },
+      {
+        "name": "The Large-on-Green Rule",
+        "body": "White on Club Green reads about 3.5:1, so Club Green carries white type only at large sizes (24px and up, or 19px and up in bold); smaller lines sit on Deep Green, Jersey Blue, Club Ink, or white. Ball Lime type never sits on Club Green (about 2.5:1): the hero's strip is Deep Green so its lime program names read.",
+        "section": "colors"
+      },
+      {
+        "name": "The Light Heading Rule",
+        "body": "Across the app (staff, family portal, wizard, rates sheet), every heading and figure from 22px up is set at weight 300 with slight negative tracking (-0.01em to -0.03em). Bold (700) does not exist in the app; in the app the wordmark (22px, 500) is the only large text that isn't light. The academy website follows its own type rules below.",
+        "section": "typography"
+      },
+      {
+        "name": "The Tabular Figure Rule",
+        "body": "Every number a coach compares (times, counts, credits, money) is set in tabular lining numerals.",
+        "section": "typography"
+      },
+      {
+        "name": "The Display Caps Rule",
+        "body": "On the website, caps belong to the display, secondary, and sticker cuts: names, titles, schedules, prices, numerals, stickers, strips, tabs, the phone menu's rows, and the slanted action, always italic and condensed. Body copy, pills, chips, labels, and inline links stay at normal width in sentence case. Nothing on the website is set in Figtree, and Archivo never appears in the app.",
+        "section": "typography"
+      },
+      {
+        "name": "The Measured Fit Rule",
+        "body": "Display words that must fit a width are measured before they render, never after. The hero's name and the \"drop soon\" stickers are broken into lines by `fitLines` and sized from the display cut's own advance widths (`DISPLAY_EM` in `site-data.ts`, measured from the shipped font files, with the cut's tracking and word spacing); a program's name and times shrink on phones until their longest word fits. New display copy that has to fit is measured the same way before it ships: the table covers A–Z, 0–9, ₱, and common punctuation, and any other glyph counts as an average 0.5em until it is measured and added.",
+        "section": "typography"
+      },
+      {
+        "name": "The Two-Zone Rule",
+        "body": "In the app, night tones belong to the command panel and its phone forms (the header block and the tab bar); the canvas, the folder panel, and white cards hold the work. A component that lives in both zones ships two tones, a charcoal tile in the panel and a white card on the canvas, never a dark card on the canvas. The academy website has neither zone: it is built of full-bleed club-color fields (see Academy website).",
+        "section": "layout"
+      },
+      {
+        "name": "The Thumb Floor Rule",
+        "body": "Controls start at 44px: buttons and icon circles 44px, fields 48px, check-in toggles and rail circles 48px, a record's action circles 52px. 36px is the one smaller step, for secondary actions inside cards, sheets, bentos, and toasts. A text link set apart from prose (a footer link, a contact line, \"All\" in a card head) keeps its look and gets an invisible 44px tap area.",
+        "section": "layout"
+      },
+      {
+        "name": "The Current-in-View Rule",
+        "body": "A row that scrolls sideways on phones (folder tabs, filter chips, announcement lists) always opens with its current item in view, and a navigation marks exactly one item as current.",
+        "section": "layout"
+      },
+      {
+        "name": "The One Field Rule",
+        "body": "On the website each section is one full-bleed field of one club color, never the color of the field before it, and its edge is that change of color alone: no rules, dividers, or gaps between sections.",
+        "section": "layout"
+      },
+      {
+        "name": "The What's-Coming Rule",
+        "body": "A website section with nothing published yet keeps its field and says what's coming, as a fitted two-line sticker with one plain line on what happens next; it never shows blank space, a placeholder graphic, or invented content. How to enroll always shows. Only On court and the team are left out until there are photos and coaches.",
+        "section": "layout"
+      },
+      {
+        "name": "The Flat Card Rule",
+        "body": "Cards sit flat; tone alone separates white from gray. A resting element declares its edge once, with a 1px line or a shadow, never both.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Float-Only Shadow Rule",
+        "body": "Pop means \"this floats above the page\". Lift is the only other shadow, and only for a thumb or segment raised above its own track. Cards, tiles, and panels never cast one.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Flat Print Rule",
+        "body": "The website has no blur shadows and no gradients: no Pop, Lift, glows, scrims, gradient fills, or gradient text. The halftone is its one gradient-built device, and it is print texture. Depth is drawn with color fields, white die-cut edges, and turns.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Step-Down Radius Rule",
+        "body": "A shape nested in a container takes a smaller radius than the container: a 32px panel holds 24px list tiles and 22px KPI tiles; a 28px card holds 22px wells and 16px controls.",
+        "section": "shapes"
+      },
+      {
+        "name": "The Slapped-On Rule",
+        "body": "On the website, stuck-on things sit a few degrees off true, as if slapped on by hand, and neighbors turn opposite ways: stickers between -9° and 8°, photos and portraits within ±3°, package cards and Enroll now's tabs within ±1.5°, strips at -3°. Fields, the nav, the footer, the team page's cards, pills, and body text stay square, and a slanted action's label always stands upright.",
+        "section": "shapes"
+      },
+      {
+        "name": "The Proof Rule",
+        "body": "A credit count or a balance is a button that opens its proof: the credit ledger or the client's statement.",
+        "section": "components"
+      },
+      {
+        "name": "The One Slant Rule",
+        "body": "On the website the slant belongs to the main move alone: Enroll now, a package's Enroll, Enroll in [program], and, while an academy can't take requests, the hero's \"Meet the coaches\". Every other action is a plain pill, so the slanted Ball Lime shape always means the one thing to do.",
+        "section": "components"
+      },
+      {
+        "name": "The Real Data Rule",
+        "body": "Every claim, photo, figure, and sticker on the website comes from the academy's own data; the only words the website supplies itself are true for every academy (how enrolling works, what's coming) and, until the academy writes its own line, \"Pickleball coaching\". A sticker states a fact: that the academy is enrolling now, its lowest price, a coach's DUPR rating or certification, the featured package, a program's lead, a photo's caption, or, on an empty section, what's coming. With nothing to state there is no sticker, and nothing is invented: no testimonials, metrics, slogans, hashtags, or stock photos.",
+        "section": "components"
+      }
+    ],
+    "dos": [
+      "Do split every app screen into the two zones: the night command panel (84px rail and 328px list column on desktop, a black header block on phones) and the gray canvas of white cards.",
+      "Do reserve lime (#daee63) for live, selected, and primary: current navigation, the selected tile, action circles, the checked-in toggle, the primary bento.",
+      "Do set every pastel and lime fill with ink (#111111) text and icons.",
+      "Do set the app's headings and figures from 22px up at weight 300: record titles 44px and page titles 40px from 1024px, both 32px on phones.",
+      "Do give every compared number tabular lining numerals (`.num`).",
+      "Do open records into folder tabs that fuse into the Folder Gray panel, with the lavender and lime bentos in a 340px column from 1280px.",
+      "Do keep controls at 44px or more (fields and check-in toggles 48px, action circles 52px), and use the 36px small button only for secondary actions inside cards, sheets, bentos, and toasts.",
+      "Do confirm a check-in with the lime fill, the 220ms settle, and an ink toast that offers Undo.",
+      "Do use Lucide icons at 16–24px, with a 1.75 stroke in navigation.",
+      "Do show people as initials on a soft wash unless the coach has uploaded a photo.",
+      "Do show an academy's logo as uploaded, on a white tile, and in the app keep the CoachMan palette around it unchanged.",
+      "Do spend lime once per screen in the family portal (the next session, the amount due); make offers white cards with a lime icon circle.",
+      "Do keep the academy website's way in on its first phone screen: the slanted Ball Lime Enroll now in the nav and the hero while the academy takes requests, else Message us (and, in the hero, Meet the coaches).",
+      "Do introduce people on the public pages with 4:5 half-body portraits (else the square photo, else initials on a soft wash), the name and title beside or under the image, never on it. On phones a coach's own card leads with a full-width portrait and the rest of the team scrolls sideways; faces in a stack stay circles.",
+      "Do keep a visible keyboard focus ring on every control and link: in the app, ink on the canvas and lime in the dark zone; on the website, a 3px ring at 3px offset, ink on the white and Ball Lime fields and Ball Lime on Deep Green, Jersey Blue, and Club Ink.",
+      "Do give a text link set apart from prose a 44px tap area, and open a sideways-scrolling row with its current item in view.",
+      "Do build the academy website from full-bleed fields of the club's colors, one per section and never the color of the field before it: Club Green with its halftone, Jersey Blue, Deep Green, Ball Lime, white, and a Club Ink footer.",
+      "Do set the website's names, titles, schedules, prices, stickers, strips, tabs, and slanted actions in Archivo's condensed italic caps (the display cut at 62% width and 900: the hero's name fitted up to 168px, section titles 96px from 1024px), and everything else in Archivo at normal width, in sentence case.",
+      "Do build every website section from the academy's own data. A section with nothing yet keeps its field and says what's coming as a fitted sticker with one line beside it; How to enroll always shows; On court and the team wait for photos and coaches.",
+      "Do measure display words that must fit before they render (`fitLines` and `DISPLAY_EM` in `site-data.ts`), and measure any glyph the table lacks before a fitted line uses it.",
+      "Do keep the website's motion to three things: the hero's stickers slapping on once as the page opens (560ms, starting 140, 260, and 380ms in), the team page's program swap, and the phone's contact bar sliding in. With reduced motion none of it animates: the stickers are simply there and the swap is instant."
+    ],
+    "donts": [
+      "Don't use lime to mark a category, a tag, or a chart series; categories take the pastels.",
+      "Don't put white text on lime or on any pastel, even though the reference does.",
+      "Don't set any app text at weight 700, or an app heading of 22px or more above weight 300. The website's caps run at 800 and 900 by design, and that weight never comes back into the app.",
+      "Don't put an eyebrow or kicker above a heading, in the app or on the website. A field label above its value is data, not a kicker; a status pill or a date line above a title is a kicker (put it under the title). In the app, don't uppercase labels; on the website, caps belong to its display, secondary, and sticker cuts, never to labels, pills, chips, or body copy.",
+      "Don't add a colored side stripe to a card, row, or alert.",
+      "Don't use gradient text; the KPI tile's corner glow is the app's one decorative gradient. The website has none: its halftone is print texture, on Club Green only.",
+      "Don't shadow a card, tile, or panel, and don't give a resting element both a 1px line and a shadow.",
+      "Don't use icons from any set but Lucide, or glyphs and emoji as icons.",
+      "Don't put a dark card on the app's gray canvas or a white card in the command panel. The website has neither: white cards on its color fields are native there.",
+      "Don't introduce a hex outside the `@theme` tokens in `src/app/styles.css`; declare a new color there first.",
+      "Don't use stock or illustrative images of people.",
+      "Don't reintroduce the rejected themed costume (\"Court Lines\") or flat admin tables; the BallMark is the app's only sport motif. The website draws no sport art either: its motifs are print's own (stickers, strips, halftone, grommets), and the sport shows in the academy's photos.",
+      "Don't stack two lime blocks, or recolor any part of the app (staff, family portal, wizard, rates sheet) to an academy's brand colors; the club's colors belong to its website alone.",
+      "Don't set a dismissal (\"Not now\", \"Cancel\") as an underlined link beside a button; it is a ghost or white button.",
+      "Don't mark more than one link in a navigation as the current page.",
+      "Don't carry the website's club colors, Archivo caps, stickers, strips, halftone, slanted actions, or turns into the staff app, the family portal, the wizard, or the rates sheet, and don't bring the app's lime, pastels, night tones, gray canvas, Figtree, or shadows onto the website.",
+      "Don't shadow or blur anything on the website, set small white type straight on Club Green, or slant anything but the main move.",
+      "Don't give the website the sports-academy template (a dark full-bleed hero photo with a centered slogan, three icon features, plan columns, or a testimonial carousel), and don't return it to the quiet cream-and-serif page it replaced."
+    ]
+  }
+}

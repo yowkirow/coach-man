@@ -1,0 +1,1 @@
+CREATE INDEX `enrollment_requested_by_idx` ON `enrollment_request` (`requested_by`);

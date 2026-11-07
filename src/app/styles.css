@@ -1,0 +1,428 @@
+@import "tailwindcss";
+@import "@fontsource-variable/figtree/wght.css";
+@import "@fontsource-variable/archivo/wdth.css";
+@import "@fontsource-variable/archivo/wdth-italic.css";
+
+/*
+ * CoachMan design system, pinned to the user's reference (Dynamics CRM concept by RonDesignLab):
+ * a black command panel beside a soft-gray canvas of white rounded cards; lime marks what is
+ * live or selected; lavender and lime bento cards; pastel status pills with ink text.
+ */
+@theme {
+  --font-sans: "Figtree Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* The academy website (public pages only) is its own world, set in Archivo throughout. */
+  --font-site: "Archivo Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  /* Light zone */
+  --color-canvas: #e5e5e7;
+  --color-panel: #f3f3f4;
+  --color-card: #ffffff;
+  --color-ink: #111111;
+  --color-ink-2: #5f6066;
+  --color-ink-3: #8a8b91;
+  --color-line: #e4e4e7;
+  --color-line-strong: #cfcfd4;
+
+  /* Dark zone */
+  --color-night: #0e0e0f;
+  --color-night-2: #1c1c1e;
+  --color-night-3: #29292c;
+  --color-night-4: #38383c;
+  --color-night-line: #2e2e32;
+  --color-night-ink: #ffffff;
+  --color-night-ink-2: #a3a3a9;
+
+  /* Accents */
+  --color-lime: #daee63;
+  --color-lime-strong: #cbe148;
+  --color-lime-soft: #f2f8cf;
+  --color-lavender: #b3a8f5;
+  --color-lavender-soft: #ebe8fd;
+  --color-violet: #c9befb;
+  --color-coral: #f87171;
+  --color-coral-soft: #fde3e3;
+  --color-sky: #a9dceb;
+  --color-sky-soft: #e2f3f8;
+  --color-amber: #f8d477;
+  --color-amber-soft: #fcf1d2;
+  --color-mint: #bfe9d0;
+  --color-sync: #fb923c;
+
+  /* The academy website: the club's own colors, from its banner and jersey (an enrollment pubmat). */
+  --color-club: #2f9a74;
+  --color-club-deep: #0e4a3a;
+  --color-club-ball: #cde35a;
+  --color-club-blue: #0a4fbf;
+  --color-club-ink: #0d1311;
+  --color-club-mist: #c9d6d1;
+  --color-club-metal: #c5cdca;
+
+  --shadow-pop: 0 24px 48px -16px rgb(17 17 17 / 0.28), 0 8px 20px -10px rgb(17 17 17 / 0.14);
+  --shadow-lift: 0 1px 2px rgb(17 17 17 / 0.06), 0 4px 12px -4px rgb(17 17 17 / 0.08);
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@layer base {
+  :root {
+    color-scheme: light;
+    -webkit-tap-highlight-color: transparent;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+  }
+
+  html,
+  body {
+    background: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    min-height: 100dvh;
+    font-size: 0.9375rem;
+    line-height: 1.45;
+    overscroll-behavior-y: none;
+  }
+
+  /* The academy website ends on its ink footer, overscroll included. */
+  html:has(.site-root),
+  html:has(.site-root) body {
+    background: var(--color-club-ink);
+  }
+
+  ::selection {
+    background: var(--color-lime);
+    color: var(--color-ink);
+  }
+
+  input,
+  textarea {
+    caret-color: var(--color-ink);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 2px;
+  }
+
+  /* Large light headings break into even lines instead of leaving one word behind. */
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  a {
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1.5px;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(17 17 17 / 0.22) transparent;
+  }
+  .dark-zone,
+  .dark-zone * {
+    scrollbar-color: rgb(255 255 255 / 0.22) transparent;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgb(17 17 17 / 0.2);
+    border-radius: 999px;
+    border: 3px solid transparent;
+    background-clip: padding-box;
+  }
+
+  input[type="date"]::-webkit-calendar-picker-indicator,
+  input[type="time"]::-webkit-calendar-picker-indicator {
+    opacity: 0.6;
+    cursor: pointer;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      /* biome-ignore lint/complexity/noImportantStyles: reduced motion must beat component animations. */
+      animation-duration: 1ms !important;
+      /* biome-ignore lint/complexity/noImportantStyles: reduced motion must beat component transitions. */
+      transition-duration: 1ms !important;
+    }
+    ::view-transition-group(*),
+    ::view-transition-old(*),
+    ::view-transition-new(*) {
+      /* biome-ignore lint/complexity/noImportantStyles: reduced motion must beat view transitions. */
+      animation: none !important;
+    }
+    /* The website's stickers are simply there: no slap, and no delayed from-state before it. */
+    .pm-slap {
+      /* biome-ignore lint/complexity/noImportantStyles: reduced motion must beat the slap and its delays. */
+      animation: none !important;
+    }
+  }
+
+  /* The team page's program switch is a view transition: each portrait glides to its new place on
+     the system's ease-out while the rest of the page cross-fades quickly underneath. */
+  ::view-transition-group(*) {
+    animation-duration: 340ms;
+    animation-timing-function: var(--ease-out-expo);
+  }
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 180ms;
+  }
+}
+
+@layer components {
+  .num {
+    font-variant-numeric: tabular-nums lining-nums;
+  }
+
+  /* The academy website: an enrollment pubmat in the club's colors, set in Archivo. */
+  .site-root {
+    --focus: var(--color-club-ink);
+    isolation: isolate;
+    font-family: var(--font-site);
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+  .site-root ::selection {
+    background: var(--color-club-ball);
+    color: var(--color-club-ink);
+  }
+  /* Each field's focus color, inherited by everything on it (the nearest field wins): Club Ink
+     on light fields and white cards, Ball Lime on the dark fields. */
+  .pm-dark {
+    --focus: var(--color-club-ball);
+  }
+
+  /* Display caps: extra condensed, black, italic. The word spacing opens the cut's narrow space
+     (site-data.ts DISPLAY_WORD_SPACING measures with it). */
+  .pm-d1 {
+    font-stretch: 62%;
+    font-weight: 900;
+    font-style: italic;
+    text-transform: uppercase;
+    line-height: 0.86;
+    letter-spacing: -0.01em;
+    word-spacing: 0.08em;
+  }
+  .pm-d2 {
+    font-stretch: 75%;
+    font-weight: 800;
+    font-style: italic;
+    text-transform: uppercase;
+    line-height: 1;
+  }
+
+  /* A tarp's print dots, fading out from the top right. Its focus ring is white: Ball Lime reads
+     only about 2.5:1 on Club Green, white holds 3.5:1. */
+  .pm-halftone {
+    --focus: #fff;
+    position: relative;
+    isolation: isolate;
+  }
+  .pm-halftone::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background-image: radial-gradient(circle, rgb(14 74 58 / 0.2) 0 2.2px, transparent 2.6px);
+    background-size: 8px 8px;
+    mask-image: linear-gradient(222deg, #000 0%, rgb(0 0 0 / 0.6) 34%, transparent 72%);
+  }
+
+  /* A sticker: one flat color inside a white die-cut edge, turned by --rot. */
+  .pm-sticker {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.28em;
+    border: 3px solid #fff;
+    border-radius: 14px;
+    padding: 0.5em 0.72em 0.44em;
+    font-stretch: 75%;
+    font-weight: 900;
+    font-style: italic;
+    text-transform: uppercase;
+    line-height: 1;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+    rotate: var(--rot, -4deg);
+  }
+  .pm-sticker-round {
+    position: relative;
+    flex-direction: column;
+    gap: 2px;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    padding: 0;
+  }
+  /* A round sticker's printed ring, just inside its edge. */
+  .pm-sticker-round::after {
+    content: "";
+    position: absolute;
+    inset: 5px;
+    border: 2px solid currentColor;
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  /* A strip: a band of type laid across a panel at an angle. */
+  .pm-strip {
+    rotate: -3deg;
+  }
+
+  /* Skewed actions: the shape slants, its label stands up straight. */
+  .pm-skew {
+    transform: skewX(-8deg);
+  }
+  .pm-skew > * {
+    transform: skewX(8deg);
+  }
+
+  /* The sticker slap: the hero's stickers land once, as the page opens. */
+  .pm-slap {
+    animation: pm-slap 560ms var(--ease-out-expo) both;
+  }
+
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  /* Tinted glow used on the dark KPI tiles (reference: coloured gradient tiles). */
+  .tile-glow {
+    background-image: radial-gradient(
+      120% 90% at 0% 0%,
+      var(--tile-tint, rgb(255 255 255 / 0.08)) 0%,
+      transparent 60%
+    );
+  }
+}
+
+/*
+ * Keyboard focus. Tailwind v4's `outline-none` also sets `--tw-outline-style: none`, and the
+ * `focus-visible:outline-2` / `data-[focus-visible]:outline-2` rings drawn on top of it read that
+ * variable, so every focus ring resolved to `outline-style: none`. Unlayered, so it beats the
+ * utility; fields (outline-none with a border and glow, no outline utility) are unaffected.
+ */
+.outline-none:focus-visible,
+.outline-none[data-focus-visible] {
+  --tw-outline-style: solid;
+}
+
+/* In the dark zone every focus ring is lime (an ink ring disappears on black), whatever color the
+   control's own focus utility names. */
+.dark-zone :focus-visible,
+.dark-zone [data-focus-visible] {
+  outline-color: var(--color-lime);
+}
+
+/* Printing (the public rates sheet): white paper, no app chrome, each tier kept whole. A4 and
+   Letter both fit: the margins are set, the paper size is the printer's. */
+@media print {
+  @page {
+    margin: 14mm 12mm;
+  }
+
+  html,
+  body {
+    background: #fff;
+  }
+
+  .rates-tier {
+    break-inside: avoid;
+  }
+
+  .rates-program > :first-child {
+    break-after: avoid;
+  }
+}
+
+@keyframes settle {
+  0% {
+    transform: scale(0.8);
+  }
+  60% {
+    transform: scale(1.08);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes pm-slap {
+  from {
+    scale: 1.16;
+    rotate: calc(var(--rot, -4deg) + 8deg);
+  }
+  to {
+    scale: 1;
+    rotate: var(--rot, -4deg);
+  }
+}
+
+@keyframes rise {
+  from {
+    transform: translateY(8px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes sheet-up {
+  from {
+    transform: translateY(32px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes shimmer {
+  from {
+    background-position: -200% 0;
+  }
+  to {
+    background-position: 200% 0;
+  }
+}
+
+/* The academy website's focus ring: every focusable part shows one, 3px solid in its field's
+   focus color (--focus above). It lives in the utilities layer at :where() strength, so it
+   outranks `outline-none` (which only drops the browser default, and in Tailwind 4 would also
+   blank `focus-visible:outline-*` widths) while explicit focus utilities, like an inset offset
+   or a set color, still win. */
+@layer utilities {
+  :where(.site-root) :focus-visible,
+  :where(.site-root) [data-focus-visible] {
+    --tw-outline-style: solid;
+    outline: 3px solid var(--focus);
+    outline-offset: 2px;
+  }
+}

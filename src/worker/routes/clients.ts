@@ -1,0 +1,605 @@
+import { and, asc, desc, eq, gte, inArray, isNull, like, ne, or, sql } from "drizzle-orm";
+import { Hono } from "hono";
+import type {
+  ClientCoachesSavedDto,
+  ClientDetailDto,
+  ClientDto,
+  ClientListItemDto,
+  LedgerLineDto,
+} from "../../shared/api-types";
+import { normalizeCoaches, planCoachChanges } from "../../shared/coaches";
+import { CLIENT_STATUSES } from "../../shared/domain";
+import { uuidv7 } from "../../shared/ids";
+import { can } from "../../shared/roles";
+import { clientCoachesSchema, clientSchema, clientUpdateSchema } from "../../shared/schemas";
+import { localDate, todayIn } from "../../shared/time";
+import {
+  attendance,
+  charge,
+  client,
+  clientCoach,
+  clientPackage,
+  creditLedger,
+  event,
+  eventRegistration,
+  groupMember,
+  lesson,
+  payment,
+  trainingGroup,
+} from "../db/schema";
+import { auditEntry } from "../lib/audit";
+import { badRequest, conflict, notFound } from "../lib/errors";
+import { inList, unique } from "../lib/sql";
+import { v } from "../lib/validate";
+import { ctxOf, requireCap } from "../middleware";
+import {
+  assertStaff,
+  coachRefs,
+  currentClientCoaches,
+  loadClientCoaches,
+} from "../services/coaches";
+import { missingByClient } from "../services/consents";
+import { packagesForClients, runBatch, toPackageBalanceDto } from "../services/credits";
+import {
+  lessonSummaries,
+  syncMemberIntoGroupLessons,
+  unbookMemberFromGroupLessons,
+} from "../services/lessons";
+import { balancesFor } from "../services/money";
+import { proofKeysOf } from "../services/payment-proofs";
+import {
+  pickupPhotoKeysOf,
+  pickupsOf,
+  staffSafetyChange,
+  staffSafetyUpdate,
+} from "../services/safety";
+import type { AppBindings, Ctx } from "../types";
+
+type ClientRow = typeof client.$inferSelect;
+
+function listColumns(today: string) {
+  return {
+    c: client,
+    groupIds: sql<
+      string | null
+    >`(select group_concat(gm.group_id) from group_member gm where gm.client_id = "client"."id" and gm.left_on is null)`,
+    credits: sql<number>`(select coalesce(sum(cp.credits_total + coalesce((select sum(cl.delta) from credit_ledger cl where cl.client_package_id = cp.id), 0)), 0) from client_package cp where cp.client_id = "client"."id" and cp.status = 'active' and (cp.expires_on is null or cp.expires_on >= ${today}))`,
+    activePackages: sql<number>`(select count(*) from client_package cp where cp.client_id = "client"."id" and cp.status = 'active' and (cp.expires_on is null or cp.expires_on >= ${today}))`,
+    lastSeenAt: sql<
+      number | null
+    >`(select max(l.starts_at) from attendance a join lesson l on l.id = a.lesson_id where a.client_id = "client"."id" and a.status in ('present', 'late'))`,
+    creditsActiveTotal: sql<number>`(select coalesce(sum(cp.credits_total), 0) from client_package cp where cp.workspace_id = "client"."workspace_id" and cp.client_id = "client"."id" and cp.status = 'active' and (cp.expires_on is null or cp.expires_on >= ${today}))`,
+    creditsUsedUpTotal: sql<number>`(select coalesce(sum(cp.credits_total), 0) from client_package cp where cp.workspace_id = "client"."workspace_id" and cp.client_id = "client"."id" and cp.status = 'exhausted' and (cp.expires_on is null or cp.expires_on >= ${today}))`,
+    nextExpiryOn: sql<
+      string | null
+    >`(select min(cp.expires_on) from client_package cp where cp.workspace_id = "client"."workspace_id" and cp.client_id = "client"."id" and cp.status = 'active' and cp.expires_on >= ${today})`,
+    nextSessionAt: sql<
+      number | null
+    >`(select min(l.starts_at) from attendance a join lesson l on l.id = a.lesson_id where a.workspace_id = "client"."workspace_id" and a.client_id = "client"."id" and l.ends_at > ${Date.now()} and l.status != 'cancelled' and a.status not in ('excused', 'late_cancel'))`,
+    coaches: sql<
+      string | null
+    >`(select group_concat(cc.role || ':' || cc.coach_user_id) from client_coach cc where cc.workspace_id = "client"."workspace_id" and cc.client_id = "client"."id" and cc.ended_on is null)`,
+  };
+}
+
+/** "primary:<id>,assistant:<id>" (current client_coach rows) → the list item's coach fields. */
+function parseCoaches(value: string | null) {
+  let primaryCoachUserId: string | null = null;
+  const assistantCoachIds: string[] = [];
+  for (const part of value ? value.split(",") : []) {
+    const [role, id] = part.split(":");
+    if (!id) continue;
+    if (role === "primary" && !primaryCoachUserId) primaryCoachUserId = id;
+    else if (role === "assistant") assistantCoachIds.push(id);
+  }
+  return { primaryCoachUserId, assistantCoachIds };
+}
+
+function toListItem(
+  r: {
+    c: ClientRow;
+    groupIds: string | null;
+    credits: number;
+    activePackages: number;
+    lastSeenAt: number | null;
+    creditsActiveTotal: number;
+    creditsUsedUpTotal: number;
+    nextExpiryOn: string | null;
+    nextSessionAt: number | null;
+    coaches: string | null;
+  },
+  balance: number,
+  tz: string,
+): ClientListItemDto {
+  return {
+    id: r.c.id,
+    firstName: r.c.firstName,
+    lastName: r.c.lastName,
+    email: r.c.email,
+    phone: r.c.phone,
+    status: r.c.status,
+    level: r.c.level,
+    isJunior: r.c.isJunior,
+    photoKey: r.c.photoKey,
+    tags: r.c.tags,
+    groupIds: r.groupIds ? r.groupIds.split(",") : [],
+    creditsRemaining: Number(r.credits),
+    activePackages: Number(r.activePackages),
+    balanceMinor: balance,
+    lastSeenOn: r.lastSeenAt ? localDate(Number(r.lastSeenAt), tz) : null,
+    creditsTotal: Number(
+      Number(r.activePackages) > 0 ? r.creditsActiveTotal : r.creditsUsedUpTotal,
+    ),
+    nextExpiryOn: r.nextExpiryOn,
+    nextSessionAt: r.nextSessionAt === null ? null : Number(r.nextSessionAt),
+    joinedOn: r.c.joinedOn,
+    ...parseCoaches(r.coaches),
+  };
+}
+
+function toClientDto(base: ClientListItemDto, c: ClientRow): ClientDto {
+  return {
+    ...base,
+    birthDate: c.birthDate,
+    guardianName: c.guardianName,
+    guardianPhone: c.guardianPhone,
+    guardianEmail: c.guardianEmail,
+    emergencyName: c.emergencyName,
+    emergencyPhone: c.emergencyPhone,
+    duprId: c.duprId,
+    duprRating: c.duprRating,
+    dominantHand: c.dominantHand,
+    paddle: c.paddle,
+    goals: c.goals,
+    medicalNotes: c.medicalNotes,
+    notes: c.notes,
+    source: c.source,
+    joinedOn: c.joinedOn,
+    createdAt: c.createdAt,
+    shirtSize: c.shirtSize,
+  };
+}
+
+async function loadClient(ctx: Ctx, id: string): Promise<ClientDto> {
+  const today = todayIn(ctx.settings.timezone);
+  const [row] = await ctx.db
+    .select(listColumns(today))
+    .from(client)
+    .where(and(eq(client.id, id), eq(client.workspaceId, ctx.workspaceId)));
+  if (!row) throw notFound("Client");
+  const balances = can(ctx.role, "money")
+    ? await balancesFor(ctx, [id])
+    : new Map<string, number>();
+  return toClientDto(toListItem(row, balances.get(id) ?? 0, ctx.settings.timezone), row.c);
+}
+
+async function setGroups(ctx: Ctx, clientId: string, groupIds: string[]) {
+  const { db, workspaceId } = ctx;
+  const wanted = unique(groupIds);
+  if (wanted.length) {
+    const found = await db
+      .select({ id: trainingGroup.id })
+      .from(trainingGroup)
+      .where(and(eq(trainingGroup.workspaceId, workspaceId), inArray(trainingGroup.id, wanted)));
+    if (found.length !== wanted.length) throw badRequest("Some groups were not found.");
+  }
+  const current = await db
+    .select()
+    .from(groupMember)
+    .where(and(eq(groupMember.workspaceId, workspaceId), eq(groupMember.clientId, clientId)));
+  const today = todayIn(ctx.settings.timezone);
+  const activeIds = new Set(current.filter((m) => !m.leftOn).map((m) => m.groupId));
+  const toAdd = wanted.filter((g) => !activeIds.has(g));
+  const toRemove = [...activeIds].filter((g) => !wanted.includes(g));
+  const statements: unknown[] = [];
+  for (const groupId of toAdd) {
+    const existing = current.find((m) => m.groupId === groupId);
+    statements.push(
+      existing
+        ? db
+            .update(groupMember)
+            .set({ leftOn: null, joinedOn: today })
+            .where(eq(groupMember.id, existing.id))
+        : db
+            .insert(groupMember)
+            .values({ id: uuidv7(), workspaceId, groupId, clientId, joinedOn: today }),
+    );
+  }
+  for (const groupId of toRemove) {
+    statements.push(
+      db
+        .update(groupMember)
+        .set({ leftOn: today })
+        .where(and(eq(groupMember.clientId, clientId), eq(groupMember.groupId, groupId))),
+    );
+  }
+  await runBatch(ctx, statements);
+  for (const groupId of toAdd) await syncMemberIntoGroupLessons(ctx, groupId, [clientId]);
+  for (const groupId of toRemove) await unbookMemberFromGroupLessons(ctx, groupId, clientId);
+}
+
+export const clientRoutes = new Hono<AppBindings>()
+  .get("/clients", async (c) => {
+    const ctx = ctxOf(c);
+    const q = c.req.query("q")?.trim();
+    const status = c.req.query("status");
+    const groupId = c.req.query("groupId");
+    const today = todayIn(ctx.settings.timezone);
+    const term = q ? `%${q.replace(/[%_]/g, "")}%` : null;
+    const rows = await ctx.db
+      .select(listColumns(today))
+      .from(client)
+      .where(
+        and(
+          eq(client.workspaceId, ctx.workspaceId),
+          status && (CLIENT_STATUSES as readonly string[]).includes(status)
+            ? eq(client.status, status as ClientRow["status"])
+            : status === "all"
+              ? undefined
+              : sql`${client.status} != 'archived'`,
+          term
+            ? or(
+                like(client.firstName, term),
+                like(client.lastName, term),
+                like(sql`${client.firstName} || ' ' || ${client.lastName}`, term),
+                like(client.email, term),
+                like(client.phone, term),
+              )
+            : undefined,
+          groupId
+            ? sql`exists (select 1 from group_member gm where gm.client_id = "client"."id" and gm.group_id = ${groupId} and gm.left_on is null)`
+            : undefined,
+        ),
+      )
+      .orderBy(asc(client.firstName), asc(client.lastName));
+    const balances = can(ctx.role, "money") ? await balancesFor(ctx) : new Map<string, number>();
+    const consents = await missingByClient(
+      ctx.db,
+      ctx.workspaceId,
+      rows.map((r) => r.c),
+      today,
+    );
+    return c.json(
+      rows.map((r) => ({
+        ...toListItem(r, balances.get(r.c.id) ?? 0, ctx.settings.timezone),
+        consentsMissing: consents.get(r.c.id) ?? 0,
+      })),
+    );
+  })
+
+  .post("/clients", v("json", clientSchema), async (c) => {
+    const ctx = ctxOf(c);
+    const { groupIds, id: requestedId, primaryCoachUserId, ...input } = c.req.valid("json");
+    const id = requestedId ?? uuidv7();
+    // Whoever adds a student coaches them until someone changes it; null = no coach yet.
+    const primary = primaryCoachUserId === undefined ? ctx.userId : primaryCoachUserId;
+    if (primaryCoachUserId) await assertStaff(ctx, [primaryCoachUserId], "primaryCoachUserId");
+    const today = todayIn(ctx.settings.timezone);
+    await runBatch(ctx, [
+      ctx.db.insert(client).values({
+        ...input,
+        id,
+        workspaceId: ctx.workspaceId,
+        joinedOn: input.joinedOn ?? today,
+        tags: input.tags ?? [],
+      }),
+      ...(primary
+        ? [
+            ctx.db.insert(clientCoach).values({
+              id: uuidv7(),
+              workspaceId: ctx.workspaceId,
+              clientId: id,
+              coachUserId: primary,
+              role: "primary" as const,
+              startedOn: today,
+              assignedBy: ctx.userId,
+            }),
+          ]
+        : []),
+      auditEntry(ctx, "create", "client", id),
+    ]);
+    if (groupIds?.length) await setGroups(ctx, id, groupIds);
+    return c.json(await loadClient(ctx, id), 201);
+  })
+
+  .get("/clients/:id", async (c) => {
+    const ctx = ctxOf(c);
+    const id = c.req.param("id");
+    const dto = await loadClient(ctx, id);
+    const { db, workspaceId, settings } = ctx;
+    const [groups, packages, upcomingRows, recent, registrations, coaches] = await Promise.all([
+      db
+        .select({ id: trainingGroup.id, name: trainingGroup.name, color: trainingGroup.color })
+        .from(groupMember)
+        .innerJoin(trainingGroup, eq(trainingGroup.id, groupMember.groupId))
+        .where(
+          and(
+            eq(groupMember.clientId, id),
+            isNull(groupMember.leftOn),
+            eq(groupMember.workspaceId, workspaceId),
+          ),
+        ),
+      packagesForClients(ctx, [id], { includeInactive: true }),
+      lessonSummaries(
+        ctx,
+        and(
+          gte(lesson.startsAt, Date.now() - 2 * 3_600_000),
+          sql`${lesson.status} != 'cancelled'`,
+          sql`exists (select 1 from attendance a where a.lesson_id = "lesson"."id" and a.client_id = ${id} and a.status not in ('excused', 'late_cancel'))`,
+        ),
+      ),
+      db
+        .select({
+          lessonId: lesson.id,
+          startsAt: lesson.startsAt,
+          title: lesson.title,
+          kind: lesson.kind,
+          status: attendance.status,
+          packageName: clientPackage.name,
+          groupName: trainingGroup.name,
+          eventName: event.name,
+        })
+        .from(attendance)
+        .innerJoin(lesson, eq(lesson.id, attendance.lessonId))
+        .leftJoin(clientPackage, eq(clientPackage.id, attendance.consumedPackageId))
+        .leftJoin(trainingGroup, eq(trainingGroup.id, lesson.groupId))
+        .leftJoin(event, eq(event.id, lesson.eventId))
+        .where(
+          and(
+            eq(attendance.workspaceId, workspaceId),
+            eq(attendance.clientId, id),
+            sql`${lesson.startsAt} < ${Date.now()}`,
+          ),
+        )
+        .orderBy(desc(lesson.startsAt))
+        .limit(20),
+      db
+        .select({
+          id: eventRegistration.id,
+          eventId: event.id,
+          eventName: event.name,
+          status: eventRegistration.status,
+          startsOn: event.startsOn,
+        })
+        .from(eventRegistration)
+        .innerJoin(event, eq(event.id, eventRegistration.eventId))
+        .where(
+          and(eq(eventRegistration.workspaceId, workspaceId), eq(eventRegistration.clientId, id)),
+        )
+        .orderBy(desc(event.startsOn)),
+      loadClientCoaches(ctx, id),
+    ]);
+    const [pickups, safetyRow] = await Promise.all([
+      pickupsOf(db, workspaceId, [id]),
+      db.query.client.findFirst({
+        where: and(eq(client.id, id), eq(client.workspaceId, workspaceId)),
+        columns: { safetyUpdatedAt: true, safetyUpdatedBy: true, safetyUpdatedRelation: true },
+      }),
+    ]);
+    const today = todayIn(settings.timezone);
+    const body: ClientDetailDto = {
+      client: dto,
+      groups,
+      packages: packages.map((p) => toPackageBalanceDto(p, today)).reverse(),
+      upcoming: upcomingRows.slice(0, 8).map((u) => u.summary),
+      recentAttendance: recent.map((r) => ({
+        lessonId: r.lessonId,
+        startsAt: r.startsAt,
+        title: r.title || r.groupName || r.eventName || "Session",
+        kind: r.kind,
+        status: r.status,
+        packageName: r.packageName,
+      })),
+      registrations,
+      coaches,
+      pickups: pickups.get(id) ?? [],
+      safetyUpdate: safetyRow ? await staffSafetyUpdate(db, safetyRow) : null,
+    };
+    return c.json(body);
+  })
+
+  /**
+   * A student's current coaches. Assignments are never overwritten: rows that no longer apply end
+   * today and new ones start today, so the history shows who coached when. Open to every coach.
+   */
+  .put("/clients/:id/coaches", v("json", clientCoachesSchema), async (c) => {
+    const ctx = ctxOf(c);
+    const id = c.req.param("id");
+    const row = await ctx.db.query.client.findFirst({
+      where: and(eq(client.id, id), eq(client.workspaceId, ctx.workspaceId)),
+      columns: { id: true },
+    });
+    if (!row) throw notFound("Client");
+    const desired = normalizeCoaches(c.req.valid("json"));
+    await assertStaff(ctx, [desired.primaryCoachUserId], "primaryCoachUserId");
+    await assertStaff(ctx, desired.assistantCoachIds, "assistantCoachIds");
+    const plan = planCoachChanges(await currentClientCoaches(ctx, id), desired);
+    const today = todayIn(ctx.settings.timezone);
+    if (plan.end.length || plan.start.length) {
+      const started = plan.start.map((s) => ({ ...s, id: uuidv7() }));
+      const newPrimary = started.find((s) => s.role === "primary");
+      await runBatch(ctx, [
+        ...(plan.end.length
+          ? [
+              ctx.db
+                .update(clientCoach)
+                .set({ endedOn: today })
+                .where(
+                  and(
+                    eq(clientCoach.workspaceId, ctx.workspaceId),
+                    inList(clientCoach.id, plan.end),
+                  ),
+                ),
+            ]
+          : []),
+        ...started.map((s) =>
+          ctx.db.insert(clientCoach).values({
+            id: s.id,
+            workspaceId: ctx.workspaceId,
+            clientId: id,
+            coachUserId: s.coachUserId,
+            role: s.role,
+            startedOn: today,
+            assignedBy: ctx.userId,
+          }),
+        ),
+        // One current primary, even when two people change a student's coaches at once: the
+        // later change wins and the other primary ends today.
+        ...(newPrimary
+          ? [
+              ctx.db
+                .update(clientCoach)
+                .set({ endedOn: today })
+                .where(
+                  and(
+                    eq(clientCoach.workspaceId, ctx.workspaceId),
+                    eq(clientCoach.clientId, id),
+                    eq(clientCoach.role, "primary"),
+                    isNull(clientCoach.endedOn),
+                    ne(clientCoach.id, newPrimary.id),
+                  ),
+                ),
+            ]
+          : []),
+        auditEntry(ctx, "assign_coaches", "client", id, {
+          primary: desired.primaryCoachUserId,
+          assistants: desired.assistantCoachIds,
+        }),
+      ]);
+    }
+    const [coaches, refs] = await Promise.all([
+      loadClientCoaches(ctx, id),
+      coachRefs(ctx.db, ctx.workspaceId, [plan.previousPrimary]),
+    ]);
+    const body: ClientCoachesSavedDto = {
+      coaches,
+      primaryChanged: plan.primaryChanged,
+      previousPrimary: plan.previousPrimary ? (refs.get(plan.previousPrimary) ?? null) : null,
+    };
+    return c.json(body);
+  })
+
+  .patch("/clients/:id", v("json", clientUpdateSchema), async (c) => {
+    const ctx = ctxOf(c);
+    const id = c.req.param("id");
+    const { groupIds, ...input } = c.req.valid("json");
+    const row = await ctx.db.query.client.findFirst({
+      where: and(eq(client.id, id), eq(client.workspaceId, ctx.workspaceId)),
+    });
+    if (!row) throw notFound("Client");
+    // Health and emergency details: who changed them goes on the student (staff read "Updated by")
+    // and in the audit log, by field name only.
+    const safety = staffSafetyChange(ctx.db, row, input, { userId: ctx.userId });
+    const values = { ...input, ...safety.set };
+    // Only the programs may be changing (`groupIds`): there's nothing to write on the row then.
+    const update = Object.values(values).some((v) => v !== undefined)
+      ? ctx.db
+          .update(client)
+          .set(values)
+          .where(and(eq(client.id, id), eq(client.workspaceId, ctx.workspaceId)))
+      : null;
+    if (update && safety.audit) await runBatch(ctx, [update, safety.audit]);
+    else if (update) await update;
+    if (groupIds) await setGroups(ctx, id, groupIds);
+    return c.json(await loadClient(ctx, id));
+  })
+
+  .delete("/clients/:id", requireCap("data"), async (c) => {
+    const ctx = ctxOf(c);
+    const id = c.req.param("id");
+    const existing = await ctx.db.query.client.findFirst({
+      where: and(eq(client.id, id), eq(client.workspaceId, ctx.workspaceId)),
+    });
+    if (!existing) throw notFound("Client");
+    // Deleting cascades to money and attendance; refuse so every credit and payment stays explainable.
+    const ws = ctx.workspaceId;
+    const [paid, charged, sold, attended] = await Promise.all([
+      ctx.db
+        .select({ id: payment.id })
+        .from(payment)
+        .where(and(eq(payment.workspaceId, ws), eq(payment.clientId, id)))
+        .limit(1),
+      ctx.db
+        .select({ id: charge.id })
+        .from(charge)
+        .where(and(eq(charge.workspaceId, ws), eq(charge.clientId, id)))
+        .limit(1),
+      ctx.db
+        .select({ id: clientPackage.id })
+        .from(clientPackage)
+        .where(and(eq(clientPackage.workspaceId, ws), eq(clientPackage.clientId, id)))
+        .limit(1),
+      ctx.db
+        .select({ id: attendance.id })
+        .from(attendance)
+        .where(
+          and(
+            eq(attendance.workspaceId, ws),
+            eq(attendance.clientId, id),
+            inArray(attendance.status, ["present", "late", "no_show", "late_cancel"]),
+          ),
+        )
+        .limit(1),
+    ]);
+    if (paid.length || charged.length || sold.length || attended.length) {
+      throw conflict(
+        `${existing.firstName} has payments, packages, or attendance on record, so they can't be deleted. Archive them instead to keep that history.`,
+      );
+    }
+    if (existing.photoKey) await ctx.env.FILES.delete(existing.photoKey);
+    // Payment proofs and pickup photos go with the student (the rows cascade; their private
+    // images too).
+    const proofKeys = [
+      ...(await proofKeysOf(ctx.db, ctx.workspaceId, id)),
+      ...(await pickupPhotoKeysOf(ctx.db, ctx.workspaceId, id)),
+    ];
+    if (proofKeys.length) await ctx.env.FILES.delete(proofKeys);
+    await runBatch(ctx, [
+      ctx.db.delete(client).where(and(eq(client.id, id), eq(client.workspaceId, ctx.workspaceId))),
+      auditEntry(ctx, "delete", "client", id, {
+        name: `${existing.firstName} ${existing.lastName}`.trim(),
+      }),
+    ]);
+    return c.body(null, 204);
+  })
+
+  .get("/clients/:id/ledger", async (c) => {
+    const ctx = ctxOf(c);
+    const id = c.req.param("id");
+    await loadClient(ctx, id);
+    const rows = await ctx.db
+      .select({
+        l: creditLedger,
+        packageName: clientPackage.name,
+        creditsTotal: clientPackage.creditsTotal,
+        lessonTitle: lesson.title,
+        lessonStartsAt: lesson.startsAt,
+        groupName: trainingGroup.name,
+      })
+      .from(creditLedger)
+      .innerJoin(clientPackage, eq(clientPackage.id, creditLedger.clientPackageId))
+      .leftJoin(lesson, eq(lesson.id, creditLedger.lessonId))
+      .leftJoin(trainingGroup, eq(trainingGroup.id, lesson.groupId))
+      .where(and(eq(creditLedger.workspaceId, ctx.workspaceId), eq(creditLedger.clientId, id)))
+      .orderBy(asc(creditLedger.createdAt));
+    const running = new Map<string, number>();
+    const lines: LedgerLineDto[] = rows.map((r) => {
+      const before = running.get(r.l.clientPackageId) ?? r.creditsTotal;
+      const after = before + r.l.delta;
+      running.set(r.l.clientPackageId, after);
+      return {
+        id: r.l.id,
+        clientPackageId: r.l.clientPackageId,
+        packageName: r.packageName,
+        delta: r.l.delta,
+        reason: r.l.reason,
+        note: r.l.note,
+        lessonId: r.l.lessonId,
+        lessonTitle: r.lessonTitle || r.groupName,
+        lessonStartsAt: r.lessonStartsAt,
+        createdAt: r.l.createdAt,
+        runningRemaining: after,
+      };
+    });
+    return c.json(lines.reverse());
+  });

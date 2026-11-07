@@ -1,0 +1,19 @@
+import { app } from "./app";
+import { handleScheduled } from "./cron";
+import { infoPageOf } from "./lib/page-meta";
+import { serveInfoPage, servePublicPage } from "./public-page";
+
+export default {
+  fetch(request, env, ctx) {
+    // /api/*, /a/*, /about, /privacy, and /terms reach the Worker first (wrangler.jsonc
+    // `run_worker_first`); everything else is a static asset or the app shell.
+    const path = new URL(request.url).pathname;
+    if (path.startsWith("/a/")) return servePublicPage(request, env);
+    const info = infoPageOf(path);
+    if (info) return serveInfoPage(request, env, info);
+    return app.fetch(request, env, ctx);
+  },
+  scheduled(controller, env, ctx) {
+    ctx.waitUntil(handleScheduled(controller.cron, env, new Date(controller.scheduledTime)));
+  },
+} satisfies ExportedHandler<Env>;

@@ -1,0 +1,37 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+.wrangler/
+*.tsbuildinfo
+
+# local secrets (see .dev.vars.example)
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+.env
+.env.*
+!.env.example
+
+# test artifacts
+playwright-report/
+test-results/
+blob-report/
+e2e/.auth/
+coverage/
+
+# impeccable working files (decision mocks, review captures, local overrides)
+.impeccable/mocks/
+.impeccable/review/
+.impeccable/build/
+.impeccable/questions/
+.impeccable/config.local.json
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.impeccable/hook.cache.json

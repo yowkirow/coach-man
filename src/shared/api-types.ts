@@ -31,6 +31,7 @@ import type {
   ValidityMode,
 } from "./domain";
 import type { EnrollmentMode } from "./enrollment";
+import type { PhotoFraming } from "./framing";
 import type { FamilyPrefs } from "./notifications";
 import type { Capabilities, StaffRole } from "./roles";
 import type { SafetyEditor, SafetyRights } from "./safety";
@@ -134,6 +135,8 @@ export interface AcademyDto {
   logoKey: string | null;
   /** The big photo on the academy's website (landscape, at most 1800 px on its long side). */
   coverKey: string | null;
+  /** Where the cover photo sits in its frames (null = the middle). */
+  coverFraming: PhotoFraming | null;
   paymentInstructions: string | null;
   paymentQrKey: string | null;
   policies: string | null;
@@ -152,6 +155,8 @@ export interface AcademyPhotoDto {
   key: string;
   /** The line under the photo, or null. */
   caption: string | null;
+  /** Where it sits in its frames (null = the middle). */
+  framing: PhotoFraming | null;
   sortOrder: number;
   createdAt: number;
 }
@@ -179,8 +184,10 @@ export interface CoachProfileDto extends CoachSummaryDto {
   specialties: string[];
   languages: string[];
   yearsCoaching: number | null;
-  /** The half-body team page photo, cropped 4:5 (a public key, like `photoKey`). */
+  /** The half-body team page photo (a public key, like `photoKey`). */
   portraitKey: string | null;
+  /** Where the team page photo sits in its frames (null = the default). */
+  portraitFraming: PhotoFraming | null;
   /** Tournament results, titles, and milestones, in the order written. */
   highlights: string[];
   /** Shown on the academy's public pages (the academy page and its team page). */
@@ -240,8 +247,10 @@ export interface TeamPersonDto {
   name: string;
   title: string | null;
   bio: string | null;
-  /** The half-body team page photo, cropped 4:5 (a public key under `ws/<id>/public/coaches/`). */
+  /** The half-body team page photo (a public key under `ws/<id>/public/coaches/`). */
   portraitKey: string | null;
+  /** Where it sits in its frames (null = the default). */
+  portraitFraming: PhotoFraming | null;
   certifications: string[];
   /** Tournament results, titles, and milestones, in the order written. */
   highlights: string[];
@@ -267,6 +276,7 @@ export type TeamPageEntryDto =
       /** The square photo. */
       photoKey: string | null;
       portraitKey: string | null;
+      portraitFraming: PhotoFraming | null;
       /** Their coach profile is public. */
       isPublic: boolean;
       sortOrder: number;
@@ -279,6 +289,7 @@ export type TeamPageEntryDto =
       /** Display-only people have only the team page photo. */
       photoKey: null;
       portraitKey: string | null;
+      portraitFraming: PhotoFraming | null;
       isPublic: boolean;
       sortOrder: number;
     };
@@ -1297,8 +1308,10 @@ export interface PublicCoachDto {
   bio: string | null;
   /** Public R2 key (`ws/<id>/public/coaches/…`): /api/public/files. A square photo; staff only. */
   photoKey: string | null;
-  /** Public R2 key of the half-body team page photo, cropped 4:5 (`ws/<id>/public/…`). */
+  /** Public R2 key of the half-body team page photo (`ws/<id>/public/…`). */
   portraitKey: string | null;
+  /** Where the team page photo sits in its frames (null = the default). */
+  portraitFraming: PhotoFraming | null;
   certifications: string[];
   /** Tournament results, titles, and milestones, in the order written. */
   highlights: string[];
@@ -1397,6 +1410,8 @@ export interface PublicAcademyPhotoDto {
   key: string;
   /** A short line under the photo, or null. */
   caption: string | null;
+  /** Where it sits in its frames (null = the middle). */
+  framing: PhotoFraming | null;
 }
 
 export interface PublicAcademyDto {
@@ -1407,6 +1422,8 @@ export interface PublicAcademyDto {
   /** Public R2 keys: /api/public/files. */
   logoKey: string | null;
   coverKey: string | null;
+  /** Where the cover photo sits in its frames (null = the middle). */
+  coverFraming: PhotoFraming | null;
   contactPhone: string | null;
   contactEmail: string | null;
   address: string | null;

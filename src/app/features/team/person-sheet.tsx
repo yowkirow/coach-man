@@ -1,8 +1,10 @@
 import type { TeamPersonDto } from "@shared/api-types";
+import { framingOr, type PhotoFraming, PORTRAIT_FRAMING, sameFraming } from "@shared/framing";
 import { type TeamPersonInput, teamPersonSchema } from "@shared/schemas";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { PhotoFramer } from "../../components/domain/photo-framer";
 import { Button } from "../../components/ui/button";
 import { ErrorState, InlineError, RowsSkeleton } from "../../components/ui/feedback";
 import { Switch, TextField } from "../../components/ui/field";
@@ -51,6 +53,10 @@ function toInput(d: Draft) {
   return { name: d.name, ...coachingInput(d), isPublic: d.isPublic };
 }
 
+/** Two framings that place a photo the same way (none counts as one). */
+const sameOrNone = (a: PhotoFraming | null, b: PhotoFraming | null) =>
+  a === null || b === null ? a === b : sameFraming(a, b);
+
 const FRIENDLY: Record<string, string> = {
   name: "Add their name, up to 80 characters.",
   ...COACHING_FRIENDLY,
@@ -90,6 +96,9 @@ export function TeamPersonSheet({
   const [preparing, setPreparing] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  // The photo's framing while editing: undefined keeps the saved one (null = the default).
+  const [framing, setFraming] = useState<PhotoFraming | null | undefined>(undefined);
+  const [adjusting, setAdjusting] = useState(false);
 
   // Seed the form from the saved person once they load, and again after each save.
   const seed = person ? JSON.stringify(draftOf(person)) : "";
@@ -116,6 +125,9 @@ export function TeamPersonSheet({
       const blob = await preparePortrait(file);
       setPhoto({ blob, url: URL.createObjectURL(blob) });
       setDropPhoto(false);
+      // A new photo starts at the default framing: offer to line it up right away.
+      setFraming(null);
+      setAdjusting(true);
     } catch (e) {
       setPhotoError(errorMessage(e));
     } finally {
@@ -129,6 +141,8 @@ export function TeamPersonSheet({
       input: Partial<TeamPersonInput>;
       photo: Blob | null;
       dropPhoto: boolean;
+      /** The photo's framing to keep (undefined: as saved). */
+      framing: PhotoFraming | null | undefined;
     }) => {
       let saved: TeamPersonDto;
       const created = !id;
@@ -148,10 +162,20 @@ export function TeamPersonSheet({
           `/team-page/people/${saved.id}/portrait`,
           v.photo,
         );
-        saved = { ...saved, portraitKey };
+        // A new photo starts unframed on the server.
+        saved = { ...saved, portraitKey, portraitFraming: null };
       } else if (v.dropPhoto && saved.portraitKey) {
         await api.del(`/team-page/people/${saved.id}/portrait`);
-        saved = { ...saved, portraitKey: null };
+        saved = { ...saved, portraitKey: null, portraitFraming: null };
+      }
+      if (
+        v.framing !== undefined &&
+        saved.portraitKey &&
+        !sameOrNone(v.framing, saved.portraitFraming)
+      ) {
+        saved = await api.patch<TeamPersonDto>(`/team-page/people/${saved.id}`, {
+          portraitFraming: v.framing,
+        });
       }
       return { saved, created };
     },
@@ -202,18 +226,22 @@ export function TeamPersonSheet({
     if (id && person) {
       const before = teamPersonSchema.safeParse(toInput(draftOf(person)));
       input = changedFields(parsed.data, before.success ? before.data : {});
-      if (!Object.keys(input).length && !photo && !(dropPhoto && person.portraitKey)) {
+      const reframed =
+        framing !== undefined && !sameOrNone(framing, person.portraitFraming ?? null);
+      if (!Object.keys(input).length && !photo && !(dropPhoto && person.portraitKey) && !reframed) {
         onClose();
         return;
       }
     }
-    save.mutate({ input, photo: photo?.blob ?? null, dropPhoto });
+    save.mutate({ input, photo: photo?.blob ?? null, dropPhoto, framing });
   };
 
   const name = person?.name ?? target?.name ?? "";
   // The sheet keeps its title while a new person is saved (their photo uploads after).
   const editing = Boolean(target?.id);
   const shown = photo?.url ?? (dropPhoto ? null : fileUrl(person?.portraitKey));
+  const shownFraming =
+    framing !== undefined ? framing : photo ? null : (person?.portraitFraming ?? null);
   const loading = id !== null && q.isPending;
   const saveError =
     save.error && !Object.keys(fieldErrors(save.error)).length
@@ -280,11 +308,14 @@ export function TeamPersonSheet({
           >
             <PortraitField
               src={shown}
+              framing={shownFraming}
               onChoose={(file) => void choose(file)}
               onRemove={() => {
                 setPhoto(null);
                 setDropPhoto(true);
+                setFraming(undefined);
               }}
+              onAdjust={() => setAdjusting(true)}
               pending={preparing ? "choose" : null}
               isDisabled={save.isPending}
               error={photoError}
@@ -321,6 +352,22 @@ export function TeamPersonSheet({
           </form>
         )}
       </Sheet>
+      <PhotoFramer
+        isOpen={adjusting && shown !== null}
+        onClose={() => setAdjusting(false)}
+        src={shown}
+        aspect={4 / 5}
+        framing={framingOr(shownFraming, PORTRAIT_FRAMING)}
+        fallback={PORTRAIT_FRAMING}
+        title={name ? `Adjust ${name}'s photo` : "Adjust the photo"}
+        description="How it sits on the team page. It's kept when you save."
+        previews={[{ label: "Team page faces", aspect: 1, round: true }]}
+        saveLabel="Done"
+        onSave={(next) => {
+          setFraming(next);
+          setAdjusting(false);
+        }}
+      />
       {id ? (
         <ConfirmSheet
           isOpen={confirmDelete}

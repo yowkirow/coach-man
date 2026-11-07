@@ -108,7 +108,7 @@ export const teamPageRoutes = new Hono<AppBindings>()
     return c.body(null, 204);
   })
 
-  /** Their team page photo (the app crops it 4:5); replacing it deletes the old one. */
+  /** Their team page photo (whole; framed in each frame); a new one replaces the old and its framing. */
   .put("/team-page/people/:id/portrait", requireCap("team"), async (c) => {
     const { ctx, row } = await personOf(c);
     const image = await readImage(c, "photo");
@@ -116,7 +116,7 @@ export const teamPageRoutes = new Hono<AppBindings>()
     await ctx.env.FILES.put(key, image.body, { httpMetadata: { contentType: image.type } });
     const [updated] = await ctx.db
       .update(teamPerson)
-      .set({ portraitKey: key })
+      .set({ portraitKey: key, portraitFraming: null })
       .where(personWhere(ctx, row.id))
       .returning({ id: teamPerson.id });
     if (!updated) {
@@ -133,7 +133,10 @@ export const teamPageRoutes = new Hono<AppBindings>()
     const { ctx, row } = await personOf(c);
     if (row.portraitKey) {
       await runBatch(ctx, [
-        ctx.db.update(teamPerson).set({ portraitKey: null }).where(personWhere(ctx, row.id)),
+        ctx.db
+          .update(teamPerson)
+          .set({ portraitKey: null, portraitFraming: null })
+          .where(personWhere(ctx, row.id)),
         auditEntry(ctx, "remove", "team_person_portrait", row.id),
       ]);
       await ctx.env.FILES.delete(row.portraitKey);

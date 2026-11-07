@@ -3,6 +3,7 @@ import type { Context } from "hono";
 import { Hono } from "hono";
 import { isPhotoOrder, MAX_ACADEMY_PHOTOS, PHOTO_LIMIT_MESSAGE } from "../../shared/academy-photos";
 import type { AcademyPhotoDto } from "../../shared/api-types";
+import type { PhotoFraming } from "../../shared/framing";
 import { uuidv7 } from "../../shared/ids";
 import { academyPhotoOrderSchema, academyPhotoUpdateSchema } from "../../shared/schemas";
 import { academyPhoto } from "../db/schema";
@@ -65,11 +66,12 @@ export const academyPhotoRoutes = new Hono<AppBindings>()
     await ctx.env.FILES.put(key, image.body, { httpMetadata: { contentType: image.type } });
     const now = Date.now();
     // The limit is checked again inside the insert, so two uploads at once can't pass it. The
-    // values follow the table's column order: id, workspace, key, caption, place, created, updated.
+    // values follow the table's column order: id, workspace, key, caption, framing, place,
+    // created, updated.
     const [row] = await ctx.db
       .insert(academyPhoto)
       .select(
-        sql`select ${id}, ${ctx.workspaceId}, ${key}, null, (select coalesce(max(${academyPhoto.sortOrder}), -1) + 1 from ${academyPhoto} where ${academyPhoto.workspaceId} = ${ctx.workspaceId}), ${now}, ${now} where ${photoCount(ctx.workspaceId)} < ${MAX_ACADEMY_PHOTOS}`,
+        sql`select ${id}, ${ctx.workspaceId}, ${key}, null, null, (select coalesce(max(${academyPhoto.sortOrder}), -1) + 1 from ${academyPhoto} where ${academyPhoto.workspaceId} = ${ctx.workspaceId}), ${now}, ${now} where ${photoCount(ctx.workspaceId)} < ${MAX_ACADEMY_PHOTOS}`,
       )
       .returning();
     if (!row) {
@@ -80,18 +82,21 @@ export const academyPhotoRoutes = new Hono<AppBindings>()
     return c.json<AcademyPhotoDto>(toAcademyPhotoDto(row), 201);
   })
 
-  /** Its caption (trimmed; empty clears it). */
+  /** Its caption (trimmed; empty clears it) and where it sits in its frames. */
   .patch(
     "/academy/photos/:id",
     requireCap("settings"),
     v("json", academyPhotoUpdateSchema),
     async (c) => {
       const { ctx, row } = await photoOf(c);
-      const { caption } = c.req.valid("json");
-      if (caption !== row.caption) {
+      const { caption, framing } = c.req.valid("json");
+      const set: { caption?: string | null; framing?: PhotoFraming | null } = {};
+      if (caption !== undefined && caption !== row.caption) set.caption = caption;
+      if (framing !== undefined) set.framing = framing;
+      if (Object.keys(set).length) {
         await runBatch(ctx, [
-          ctx.db.update(academyPhoto).set({ caption }).where(photoWhere(ctx, row.id)),
-          auditEntry(ctx, "update", "academy_photo", row.id, { fields: ["caption"] }),
+          ctx.db.update(academyPhoto).set(set).where(photoWhere(ctx, row.id)),
+          auditEntry(ctx, "update", "academy_photo", row.id, { fields: Object.keys(set) }),
         ]);
       }
       return c.json<AcademyPhotoDto>(toAcademyPhotoDto(await findAcademyPhoto(ctx, row.id)));

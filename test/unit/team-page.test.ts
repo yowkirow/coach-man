@@ -20,6 +20,7 @@ function person(id: string, extra: Partial<PublicCoachDto> = {}): PublicCoachDto
     bio: null,
     photoKey: null,
     portraitKey: null,
+    portraitFraming: null,
     certifications: [],
     highlights: [],
     specialties: [],

@@ -6,13 +6,15 @@ import {
   isAcademySlug,
   slugify,
 } from "@shared/domain";
+import { framingOr, framingStyle, type PhotoFraming, SCENE_FRAMING } from "@shared/framing";
 import { type AcademyUpdateInput, academyUpdateSchema } from "@shared/schemas";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { Copy, Eye, Image as ImageIcon, ImagePlus, QrCode, Trash2 } from "lucide-react";
+import { Copy, Eye, Image as ImageIcon, ImagePlus, Move, QrCode, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { FileTrigger } from "react-aria-components";
 import { copyText } from "../../components/domain/invite-link";
+import { PhotoFramer } from "../../components/domain/photo-framer";
 import { Button, buttonClass } from "../../components/ui/button";
 import { ErrorState, InlineError, RowsSkeleton } from "../../components/ui/feedback";
 import { Switch, TextAreaField, TextField } from "../../components/ui/field";
@@ -122,29 +124,49 @@ const IMAGES = {
 
 type ImageKind = keyof typeof IMAGES;
 
-/** Logo, cover photo, or payment QR: upload (resized in the browser), replace, or remove. */
+/** The cover's shape on the website: the home page's photo sticker (and Enroll now's). */
+const COVER_ASPECT = 0.82;
+
+/**
+ * Logo, cover photo, or payment QR: upload (resized in the browser), replace, or remove. The cover
+ * also takes a framing (Adjust: drag and zoom); a new cover starts at the middle and opens Adjust.
+ */
 function ImageControl({ kind, academy }: { kind: ImageKind; academy: AcademyDto }) {
   const online = useOnline();
   const store = useStoreAcademy();
   const { title, noun, field, icon: Icon, prepare } = IMAGES[kind];
   const current = academy[field];
+  const framable = kind === "cover";
+  const [adjusting, setAdjusting] = useState(false);
   const upload = useMutation({
     meta: { silent: true },
     mutationFn: async (file: File) =>
       putImage<{ key: string }>(`/academy/${kind}`, await prepare(file)),
     onSuccess: ({ key }) => {
-      store({ ...academy, [field]: key });
+      store({ ...academy, [field]: key, ...(framable ? { coverFraming: null } : {}) });
       notify({ tone: "success", title: `${title} updated` });
+      if (framable) setAdjusting(true);
     },
   });
   const remove = useMutation({
     meta: { silent: true },
     mutationFn: () => api.del(`/academy/${kind}`),
     onSuccess: () => {
-      store({ ...academy, [field]: null });
+      store({ ...academy, [field]: null, ...(framable ? { coverFraming: null } : {}) });
       notify({ tone: "neutral", title: `${title} removed` });
     },
   });
+  const frame = useMutation({
+    meta: { silent: true },
+    mutationFn: (coverFraming: PhotoFraming | null) =>
+      api.patch<AcademyDto>("/academy", { coverFraming }),
+    onSuccess: (saved) => {
+      store(saved);
+      setAdjusting(false);
+      notify({ tone: "success", title: "Cover photo adjusted" });
+    },
+  });
+  const src = framable ? fileUrl(current) : null;
   const busy = upload.isPending || remove.isPending;
   const error = upload.error ?? remove.error;
   return (
@@ -167,6 +189,17 @@ function ImageControl({ kind, academy }: { kind: ImageKind; academy: AcademyDto 
             {current ? `Change ${noun}` : `Upload ${noun}`}
           </Button>
         </FileTrigger>
+        {current && framable ? (
+          <Button
+            variant="light"
+            size="sm"
+            isDisabled={!online || busy}
+            icon={<Move aria-hidden className="size-4" />}
+            onPress={() => setAdjusting(true)}
+          >
+            Adjust {noun}
+          </Button>
+        ) : null}
         {current ? (
           <Button
             variant="ghost"
@@ -181,29 +214,54 @@ function ImageControl({ kind, academy }: { kind: ImageKind; academy: AcademyDto 
         ) : null}
       </div>
       {error ? <InlineError>{errorMessage(error)}</InlineError> : null}
+      {framable ? (
+        <PhotoFramer
+          isOpen={adjusting && src !== null}
+          onClose={() => {
+            setAdjusting(false);
+            frame.reset();
+          }}
+          src={src}
+          aspect={COVER_ASPECT}
+          framing={framingOr(academy.coverFraming, SCENE_FRAMING)}
+          fallback={SCENE_FRAMING}
+          title="Adjust your cover photo"
+          description="How it sits on your website's home page."
+          onSave={(framing) => frame.mutate(framing)}
+          isSaving={frame.isPending}
+          error={frame.error ? errorMessage(frame.error) : null}
+        />
+      ) : null}
     </div>
   );
 }
 
-/** The cover photo as a 16:9 frame (how wide screens show it), or the empty frame waiting for one. */
-function CoverPreview({ coverKey }: { coverKey: string | null }) {
-  const src = fileUrl(coverKey);
+/** The cover photo framed as the home page shows it, or the empty frame waiting for one. */
+function CoverPreview({ academy }: { academy: AcademyDto }) {
+  const src = fileUrl(academy.coverKey);
   // A photo that can't load (offline, say) shows the empty frame instead of a broken image.
   const [failed, setFailed] = useState<string | null>(null);
   if (src && failed !== src) {
     return (
-      <img
-        src={src}
-        alt="Your website's cover"
-        onError={() => setFailed(src)}
-        className="aspect-video w-full rounded-2xl bg-card object-cover"
-      />
+      <span
+        style={{ aspectRatio: COVER_ASPECT }}
+        className="block w-full overflow-hidden rounded-2xl bg-card"
+      >
+        <img
+          src={src}
+          alt="Your website's cover"
+          onError={() => setFailed(src)}
+          style={framingStyle(framingOr(academy.coverFraming, SCENE_FRAMING))}
+          className="block size-full object-cover"
+        />
+      </span>
     );
   }
   return (
     <span
       aria-hidden
-      className="flex aspect-video w-full items-center justify-center rounded-2xl border border-dashed border-line-strong bg-card text-ink-3"
+      style={{ aspectRatio: COVER_ASPECT }}
+      className="flex w-full items-center justify-center rounded-2xl border border-dashed border-line-strong bg-card text-ink-3"
     >
       <ImageIcon className="size-8" />
     </span>
@@ -348,12 +406,15 @@ export function AcademyProfileSection() {
             </div>
           </div>
 
-          <div className="grid gap-4 rounded-[22px] bg-panel p-4 sm:grid-cols-[minmax(0,20rem)_minmax(0,1fr)] sm:items-start">
-            <CoverPreview coverKey={academy.coverKey} />
+          <div className="grid gap-4 rounded-[22px] bg-panel p-4 sm:grid-cols-[minmax(0,10rem)_minmax(0,1fr)] sm:items-start">
+            <div className="w-40 max-w-full">
+              <CoverPreview academy={academy} />
+            </div>
             <div className="flex min-w-0 flex-col gap-2">
               <p className="text-[0.9375rem] font-medium">Cover photo</p>
               <p className="text-[0.8125rem] text-ink-2">
-                The big photo on your website. Landscape photos work best.
+                The photo on your website's home page, framed like this. Any photo works: Adjust
+                lines it up and zooms in on what matters.
               </p>
               <ImageControl kind="cover" academy={academy} />
             </div>

@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { portraitCrop, portraitSize } from "../../src/app/lib/image-crop";
 import {
   nextTeamPagePlace,
   reorderTeamPage,
@@ -135,52 +134,5 @@ describe("a new order for the team page", () => {
         ]),
       ),
     ).toEqual(["Ben", "Carla", "Ana"]);
-  });
-});
-
-describe("a team page photo's crop", () => {
-  it("keeps the head of a tall photo: full width, 10% of the extra height cut from the top", () => {
-    // 1000 × 2000: a 1000 × 1250 crop leaves 750 px over; 75 go from the top, 675 from the bottom.
-    expect(portraitCrop(1000, 2000)).toEqual({ x: 0, y: 75, width: 1000, height: 1250 });
-    expect(portraitCrop(3024, 4032)).toEqual({ x: 0, y: 25, width: 3024, height: 3780 });
-  });
-
-  it("centers a wide photo, at full height", () => {
-    expect(portraitCrop(2000, 1000)).toEqual({ x: 600, y: 0, width: 800, height: 1000 });
-    expect(portraitCrop(4032, 3024)).toEqual({ x: 806, y: 0, width: 2419, height: 3024 });
-    // Square.
-    expect(portraitCrop(1000, 1000)).toEqual({ x: 100, y: 0, width: 800, height: 1000 });
-  });
-
-  it("keeps a photo that is already 4:5 whole", () => {
-    expect(portraitCrop(800, 1000)).toEqual({ x: 0, y: 0, width: 800, height: 1000 });
-    expect(portraitCrop(1280, 1600)).toEqual({ x: 0, y: 0, width: 1280, height: 1600 });
-  });
-
-  it("never gives an empty crop or one outside a tiny picture", () => {
-    for (const [w, h] of [
-      [1, 1],
-      [1, 50],
-      [50, 1],
-      [3, 2],
-      [2, 3],
-      [0, 0],
-    ] as const) {
-      const c = portraitCrop(w, h);
-      expect(c.width, `${w}×${h}`).toBeGreaterThanOrEqual(1);
-      expect(c.height, `${w}×${h}`).toBeGreaterThanOrEqual(1);
-      expect(c.x + c.width, `${w}×${h}`).toBeLessThanOrEqual(Math.max(1, w));
-      expect(c.y + c.height, `${w}×${h}`).toBeLessThanOrEqual(Math.max(1, h));
-      expect(c.x).toBeGreaterThanOrEqual(0);
-      expect(c.y).toBeGreaterThanOrEqual(0);
-    }
-    expect(portraitCrop(1, 50)).toEqual({ x: 0, y: 5, width: 1, height: 1 });
-  });
-
-  it("draws at most maxEdge tall, 4:5, and never enlarges", () => {
-    expect(portraitSize(portraitCrop(3024, 4032), 1600)).toEqual({ width: 1280, height: 1600 });
-    expect(portraitSize(portraitCrop(4032, 3024), 1600)).toEqual({ width: 1280, height: 1600 });
-    expect(portraitSize(portraitCrop(400, 500), 1600)).toEqual({ width: 400, height: 500 });
-    expect(portraitSize(portraitCrop(300, 300), 1600)).toEqual({ width: 240, height: 300 });
   });
 });

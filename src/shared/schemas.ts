@@ -34,6 +34,7 @@ import {
   VALIDITY_MODES,
 } from "./domain";
 import { ALL_UNIFORM_SIZES, isSelfRating, MAX_PICKUPS } from "./enrollment";
+import { clampFraming, FRAMING_ZOOM_MAX } from "./framing";
 import { UUID_RE } from "./ids";
 import { SESSION_LEADS } from "./notifications";
 import { REFERENCE_MAX, REFERENCE_MIN } from "./payment-proofs";
@@ -124,6 +125,15 @@ export type VenueInput = z.infer<typeof venueSchema>;
 
 // --- Academy profile, team, and coaches ---------------------------------------
 
+/** Where a website photo sits in its frames (shared/framing.ts): a point in percent, and a zoom. */
+export const photoFramingSchema = z
+  .object({
+    x: z.number().min(0).max(100),
+    y: z.number().min(0).max(100),
+    zoom: z.number().min(1).max(FRAMING_ZOOM_MAX),
+  })
+  .transform(clampFraming);
+
 /** PATCH /academy: the academy's name, public address (slug), and public profile. */
 export const academyUpdateSchema = z.object({
   name: trimmed(80).min(1, "Give your academy a name.").optional(),
@@ -156,18 +166,27 @@ export const academyUpdateSchema = z.object({
   policies: optionalText(4000),
   enrollmentOpen: z.boolean().optional(),
   listed: z.boolean().optional(),
+  /** Where the cover photo sits on the website (null = the middle). */
+  coverFraming: photoFramingSchema.nullable().optional(),
 });
 export type AcademyUpdateInput = z.infer<typeof academyUpdateSchema>;
 
-/** PATCH /academy/photos/:id: the line under a website photo (empty clears it). */
-export const academyPhotoUpdateSchema = z.object({
-  caption: z
-    .string()
-    .trim()
-    .max(PHOTO_CAPTION_MAX, `Keep the caption to ${PHOTO_CAPTION_MAX} characters.`)
-    .transform(normalizeCaption)
-    .nullable(),
-});
+/** PATCH /academy/photos/:id: the line under a website photo (empty clears it), and its framing. */
+export const academyPhotoUpdateSchema = z
+  .object({
+    caption: z
+      .string()
+      .trim()
+      .max(PHOTO_CAPTION_MAX, `Keep the caption to ${PHOTO_CAPTION_MAX} characters.`)
+      .transform(normalizeCaption)
+      .nullable()
+      .optional(),
+    framing: photoFramingSchema.nullable().optional(),
+  })
+  .refine(
+    (v) => v.caption !== undefined || v.framing !== undefined,
+    "Send a caption or a framing.",
+  );
 export type AcademyPhotoUpdateInput = z.infer<typeof academyPhotoUpdateSchema>;
 
 /** PUT /academy/photos/order: every one of the academy's website photos, once, first to last. */
@@ -221,6 +240,8 @@ export const coachProfileUpdateSchema = z.object({
   ...coachingFields,
   isPublic: z.boolean().optional(),
   sortOrder: z.number().int().min(0).max(1000).optional(),
+  /** Where the team page photo sits in its frames (null = the default). */
+  portraitFraming: photoFramingSchema.nullable().optional(),
 });
 export type CoachProfileUpdateInput = z.infer<typeof coachProfileUpdateSchema>;
 
@@ -233,8 +254,10 @@ export const teamPersonSchema = z.object({
 });
 export type TeamPersonInput = z.infer<typeof teamPersonSchema>;
 
-/** PATCH /team-page/people/:id: only what changed. */
-export const teamPersonUpdateSchema = teamPersonSchema.partial();
+/** PATCH /team-page/people/:id: only what changed (their photo's framing too). */
+export const teamPersonUpdateSchema = teamPersonSchema.partial().extend({
+  portraitFraming: photoFramingSchema.nullable().optional(),
+});
 export type TeamPersonUpdateInput = z.infer<typeof teamPersonUpdateSchema>;
 
 /**

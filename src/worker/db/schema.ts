@@ -29,6 +29,7 @@ import type {
   RegistrationStatus,
   ValidityMode,
 } from "../../shared/domain";
+import type { PhotoFraming } from "../../shared/framing";
 import type { FamilyNoticeKind, NoticeItem, SessionLead } from "../../shared/notifications";
 import type { StaffRole } from "../../shared/roles";
 import type { SafetyEditor } from "../../shared/safety";
@@ -852,6 +853,8 @@ export const academyProfile = sqliteTable("academy_profile", {
   socials: text({ mode: "json" }).$type<Record<string, string>>().notNull().default({}),
   logoKey: text(),
   coverKey: text(),
+  /** Where the cover photo sits in its frames (null = the middle); see shared/framing.ts. */
+  coverFraming: text({ mode: "json" }).$type<PhotoFraming>(),
   paymentInstructions: text(),
   paymentQrKey: text(),
   policies: text(),
@@ -871,6 +874,8 @@ export const academyPhoto = sqliteTable(
     /** A public key under `ws/<id>/public/photos/`. */
     key: text().notNull().unique(),
     caption: text(),
+    /** Where the photo sits in its frames (null = the middle); see shared/framing.ts. */
+    framing: text({ mode: "json" }).$type<PhotoFraming>(),
     sortOrder: integer().notNull().default(0),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
@@ -900,6 +905,8 @@ export const coachProfile = sqliteTable(
     sortOrder: integer().notNull().default(0),
     /** The half-body team page photo, cropped 4:5 (a public key, like `photoKey`). */
     portraitKey: text(),
+    /** Where the team page photo sits in its frames (null = the default); see shared/framing.ts. */
+    portraitFraming: text({ mode: "json" }).$type<PhotoFraming>(),
     /** Tournament results, titles, and milestones, in the order written. */
     highlights: text({ mode: "json" }).$type<string[]>().notNull().default([]),
     createdAt: createdAt(),
@@ -922,6 +929,8 @@ export const teamPerson = sqliteTable(
     bio: text(),
     /** The half-body team page photo, cropped 4:5 (a public key). */
     portraitKey: text(),
+    /** Where the team page photo sits in its frames (null = the default); see shared/framing.ts. */
+    portraitFraming: text({ mode: "json" }).$type<PhotoFraming>(),
     certifications: text({ mode: "json" }).$type<string[]>().notNull().default([]),
     highlights: text({ mode: "json" }).$type<string[]>().notNull().default([]),
     duprRating: real(),

@@ -129,7 +129,7 @@ export function EnrollNowPage({
               <PhotoSticker
                 src={src}
                 rot={3}
-                focus={photo?.kind === "coach" ? "center 22%" : "center 45%"}
+                framing={photo?.framing}
                 className="aspect-[0.82] w-full max-w-[380px]"
               />
             </div>

@@ -97,6 +97,13 @@ const PUBLIC_KEYS = new Set([
   // website photos (and their "id")
   "key",
   "caption",
+  // how the cover, the website photos, and the team page's portraits sit in their frames
+  "coverFraming",
+  "framing",
+  "portraitFraming",
+  "x",
+  "y",
+  "zoom",
 ]);
 
 /** Keys of a JSON value, recursively (the socials map's keys are its networks). */
@@ -469,7 +476,9 @@ test.describe("the public academy page", () => {
     expect(data.coaches.map((c) => c.name)).toEqual(["Robin Coach"]);
     expect(data.consents.map((c) => c.title)).toEqual(["Activity waiver"]);
     expect(data.packages.every((p) => typeof p.priceMinor === "number")).toBe(true);
-    expect(data.photos).toEqual([{ id: photo.id, key: photo.key, caption: "Saturday clinic" }]);
+    expect(data.photos).toEqual([
+      { id: photo.id, key: photo.key, caption: "Saturday clinic", framing: null },
+    ]);
 
     const consents = await request.get(`/api/public/academies/${slug}/consents`);
     expect(consents.status()).toBe(200);

@@ -6,6 +6,7 @@ import type {
   CoachRefDto,
   CoachSummaryDto,
 } from "../../shared/api-types";
+import type { PhotoFraming } from "../../shared/framing";
 import { uuidv7 } from "../../shared/ids";
 import { normalizeRole, type StaffRole } from "../../shared/roles";
 import type { Db } from "../db/client";
@@ -30,6 +31,7 @@ export interface StaffRow {
   bio: string | null;
   photoKey: string | null;
   portraitKey: string | null;
+  portraitFraming: PhotoFraming | null;
   certifications: string[];
   highlights: string[];
   duprRating: number | null;
@@ -73,6 +75,7 @@ export async function staffRows(db: Db, workspaceId: string): Promise<StaffRow[]
       bio: p?.bio ?? null,
       photoKey: p?.photoKey ?? null,
       portraitKey: p?.portraitKey ?? null,
+      portraitFraming: p?.portraitFraming ?? null,
       certifications: p?.certifications ?? [],
       highlights: p?.highlights ?? [],
       duprRating: p?.duprRating ?? null,
@@ -109,6 +112,7 @@ export function toCoachProfile(r: StaffRow): CoachProfileDto {
     languages: r.languages,
     yearsCoaching: r.yearsCoaching,
     portraitKey: r.portraitKey,
+    portraitFraming: r.portraitFraming,
     highlights: r.highlights,
     isPublic: r.isPublic,
     sortOrder: r.sortOrder,

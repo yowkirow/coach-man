@@ -57,6 +57,7 @@ export function toAcademyDto(
     socials,
     logoKey: p.logoKey,
     coverKey: p.coverKey,
+    coverFraming: p.coverFraming ?? null,
     paymentInstructions: p.paymentInstructions,
     paymentQrKey: p.paymentQrKey,
     policies: p.policies,
@@ -80,15 +81,20 @@ const isSlugClash = (err: unknown) =>
 
 const SLUG_TAKEN = "That address is taken. Try another.";
 
-/** Which image an upload route manages. */
+/** Which image an upload route manages (and, for the cover, its framing, which a new one resets). */
 const IMAGES = {
-  logo: { column: "logoKey", noun: "logo", key: publicKey.logo },
-  cover: { column: "coverKey", noun: "cover photo", key: publicKey.cover },
-  paymentQr: { column: "paymentQrKey", noun: "QR code", key: publicKey.paymentQr },
+  logo: { column: "logoKey", noun: "logo", key: publicKey.logo, framing: null },
+  cover: { column: "coverKey", noun: "cover photo", key: publicKey.cover, framing: "coverFraming" },
+  paymentQr: {
+    column: "paymentQrKey",
+    noun: "QR code",
+    key: publicKey.paymentQr,
+    framing: null,
+  },
 } as const;
 
 async function putImage(c: Context<AppBindings>, name: keyof typeof IMAGES) {
-  const { column, noun, key } = IMAGES[name];
+  const { column, noun, key, framing } = IMAGES[name];
   const ctx = ctxOf(c);
   const image = await readImage(c, noun);
   const profile = await ensureAcademyProfile(ctx.db, ctx.workspaceId);
@@ -97,7 +103,7 @@ async function putImage(c: Context<AppBindings>, name: keyof typeof IMAGES) {
   await runBatch(ctx, [
     ctx.db
       .update(academyProfile)
-      .set({ [column]: next })
+      .set({ [column]: next, ...(framing ? { [framing]: null } : {}) })
       .where(eq(academyProfile.workspaceId, ctx.workspaceId)),
     auditEntry(ctx, "upload", `academy_${name}`, ctx.workspaceId),
   ]);
@@ -107,13 +113,13 @@ async function putImage(c: Context<AppBindings>, name: keyof typeof IMAGES) {
 }
 
 async function deleteImage(c: Context<AppBindings>, name: keyof typeof IMAGES) {
-  const { column } = IMAGES[name];
+  const { column, framing } = IMAGES[name];
   const ctx = ctxOf(c);
   const profile = await ensureAcademyProfile(ctx.db, ctx.workspaceId);
   const previous = profile[column];
   await ctx.db
     .update(academyProfile)
-    .set({ [column]: null })
+    .set({ [column]: null, ...(framing ? { [framing]: null } : {}) })
     .where(eq(academyProfile.workspaceId, ctx.workspaceId));
   if (previous) await ctx.env.FILES.delete(previous);
   return c.body(null, 204);

@@ -29,7 +29,7 @@ import {
 // cleanup, the audit, and the backup.
 
 /** Every key a public website photo carries (PublicAcademyPhotoDto), nothing else. */
-const PUBLIC_PHOTO_KEYS = ["caption", "id", "key"];
+const PUBLIC_PHOTO_KEYS = ["caption", "framing", "id", "key"];
 
 const LIMIT_MESSAGE = "You can show up to 24 photos. Remove one to add another.";
 
@@ -157,9 +157,14 @@ test.describe("website photos, at the API", () => {
       // The cover, and the photos in the academy's order with their captions: nothing else.
       expect(academy.coverKey).toBe(cover.key);
       expect(academy.photos).toEqual([
-        { id: clinic.photo.id, key: clinic.photo.key, caption: "Saturday clinic on court 2" },
-        { id: courts.photo.id, key: courts.photo.key, caption: null },
-        { id: camp.photo.id, key: camp.photo.key, caption: null },
+        {
+          id: clinic.photo.id,
+          key: clinic.photo.key,
+          caption: "Saturday clinic on court 2",
+          framing: null,
+        },
+        { id: courts.photo.id, key: courts.photo.key, caption: null, framing: null },
+        { id: camp.photo.id, key: camp.photo.key, caption: null, framing: null },
       ]);
       for (const p of academy.photos) expect(Object.keys(p).sort()).toEqual(PUBLIC_PHOTO_KEYS);
       for (const secret of [owner.email, me.user.id, "sortOrder", "createdAt", "workspaceId"]) {
@@ -303,6 +308,10 @@ test.describe("website photos, in Settings", () => {
       buffer: pngImage(400, [30, 90, 160]),
     });
     await expect(page.getByText("Cover photo updated")).toBeVisible();
+    // A new cover opens Adjust (photo-framing.spec.ts); it sits well as it is, so Save closes it.
+    const framer = page.getByRole("dialog", { name: "Adjust your cover photo" });
+    await framer.getByRole("button", { name: "Save" }).click();
+    await expect(framer).toBeHidden();
     await expect(profile.getByRole("button", { name: "Change cover photo" })).toBeVisible();
     const academy = await api.get<AcademyDto>("/academy");
     expect(academy.coverKey).toMatch(/\/public\/cover-[\w-]+\.jpg$/);

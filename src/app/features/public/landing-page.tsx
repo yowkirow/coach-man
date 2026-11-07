@@ -1,5 +1,6 @@
 import type { PublicAcademyDto, PublicCoachDto } from "@shared/api-types";
 import { ACADEMY_SOCIAL_LABELS, ACADEMY_SOCIALS } from "@shared/domain";
+import { framingOr, SCENE_FRAMING } from "@shared/framing";
 import { Link } from "@tanstack/react-router";
 import { ArrowDown, ArrowRight, ArrowUpRight, Medal, Printer } from "lucide-react";
 import { publicFileUrl } from "../../lib/api";
@@ -193,7 +194,7 @@ function Hero({
               priority
               slap
               delay={380}
-              focus={photo?.kind === "coach" ? "center 22%" : "center 45%"}
+              framing={photo?.framing}
               className="aspect-[0.82] w-full"
             >
               {badge ? (
@@ -391,7 +392,7 @@ function OnCourt({ academy }: { academy: PublicAcademyDto }) {
                       src={src}
                       alt={p.caption ?? ""}
                       rot={turns[i % turns.length]}
-                      focus="center"
+                      framing={framingOr(p.framing, SCENE_FRAMING)}
                       priority={i < 2}
                       className="aspect-[4/3] w-full"
                     />

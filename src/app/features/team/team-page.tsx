@@ -1,4 +1,5 @@
 import type { TeamPageEntryDto } from "@shared/api-types";
+import { framingOr, framingStyle, PORTRAIT_FRAMING } from "@shared/framing";
 import { Link } from "@tanstack/react-router";
 import { ArrowDown, ArrowUp, Eye, Pencil, UserPlus } from "lucide-react";
 import { useState } from "react";
@@ -13,21 +14,24 @@ import { type PersonTarget, TeamPersonSheet } from "./person-sheet";
 import { entryKey, moveEntry, useTeamPage, useTeamPageOrder } from "./queries";
 
 /**
- * Someone's small picture on the list: their team page photo cropped to the face (the top of a
- * half-body photo), else their square photo, else initials.
+ * Someone's small picture on the list: their team page photo as they framed it (the face, by
+ * default), else their square photo, else initials.
  */
 function TeamThumb({ entry }: { entry: TeamPageEntryDto }) {
   const src = fileUrl(entry.portraitKey);
   const [failed, setFailed] = useState<string | null>(null);
   if (src && failed !== src) {
     return (
-      <img
-        src={src}
-        alt=""
-        onError={() => setFailed(src)}
-        loading="lazy"
-        className="size-11 shrink-0 rounded-full bg-panel object-cover object-[50%_12%]"
-      />
+      <span className="block size-11 shrink-0 overflow-hidden rounded-full bg-panel">
+        <img
+          src={src}
+          alt=""
+          onError={() => setFailed(src)}
+          loading="lazy"
+          style={framingStyle(framingOr(entry.portraitFraming, PORTRAIT_FRAMING))}
+          className="block size-full object-cover"
+        />
+      </span>
     );
   }
   return <Avatar person={personOf(entry.name, entry.photoKey)} size="md" />;

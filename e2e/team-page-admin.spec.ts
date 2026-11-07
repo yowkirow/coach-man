@@ -39,6 +39,7 @@ const PUBLIC_PERSON_KEYS = [
   "languages",
   "name",
   "photoKey",
+  "portraitFraming",
   "portraitKey",
   "specialties",
   "title",
@@ -244,6 +245,7 @@ test.describe("the team page, at the API", () => {
         bio: "Plays the pro tour.",
         photoKey: null,
         portraitKey: benPortrait,
+        portraitFraming: null,
         certifications: ["PPR"],
         highlights: ["Silver, Mixed Doubles Open, PNG 2024"],
         specialties: ["Dinking"],
@@ -453,6 +455,11 @@ test.describe("the team page, on Team", () => {
       mimeType: "image/png",
       buffer: pngImage(240, [120, 160, 200]),
     });
+    // A new photo opens Adjust: zoomed in a step, the framing is kept until the person is saved.
+    const framer = page.getByRole("dialog", { name: "Adjust the photo" });
+    await framer.getByRole("button", { name: "Zoom in" }).click();
+    await framer.getByRole("button", { name: "Done" }).click();
+    await expect(framer).toBeHidden();
     await expect(sheet.getByRole("button", { name: "Change team page photo" })).toBeVisible();
     await sheet.getByRole("textbox", { name: "Name", exact: true }).fill("Ben Cruz");
     await sheet.getByRole("textbox", { name: "Title", exact: true }).fill("Visiting coach");
@@ -475,6 +482,7 @@ test.describe("the team page, on Team", () => {
     );
     if (added?.kind !== "listed") throw new Error("Ben Cruz isn't on the team page");
     expect(added.portraitKey).toMatch(/\/public\/coaches\/person-[\w-]+\.jpg$/);
+    expect(added.portraitFraming).toEqual({ x: 50, y: 20, zoom: 1.1 });
     expect((await api.get<TeamPersonDto>(`/team-page/people/${added.id}`)).highlights).toEqual([
       GOLD,
     ]);
@@ -510,6 +518,10 @@ test.describe("the team page, on Team", () => {
       .getByRole("group", { name: "Team page photo" })
       .locator('input[type="file"]')
       .setInputFiles({ name: "me.png", mimeType: "image/png", buffer: pngImage(200) });
+    // Uploaded at once, it opens Adjust; it sits well as it is, so Save closes it.
+    const adjust = page.getByRole("dialog", { name: "Adjust your team page photo" });
+    await adjust.getByRole("button", { name: "Save" }).click();
+    await expect(adjust).toBeHidden();
     await expect(profile.getByRole("button", { name: "Change team page photo" })).toBeVisible();
     const mine = profile.getByRole("textbox", { name: "Add a highlight" });
     await mine.fill("PPR certified, 2024");

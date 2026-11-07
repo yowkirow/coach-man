@@ -1,4 +1,5 @@
 import type { PublicCoachDto, PublicPackageDto, PublicProgramDto } from "@shared/api-types";
+import { PORTRAIT_FRAMING, SCENE_FRAMING } from "@shared/framing";
 import { describe, expect, it } from "vitest";
 import {
   academyVenues,
@@ -65,6 +66,7 @@ function person(id: string, extra: Partial<PublicCoachDto> = {}): PublicCoachDto
     bio: null,
     photoKey: null,
     portraitKey: null,
+    portraitFraming: null,
     certifications: [],
     highlights: [],
     specialties: [],
@@ -135,18 +137,36 @@ describe("where and when the academy plays", () => {
 
 describe("the hero's words", () => {
   it("takes the cover, else the first website photo, else a coach's portrait", () => {
-    const photos = [{ id: "ph1", key: "ws/1/public/photos/a.jpg", caption: null }];
+    const photo = { id: "ph1", key: "ws/1/public/photos/a.jpg", caption: null, framing: null };
+    const photos = [photo];
     const coaches = [person("a"), person("b", { photoKey: "sq.jpg", portraitKey: "tall.jpg" })];
-    expect(heroPhoto({ coverKey: "cover.jpg", photos, coaches })).toEqual({
+    const none = { coverFraming: null };
+    expect(heroPhoto({ ...none, coverKey: "cover.jpg", photos, coaches })).toEqual({
       key: "cover.jpg",
       kind: "cover",
+      framing: SCENE_FRAMING,
     });
-    expect(heroPhoto({ coverKey: null, photos, coaches })?.kind).toBe("photo");
-    expect(heroPhoto({ coverKey: null, photos: [], coaches })).toEqual({
+    expect(heroPhoto({ ...none, coverKey: null, photos, coaches })?.kind).toBe("photo");
+    // A portrait keeps the face in by default.
+    expect(heroPhoto({ ...none, coverKey: null, photos: [], coaches })).toEqual({
       key: "tall.jpg",
       kind: "coach",
+      framing: PORTRAIT_FRAMING,
     });
-    expect(heroPhoto({ coverKey: null, photos: [], coaches: [person("c")] })).toBeNull();
+    expect(heroPhoto({ ...none, coverKey: null, photos: [], coaches: [person("c")] })).toBeNull();
+    // The framing the academy set comes along, kept in range.
+    const set = { x: 30, y: 12.5, zoom: 1.6 };
+    expect(heroPhoto({ coverKey: "c.jpg", coverFraming: set, photos, coaches })?.framing).toEqual(
+      set,
+    );
+    const framed = [{ ...photo, id: "ph2", framing: { x: 140, y: -5, zoom: 9 } }];
+    expect(heroPhoto({ ...none, coverKey: null, photos: framed, coaches })?.framing).toEqual({
+      x: 100,
+      y: 0,
+      zoom: 3,
+    });
+    const tall = [person("d", { portraitKey: "p.jpg", portraitFraming: set })];
+    expect(heroPhoto({ ...none, coverKey: null, photos: [], coaches: tall })?.framing).toEqual(set);
   });
 
   it("sets a time range the pubmat way", () => {

@@ -1,10 +1,21 @@
 import { MAX_ACADEMY_PHOTOS, movePhoto, PHOTO_LIMIT_MESSAGE } from "@shared/academy-photos";
 import type { AcademyPhotoDto } from "@shared/api-types";
+import { framingOr, framingStyle, type PhotoFraming, SCENE_FRAMING } from "@shared/framing";
 import { academyPhotoUpdateSchema } from "@shared/schemas";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, ArrowRight, ImageOff, ImagePlus, Images, Pencil, Trash2 } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  ImageOff,
+  ImagePlus,
+  Images,
+  Move,
+  Pencil,
+  Trash2,
+} from "lucide-react";
 import { useId, useState } from "react";
 import { FileTrigger, Button as RACButton } from "react-aria-components";
+import { PhotoFramer } from "../../components/domain/photo-framer";
 import { Button, IconButton, tapArea } from "../../components/ui/button";
 import { EmptyState, ErrorState, InlineError, RowsSkeleton } from "../../components/ui/feedback";
 import { TextField } from "../../components/ui/field";
@@ -86,18 +97,29 @@ function usePhotoOrder() {
   });
 }
 
-/** A photo in its 4:3 frame, or an empty frame when it can't load (offline, say). */
-function PhotoFrame({ src, alt }: { src: string | null; alt: string }) {
+/** A photo in its 4:3 frame as the website shows it, or an empty frame when it can't load. */
+function PhotoFrame({
+  src,
+  alt,
+  framing,
+}: {
+  src: string | null;
+  alt: string;
+  framing: PhotoFraming | null;
+}) {
   const [failed, setFailed] = useState<string | null>(null);
   if (src && failed !== src) {
     return (
-      <img
-        src={src}
-        alt={alt}
-        loading="lazy"
-        onError={() => setFailed(src)}
-        className="aspect-[4/3] w-full rounded-2xl bg-panel object-cover"
-      />
+      <span className="block aspect-[4/3] w-full overflow-hidden rounded-2xl bg-panel">
+        <img
+          src={src}
+          alt={alt}
+          loading="lazy"
+          onError={() => setFailed(src)}
+          style={framingStyle(framingOr(framing, SCENE_FRAMING))}
+          className="block size-full object-cover"
+        />
+      </span>
     );
   }
   return (
@@ -119,6 +141,7 @@ function PhotoTile({
   canRemove,
   onMove,
   onCaption,
+  onAdjust,
   onRemove,
 }: {
   at: PhotoAt;
@@ -128,13 +151,14 @@ function PhotoTile({
   canRemove: boolean;
   onMove: (by: -1 | 1) => void;
   onCaption: () => void;
+  onAdjust: () => void;
   onRemove: () => void;
 }) {
   const online = useOnline();
   const { photo, number } = at;
   return (
     <li className="flex min-w-0 flex-col gap-2">
-      <PhotoFrame src={fileUrl(photo.key)} alt={`Photo ${number}`} />
+      <PhotoFrame src={fileUrl(photo.key)} alt={`Photo ${number}`} framing={photo.framing} />
       {photo.caption ? (
         <div className="flex items-start gap-1">
           <p className="min-w-0 flex-1 pt-1.5 text-[0.875rem] break-words">{photo.caption}</p>
@@ -179,6 +203,14 @@ function PhotoTile({
             onPress={() => onMove(1)}
           >
             <ArrowRight aria-hidden className="size-4" />
+          </IconButton>
+          <IconButton
+            size="sm"
+            label={`Adjust photo ${number}`}
+            isDisabled={!online}
+            onPress={onAdjust}
+          >
+            <Move aria-hidden className="size-4" />
           </IconButton>
           <IconButton
             size="sm"
@@ -231,7 +263,7 @@ function CaptionSheet({ target, onClose }: { target: PhotoAt | null; onClose: ()
       onClose();
       return;
     }
-    save.mutate({ id: target.photo.id, caption: parsed.data.caption });
+    save.mutate({ id: target.photo.id, caption: parsed.data.caption ?? null });
   };
 
   const saveError = save.error && !fieldErrors(save.error).caption ? save.error : null;
@@ -262,7 +294,11 @@ function CaptionSheet({ target, onClose }: { target: PhotoAt | null; onClose: ()
       >
         {target ? (
           <div className="w-full max-w-64">
-            <PhotoFrame src={fileUrl(target.photo.key)} alt={`Photo ${target.number}`} />
+            <PhotoFrame
+              src={fileUrl(target.photo.key)}
+              alt={`Photo ${target.number}`}
+              framing={target.photo.framing}
+            />
           </div>
         ) : null}
         <TextField
@@ -307,6 +343,7 @@ export function WebsitePhotosSection() {
     target: null,
   });
   const [removing, setRemoving] = useState<PhotoAt | null>(null);
+  const [adjusting, setAdjusting] = useState<PhotoAt | null>(null);
   const photos = q.data ?? [];
   const full = photos.length >= MAX_ACADEMY_PHOTOS;
 
@@ -357,6 +394,20 @@ export function WebsitePhotosSection() {
       setRemoving(null);
     },
     onError: () => setRemoving(null),
+  });
+
+  const frame = useMutation({
+    meta: { silent: true },
+    mutationFn: ({ id, framing }: { id: string; framing: PhotoFraming | null }) =>
+      api.patch<AcademyPhotoDto>(`/academy/photos/${id}`, { framing }),
+    onSuccess: (saved) => {
+      qc.setQueryData<AcademyPhotoDto[]>(keys.academyPhotos, (old) =>
+        old?.map((p) => (p.id === saved.id ? saved : p)),
+      );
+      refresh();
+      setAdjusting(null);
+      notify({ tone: "success", title: "Photo adjusted" });
+    },
   });
 
   const choose = (list: FileList | null) => {
@@ -421,6 +472,7 @@ export function WebsitePhotosSection() {
                 onCaption={() =>
                   setCaption((s) => ({ key: s.key + 1, target: { photo, number: i + 1 } }))
                 }
+                onAdjust={() => setAdjusting({ photo, number: i + 1 })}
                 onRemove={() => setRemoving({ photo, number: i + 1 })}
               />
             ))}
@@ -456,6 +508,27 @@ export function WebsitePhotosSection() {
         key={caption.key}
         target={caption.target}
         onClose={() => setCaption((s) => ({ ...s, target: null }))}
+      />
+      <PhotoFramer
+        isOpen={adjusting !== null}
+        onClose={() => {
+          setAdjusting(null);
+          frame.reset();
+        }}
+        src={adjusting ? fileUrl(adjusting.photo.key) : null}
+        aspect={4 / 3}
+        framing={framingOr(adjusting?.photo.framing, SCENE_FRAMING)}
+        fallback={SCENE_FRAMING}
+        title={adjusting ? `Adjust photo ${adjusting.number}` : "Adjust photo"}
+        description="How it sits in its frame on your website."
+        previews={
+          adjusting?.number === 1
+            ? [{ label: "Home page, while there's no cover", aspect: 0.82 }]
+            : []
+        }
+        onSave={(framing) => adjusting && frame.mutate({ id: adjusting.photo.id, framing })}
+        isSaving={frame.isPending}
+        error={frame.error ? errorMessage(frame.error) : null}
       />
       {removing ? (
         <ConfirmSheet

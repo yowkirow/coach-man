@@ -12,6 +12,7 @@ export function toAcademyPhotoDto(p: AcademyPhotoRow): AcademyPhotoDto {
     id: p.id,
     key: p.key,
     caption: p.caption,
+    framing: p.framing ?? null,
     sortOrder: p.sortOrder,
     createdAt: p.createdAt,
   };

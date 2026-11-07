@@ -384,6 +384,7 @@ describe("portal DTOs leave out everything families must not see", () => {
       socials: { facebook: "https://facebook.com/x", LEAKY: "https://x" },
       logoKey: "ws/ws1/public/logo-1.png",
       coverKey: "LEAK-cover",
+      coverFraming: null,
       paymentInstructions: "GCash 0917 000 0000",
       paymentQrKey: "ws/ws1/public/payment-qr-1.png",
       policies: "Rain cancels.",

@@ -1,13 +1,10 @@
 import { ApiRequestError } from "./api";
-import { portraitCrop, portraitSize } from "./image-crop";
-
-export { portraitCrop } from "./image-crop";
 
 /**
  * Shrinks an image in the browser before upload (the API takes up to 1.5 MB). "cover" crops to a
- * square, for faces; "contain" keeps the whole picture, for logos, QR codes, and website photos;
- * "portrait" crops 4:5 for half-body team page photos (see `portraitCrop`), and `maxEdge` is then
- * its height. A JPEG is saved at `quality` (0.86 unless asked otherwise).
+ * square, for faces; "contain" keeps the whole picture, for logos, QR codes, website photos, and
+ * team page photos (their framing places them in each frame). A JPEG is saved at `quality`
+ * (0.86 unless asked otherwise).
  */
 export async function prepareImage(
   file: File,
@@ -17,7 +14,7 @@ export async function prepareImage(
     type,
     quality = 0.86,
   }: {
-    mode: "cover" | "contain" | "portrait";
+    mode: "cover" | "contain";
     maxEdge: number;
     type: "image/jpeg" | "image/png";
     quality?: number;
@@ -32,16 +29,7 @@ export async function prepareImage(
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("This browser can't prepare images.");
-  if (mode === "portrait") {
-    const crop = portraitCrop(bitmap.width, bitmap.height);
-    const out = portraitSize(crop, maxEdge);
-    canvas.width = out.width;
-    canvas.height = out.height;
-    // A cut-out (a transparent PNG) would turn black as a JPEG: give it a white backdrop.
-    ctx.fillStyle = "white";
-    ctx.fillRect(0, 0, out.width, out.height);
-    ctx.drawImage(bitmap, crop.x, crop.y, crop.width, crop.height, 0, 0, out.width, out.height);
-  } else if (mode === "cover") {
+  if (mode === "cover") {
     const side = Math.min(bitmap.width, bitmap.height);
     const out = Math.min(maxEdge, side);
     canvas.width = out;

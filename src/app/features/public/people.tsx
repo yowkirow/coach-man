@@ -1,22 +1,32 @@
 import type { PublicCoachDto } from "@shared/api-types";
+import { framingOr, framingStyle, PORTRAIT_FRAMING } from "@shared/framing";
 import { type CSSProperties, useState } from "react";
 import { tintFor } from "../../components/ui/display";
 import { publicFileUrl } from "../../lib/api";
 import { initials } from "../../lib/format";
 import { teamPhotoKey } from "./team";
 
-type Person = Pick<PublicCoachDto, "id" | "name" | "portraitKey" | "photoKey">;
+type Person = Pick<PublicCoachDto, "id" | "name" | "portraitKey" | "photoKey"> &
+  Partial<Pick<PublicCoachDto, "portraitFraming">>;
 
 function initialsOf(name: string) {
   const [first = "", ...rest] = name.trim().split(/\s+/);
   return initials({ firstName: first, lastName: rest.join(" ") });
 }
 
-/** A team photo that falls back to initials when it can't load (offline, a removed file). */
+/**
+ * A team photo that falls back to initials when it can't load (offline, a removed file), with its
+ * framing: the one the academy set for the portrait, else the default that keeps faces in.
+ */
 function usePhoto(person: Person) {
   const src = publicFileUrl(teamPhotoKey(person));
   const [failed, setFailed] = useState<string | null>(null);
-  return { src: src && failed !== src ? src : null, onError: () => setFailed(src) };
+  const framing = framingOr(person.portraitKey ? person.portraitFraming : null, PORTRAIT_FRAMING);
+  return {
+    src: src && failed !== src ? src : null,
+    onError: () => setFailed(src),
+    style: framingStyle(framing),
+  };
 }
 
 const SIZES = {
@@ -45,25 +55,31 @@ export function TeamPortrait({
   priority?: boolean;
   className?: string;
 }) {
-  const { src, onError } = usePhoto(person);
+  const { src, onError, style: framed } = usePhoto(person);
   const dims = SIZES[size];
   const style: CSSProperties = transition
     ? ({ viewTransitionName: `person-${person.id}` } as CSSProperties)
     : {};
   if (src) {
+    // The frame clips the photo, so a zoomed-in framing stays inside it.
     return (
-      <img
-        src={src}
-        alt=""
-        width={dims.width}
-        height={dims.height}
-        loading={priority ? "eager" : "lazy"}
-        fetchPriority={priority ? "high" : undefined}
-        decoding="async"
-        onError={onError}
+      <span
         style={style}
-        className={`block aspect-[4/5] w-full bg-panel object-cover object-top ${className}`}
-      />
+        className={`block aspect-[4/5] w-full overflow-hidden bg-panel ${className}`}
+      >
+        <img
+          src={src}
+          alt=""
+          width={dims.width}
+          height={dims.height}
+          loading={priority ? "eager" : "lazy"}
+          fetchPriority={priority ? "high" : undefined}
+          decoding="async"
+          onError={onError}
+          style={framed}
+          className="block size-full object-cover"
+        />
+      </span>
     );
   }
   return (
@@ -77,21 +93,24 @@ export function TeamPortrait({
   );
 }
 
-/** A 36px face for avatar stacks on the dark panel: the photo's top, else initials. */
+/** A 36px face for avatar stacks on the dark panel: the photo as the academy framed it, else initials. */
 export function TeamFace({ person, className = "" }: { person: Person; className?: string }) {
-  const { src, onError } = usePhoto(person);
+  const { src, onError, style } = usePhoto(person);
   if (src) {
     return (
-      <img
-        src={src}
-        alt=""
-        width={36}
-        height={36}
-        loading="lazy"
-        decoding="async"
-        onError={onError}
-        className={`size-9 shrink-0 rounded-full bg-panel object-cover object-top ${className}`}
-      />
+      <span className={`block size-9 shrink-0 overflow-hidden rounded-full bg-panel ${className}`}>
+        <img
+          src={src}
+          alt=""
+          width={36}
+          height={36}
+          loading="lazy"
+          decoding="async"
+          onError={onError}
+          style={style}
+          className="block size-full object-cover"
+        />
+      </span>
     );
   }
   return (

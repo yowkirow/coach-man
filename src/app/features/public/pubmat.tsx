@@ -1,3 +1,4 @@
+import { framingStyle, type PhotoFraming, SCENE_FRAMING } from "@shared/framing";
 import { type CSSProperties, Fragment, type ReactNode } from "react";
 import { displayEm, fitLines } from "./site-data";
 
@@ -141,14 +142,14 @@ export function RoundSticker({
 }
 
 /**
- * A photo stuck on: a white border and a slight turn. `focus` is where the crop centers (a coach's
- * half-body portrait keeps the face; a court photo, its middle).
+ * A photo stuck on: a white border and a slight turn. `framing` places the photo in the frame
+ * (where it lines up and how far it's zoomed: shared/framing.ts), as the academy set it.
  */
 export function PhotoSticker({
   src,
   alt = "",
   rot = -3,
-  focus = "center 35%",
+  framing = SCENE_FRAMING,
   priority = false,
   slap = false,
   delay,
@@ -158,7 +159,7 @@ export function PhotoSticker({
   src: string;
   alt?: string;
   rot?: number;
-  focus?: string;
+  framing?: PhotoFraming;
   priority?: boolean;
   slap?: boolean;
   delay?: number;
@@ -180,7 +181,7 @@ export function PhotoSticker({
           fetchPriority={priority ? "high" : undefined}
           decoding="async"
           className="size-full object-cover"
-          style={{ objectPosition: focus }}
+          style={framingStyle(framing)}
         />
       </span>
       {children}

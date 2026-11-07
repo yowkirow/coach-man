@@ -33,6 +33,31 @@ describe("website photo captions", () => {
   });
 });
 
+describe("a website photo's framing", () => {
+  it("can be sent on its own, or with a caption, and null clears it", () => {
+    const parse = (body: unknown) => academyPhotoUpdateSchema.safeParse(body);
+    expect(parse({ framing: { x: 30, y: 70.456, zoom: 1.5 } }).data).toEqual({
+      framing: { x: 30, y: 70.46, zoom: 1.5 },
+    });
+    expect(parse({ framing: null }).data).toEqual({ framing: null });
+    expect(parse({ caption: "Court 3", framing: { x: 50, y: 50, zoom: 1 } }).data).toEqual({
+      caption: "Court 3",
+      framing: { x: 50, y: 50, zoom: 1 },
+    });
+  });
+
+  it("is checked by the API: 0–100 across and down, zoom 1–3", () => {
+    const parse = (framing: unknown) => academyPhotoUpdateSchema.safeParse({ framing });
+    expect(parse({ x: 0, y: 100, zoom: 3 }).success).toBe(true);
+    expect(parse({ x: 101, y: 50, zoom: 1 }).success).toBe(false);
+    expect(parse({ x: 50, y: -1, zoom: 1 }).success).toBe(false);
+    expect(parse({ x: 50, y: 50, zoom: 3.5 }).success).toBe(false);
+    expect(parse({ x: 50, y: 50, zoom: 0.5 }).success).toBe(false);
+    expect(parse({ x: 50, y: 50 }).success).toBe(false);
+    expect(parse("center").success).toBe(false);
+  });
+});
+
 describe("the website photos' order", () => {
   it("must name every photo once, and nothing else", () => {
     expect(isPhotoOrder([A, B, C], [C, A, B])).toBe(true);

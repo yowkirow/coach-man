@@ -52,6 +52,7 @@ const profile = (over: Partial<typeof academyProfile.$inferSelect> = {}) =>
     socials: { facebook: "https://facebook.com/academy", [`${LEAK}social`]: "https://x" },
     logoKey: "ws/abc/public/logo-1.png",
     coverKey: null,
+    coverFraming: null,
     paymentInstructions: `${LEAK} GCash 0917`,
     paymentQrKey: `ws/abc/public/${LEAK}-qr.png`,
     policies: "Cancel a day ahead.",
@@ -168,6 +169,7 @@ const coach = {
   bio: "Ten years on court.",
   photoKey: "ws/abc/public/coaches/u-1.png",
   portraitKey: "ws/abc/public/coaches/u-1-portrait-1.jpg",
+  portraitFraming: { x: 40, y: 25, zoom: 1.5 },
   certifications: ["RPO licensed"],
   highlights: ["Gold, Women's Doubles 4.5, Manila Open 2025"],
   specialties: ["Juniors"],
@@ -181,6 +183,7 @@ const photo = {
   workspaceId: `${LEAK}-ws`,
   key: "ws/abc/public/photos/0196-1.jpg",
   caption: "Evening drills on court 3",
+  framing: { x: 20, y: 60, zoom: 1.25 },
   sortOrder: 7,
   createdAt: 1,
   updatedAt: 2,
@@ -263,12 +266,14 @@ describe("public academy DTOs", () => {
         id: "photo-1",
         key: "ws/abc/public/photos/0196-1.jpg",
         caption: "Evening drills on court 3",
+        framing: { x: 20, y: 60, zoom: 1.25 },
       },
     ]);
-    expect(toPublicAcademyPhoto({ ...photo, caption: null })).toEqual({
+    expect(toPublicAcademyPhoto({ ...photo, caption: null, framing: null })).toEqual({
       id: "photo-1",
       key: "ws/abc/public/photos/0196-1.jpg",
       caption: null,
+      framing: null,
     });
   });
 
@@ -322,6 +327,7 @@ describe("public academy DTOs", () => {
       bio: "Ten years on court.",
       photoKey: "ws/abc/public/coaches/u-1.png",
       portraitKey: "ws/abc/public/coaches/u-1-portrait-1.jpg",
+      portraitFraming: { x: 40, y: 25, zoom: 1.5 },
       certifications: ["RPO licensed"],
       highlights: ["Gold, Women's Doubles 4.5, Manila Open 2025"],
       specialties: ["Juniors"],
@@ -342,6 +348,7 @@ describe("public academy DTOs", () => {
       title: "Visiting coach",
       bio: "Plays the pro tour.",
       portraitKey: "ws/abc/public/coaches/person-person-1-1.jpg",
+      portraitFraming: null,
       certifications: ["PPR"],
       highlights: ["Silver, Mixed Doubles Open, PNG 2024"],
       duprRating: 5.1,

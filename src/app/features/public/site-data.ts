@@ -4,6 +4,7 @@ import type {
   PublicProgramDto,
   PublicVenueDto,
 } from "@shared/api-types";
+import { framingOr, type PhotoFraming, PORTRAIT_FRAMING, SCENE_FRAMING } from "@shared/framing";
 
 // Pure helpers for the academy website (landing page, Enroll now, the site frame). Kept free of
 // the app's DOM-bound modules so unit tests can import them.
@@ -94,17 +95,25 @@ export function compactTime(range: string): string {
 
 /**
  * The photo the website's first screen holds: the academy's cover, else its first website photo,
- * else a coach's portrait (the team page's photo), else none.
+ * else a coach's portrait (the team page's photo), else none. Its framing is the one the academy
+ * set, else the default for its kind (a portrait keeps the face in).
  */
 export function heroPhoto(
-  a: Pick<PublicAcademyDto, "coverKey" | "photos" | "coaches">,
-): { key: string; kind: "cover" | "photo" | "coach" } | null {
-  if (a.coverKey) return { key: a.coverKey, kind: "cover" };
+  a: Pick<PublicAcademyDto, "coverKey" | "coverFraming" | "photos" | "coaches">,
+): { key: string; kind: "cover" | "photo" | "coach"; framing: PhotoFraming } | null {
+  if (a.coverKey) {
+    return { key: a.coverKey, kind: "cover", framing: framingOr(a.coverFraming, SCENE_FRAMING) };
+  }
   const first = a.photos[0];
-  if (first) return { key: first.key, kind: "photo" };
+  if (first) {
+    return { key: first.key, kind: "photo", framing: framingOr(first.framing, SCENE_FRAMING) };
+  }
   for (const c of a.coaches) {
     const key = c.portraitKey ?? c.photoKey;
-    if (key) return { key, kind: "coach" };
+    if (key) {
+      const framing = c.portraitKey ? c.portraitFraming : null;
+      return { key, kind: "coach", framing: framingOr(framing, PORTRAIT_FRAMING) };
+    }
   }
   return null;
 }

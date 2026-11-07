@@ -15,6 +15,7 @@ import type {
   PublicWeeklySessionDto,
 } from "../../shared/api-types";
 import { ACADEMY_SOCIALS, type AcademySocial, isAcademySlug } from "../../shared/domain";
+import type { PhotoFraming } from "../../shared/framing";
 import type {
   academyPhoto,
   academyProfile,
@@ -58,6 +59,7 @@ export interface PublicCoachFacts {
   /** The square photo; display-only people have none. */
   photoKey: string | null;
   portraitKey: string | null;
+  portraitFraming: PhotoFraming | null;
   certifications: string[];
   highlights: string[];
   specialties: string[];
@@ -74,6 +76,7 @@ export function toPublicCoach(c: PublicCoachFacts): PublicCoachDto {
     bio: c.bio,
     photoKey: c.photoKey,
     portraitKey: c.portraitKey,
+    portraitFraming: c.portraitFraming,
     certifications: [...c.certifications],
     highlights: [...c.highlights],
     specialties: [...c.specialties],
@@ -92,6 +95,7 @@ export function teamPersonFacts(p: TeamPersonRow): PublicCoachFacts {
     bio: p.bio,
     photoKey: null,
     portraitKey: p.portraitKey,
+    portraitFraming: p.portraitFraming ?? null,
     certifications: p.certifications ?? [],
     highlights: p.highlights ?? [],
     specialties: p.specialties ?? [],
@@ -200,11 +204,11 @@ export function toPublicConsentDocument(d: ConsentRow): PublicConsentDocumentDto
   return { ...toPublicConsentRef(d), body: d.body };
 }
 
-/** A website photo: its file and caption, never its place in the order or when it was added. */
+/** A website photo: its file, caption, and framing, never its place in the order or when it was added. */
 export function toPublicAcademyPhoto(
-  p: Pick<PhotoRow, "id" | "key" | "caption">,
+  p: Pick<PhotoRow, "id" | "key" | "caption" | "framing">,
 ): PublicAcademyPhotoDto {
-  return { id: p.id, key: p.key, caption: p.caption };
+  return { id: p.id, key: p.key, caption: p.caption, framing: p.framing ?? null };
 }
 
 /** The academy's public profile: no payment details, no internal settings. */
@@ -237,6 +241,7 @@ export function toPublicAcademy(
     about: profile?.about ?? null,
     logoKey: profile?.logoKey ?? null,
     coverKey: profile?.coverKey ?? null,
+    coverFraming: profile?.coverFraming ?? null,
     contactPhone: profile?.contactPhone ?? null,
     contactEmail: profile?.contactEmail ?? null,
     address: profile?.address ?? null,

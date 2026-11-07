@@ -134,6 +134,7 @@ async function publicCoaches(
       bio: r.p.bio,
       photoKey: r.p.photoKey,
       portraitKey: r.p.portraitKey,
+      portraitFraming: r.p.portraitFraming ?? null,
       certifications: r.p.certifications ?? [],
       highlights: r.p.highlights ?? [],
       specialties: r.p.specialties ?? [],

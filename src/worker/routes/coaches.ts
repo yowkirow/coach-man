@@ -104,7 +104,10 @@ export const coachRoutes = new Hono<AppBindings>()
     return c.body(null, 204);
   })
 
-  /** The half-body team page photo (the app crops it 4:5); replacing it deletes the old one. */
+  /**
+   * The half-body team page photo (whole, aspect kept; its framing places it in each frame).
+   * Replacing it deletes the old one and resets the framing.
+   */
   .put("/coaches/:userId/portrait", async (c) => {
     const { ctx, row } = await targetCoach(c);
     const image = await readImage(c, "photo");
@@ -115,7 +118,10 @@ export const coachRoutes = new Hono<AppBindings>()
     );
     await ctx.env.FILES.put(key, image.body, { httpMetadata: { contentType: image.type } });
     await runBatch(ctx, [
-      ctx.db.update(coachProfile).set({ portraitKey: key }).where(profileWhere(ctx, row.userId)),
+      ctx.db
+        .update(coachProfile)
+        .set({ portraitKey: key, portraitFraming: null })
+        .where(profileWhere(ctx, row.userId)),
       auditEntry(ctx, "upload", "coach_portrait", row.userId),
     ]);
     if (row.portraitKey) await ctx.env.FILES.delete(row.portraitKey);
@@ -126,7 +132,10 @@ export const coachRoutes = new Hono<AppBindings>()
     const { ctx, row } = await targetCoach(c);
     if (row.portraitKey) {
       await runBatch(ctx, [
-        ctx.db.update(coachProfile).set({ portraitKey: null }).where(profileWhere(ctx, row.userId)),
+        ctx.db
+          .update(coachProfile)
+          .set({ portraitKey: null, portraitFraming: null })
+          .where(profileWhere(ctx, row.userId)),
         auditEntry(ctx, "remove", "coach_portrait", row.userId),
       ]);
       await ctx.env.FILES.delete(row.portraitKey);

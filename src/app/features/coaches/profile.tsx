@@ -1,10 +1,12 @@
 import type { CoachProfileDto } from "@shared/api-types";
+import { framingOr, type PhotoFraming, PORTRAIT_FRAMING } from "@shared/framing";
 import { type CoachProfileUpdateInput, coachProfileUpdateSchema } from "@shared/schemas";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ImagePlus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { FileTrigger } from "react-aria-components";
 import { CoachAvatar } from "../../components/domain/coaches";
+import { PhotoFramer } from "../../components/domain/photo-framer";
 import { Button } from "../../components/ui/button";
 import { ErrorState, InlineError, RowsSkeleton } from "../../components/ui/feedback";
 import { Switch, TextField } from "../../components/ui/field";
@@ -207,6 +209,7 @@ export function CoachPhoto({ profile }: { profile: CoachProfileDto }) {
 function CoachPortrait({ profile }: { profile: CoachProfileDto }) {
   const online = useOnline();
   const refresh = useRefreshCoach();
+  const [adjusting, setAdjusting] = useState(false);
   const upload = useMutation({
     meta: { silent: true },
     mutationFn: async (file: File) =>
@@ -215,15 +218,17 @@ function CoachPortrait({ profile }: { profile: CoachProfileDto }) {
         await preparePortrait(file),
       ),
     onSuccess: ({ portraitKey }) => {
-      refresh({ ...profile, portraitKey });
+      refresh({ ...profile, portraitKey, portraitFraming: null });
       notify({ tone: "success", title: "Team page photo updated" });
+      // A new photo starts at the default framing: offer to line it up right away.
+      setAdjusting(true);
     },
   });
   const remove = useMutation({
     meta: { silent: true },
     mutationFn: () => api.del(`/coaches/${profile.userId}/portrait`),
     onSuccess: () => {
-      refresh({ ...profile, portraitKey: null });
+      refresh({ ...profile, portraitKey: null, portraitFraming: null });
       notify({
         tone: "neutral",
         title: "Team page photo removed",
@@ -233,16 +238,48 @@ function CoachPortrait({ profile }: { profile: CoachProfileDto }) {
       });
     },
   });
+  const frame = useMutation({
+    meta: { silent: true },
+    mutationFn: (portraitFraming: PhotoFraming | null) =>
+      api.patch<CoachProfileDto>(`/coaches/${profile.userId}`, { portraitFraming }),
+    onSuccess: (saved) => {
+      refresh(saved);
+      setAdjusting(false);
+      notify({ tone: "success", title: "Team page photo adjusted" });
+    },
+  });
   const error = upload.error ?? remove.error;
+  const src = fileUrl(profile.portraitKey);
   return (
-    <PortraitField
-      src={fileUrl(profile.portraitKey)}
-      onChoose={(file) => upload.mutate(file)}
-      onRemove={() => remove.mutate()}
-      pending={upload.isPending ? "choose" : remove.isPending ? "remove" : null}
-      isDisabled={!online}
-      error={error ? errorMessage(error) : null}
-    />
+    <>
+      <PortraitField
+        src={src}
+        framing={profile.portraitFraming}
+        onChoose={(file) => upload.mutate(file)}
+        onRemove={() => remove.mutate()}
+        onAdjust={() => setAdjusting(true)}
+        pending={upload.isPending ? "choose" : remove.isPending ? "remove" : null}
+        isDisabled={!online}
+        error={error ? errorMessage(error) : null}
+      />
+      <PhotoFramer
+        isOpen={adjusting && src !== null}
+        onClose={() => {
+          setAdjusting(false);
+          frame.reset();
+        }}
+        src={src}
+        aspect={4 / 5}
+        framing={framingOr(profile.portraitFraming, PORTRAIT_FRAMING)}
+        fallback={PORTRAIT_FRAMING}
+        title="Adjust your team page photo"
+        description="How it sits on the academy's website: the team page, and the home page's team."
+        previews={[{ label: "Team page faces", aspect: 1, round: true }]}
+        onSave={(framing) => frame.mutate(framing)}
+        isSaving={frame.isPending}
+        error={frame.error ? errorMessage(frame.error) : null}
+      />
+    </>
   );
 }
 

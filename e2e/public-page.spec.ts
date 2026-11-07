@@ -153,10 +153,9 @@ test.describe("the public academy page", () => {
     const page = await visitor.newPage();
     const errors = watchErrors(page);
     await visit(page, `/a/${slug}`);
-    // The landing page leads with the academy's own line, its name read first.
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-      `${PROFILE.name}: ${PROFILE.tagline}`,
-    );
+    // The landing page leads with the academy's name, its own line under it.
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(PROFILE.name);
+    await expect(page.getByRole("main")).toContainText(PROFILE.tagline);
     await expect(page).toHaveTitle(`${PROFILE.name} · ${PROFILE.tagline}`);
     await expect(page.getByRole("navigation", { name: PROFILE.name })).toBeVisible();
 
@@ -168,11 +167,11 @@ test.describe("the public academy page", () => {
     await expect(programs.getByRole("link", { name: /Directions/ })).toBeVisible();
     await expect(programs).toContainText("From ₱1,500 per head");
 
-    // About, the coaches (proved by their own profiles), and the ways to reach the academy.
-    await expect(page.getByRole("region", { name: `About ${PROFILE.name}` })).toContainText(
-      PROFILE.about,
-    );
-    const coaches = page.getByRole("region", { name: "The coaches" });
+    // The coaches (proved by their own profiles), then where to find the academy, in its own
+    // words, with the ways to reach it.
+    const findUs = page.getByRole("region", { name: /^See you at / });
+    await expect(findUs).toContainText(PROFILE.about);
+    const coaches = page.getByRole("region", { name: "The team" });
     await expect(coaches).toContainText("Robin Coach");
     await expect(coaches).toContainText("RPO licensed coach");
     await expect(coaches).toContainText("Head coach");
@@ -184,12 +183,12 @@ test.describe("the public academy page", () => {
       "href",
       "https://m.me/riversidepickleball",
     );
-    const questions = page.getByRole("region", { name: "Questions?" });
-    await expect(
-      questions.getByRole("link", { name: `Call ${PROFILE.contactPhone}` }),
-    ).toHaveAttribute("href", "tel:+639175550100");
-    await questions.getByText("Read the policies").click();
-    await expect(questions).toContainText(PROFILE.policies);
+    await expect(findUs.getByRole("link", { name: PROFILE.contactPhone })).toHaveAttribute(
+      "href",
+      "tel:+639175550100",
+    );
+    await findUs.getByText("Read the policies").click();
+    await expect(findUs).toContainText(PROFILE.policies);
     const footer = page.getByRole("contentinfo");
     await expect(footer.getByRole("link", { name: PROFILE.contactPhone })).toHaveAttribute(
       "href",

@@ -2,17 +2,16 @@ import type { PublicCoachDto, PublicPackageDto, PublicProgramDto } from "@shared
 import { describe, expect, it } from "vitest";
 import {
   academyVenues,
-  arcGeometry,
-  coachProof,
+  compactTime,
+  displayEm,
   firstSentence,
+  fitLines,
   fromPriceMinor,
-  headlineParts,
+  heroPhoto,
+  lowestPriceMinor,
   nextSession,
   programVenue,
-  ribbonCopies,
-  ribbonText,
   scheduleLineParts,
-  showcaseTier,
   tierInclusions,
 } from "../../src/app/features/public/site-data";
 
@@ -86,17 +85,6 @@ describe("the academy website's packages", () => {
     ).toEqual(["Training shirt"]);
   });
 
-  it("shows one real package's inclusions: the featured one, else the one with the most", () => {
-    const trial = tier("a", { inclusions: ["One coached session"] });
-    const monthly = tier("b", { inclusions: ["Court fees", "Drills"], includesUniform: true });
-    const plus = tier("c", { inclusions: ["Court fees"], highlight: true });
-    expect(showcaseTier([trial, monthly, plus])?.id).toBe("c");
-    expect(showcaseTier([trial, monthly])?.id).toBe("b");
-    // A featured tier with nothing listed gives way to one that lists something.
-    expect(showcaseTier([tier("d", { highlight: true }), trial])?.id).toBe("a");
-    expect(showcaseTier([tier("e")])).toBeNull();
-  });
-
   it("finds a program's lowest price per head (or the ones in no program)", () => {
     const packages = [
       tier("a", { programId: "p1", priceMinor: 600000 }),
@@ -106,6 +94,9 @@ describe("the academy website's packages", () => {
     expect(fromPriceMinor(packages, "p1")).toBe(150000);
     expect(fromPriceMinor(packages, null)).toBe(90000);
     expect(fromPriceMinor(packages, "p2")).toBeNull();
+    // The hero's sticker: the lowest across every tier.
+    expect(lowestPriceMinor(packages)).toBe(90000);
+    expect(lowestPriceMinor([])).toBeNull();
   });
 });
 
@@ -142,35 +133,60 @@ describe("where and when the academy plays", () => {
   });
 });
 
-describe("the coaches' proof", () => {
-  it("takes highlights one coach at a time, then certifications, up to the limit", () => {
-    const a = person("a", { highlights: ["Gold 4.5", "Silver 5.0"], certifications: ["PPR Pro"] });
-    const b = person("b", { highlights: ["Bronze 4.0"], certifications: ["IPTPA 2"] });
-    const c = person("c");
-    const proof = coachProof([a, b, c], 4);
-    expect(proof.map((p) => `${p.person.id}:${p.text}`)).toEqual([
-      "a:Gold 4.5",
-      "b:Bronze 4.0",
-      "a:Silver 5.0",
-      "a:PPR Pro",
-    ]);
-    expect(proof.at(-1)?.kind).toBe("certification");
-    expect(coachProof([c])).toEqual([]);
-  });
-});
-
 describe("the hero's words", () => {
-  it("splits a headline at a written clause break only", () => {
-    expect(headlineParts("Train with purpose, play with joy")).toEqual({
-      quiet: "Train with purpose,",
-      strong: "play with joy",
+  it("takes the cover, else the first website photo, else a coach's portrait", () => {
+    const photos = [{ id: "ph1", key: "ws/1/public/photos/a.jpg", caption: null }];
+    const coaches = [person("a"), person("b", { photoKey: "sq.jpg", portraitKey: "tall.jpg" })];
+    expect(heroPhoto({ coverKey: "cover.jpg", photos, coaches })).toEqual({
+      key: "cover.jpg",
+      kind: "cover",
     });
-    expect(headlineParts("The Pickle Spot Academy")).toEqual({
-      quiet: "",
-      strong: "The Pickle Spot Academy",
+    expect(heroPhoto({ coverKey: null, photos, coaches })?.kind).toBe("photo");
+    expect(heroPhoto({ coverKey: null, photos: [], coaches })).toEqual({
+      key: "tall.jpg",
+      kind: "coach",
     });
-    // One word on either side reads as a list, not two clauses.
-    expect(headlineParts("Dink, drop, drive")).toEqual({ quiet: "", strong: "Dink, drop, drive" });
+    expect(heroPhoto({ coverKey: null, photos: [], coaches: [person("c")] })).toBeNull();
+  });
+
+  it("sets a time range the pubmat way", () => {
+    expect(compactTime("7:00 – 10:00 PM")).toBe("7–10 PM");
+    expect(compactTime("10:30 AM – 1:00 PM")).toBe("10:30 AM–1 PM");
+    // Intl puts thin and narrow no-break spaces around the dash and before the period.
+    expect(compactTime("8:00\u2009–\u200911:00\u202fAM")).toBe("8–11\u202fAM");
+  });
+
+  it("measures display caps from the cut's own widths", () => {
+    // Measured from the shipped font: the sample runs 10.10em before tracking and word spacing.
+    expect(displayEm("THE PICKLE SPOT ACADEMY")).toBeCloseTo(10.158 - 0.23 + 3 * 0.08, 2);
+    expect(displayEm("the pickle spot academy")).toBe(displayEm("THE PICKLE SPOT ACADEMY"));
+    expect(displayEm("")).toBe(0);
+  });
+
+  it("splits a name into the lines that let it run largest", () => {
+    const three = fitLines("The Pickle Spot Academy", 3);
+    expect(three.lines).toEqual(["The Pickle", "Spot", "Academy"]);
+    expect(three.em).toBeCloseTo(displayEm("THE PICKLE"), 6);
+    expect(fitLines("The Pickle Spot Academy", 2).lines).toEqual(["The Pickle", "Spot Academy"]);
+    expect(fitLines("Daryll's coaching", 3).lines).toEqual(["Daryll's", "coaching"]);
+    expect(fitLines("Ace", 3)).toEqual({ lines: ["Ace"], em: displayEm("Ace") });
+    expect(fitLines("  ", 3)).toEqual({ lines: [], em: 0 });
+  });
+
+  it("weighs balance when a sticker can sit beside a short line", () => {
+    // "Spot" alone in the middle is a hole; "The" alone on top leaves room for "Now enrolling".
+    const phone = fitLines("The Pickle Spot Academy", 3, { slot: 0.5 });
+    expect(phone.lines).toEqual(["The", "Pickle Spot", "Academy"]);
+    expect(phone.em).toBeCloseTo(displayEm("PICKLE SPOT"), 6);
+    expect(phone.slot?.line).toBe(0);
+    expect(phone.slot?.free).toBeCloseTo(1 - displayEm("THE") / displayEm("PICKLE SPOT"), 6);
+    // A short last line holds it as well.
+    const club = fitLines("Manila Pickleball Club", 3, { slot: 0.5 });
+    expect(club.lines).toEqual(["Manila", "Pickleball", "Club"]);
+    expect(club.slot?.line).toBe(2);
+    // No line short enough: the largest split, with no slot.
+    expect(fitLines("Smash Academy", 3, { slot: 0.5 })).toEqual(fitLines("Smash Academy", 3));
+    expect(fitLines("Ace", 3, { slot: 0.5 }).slot).toBeUndefined();
   });
 
   it("takes the about text's first sentence when it's short enough", () => {
@@ -191,29 +207,5 @@ describe("the hero's words", () => {
       lead: "Saturdays, 8 to 11",
       time: "",
     });
-  });
-
-  it("joins the arc's words with dots and ends on one, so the line repeats cleanly", () => {
-    expect(ribbonText(["Evening program", null, " All levels ", ""])).toBe(
-      "Evening program  ·  All levels  ·  ",
-    );
-    expect(ribbonText([])).toBe("");
-  });
-
-  it("repeats a line enough to cover its path and wrap", () => {
-    expect(ribbonCopies(1000, 300)).toBe(5);
-    expect(ribbonCopies(1000, 0)).toBe(1);
-    expect(ribbonCopies(100_000, 1)).toBe(40);
-  });
-
-  it("draws the arc in pixels: the ball centered, the trail in from the left, the band out", () => {
-    const wide = arcGeometry(1440, 300);
-    expect(wide.cx).toBe(720);
-    expect(wide.before.startsWith("M -86.4 ")).toBe(true);
-    expect(wide.after).toContain(`M ${720 + wide.pillW / 2} ${wide.cy}`);
-    expect(wide.fontSize).toBe(20);
-    const phone = arcGeometry(390, 210);
-    expect(phone.fontSize).toBe(13);
-    expect(phone.pillW).toBeLessThan(wide.pillW);
   });
 });

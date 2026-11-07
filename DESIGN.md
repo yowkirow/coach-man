@@ -32,13 +32,13 @@ colors:
   ink-3: "#8a8b91"
   line: "#e4e4e7"
   line-strong: "#cfcfd4"
-  ivory: "#fbfbf0"
-  ivory-2: "#f1f2df"
-  ivory-line: "#d6d7c2"
-  court: "#0f4a3b"
-  court-2: "#175b4a"
-  court-ink: "#f1f7f1"
-  court-ink-2: "#b8d2c3"
+  club: "#2f9a74"
+  club-deep: "#0e4a3a"
+  club-ball: "#cde35a"
+  club-blue: "#0a4fbf"
+  club-ink: "#0d1311"
+  club-mist: "#c9d6d1"
+  club-metal: "#c5cdca"
 typography:
   display:
     fontFamily: "Figtree Variable, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif"
@@ -148,71 +148,97 @@ typography:
     fontFamily: "Figtree Variable, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif"
     fontSize: 0.6875rem
     fontWeight: 500
+  site-name:
+    fontFamily: "Archivo Variable, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif"
+    fontSize: 168px
+    fontWeight: 900
+    lineHeight: 0.86
+    letterSpacing: -0.01em
+    fontVariation: '"wdth" 62'
+  site-display-xl:
+    fontFamily: "Archivo Variable, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif"
+    fontSize: 7.5rem
+    fontWeight: 900
+    lineHeight: 0.86
+    letterSpacing: -0.01em
+    fontVariation: '"wdth" 62'
   site-display:
-    fontFamily: "EB Garamond Variable, ui-serif, Georgia, Times New Roman, serif"
+    fontFamily: "Archivo Variable, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif"
     fontSize: 6rem
-    fontWeight: 400
-    lineHeight: 1.02
-    letterSpacing: -0.02em
-  site-display-md:
-    fontFamily: "EB Garamond Variable, ui-serif, Georgia, Times New Roman, serif"
-    fontSize: 4.5rem
-    fontWeight: 400
-    lineHeight: 1.02
-    letterSpacing: -0.02em
+    fontWeight: 900
+    lineHeight: 0.86
+    letterSpacing: -0.01em
+    fontVariation: '"wdth" 62'
   site-display-sm:
-    fontFamily: "EB Garamond Variable, ui-serif, Georgia, Times New Roman, serif"
-    fontSize: 2.75rem
-    fontWeight: 400
-    lineHeight: 1.02
-    letterSpacing: -0.02em
-  site-headline-xl:
-    fontFamily: "EB Garamond Variable, ui-serif, Georgia, Times New Roman, serif"
-    fontSize: 4rem
-    fontWeight: 400
-    lineHeight: 1.02
-    letterSpacing: -0.02em
-  site-headline-lg:
-    fontFamily: "EB Garamond Variable, ui-serif, Georgia, Times New Roman, serif"
+    fontFamily: "Archivo Variable, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif"
+    fontSize: 4.5rem
+    fontWeight: 900
+    lineHeight: 0.86
+    letterSpacing: -0.01em
+    fontVariation: '"wdth" 62'
+  site-headline:
+    fontFamily: "Archivo Variable, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif"
     fontSize: 3.5rem
-    fontWeight: 400
-    lineHeight: 1.02
-    letterSpacing: -0.02em
-  site-headline-md:
-    fontFamily: "EB Garamond Variable, ui-serif, Georgia, Times New Roman, serif"
-    fontSize: 3rem
-    fontWeight: 400
-    lineHeight: 1.05
-    letterSpacing: -0.02em
-  site-headline-sm:
-    fontFamily: "EB Garamond Variable, ui-serif, Georgia, Times New Roman, serif"
+    fontWeight: 900
+    lineHeight: 0.86
+    letterSpacing: -0.01em
+    fontVariation: '"wdth" 62'
+  site-strip:
+    fontFamily: "Archivo Variable, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif"
     fontSize: 2.5rem
-    fontWeight: 400
-    lineHeight: 1.02
-    letterSpacing: -0.02em
-  site-title:
-    fontFamily: "EB Garamond Variable, ui-serif, Georgia, Times New Roman, serif"
-    fontSize: 2rem
-    fontWeight: 400
-    lineHeight: 1.25
-    letterSpacing: -0.01em
-  site-caption:
-    fontFamily: "EB Garamond Variable, ui-serif, Georgia, Times New Roman, serif"
-    fontSize: 1.75rem
-    fontWeight: 400
+    fontWeight: 900
+    lineHeight: 1.06
+    letterSpacing: 0.01em
+    fontVariation: '"wdth" 62'
+  site-caps:
+    fontFamily: "Archivo Variable, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif"
+    fontSize: 1.875rem
+    fontWeight: 800
     lineHeight: 1
-    letterSpacing: -0.01em
-  site-lead:
-    fontFamily: "Figtree Variable, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif"
+    fontVariation: '"wdth" 75'
+  site-caps-sm:
+    fontFamily: "Archivo Variable, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif"
+    fontSize: 1.1875rem
+    fontWeight: 900
+    lineHeight: 1
+    fontVariation: '"wdth" 75'
+  site-action:
+    fontFamily: "Archivo Variable, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif"
+    fontSize: 1.375rem
+    fontWeight: 900
+    lineHeight: 1
+    fontVariation: '"wdth" 75'
+  site-sticker:
+    fontFamily: "Archivo Variable, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif"
     fontSize: 1.125rem
+    fontWeight: 900
+    lineHeight: 1
+    letterSpacing: 0.01em
+    fontVariation: '"wdth" 75'
+  site-lead:
+    fontFamily: "Archivo Variable, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif"
+    fontSize: 1.5rem
+    fontWeight: 600
+    lineHeight: 1.375
+  site-body-lg:
+    fontFamily: "Archivo Variable, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif"
+    fontSize: 1.1875rem
     fontWeight: 400
     lineHeight: 1.45
-  site-wordmark:
-    fontFamily: "Figtree Variable, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif"
-    fontSize: "clamp(3rem, 10.5vw, 9.5rem)"
-    fontWeight: 800
-    lineHeight: 0.92
-    letterSpacing: -0.04em
+  site-body:
+    fontFamily: "Archivo Variable, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif"
+    fontSize: 1rem
+    fontWeight: 400
+    lineHeight: 1.5
+  site-label:
+    fontFamily: "Archivo Variable, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif"
+    fontSize: 0.9375rem
+    fontWeight: 700
+    lineHeight: 1.25
+  site-pill:
+    fontFamily: "Archivo Variable, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif"
+    fontSize: 1.0625rem
+    fontWeight: 700
 rounded:
   glyph: 6px
   item: 12px
@@ -222,8 +248,9 @@ rounded:
   list-card: 24px
   card: 28px
   panel: 32px
-  slab-md: 48px
-  slab-lg: 64px
+  sticker: 14px
+  site-card: 16px
+  photo: 18px
   full: 9999px
 spacing:
   "1": 4px
@@ -239,7 +266,9 @@ spacing:
   list-column: 328px
   aside-column: 340px
   page-max: 1240px
-  site-max: 1100px
+  site-max: 1440px
+  site-gutter: 64px
+  site-gutter-phone: 20px
 components:
   command-panel:
     backgroundColor: "{colors.night}"
@@ -540,109 +569,157 @@ components:
     rounded: "{rounded.list-card}"
     padding: "10px 12px"
   site-nav:
-    backgroundColor: "{colors.ivory}"
-    textColor: "{colors.ink}"
-    typography: "{typography.label-lg}"
-    rounded: 18px
+    backgroundColor: "{colors.club-deep}"
+    textColor: "#ffffff"
+    typography: "{typography.site-caps-sm}"
     height: 64px
-    padding: "0 10px"
-  slab:
-    backgroundColor: "{colors.night}"
-    textColor: "{colors.night-ink}"
-    typography: "{typography.site-headline-xl}"
-    rounded: "{rounded.slab-lg}"
-    padding: "96px 24px"
-  slab-court:
-    backgroundColor: "{colors.court}"
-    textColor: "{colors.court-ink}"
-    typography: "{typography.site-headline-xl}"
-    rounded: "{rounded.slab-lg}"
-    padding: "96px 24px"
-  proof-card:
-    backgroundColor: "{colors.court-2}"
-    textColor: "{colors.court-ink}"
-    typography: "{typography.site-title}"
-    rounded: "{rounded.card}"
-    padding: 32px
-  site-black-card:
-    backgroundColor: "{colors.night}"
-    textColor: "{colors.night-ink}"
-    rounded: "{rounded.panel}"
-    padding: 40px
-  included-pill:
-    backgroundColor: "{colors.court}"
-    textColor: "{colors.court-ink}"
-    typography: "{typography.label-lg}"
-    height: 44px
-    padding: "8px 40px 8px 20px"
-  visit-card:
-    backgroundColor: "{colors.violet}"
-    textColor: "{colors.ink}"
-    typography: "{typography.site-headline-xl}"
-    rounded: "{rounded.panel}"
-    padding: "80px 40px"
-  questions-box:
-    textColor: "{colors.ink}"
-    typography: "{typography.site-headline-md}"
-    rounded: "{rounded.card}"
-    padding: "56px 40px"
-  ivory-card:
-    backgroundColor: "{colors.ivory}"
-    textColor: "{colors.ink}"
-    typography: "{typography.site-title}"
-    rounded: "{rounded.card}"
+    padding: "0 64px"
+  field-green:
+    backgroundColor: "{colors.club}"
+    textColor: "#ffffff"
+  field-deep:
+    backgroundColor: "{colors.club-deep}"
+    textColor: "#ffffff"
+  field-blue:
+    backgroundColor: "{colors.club-blue}"
+    textColor: "#ffffff"
+  field-lime:
+    backgroundColor: "{colors.club-ball}"
+    textColor: "{colors.club-ink}"
+  field-white:
+    backgroundColor: "#ffffff"
+    textColor: "{colors.club-ink}"
+  field-ink:
+    backgroundColor: "{colors.club-ink}"
+    textColor: "#ffffff"
+  sticker-lime:
+    backgroundColor: "{colors.club-ball}"
+    textColor: "{colors.club-ink}"
+    typography: "{typography.site-sticker}"
+    rounded: "{rounded.sticker}"
+    padding: "0.5em 0.72em 0.44em"
+  sticker-white:
+    backgroundColor: "#ffffff"
+    textColor: "{colors.club-ink}"
+    typography: "{typography.site-sticker}"
+    rounded: "{rounded.sticker}"
+    padding: "0.5em 0.72em 0.44em"
+  sticker-blue:
+    backgroundColor: "{colors.club-blue}"
+    textColor: "#ffffff"
+    typography: "{typography.site-sticker}"
+    rounded: "{rounded.sticker}"
+    padding: "0.5em 0.72em 0.44em"
+  sticker-deep:
+    backgroundColor: "{colors.club-deep}"
+    textColor: "#ffffff"
+    typography: "{typography.site-sticker}"
+    rounded: "{rounded.sticker}"
+    padding: "0.5em 0.72em 0.44em"
+  sticker-round:
+    backgroundColor: "#ffffff"
+    textColor: "{colors.club-ink}"
+    typography: "{typography.site-sticker}"
+    rounded: "{rounded.full}"
+  photo-sticker:
+    backgroundColor: "#ffffff"
+    rounded: "{rounded.photo}"
+    padding: 8px
+  strip:
+    backgroundColor: "{colors.club-deep}"
+    textColor: "#ffffff"
+    typography: "{typography.site-strip}"
+    padding: "12px 64px"
+  button-enroll:
+    backgroundColor: "{colors.club-ball}"
+    textColor: "{colors.club-ink}"
+    typography: "{typography.site-action}"
+    rounded: 0px
+    height: 56px
+    padding: "0 26px"
+  button-enroll-hover:
+    backgroundColor: "#ffffff"
+  button-enroll-ink:
+    backgroundColor: "{colors.club-ink}"
+    textColor: "{colors.club-ball}"
+    typography: "{typography.site-action}"
+    rounded: 0px
+    height: 56px
+    padding: "0 26px"
+  button-enroll-ink-hover:
+    backgroundColor: "{colors.club-deep}"
+  site-pill:
+    backgroundColor: "#ffffff"
+    textColor: "{colors.club-deep}"
+    typography: "{typography.site-pill}"
+    rounded: "{rounded.full}"
+    height: 52px
+    padding: "0 22px"
+  site-pill-hover:
+    backgroundColor: "{colors.club-ball}"
+    textColor: "{colors.club-ink}"
+  site-pill-outline:
+    textColor: "#ffffff"
+    typography: "{typography.site-pill}"
+    rounded: "{rounded.full}"
+    height: 52px
+    padding: "0 22px"
+  site-pill-outline-hover:
+    backgroundColor: "#ffffff"
+    textColor: "{colors.club-ink}"
+  site-pill-outline-ink:
+    textColor: "{colors.club-ink}"
+    typography: "{typography.site-pill}"
+    rounded: "{rounded.full}"
+    height: 52px
+    padding: "0 22px"
+  site-pill-outline-ink-hover:
+    backgroundColor: "{colors.club-ink}"
+    textColor: "#ffffff"
+  site-chip:
+    typography: "{typography.site-label}"
+    rounded: 6px
+    padding: "5px 10px 6px"
+  program-tab:
+    textColor: "#ffffff"
+    typography: "{typography.site-caps-sm}"
+    rounded: "{rounded.sticker}"
+    height: 48px
+    padding: "0 16px"
+  program-tab-selected:
+    backgroundColor: "{colors.club-ball}"
+    textColor: "{colors.club-ink}"
+  package-card:
+    backgroundColor: "#ffffff"
+    textColor: "{colors.club-ink}"
+    typography: "{typography.site-caps}"
+    rounded: "{rounded.site-card}"
+    padding: "20px 18px 22px"
+  package-card-featured:
+    backgroundColor: "{colors.club-blue}"
+    textColor: "#ffffff"
+  team-panel:
+    backgroundColor: "{colors.club-deep}"
+    textColor: "#ffffff"
+    rounded: 22px
     padding: 24px
-  tier-card-ivory:
-    backgroundColor: "{colors.ivory}"
-    textColor: "{colors.ink}"
-    typography: "{typography.figure-lg}"
-    rounded: "{rounded.card}"
-    padding: 24px
-  program-pill:
-    textColor: "{colors.ink}"
-    typography: "{typography.label-lg}"
-    rounded: "{rounded.full}"
-    height: 44px
-    padding: "0 18px"
-  program-pill-dark:
-    textColor: "{colors.night-ink}"
-    typography: "{typography.label-lg}"
-    rounded: "{rounded.full}"
-    height: 44px
-    padding: "0 18px"
-  program-pill-selected:
-    backgroundColor: "{colors.lime}"
-    textColor: "{colors.ink}"
-  slab-chip:
-    textColor: "{colors.night-ink}"
-    typography: "{typography.label-sm}"
-    rounded: "{rounded.full}"
-    height: 28px
-    padding: "0 12px"
-  button-outline:
-    textColor: "{colors.ink}"
-    typography: "{typography.label-lg}"
-    rounded: "{rounded.full}"
-    height: 44px
-    padding: "0 20px"
-  button-outline-light:
-    textColor: "{colors.night-ink}"
-    typography: "{typography.label-lg}"
-    rounded: "{rounded.full}"
-    height: 44px
-    padding: "0 20px"
-  button-violet:
-    backgroundColor: "{colors.violet}"
-    textColor: "{colors.ink}"
-    typography: "{typography.label-lg}"
-    rounded: "{rounded.full}"
-    height: 44px
-    padding: "0 20px"
-  button-violet-hover:
-    backgroundColor: "{colors.lavender}"
-  footer-wordmark:
-    textColor: "{colors.ink}"
-    typography: "{typography.site-wordmark}"
+  coach-card:
+    backgroundColor: "#ffffff"
+    textColor: "{colors.club-ink}"
+    typography: "{typography.site-headline}"
+    rounded: "{rounded.site-card}"
+    padding: 20px
+  contact-bar:
+    backgroundColor: "{colors.club-deep}"
+    textColor: "#ffffff"
+    typography: "{typography.site-pill}"
+    rounded: "{rounded.photo}"
+    padding: 6px
+  site-footer:
+    backgroundColor: "{colors.club-ink}"
+    textColor: "#ffffff"
+    typography: "{typography.site-body}"
+    padding: "48px 64px"
 ---
 
 # Design System: CoachMan
@@ -657,37 +734,37 @@ Headings and figures are large and light; everything a coach acts on is regular 
 
 The visual authority is a reference the user pinned: the Dribbble shot "Microsoft Dynamics CRM – Lead Relationship Management Platform" by Jack R. for RonDesignLab, translated from sales to coaching. It replaced a themed "Court Lines" build and a plain "clean and light" plan, both rejected; the system refuses flat admin tables and sport-themed costume. Where the reference sets white text on pastel pills, CoachMan sets ink, because task surfaces have to read in outdoor sun.
 
-The academy release carries the same world to the people around the coaches. The **family portal** is the calm register: the command panel becomes a black header block that holds the academy's own logo tile and name, the page title, and (on laptops) the navigation as pills; the work sits on the gray canvas as white cards, with lime spent on one thing per screen (the next session, the amount due). The **enrollment wizard** is an Operate flow in the academy's frame: the dark panel holds the academy, the tier, and the steps; one white card holds one question. The **rates sheet** prints the live catalog as a plain letterhead document. An academy brings only its name, logo, words, and photos (its team's portraits, a cover, and its own court photos); the CoachMan palette is never recolored for it.
+The academy release carries the same world to the people around the coaches. The **family portal** is the calm register: the command panel becomes a black header block that holds the academy's own logo tile and name, the page title, and (on laptops) the navigation as pills; the work sits on the gray canvas as white cards, with lime spent on one thing per screen (the next session, the amount due). The **enrollment wizard** is an Operate flow in the academy's frame: the dark panel holds the academy, the tier, and the steps; one white card holds one question. The **rates sheet** prints the live catalog as a plain letterhead document. In these surfaces an academy brings only its name, logo, words, and photos (its team's portraits, a cover, and its own court photos); the CoachMan palette is never recolored for it.
 
-The **academy website** (`/a/<slug>`: the landing page, Enroll now, and Meet the team inside one site frame) is where the system changes register, because it is the academy's public face for families and players deciding whether to train there. After the Wispr Flow landing page the user pinned, it is a calm, generous Persuade surface built from CoachMan's own materials so it stays in the family: Command Black, ink, lime, violet, and Figtree, set on a ball-tinted ivory ground instead of the gray canvas, with full-width black slabs whose large corners stack like sheets, one court-green slab that carries the coaches' proof, outlined pills and buttons, and an EB Garamond display for its headlines. Its signature is the ball's arc: the academy's own programs, days, and times ride a pickleball's lob across the first screen and drift as the page scrolls. Every word, photo, and figure on it comes from the academy's own data, and it refuses the sports-academy template (a dark full-bleed hero photo with a centered slogan, three icon features, plan columns, a testimonial carousel). Its tokens and rules hold inside the website (`.site-root`) only; the staff app, the family portal, the wizard, and the rates sheet keep the system above.
+The **academy website** (`/a/<slug>`: the landing page, Enroll now, and Meet the team inside one site frame) is not a CoachMan screen. It is the academy's own public face, for families and players deciding whether to train there, and the owner gave it its own identity (2026-11-07), choosing the **Pubmat** from four mocked directions: the site is set like the enrollment pubmat Filipino families already stop scrolling for, and CoachMan appears on it only as a small "Made with CoachMan" in the footer. Every section is one full-bleed field of flat color in the club's colors, sampled from the first academy's own banner and jersey: Club Green under print-dot halftone, Jersey Blue, Deep Green, Ball Lime, white, and a Club Ink footer. Archivo sets all of it: the academy's name, titles, schedules, and prices in extra-condensed black italic caps, everything else at normal width. Stickers with a white die-cut edge, photos stuck on with a white border and a slight turn, schedules on strips laid across at an angle, and a slanted Ball Lime Enroll now carry the page. Every word, photo, and figure comes from the academy's own data, and a section with nothing yet says what's coming instead of falling silent. It refuses the sports-academy template (a dark full-bleed hero photo with a centered slogan, three icon features, plan columns, a testimonial carousel) and the quiet cream-and-serif page it replaced. Its tokens and rules hold inside the website (`.site-root`) only, and the two worlds don't mix: the staff app, the family portal, the wizard, and the rates sheet the website links to keep the system above, and the website shares only CoachMan's BallMark, in its footer credit.
 
 **Key Characteristics:**
 - Two zones: a black command panel (icon rail plus list column) beside a soft-gray canvas of white cards.
 - Lime marks live, selected, and primary, and nothing else.
-- Figtree throughout the app: light (300) for headings and figures, tabular numerals for every compared number; the academy website adds an EB Garamond display for its headlines.
+- Figtree throughout the app: light (300) for headings and figures, tabular numerals for every compared number.
 - Pastel status pills with ink text, never white.
 - Tonal depth; shadows only on floating layers.
-- 22–32px container corners (the website's slabs grow to 64px); pills and circles for every control.
+- 22–32px container corners; pills and circles for every control.
 - Records open into fused folder tabs over a lighter panel, with lavender and lime bentos beside them.
 - Touch-first sizing: 44px controls, 48px check-in circles, 52px action circles.
-- One world, four audiences: staff (command panel), families (black header block), visitors (the academy website: ivory ground, stacked black slabs, a serif display), applicants (wizard frame).
-- A visible keyboard focus everywhere: a 2px ring at 2px offset, ink on the canvas, lime in the dark zone.
+- One app world for three audiences: staff (command panel), families (black header block), and applicants (wizard frame). Visitors get the academy's own website, a separate world: an enrollment pubmat in the club's colors, set in Archivo caps.
+- A visible keyboard focus everywhere: in the app a 2px ring at 2px offset, ink on the canvas, lime in the dark zone; on the website a 3px ring in its field's focus color, 2px off links and 3px off actions, pills, and tabs.
 
 ## Colors
 
-A near-monochrome stage (black panel, gray canvas, white cards, ink type) lit by one lime signal and a set of soft pastels that speak status. The academy website swaps the gray canvas for ivory and adds one court green (see Academy website below).
+A near-monochrome stage (black panel, gray canvas, white cards, ink type) lit by one lime signal and a set of soft pastels that speak status. The academy website uses none of it: it wears the club's own colors (see Academy website below).
 
 ### Primary
-- **Signal Lime** (#daee63): what is live, selected, or primary. The active rail circle and phone tab, the selected list tile, a record's action circles, the checked-in toggle, the primary bento, the phone's quick-add, the toast's Undo, the selected day in calendars, "on court now", and the text-selection highlight. On the academy website: Enroll now and the other ways into enrollment, the chosen program pill, the featured tier, and the ball.
+- **Signal Lime** (#daee63): what is live, selected, or primary. The active rail circle and phone tab, the selected list tile, a record's action circles, the checked-in toggle, the primary bento, the phone's quick-add, the toast's Undo, the selected day in calendars, "on court now", and the text-selection highlight.
 - **Pressed Lime** (#cbe148): the hover state of lime fills, and the current step of the import stepper.
 - **Lime Wash** (#f2f8cf): a faint lime surface: the import drop zone while a file hovers, and one of the avatar tints.
 
 ### Secondary
-- **Bento Lavender** (#b3a8f5): the second bento voice. Credits and packages cards and the Money page's "Received" hero; also the timeline node for payments, the birthday alert circle, and the hover of the website's violet contact pills.
+- **Bento Lavender** (#b3a8f5): the second bento voice. Credits and packages cards and the Money page's "Received" hero; also the timeline node for payments and the birthday alert circle.
 - **Lavender Wash** (#ebe8fd): an avatar tint.
 
 ### Tertiary
-- **Group Violet** (#c9befb): group membership, upcoming sessions, late arrivals, group blocks in the schedule. On the academy website: the visit card, the ways to reach the academy (the contact pills), and a coach's "Program lead" pill.
+- **Group Violet** (#c9befb): group membership, upcoming sessions, late arrivals, group blocks in the schedule.
 - **Owes Coral** (#f87171): money owed, urgent, no-show, cancelled; the fill of the danger button.
 - **Coral Wash** (#fde3e3): alert surfaces: inline errors, the medical-note callout and pills, the check-in toggle of an absent or no-show player, cancelled schedule blocks.
 - **Info Sky** (#a9dceb): information and finished things: juniors, per-player notes, credits in good standing, finished sessions, clinic blocks.
@@ -699,7 +776,7 @@ A near-monochrome stage (black panel, gray canvas, white cards, ink type) lit by
 - **Alert Red** (#b42318): danger text on white (about 6.6:1): destructive menu items, field errors, out-of-credit figures, the medical flag icon. It has no `@theme` declaration in `src/app/styles.css` yet; the build hard-codes it in nineteen files, so no utility class exists for it. A darker red (#7a1212) for text on Coral Wash (inline errors, the medical-note pill) is hard-coded the same way in four files.
 
 ### Neutral
-- **Command Black** (#0e0e0f): the command panel, the phone's header block and tab bar, and the PWA theme color; on the academy website, its slabs, its black cards, and the team page's dark block.
+- **Command Black** (#0e0e0f): the command panel, the phone's header block and tab bar, and the PWA theme color.
 - **Tile Charcoal** (#1c1c1e): dark tiles on the panel: KPI tiles, list tiles, rail circles, the dark search field.
 - **Raised Charcoal** (#29292c): hover on dark tiles and rail circles, the fill of night buttons, and the hover of ink buttons.
 - **Dark Outline** (#38383c): outlines inside the panel (the status capsule in list tiles, the dashed quick-add circle) and the hover of night buttons.
@@ -711,7 +788,7 @@ A near-monochrome stage (black panel, gray canvas, white cards, ink type) lit by
 - **Card White** (#ffffff): cards, sheets, fields, popovers, and the white action circle.
 - **Ink** (#111111): primary text and icons, the primary pill button, toasts, checked checkboxes and switch tracks.
 - **Slate** (#5f6066): secondary text: meta lines, field labels, help text, inactive tabs, placeholders.
-- **Pewter** (#8a8b91): tertiary marks: chevrons, the unchecked toggle's check, struck-through times. On the academy website, the quiet opening clause of a two-tone headline, the footer's column headings, and the words trailing into the ball's arc; on ivory it reads about 3.3:1, so it carries display-size type and the decorative arc only, never body text.
+- **Pewter** (#8a8b91): tertiary marks: chevrons, the unchecked toggle's check, struck-through times.
 - **Hairline** (#e4e4e7): dividers between rows and above sheet footers.
 - **Outline Gray** (#cfcfd4): the 1px ring of white buttons, field borders, unchecked toggles and checkboxes, and the switch track when off.
 
@@ -722,7 +799,7 @@ A near-monochrome stage (black panel, gray canvas, white cards, ink type) lit by
 
 **The Connection Color Rule.** Sync Orange speaks only about connection state (offline, syncing, a change waiting to sync), and nothing else wears it.
 
-**The One Lime Block Rule.** A screen holds at most one lime block, and it is the thing to act on now: the live session (Today), the next session (the family's Home), the amount due (Pay), the featured tier (Enroll now). Offers that sit beside it (turn on reminders, renew for next month) are white cards with a lime icon circle, never a second lime slab.
+**The One Lime Block Rule.** A screen holds at most one lime block, and it is the thing to act on now: the live session (Today), the next session (the family's Home), the amount due (Pay), the featured tier (the portal's Enroll page). Offers that sit beside it (turn on reminders, renew for next month) are white cards with a lime icon circle, never a second lime slab.
 
 ### Status pills (academy)
 Each status keeps one meaning across the staff app and the family portal: sky waits on someone, amber needs a look, mint is done and good, coral is refused or owed, an Outline Gray ring is closed or quiet.
@@ -733,36 +810,36 @@ Each status keeps one meaning across the staff app and the family portal: sky wa
 - **Check-in safety:** Medical (Coral Wash with an Alert Red heart) and Pickup with its count (Sky Wash), 40px tall so a thumb finds them at the roster.
 
 ### Academy website
-These colors exist only inside the academy website (`.site-root`); everything else on it is borrowed from the system above: Command Black for slabs and black cards, Ink for type, rings, and rules, Pewter for the quiet clause, Group Violet for the visit card and contact pills, and Signal Lime for the way to enroll and the ball.
-- **Ball Ivory** (#fbfbf0): the ground, edge to edge and through overscroll; the floating nav and its phone menu, ivory tier cards and coach cards, the ball's pill, and the words on the arc's ink band.
-- **Ivory Wash** (#f1f2df): soft fills inside ivory surfaces: a tier's "Who it's for" well, a coach's facts, the highlight circles, the program on show, and the frame behind a photo while it loads.
-- **Ivory Rule** (#d6d7c2): the 1px edge of the floating nav and the footer's rule, the 1.5px ring of ivory cards, and the ring of a coach's specialty tags.
-- **Court Green** (#0f4a3b): the coaches' slab, the pills of what a package includes, and the "Enrolling now" tag above the ball.
-- **Raised Court** (#175b4a): the highlight cards on the court slab.
-- **Court White** (#f1f7f1): text on Court Green and Raised Court.
-- **Court Mist** (#b8d2c3): secondary text and the arrows on Court Green.
+The website's own palette, inside `.site-root` only: the club's colors, sampled from the first academy's own banner and jersey (The Pickle Spot Academy). They are CSS custom properties (`--color-club*` in `src/app/styles.css`), so a later per-academy "club colors" setting can drive them without touching a component. Plain white (#ffffff) completes it: the white field, a sticker's die-cut edge, a photo's border, cards, and type on the dark fields.
+- **Ball Lime** (#cde35a): the loudest color and the way in. The slanted Enroll now, the Packages field, the chosen tab, the "Now enrolling", "Featured", DUPR, and "Program lead" stickers, and the "Programs drop soon" sticker; on Deep Green, Jersey Blue, and Club Ink, the schedule numerals, the steps' numerals, the program names on the hero's strip, icons, a venue's address, and the keyboard focus ring; also the first button of the contact bar, the skip link, and the text-selection highlight.
+- **Club Green** (#2f9a74): the tarp. The hero, Enroll now's title band, On court, and the team page's ground, always under the halftone; on white, the checks of a package's inclusions and the medals of a coach's highlights.
+- **Deep Green** (#0e4a3a): the club's dark. The nav and its phone menu, program panels (by turns with Jersey Blue), How to enroll, strips, the team page's panel and the phone's contact bar, the captions under On court's photos, and the type on white pills; at 20%, the halftone's dots.
+- **Jersey Blue** (#0a4fbf): the second field. Program panels (by turns with Deep Green), Find us, the questions panel, the featured package card, a coach's certification stickers, the "Packages drop soon" sticker, and the hero's round DUPR sticker when no price takes its place.
+- **Club Ink** (#0d1311): the footer and the page's ground through overscroll; type and outlined pills on white and Ball Lime; the ink slanted Enroll (on a plain package card, and closing the team page's roster on phones); the +N in a stack of faces.
+- **Club Mist** (#c9d6d1): quiet text on dark fields (the footer's contact details and small print, a tab's schedule line, a venue's address in the team panel) and the 2px keyline that lets a white edge read on the white field.
+- **Club Metal** (#c5cdca): the rings of the tarp's grommets, and nothing else.
 
-**The Ivory Ground Rule.** The website stands on Ball Ivory and never shows the gray canvas or a white card. Ivory surfaces are told apart by a ruled edge (Ivory Rule) and Ivory Wash wells; weight comes from black slabs and black cards.
+**The Club Colors Rule.** The website wears the club's colors and white, and none of the app's: no Signal Lime, pastels, night tones, or gray canvas. Its colors live only in the `--color-club*` properties, so another academy's colors change values, never components.
 
-**The Court Proof Rule.** Court Green speaks only for the academy's own evidence: its coaches' highlights and certifications, what one real package includes, and whether it is enrolling now. It never fills a button or decorates a section.
+**The Large-on-Green Rule.** White on Club Green reads about 3.5:1, so Club Green carries white type only at large sizes (24px and up, or 19px and up in bold); smaller lines sit on Deep Green, Jersey Blue, Club Ink, or white. Ball Lime type never sits on Club Green (about 2.5:1): the hero's strip is Deep Green so its lime program names read.
 
 ## Typography
 
 **Display Font:** Figtree Variable (with ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif)
 **Body Font:** Figtree Variable (same stack)
 **Label/Mono Font:** none distinct; figures use Figtree's tabular lining numerals through the `.num` class.
-**Website Display Font:** EB Garamond Variable (with ui-serif, Georgia, "Times New Roman", serif), self-hosted, on the academy website only.
+**Website Font:** Archivo Variable (with ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif), self-hosted with its width axis and its italics, on the academy website only.
 
-**Character:** One friendly geometric sans at two temperatures. Light and large for anything read from arm's length (titles, figures); regular and medium for everything a coach acts on. The lightness carries the premium feel, and the tabular numerals carry the trust. On the academy website a classical serif at its regular weight takes the headlines, warm and generous beside Figtree, which keeps every control and number.
+**Character:** One friendly geometric sans at two temperatures. Light and large for anything read from arm's length (titles, figures); regular and medium for everything a coach acts on. The lightness carries the premium feel, and the tabular numerals carry the trust. The academy website speaks in another voice altogether: Archivo, condensed, black, and italic, the type of a printed enrollment tarp.
 
 ### Hierarchy
 - **Display** (300, 56px, 1, -0.03em, tabular): hero figures, such as the Money page's received total, and the sign-in statement, which opens to 1.04 leading over its lines.
 - **Display sm** (300, 48px, 1, -0.03em, tabular): the same hero figures on phones, and the family's balance and amount due (Payments, Pay).
-- **Figure lg** (300, 44px, 1, -0.03em, tabular): a tier's price per head on the website's Enroll now, the portal's Enroll page, and the staff preview.
+- **Figure lg** (300, 44px, 1, -0.03em, tabular): a tier's price per head on the portal's Enroll page and in the staff app's tier previews.
 - **Headline lg** (300, 44px, 1.08, -0.02em): record titles (session, client, group, event, enrollment request) from 1024px.
 - **Headline md** (300, 40px, 1.1, -0.02em): page titles from 1024px and the portal's page titles.
 - **Headline sm** (300, 32px, 1.1, -0.02em): page and record titles below 1024px, including the phone header's "Today", the portal's titles, and a wizard step's question.
-- **Headline panel** (300, 28px, 1.25, -0.01em): the title at the top of the command panel ("Today", "Clients", the month), the tier in the wizard's frame, and a program's days and times on the website (its Programs slab, Enroll now's program card, and the team page's dark block; 24px on phones, tabular).
+- **Headline panel** (300, 28px, 1.25, -0.01em): the title at the top of the command panel ("Today", "Clients", the month) and the tier in the wizard's frame.
 - **Figure** (300, 32px, 1, tabular): KPI tile values.
 - **Title lg** (300, 24px, 1.2, -0.01em): sheet titles and the phone's live-session card.
 - **Title md** (300, 22px, 1.25, -0.01em): bento, hero-card, offer, settings-section, tier-name, and empty-state titles.
@@ -773,32 +850,44 @@ These colors exist only inside the academy website (`.site-root`); everything el
 - **Body sm** (400, 13px, 1.45): meta lines, help text, and secondary lines; the most-used size in the app.
 - **Label lg** (500, 15px): default buttons and figure pills.
 - **Label md** (500, 14px): small buttons, segmented options, attendance choices, filter chips, and text actions.
-- **Label sm** (500, 13px): field labels, and the website's outlined chips on black (a program's level, ages, and session length).
+- **Label sm** (500, 13px): field labels.
 - **Label xs** (500, 12px): status pills.
 - **Label 2xs** (500, 11px): the phone tab bars' labels (staff and portal) and the initials in 28px avatars; nothing else is this small.
 
 In the app, weight 600 appears only as small emphasis: avatar initials and counts, step numbers, the sync pill, the toast's Undo, ledger deltas, and the selected item in a list or chart. Avatar initials scale with their circle (11px in 28px, 12px in 36px, 14px in 44px, 20px in 64px, 36px in 112px) and sit outside the ramp. Headings balance their lines (`text-wrap: balance` on h1–h3), so a light title never leaves one word on its last line.
 
 ### Named Rules
-**The Light Heading Rule.** Across the app (staff, family portal, wizard, rates sheet), every heading and figure from 22px up is set at weight 300 with slight negative tracking (-0.01em to -0.03em). Bold (700) does not exist in this system; in the app the wordmark (22px, 500) is the only large text that isn't light. The academy website follows its own Serif Headline Rule below.
+**The Light Heading Rule.** Across the app (staff, family portal, wizard, rates sheet), every heading and figure from 22px up is set at weight 300 with slight negative tracking (-0.01em to -0.03em). Bold (700) does not exist in the app; in the app the wordmark (22px, 500) is the only large text that isn't light. The academy website follows its own type rules below.
 
 **The Tabular Figure Rule.** Every number a coach compares (times, counts, credits, money) is set in tabular lining numerals.
 
 ### Academy website
-The website's own ramp, inside `.site-root` only. Titles are EB Garamond at 400; everything else is Figtree.
-- **Site display** (400, 96px from 1024px, 72px from 640px, 44px on phones; 1.02, -0.02em): the hero's headline (the academy's tagline, else its name) and the closing call's "Ready to play?" (48px on phones, set solid). Enroll now's title stops at 72px.
-- **Site headline xl / lg / sm** (400, 64px from 1024px, 56px from 640px, 40px on phones; 1.02, -0.02em): section titles: "Choose a program", "On court", "The coaches", "About [academy]", "Where we play".
-- **Site headline md** (400, 48px, 1.05, -0.02em): the questions box from 640px and the team page's titles from 1024px (40px below).
-- **Site title** (400, 32px, 1.25, -0.01em): titles inside cards and slabs: a coach's name, "Also on the team", a program's name on its slab or card and "More packages" (40px from 640px; the landing page and Enroll now keep the display's -0.02em), and a coach's highlight on the court slab (28px on phones, 1.12 leading).
-- **Site caption** (400, 28px, 1, -0.01em, Pewter): the footer's column headings.
-- **Site lead** (Figtree 400, 18px from 640px, 16px on phones, 1.45): the line under a headline, section intros, a program's description, and About (at 1.625 leading, 60ch).
-- **Footer wordmark** (Figtree 800, clamp(48px, 10.5vw, 152px), 0.92, -0.04em): the academy's name set huge at the foot of every page; decorative and hidden from screen readers, and the website's only heavy type.
+The website's own type, inside `.site-root` only: Archivo Variable (`--font-site`), self-hosted from `@fontsource-variable/archivo` with its width axis and its italics (`wdth.css`, `wdth-italic.css`). One family in three cuts, and no Figtree:
+- **Display caps** (62% width, 900, italic, uppercase, 0.86 leading, -0.01em tracking, and 0.08em of extra word spacing to open the cut's narrow space): the academy's name, titles, a program's days and times, prices and other figures, the steps' numerals, and strips.
+- **Secondary caps** (75% width, 800, italic, uppercase, leading 1): the nav's academy name and its phone menu, a coach's title, the names of packages and package groups, schedule notes and a venue's address on dark fields, and the footer's academy name. Tabs, a step's title, and the slanted action take it at 900.
+- **Sticker caps** (75% width, 900, italic, uppercase, leading 1, 0.01em tracking): every sticker, sized to its job; a certification keeps its own casing.
+- **Body** (normal width, roman): everything else, 16px at 1.5 leading by default.
 
-Figtree keeps the rest, as in the app: buttons and pills at 15px/500 (16px in the large size), a program's days and times in Headline panel, a tier's price in Figure lg, a program's price "from" at 22px/600, the What's included heading at 24px/600, the nav's academy name at 14px (16px from 640px)/600, and the arc's words at 13px (20px from 640px), 500 before the ball and 600 after it. Nothing on the website but the footer wordmark goes past 600.
+The ramp as the pages use it:
+- **Site name** (display caps, fitted): the academy's name in the hero, sized by measurement so its widest line fills the column: at most 168px from 1024px (two lines), 150px from 640px, and 30% of the column's width on phones (up to three lines below 1024px). See The Fitted Name and the Slap.
+- **Site display xl** (display caps, 120px from 1024px): Enroll now's title (64px on phones) and the "drop soon" stickers (44–66px on phones, 14% of the screen's width between).
+- **Site display** (display caps, 96px from 1024px): every section title (On court, The team, Packages, How to enroll, See you at [venue], Questions before you enroll?), a featured coach's name on the landing page, and a program's times when they fit one line. On phones the titles take 56–80px by their length, and one-line times run up to 84px.
+- **Site display sm** (display caps, 72px): section titles on phones (On court, The team, How to enroll) and the team page's roster title from 1024px (52px on phones).
+- **Site headline** (display caps, 56px): a program's name (up to 58px on phones, shrunk until its longest word fits), a coach's name and the chosen program's times on the team page (52px on phones), and a package's price (62px from 1024px). Several schedule lines on a program panel take 52px (64px from 1024px).
+- **Site strip** (display caps, 40px from 1024px, 24px on phones; 1.06 leading, 0.01em tracking): the hero strip's programs and times; a coach's specialties run 44px (26px on phones).
+- **Site caps** (secondary caps, 30px): a package's name, a step's title (26px on phones, at 900), and a coach's title on the landing page (24px on phones). A package group's name takes 34px; the hero's "Pickleball coaching" line and a venue's address in Find us take 34px from 1024px (25px and 28px on phones).
+- **Site caps sm** (secondary caps at 900, 19px): the team page's program tabs and the medium slanted action (a package's Enroll, the team panel's Enroll). The nav's academy name is 19px at 800 (15px on phones); Enroll now's tabs are 28px (20px on phones).
+- **Site action** (secondary caps at 900, 22px from 1024px, 20px on phones): the large slanted action; the nav's small one is 17px (15px on phones).
+- **Site sticker** (sticker caps, 18px): "Featured" and the team page's certifications. Stickers run 15–28px by their job, from a photo's caption and "Program lead" to "Now enrolling" in the desktop hero (the phone hero's gap sticker scales with the name, never under 14px); a round sticker sets its figure in display caps at 2.35 times its own size.
+- **Site lead** (body, 600, 24px from 1024px, 20px on phones; 1.375 leading): the line beside or under a big title (the hero's own line at 26px, a "drop soon" sticker's line, Enroll now's line, the questions panel's line) and the hero's next session; the hero's lines and Enroll now's take 700 on phones.
+- **Site body lg** (body, 400, 19px from 1024px, 18px on phones; 1.45): a program's description (38ch) and the academy's about in Find us (44ch).
+- **Site body** (body, 400, 16px, 1.5): a package card's details, the policies, and the footer; a coach's highlights and about run 17px.
+- **Site label** (body, 700, 15px, 1.25): chips (a program's level, ages, and session length; a coach's specialties) and the labels over a coach's details.
+- **Site pill** (body, 700, 17px from 1024px, 16px on phones): pills, and at 16px the contact bar's buttons. Links in the nav and the footer are 16px at 600; the footer's small print is 14px.
 
-**The Serif Headline Rule.** On the website, EB Garamond sets page, section, and card titles, the coaches' highlights, and the footer's headings, always at its regular weight (400); Figtree sets every control, body line, label, price, schedule, and number. The serif never appears in the app or on a button.
+**The Display Caps Rule.** On the website, caps belong to the display, secondary, and sticker cuts: names, titles, schedules, prices, numerals, stickers, strips, tabs, the phone menu's rows, and the slanted action, always italic and condensed. Body copy, pills, chips, labels, and inline links stay at normal width in sentence case. Nothing on the website is set in Figtree, and Archivo never appears in the app.
 
-**The Two-Tone Headline Rule.** A website headline written with a clause break (a comma, semicolon, colon, or dash, with at least two words on each side) sets its opening clause in Pewter and the rest in ink: "Train with purpose," then "play with joy". Any other headline stays ink; the page never inserts a break of its own.
+**The Measured Fit Rule.** Display words that must fit a width are measured before they render, never after. The hero's name and the "drop soon" stickers are broken into lines by `fitLines` and sized from the display cut's own advance widths (`DISPLAY_EM` in `site-data.ts`, measured from the shipped font files, with the cut's tracking and word spacing); a program's name and times shrink on phones until their longest word fits. New display copy that has to fit is measured the same way before it ships: the table covers A–Z, 0–9, ₱, and common punctuation, and any other glyph counts as an average 0.5em until it is measured and added.
 
 ## Layout
 
@@ -810,63 +899,71 @@ Rhythm runs on a 4px base, with 8, 12, 16, and 20px doing most of the work. A la
 
 **Family portal.** No rail and no list column: a black header block (32px bottom corners on phones; from 1024px a 32px-cornered block inside a 1080px column, 12px from the top) holds the academy's logo tile and name, the "Coach view" switch for staff, the page title in 32px (40px) light with a Night Mist subtitle, and the student switcher (44px pills, the current student lime). On laptops the navigation sits in the header as 44px pills (Home, the student's pages, Enroll, Settings; the current one lime); on phones it is the floating black tab bar (Home, Progress, Schedule, Payments, More). The canvas below stacks white cards, two columns on laptops where it helps (the work left, a 340px column of coaches' comments and announcements right on Home).
 
-**Academy website.** One centered 1100px column carries the nav, every section, and the footer, with 16px side padding on phones and 24px from 640px; slabs run the full width of the window behind it. The nav floats over the top of the page and stays while it scrolls. The landing page runs: the hero (56px under the nav, 80px from 640px) and the ball's arc edge to edge (150px tall on phones, 260px from 640px); the Programs slab (two columns from 1024px, the program beside its fan of coaches); On court; the coaches' slab (proof cards two to a row from 768px); About beside the What's included card (from 1024px); the visit card; the closing call; then the questions box and the footer. Slabs pad 64px top and bottom (96px from 640px) and open sections 80px (112px); the closing call and the questions box sit 80px (112px) below what precedes them, and the footer 96px (128px). Enroll now centers its title and program pills, then stacks the program's black card and its tier cards (one, two, or three to a row from 640px and 1024px, 12px apart) in the same column, inset 12px from the screen's edges on phones.
+**Academy website.** A stack of full-bleed fields, one per section, each a different club color from the one before it, so a section's edge is the change of color and nothing else. Inside each field one column carries the content: up to 1440px wide, with 64px gutters from 1024px and 20px on phones. Strips and the tarp run edge to edge (a strip reaches 64px past both edges and its field clips it). The nav (56px, 64px from 1024px) stays at the top of the screen. The landing page runs: the tarp (Club Green; from 1024px at least the screen's height under the nav); the programs (Jersey Blue and Deep Green by turns, two across from 1024px, an odd last one spanning both); On court (Club Green); the team (white); Packages (Ball Lime); How to enroll (Deep Green); Find us (Jersey Blue); and the footer (Club Ink). Enroll now runs: its title band (Club Green), the chosen program (Jersey Blue; from 1024px its name and times beside its details in a 1312px column), its packages (Ball Lime), How to enroll, the questions panel (Jersey Blue), and the footer. Fields pad 48–64px top and bottom on phones and 80–112px from 1024px.
+
+**The sparse state.** The website has to look full on the day an academy has published only its name and one coach. A section with nothing yet keeps its field and says what's coming as a fitted two-line sticker with one line beside it (under it on phones; from 1024px 72px to its right): "Programs drop soon", "Packages drop soon", "Location coming soon". The hero's strip says "Schedule drops soon", and How to enroll always shows, because its steps hold for every academy. On court and the team are left out until there are photos and coaches.
+
+**The phone hero.** Below 1024px the academy's name takes up to three lines across the full width. When the split leaves a short first or last line, a sticker ("Now enrolling", else "Pickleball coaching") sits in the gap beside it: "THE [NOW ENROLLING] / PICKLE SPOT / ACADEMY". Under the name, the academy's own line and the round price sticker stack on the left beside the photo sticker (58% of the width), the strip crosses under both, and Enroll now with Message us, then the next session, close the first screen. From 1024px the tarp is a grid: the name on two lines in the left 1.75fr, the photo sticker up to 410px wide on the right, the strip across both columns 104px up over the photo's foot with the round sticker biting its upper edge, and the actions and the next session along the bottom.
 
 **Rates sheet.** One white 28px card, 880px wide, on the canvas: a letterhead (logo tile, name, tagline, contact on the right), "Rates and packages" with the month, then each program as a Folder Gray band followed by its tiers as key-value rows (rates and schedule, validity, inclusions, notes). Printing drops the toolbar and the card: white paper, 14mm by 12mm margins, every tier kept whole on its page.
 
 **Enrollment wizard.** A frame of its own on the canvas, which each tier's Enroll opens: a 380–420px sticky dark panel (back to the academy, the tier and its price, the program and its times, the step list) beside one white card (max 672px) that holds one question. Phones keep the dark block on top with "Step 2 of 6 · Level" and a lime progress bar, and the step's actions (Continue full width, Back under it) at the card's foot.
 
-**Team page.** The website's frame around the page's own two parts. On phones the dark block (32px corners, 12px from the screen's edges) holds "Meet the team" in the 40px serif, the programs as an edge-to-edge row of 44px pills, the chosen program's times in 24px (28px) light, and the actions, leaving the venue, the next session, and the contact rows to the desktop panel so the first portrait begins on the first screen. From 1024px the block is a sticky 340px panel (360px from 1280px) held 100px from the top, under the nav, with "Meet the team" at 48px, the programs as a column of tiles, and Printable rates at its foot above a Panel Seam rule. The roster opens on "[Program] coaches" (or "The whole team") in the serif at 40px (48px from 1024px) with a 14px Slate count beside it, then one ivory card per coach, 12px apart, then "Also on the team". A coach's portrait fills the card's width on phones; from 768px it is a sticky column 100px from the top (280px; 240px from 1024px, beside the panel). On phones, while enrollment is open, an ink 52px "Enroll in [program]" closes the roster, and the floating contact bar joins once the block's own buttons have scrolled away.
+**Team page.** The website's frame around the page's own two parts, on Club Green with its halftone. From 1024px a 360px Deep Green panel sits beside the roster, 24px apart, inside the 1440px column. It sticks 88px from the top, under the nav, only while all of it fits the screen (its height no more than the screen's less 104px); otherwise it scrolls with the page, so nothing in it is ever cut off. On phones the panel leads, 12px from the screen's edges (20px from 640px): "Meet the team", the programs as a sideways row of tabs, the chosen program's times, and the actions, leaving the venue, the next session, and the contact rows to the desktop panel so the first coach card starts at the fold. The roster opens on "[Program] coaches" (or "The whole team") with its count, then one white card per coach, 20px apart, then "Also on the team". From 768px a coach's portrait is a sticky column 88px from the top (280px wide; 240px from 1024px, beside the panel). On phones, while the academy takes requests, a slanted ink "Enroll in [program]" closes the roster, and the floating contact bar joins once the panel's own buttons have scrolled away. The questions panel and the footer close the page.
 
 ### Named Rules
-**The Two-Zone Rule.** In the app, night tones belong to the command panel and its phone forms (the header block and the tab bar); the canvas, the folder panel, and white cards hold the work. A component that lives in both zones ships two tones, a charcoal tile in the panel and a white card on the canvas, never a dark card on the canvas. The academy website has no canvas: its black slabs and black cards on ivory are native (see The Stacked Slab Rule).
+**The Two-Zone Rule.** In the app, night tones belong to the command panel and its phone forms (the header block and the tab bar); the canvas, the folder panel, and white cards hold the work. A component that lives in both zones ships two tones, a charcoal tile in the panel and a white card on the canvas, never a dark card on the canvas. The academy website has neither zone: it is built of full-bleed club-color fields (see Academy website).
 
 **The Thumb Floor Rule.** Controls start at 44px: buttons and icon circles 44px, fields 48px, check-in toggles and rail circles 48px, a record's action circles 52px. 36px is the one smaller step, for secondary actions inside cards, sheets, bentos, and toasts. A text link set apart from prose (a footer link, a contact line, "All" in a card head) keeps its look and gets an invisible 44px tap area.
 
 **The Current-in-View Rule.** A row that scrolls sideways on phones (folder tabs, filter chips, announcement lists) always opens with its current item in view, and a navigation marks exactly one item as current.
 
+**The One Field Rule.** On the website each section is one full-bleed field of one club color, never the color of the field before it, and its edge is that change of color alone: no rules, dividers, or gaps between sections.
+
+**The What's-Coming Rule.** A website section with nothing published yet keeps its field and says what's coming, as a fitted two-line sticker with one plain line on what happens next; it never shows blank space, a placeholder graphic, or invented content. How to enroll always shows. Only On court and the team are left out until there are photos and coaches.
+
 ## Elevation & Depth
 
 CoachMan is flat and tonal. On the canvas, depth comes from three light steps: Courtside Gray under the Folder Gray panel under white cards. On the command panel it comes from three dark steps: Command Black under charcoal tiles under the raised hover tone. Cards carry no border and no shadow. Edges that need definition get a single 1px line: Outline Gray on white buttons and fields, Hairline between rows, Dark Outline inside dark tiles. Shadows are reserved for what floats, and sheets sit over a Command Black scrim at 45% with a 2px blur.
 
-The academy website is flat as well, but because ivory sits on ivory it draws its edges instead of stepping tones: the nav takes a 1px Ivory Rule edge, ivory cards a 1.5px Ivory Rule ring, outline buttons and selectors a 1.5px ring in ink (white on black), and the questions box a 2px ink rule. Depth comes from the full-width black and court-green slabs over the ground, the black cards set into it, and the academy's photos. Pop stays with what floats: the nav's phone menu and the team page's contact bar.
+The academy website is flat print. It has no blur shadows and no gradients. Depth comes from the change of field from one section to the next; from the white die-cut edge that lifts a sticker, a photo, a tab, or the featured package off its field; from turns, as stuck-on things sit a few degrees off true and overlap an edge (the round sticker over the strip, "Now enrolling" over the photo's corner, "Featured" over a card's top); and from the academy's own photos. Nothing on it floats with Pop: the nav's phone menu and the team page's contact bar are flat Deep Green, the bar edged by a 2px white ring. Its rings are edges, drawn without blur, never shadows. On the white field a white edge would vanish, so it takes a keyline: 2px Club Mist around the landing page's coach portraits; inside the team page's white cards, a 1px ink-at-10% ring around portraits, the certification stickers' 3px edge in ink at 10%, and a full ink edge on the "Program lead" sticker.
 
 ### Shadow Vocabulary
 - **Pop** (`box-shadow: 0 24px 48px -16px rgb(17 17 17 / 0.28), 0 8px 20px -10px rgb(17 17 17 / 0.14)`): floating layers only: sheets and dialogs, popovers and menus, toasts, the phone tab bar, and the phone's quick-add circle.
 - **Lift** (`box-shadow: 0 1px 2px rgb(17 17 17 / 0.06), 0 4px 12px -4px rgb(17 17 17 / 0.08)`): a thumb or segment raised above its own track: the selected segment of a segmented control and the switch thumb.
 - **Focus glow** (`box-shadow: 0 0 0 4px rgb(218 238 99 / 0.55)`): a field's focus state, paired with an ink border. It marks state, not elevation.
 - **Tile glow** (`background-image: radial-gradient(120% 90% at 0% 0%, var(--tile-tint) 0%, transparent 60%)`): the colored light in a KPI tile's top-left corner, where the tint is the tile's own pastel at about 22%. A background, not a shadow.
-- **Closing scrim** (`background-image: linear-gradient(to bottom, rgb(14 14 15 / 0.35), rgb(14 14 15 / 0.55), rgb(14 14 15 / 0.85))`): the Command Black wash over the website's closing call photo, so its white type reads. A background, not a shadow, and the website's only gradient.
+- **Halftone** (`background-image: radial-gradient(circle, rgb(14 74 58 / 0.2) 0 2.2px, transparent 2.6px)` on an 8px grid, masked by `linear-gradient(222deg, #000 0%, rgb(0 0 0 / 0.6) 34%, transparent 72%)`): a tarp's print dots, Deep Green at 20%, fading out from the top right of every Club Green field, behind its content. It is drawn with gradient functions, but it is print texture, not a shadow and not a decorative gradient, and it appears on Club Green and nowhere else.
 
 ### Named Rules
 **The Flat Card Rule.** Cards sit flat; tone alone separates white from gray. A resting element declares its edge once, with a 1px line or a shadow, never both.
 
 **The Float-Only Shadow Rule.** Pop means "this floats above the page". Lift is the only other shadow, and only for a thumb or segment raised above its own track. Cards, tiles, and panels never cast one.
 
-**The Drawn Edge Rule.** On the website an edge is drawn once, as a ring or a rule: Ivory Rule between ivory and ivory, ink (white on black) around what a family acts on, and a 2px ink rule around the questions box. A slab or card there never casts a shadow.
+**The Flat Print Rule.** The website has no blur shadows and no gradients: no Pop, Lift, glows, scrims, gradient fills, or gradient text. The halftone is its one gradient-built device, and it is print texture. Depth is drawn with color fields, white die-cut edges, and turns.
 
 ## Shapes
 
 The form language is soft and generous: rounded rectangles hold content, full pills hold labels and text buttons, and circles hold icon actions, toggles, and people. Radius steps down as containers nest:
 
-- **Panel** (32px): the command panel, sheets (top corners only as phone bottom sheets), the phone header block's bottom corners, the family portal's header block, the dark block of the wizard and the team page, and on the website its black cards, the violet visit card, and a slab's corners on phones.
-- **Card** (28px): white cards, bentos, the phone's live-session card, the folder panel on desktop, tier cards, offer cards, settings sections, and the rates sheet; on the website, ivory cards, the questions box, proof cards, and photos.
-- **List card** (24px): dark list tiles, the folder panel on phones, link cards on the More page, the wizard's step list items, the team page's program tiles, and the portraits in the website's coach fan.
+- **Panel** (32px): the command panel, sheets (top corners only as phone bottom sheets), the phone header block's bottom corners, the family portal's header block, and the wizard's dark block.
+- **Card** (28px): white cards, bentos, the phone's live-session card, the folder panel on desktop, tier cards, offer cards, settings sections, and the rates sheet.
+- **List card** (24px): dark list tiles, the folder panel on phones, link cards on the More page, and the wizard's step list items.
 - **Tile** (22px): KPI tiles, toasts, inset wells inside cards and sheets, list rows, the wizard's choice cards, and a tier card's "Who it's for" well.
 - **Tab** (20px): folder-tab top corners and their concave fillets, compact KPI tiles, inset items inside bentos, the medical-note callout.
-- **Control** (16px): fields, popovers, row hover shapes, inline notices, choice rows in sheets. The academy surfaces set their inline notes (the wizard's notes, the closed-enrollment note, a blocked renewal), the inclusion rows, a coach's facts, and the website's floating nav and its phone menu at 18px, which is off this scale.
-- **Item** (12px): menu and list-box items (and the rows of the website's phone menu), schedule blocks, and skeleton bars.
+- **Control** (16px): fields, popovers, row hover shapes, inline notices, choice rows in sheets. The academy surfaces set their inline notes (the wizard's notes, the closed-enrollment note, a blocked renewal) and the inclusion rows at 18px, which is off this scale.
+- **Item** (12px): menu and list-box items, schedule blocks, and skeleton bars.
 - **Glyph** (6px): the outlined square beside a KPI tile's label.
 - **Full** (9999px): buttons, pills, segmented controls, the search field, the phone tab bar, avatars, icon buttons, and toggles.
 
-Three silhouettes recur. The selected folder tab fuses into the panel below through 20px concave fillets cut at both of its feet. Dashed outlines mark a slot waiting to be filled: the rail's quick-add (a 48px circle in a 1px dashed Dark Outline that turns lime on hover), the import drop zone, an empty passkey list. And on the website a person stands in a 4:5 half-body portrait, cropped to keep the head, whose corners step down with its container: 24px in the landing page's coach fan (ringed 4px in Command Black), 22px inside a coach's card (inset 8px), 20px in rows and reels, and on phones the card's own 28px top corners.
+Two silhouettes recur. The selected folder tab fuses into the panel below through 20px concave fillets cut at both of its feet. And dashed outlines mark a slot waiting to be filled: the rail's quick-add (a 48px circle in a 1px dashed Dark Outline that turns lime on hover), the import drop zone, an empty passkey list.
 
-The academy website carries the same soft language at page scale. Its slabs are full-width sheets whose four corners grow with the screen (32px on phones, 48px from 640px, 64px from 1024px), so the ivory shows in their corners. Black cards and the violet visit card take 32px; ivory cards, the questions box, proof cards, and photos (3:2) take 28px; selectors, actions, chips, and tags are full pills. Two silhouettes are its own: the ball's pill, an ivory capsule ringed in 3px ink that holds the lime ball and a trail of three ink dots; and the What's included pills, round on the left and running off the black card's right edge, each longer than the one above, so the list stacks into a staircase.
+The academy website has its own form language, cut and stuck on rather than soft. Fields are square-edged and full-bleed. A sticker is one flat color in a 3px white die-cut edge with 14px corners (22px on the big "drop soon" stickers, 18px on the team page's empty-state sticker), or a circle with a printed 2px ring 5px inside its edge. A photo sticker frames its photo in an 8px white border with 18px corners (the team page's portraits in 6px with 14px). Cards take 16px corners (package cards, coach cards, Also on the team), the team panel 22px, the contact bar 18px with 12px buttons, tabs 14px inside a 3px white edge, chips 6px inside a 1.5px ring, and pills are full. Two shapes are the website's own: the slanted action, a parallelogram skewed -8° whose label stands upright inside it, and the strip, a band turned -3° that runs past both edges of its field. A person stands in a 4:5 half-body portrait cropped from the top and stuck on like a photo; faces in a stack stay 36px circles. The tarp's four grommets (12px rings in Club Metal, from 1024px) sit 18px in from the hero's corners.
 
 ### Named Rules
 **The Step-Down Radius Rule.** A shape nested in a container takes a smaller radius than the container: a 32px panel holds 24px list tiles and 22px KPI tiles; a 28px card holds 22px wells and 16px controls.
 
-**The Stacked Slab Rule.** A slab spans the full width with large corners all round (32px, 48px from 640px, 64px from 1024px). When one slab follows another, the second reaches 64px up behind the first, so its color, not the ivory, fills the first one's lower corners and the two read as stacked sheets. Slabs belong to the website alone.
+**The Slapped-On Rule.** On the website, stuck-on things sit a few degrees off true, as if slapped on by hand, and neighbors turn opposite ways: stickers between -9° and 8°, photos and portraits within ±3°, package cards and Enroll now's tabs within ±1.5°, strips at -3°. Fields, the nav, the footer, the team page's cards, pills, and body text stay square, and a slanted action's label always stands upright.
 
 ## Components
 
@@ -882,10 +979,7 @@ Quietly confident pills: ink for the main move, white for the alternative, lime 
 - **Sizes:** small 36px (16px padding, 14px text) for secondary actions in cards, sheets, and bentos; default 44px; large 52px (24px padding, 16px text) for the main action of sign-in, onboarding, and long form sheets.
 - **Hover / Focus:** 150ms ease-out color transitions; pressing scales to 0.97; disabled drops to 45% opacity; keyboard focus shows a 2px ink outline at 2px offset, and inside the dark zone every focus ring is lime whatever the control asks for (an ink ring disappears on black). A pending button swaps its icon for a spinner.
 - **Text actions:** a card head's quiet action ("All", "All announcements", "Open session") is 14px/500 ink text in a 28px pill that underlines on hover, with an invisible 44px tap area. A dismissal beside a primary button ("Not now") is a ghost button, never an underlined link.
-- **Outline (website):** no fill, ink text, and a 1.5px ink ring inside the edge; hover tints ink at 6%. The website's second action on ivory: Message us, Get directions, Printable rates, a venue, a coach's other programs.
-- **Outline light (website):** white text and a 1.5px ring of white at 75% on a black slab or photo; hover white at 10%; a lime focus ring. "Meet the coaches", "Meet the team", the closing call's Message us.
-- **Violet (website):** Group Violet with ink text and a 1.5px ink ring; hover Bento Lavender. Only the ways to reach the academy, in the questions box.
-- **Website sizes:** its main actions take the large size: the hero's and the closing call's lime Enroll now with their outlined partner, the Programs slab's pair, the visit card's pair, and a tier's full-width ink Enroll.
+- **Website:** the website's actions are its own, a slanted Ball Lime Enroll and plain pills (see Academy Website); none of these buttons appear there.
 
 ### Action Circles
 - A record's actions sit to the right of its title as 52px lime circles with 20px ink icons (add player, note, complete; sell package, record payment, note, assess), followed by a 52px white circle that opens the overflow menu.
@@ -897,7 +991,7 @@ Quietly confident pills: ink for the main move, white for the alternative, lime 
 - **Figure pills:** 44px pastel pill buttons that show a figure and open its proof: sky for credits in good standing, amber when low, coral when owed or used up, mint when in credit.
 - **Filter chips:** a row of 44px white pills (14px/500, a Slate count beside the label) for a list's states (client filters, enrollment requests, announcements); the selected one is ink with white text. On phones the row scrolls sideways edge to edge and opens with the selected chip in view.
 - **Order:** a card's or record's pills sit under its title and meta line, never above the title.
-- **Website:** chips are outlined. On black, a program's level, ages, and session length are 28px pills (13px/500) ringed in 1px white at 45%; a coach's certifications are 28px pills ringed in 1.5px ink; specialties are 24px tags ringed in 1px Ivory Rule with Slate text; program selectors are 44px pills ringed in 1.5px ink (white at 55% on black), the chosen one lime.
+- **Website:** its chips, stickers, and tabs are its own (see Academy Website).
 
 ### Cards / Containers
 - **Corner Style:** 28px for cards and bentos; 22px for inset wells.
@@ -920,7 +1014,7 @@ Quietly confident pills: ink for the main move, white for the alternative, lime 
 - **Phone tab bar:** a floating Command Black pill (6px padding, Pop) 12px above the safe area with five 52px items (Today, Schedule, Clients, Money, More; coaches, who never see money, get Groups in place of Money): a 20px icon over an 11px/500 Night Mist label. The current item fills lime with ink. The 64px lime quick-add floats beside the bar, never over content.
 - **Focus:** a 2px lime outline everywhere in the dark zone.
 - **Current:** exactly one link in a navigation reads as the current page; a parent link (Home, a list a record came from) is current only on its own page.
-- **Website:** no rail and no tab bar: a floating outlined ivory nav with the academy's logo tile and name, its links, and the lime Enroll now (see Academy Website).
+- **Website:** no rail and no tab bar: a slim Deep Green bar with the academy's name, its links, and the slanted Enroll now (see Academy Website).
 
 ### Folder Tabs (signature)
 Record sections are folder tabs, not pills. Tabs are 48px tall with 20px padding, 20px apart, inset 40px (48px on desktop) from the panel's left edge, in 15px Slate type that turns ink on hover. The selected tab takes the Folder Gray of the panel, with 20px top corners and concave fillets at both feet, so it reads as one piece with the panel below. The panel (28px on desktop, 24px on phones; 16px padding, 10px on phones) holds the tab's white cards, and from 1280px a 340px aside column of bentos. On full-page records the panel stretches to the bottom of the viewport.
@@ -950,29 +1044,38 @@ The calm register for students and parents: fewer things on a screen, each one b
 - **Cards:** one shape, the white 28px card with an 18px/500 heading row and an optional action. Lime is spent once per screen (see The One Lime Block Rule): the next-session bento on Home, the amount-due bento on Pay. Credits and packages are the lavender bento.
 - **Offers:** turn on reminders, renew for next month: a white card with a 44px lime icon circle, its title, a Slate line, and an ink button, with a ghost "Not now" where it can be put away.
 - **Copy rows:** an account number to pay into sits in a Folder Gray well with a white "Copy" button beside it.
+- **Tier cards:** the portal's Enroll page, a program's tiers in the staff app, and the package editor's preview share one card: 28px corners (24px padding, 20px on phones), the tier's name (22px light) and sessions line, the price per head in 44px light tabular, validity in 14px/500 with the month-end advice under it, inclusions as 22px ink check circles (a shirt for the uniform), a "Who it's for" well, and on the portal a 52px ink Enroll at the foot. They are white with Folder Gray wells (Folder Gray with white wells on a white surface); the featured tier is lime, with a white "Featured" pill and white-at-45% wells. On the portal, cards in a row match heights so the Enroll buttons line up. The website sets its packages as its own price stickers.
 
 ### Academy Website (signature)
-Persuade in CoachMan's family: a calm, generous landing page that takes a parent from "whose academy is this" to Enroll now, in the academy's own words, photos, programs, packages, and coaches. Every page (the landing page, Enroll now, Meet the team) wears one frame on Ball Ivory: the floating nav, the page, the questions box, and the footer, with a lime "Skip to the page" pill for keyboards. A section with nothing real to show is left out.
-- **Nav:** a sticky floating bar 8px below the top (16px from 640px), up to 1100px wide and 56px tall (64px from 640px): Ball Ivory with a 1px Ivory Rule edge and 18px corners, no shadow. It holds the academy's 40px logo tile (white, 13px corners, an Outline Gray ring) and name (14px/600, 16px from 640px; up to two lines on phones), then from 768px its links as 15px/500 pills (Programs, Coaches, Packages, Contact; hover ink at 6%, the current page ink at 8%), and the lime Enroll now while the academy takes requests (else an outlined Message us). On phones the links fold into a menu behind a 40px circle: an ivory card with 18px corners and Pop, 8px under the bar, with 48px rows; Escape or a jump to Contact closes it.
-- **Hero:** centered on the ivory: the academy's tagline (else its name) in the site display, two-toned when it carries a clause break; the academy's first sentence (else its programs and venue) in the site lead, 34rem wide at most; a lime Enroll now and an outlined Message us in the large size; the next session in 13px tabular Slate. The ball's arc crosses below.
-- **Programs slab:** Command Black. With several programs, "Choose a program" and the programs as 44px outlined pills (a 1.5px ring of white at 55%, the chosen one lime) that swap the program in place; then the program's name in the site title (the section headline when it is the only one), outlined chips (level, ages, session length), its description in Night Mist (52ch), its days and times in Headline panel (each time range held on one line, so a narrow column breaks after the dot), venue (with Directions) and next session as icon rows, its price "from" per head, then a lime "Enroll in [program]" (a night "See packages" while enrollment is closed) and an outlined-light "Meet the coaches". Beside it from 1024px (under it on phones), up to three of its coaches fanned like a hand of cards: 4:5 portraits turned -7°, 0°, and 7° with the outer two dropped 26px (two turn ±5°), each over its name (15px/600) and title (13px Night Mist) and each opening that coach on the team page; more become a night "And N more".
-- **On court:** the academy's own photos at 3:2 with 28px corners, each with its caption in 15px Slate (84% of the screen wide on phones, 60% from 640px, 608px at most). On laptops with motion allowed, the section pins a full-height stage and the reel travels sideways while the page scrolls down, exactly as far as the reel overflows; on phones, with reduced motion, or when the photos fit, it is a labeled sideways scroller that snaps photo to photo and takes one keyboard stop.
-- **Coaches slab:** the one Court Green slab: "The coaches" with their names in Court Mist and an outlined-light "Meet the team", then up to four proof cards: Raised Court, 28px corners, at least 208px tall, a coach's own highlight (then certifications, taken one coach at a time so nobody fills the slab alone) in the site serif, an up-right arrow in Court Mist that nudges 2px toward its corner and brightens on hover, and the coach's 36px face, name, and title at the foot. Each opens that coach on the team page. With no highlights or certifications, the slab shows the coaches' 4:5 portraits instead.
-- **About and what's included:** "About [academy]" over the academy's own words; beside it from 1024px, a black 32px card: "What's included" (24px/600), "In [package], [price] per head" in Night Mist, the inclusions of one real package (the featured one, else the one that lists the most; never a blend) as Court Green half-pills (44px, a 2px white ring inside, 15px/500 Court White) aligned right and running off the card's edge, each longer than the one above, then a lime "Choose a package".
-- **Visit card:** Group Violet with 32px corners, centered: "Train at [venue]" (else "Where we play", or "Visit [academy]" with only an address) in the section headline, the address, an outlined "Get directions", and an ink "Enroll now" in the large size. An academy that plays at several venues lists each as an outlined venue pill with its own directions.
-- **Closing call:** a Command Black slab over the academy's cover photo (else its first photo, else plain black) under the closing scrim, with the ball's path dotted in lime through one corner (7px dots every 20px): "Ready to play?" in the site display, the next session (else whether it is enrolling) in white at 85%, a lime "Enroll now" and an outlined-light "Message us" in the large size, and, while enrolling, how requests are handled in 14px white at 75%.
-- **Questions box:** a 28px box ruled in 2px ink, centered: "Questions before you enroll?" (else "Questions?") in the serif at 40px (48px from 640px), "Message or call [academy]." in Slate, the ways to reach the academy as violet 44px pills with their Lucide icons (a call shows the number), and the policies behind an underlined "Read the policies".
-- **Footer:** up to three columns from 640px under Pewter serif headings (Site caption): Programs (each opening its slab), The academy (Home, Meet the team, Enroll now or Packages, Printable rates), and Contact (phone, email, address with directions, socials), as 15px links with a 44px tap area that underline on hover. Then the academy's name in the footer wordmark, and a 13px Slate row over an Ivory Rule: the copyright, "Made with CoachMan" beside the 20px BallMark, and CoachMan's policies.
-- **Enroll now:** the centered two-tone title in the site display (stopping at 72px), a line on how the academy handles requests, and with several programs the programs as 44px pills ringed in 1.5px ink (the chosen one lime). Then the chosen program on a black 32px card (its name in the site title, chips, description, times, venue and next session, and "Coached by" with up to four 36px faces), its packages as ivory tier cards, more packages, the consents a family will read and sign, an outlined "Printable rates", and the questions box. Each tier's Enroll opens the enrollment wizard.
-- **Tier cards:** shared by Enroll now, the portal's Enroll page, and the staff preview: 28px cards (24px padding, 20px on phones) with the tier's name (22px light) and sessions line, the price per head in 44px light tabular, validity in 14px/500 with the month-end advice under it, inclusions as 22px ink check circles (a shirt for the uniform), a "Who it's for" well, and a 52px ink Enroll at the foot. The app's are white with Folder Gray wells; the website's are Ball Ivory with a 1.5px Ivory Rule ring and Ivory Wash wells. The featured tier is lime everywhere, with a white "Featured" pill and white-at-45% wells. Cards in a row match heights so the Enroll buttons line up.
-- **Closed enrollment:** a tier card's foot becomes a quiet outlined note, "Enrollment is closed for now", with the ways to get in touch.
+The Pubmat: the academy's public website, set like the enrollment pubmat Filipino families already stop scrolling for. Its parts live in `src/app/features/public/pubmat.tsx` and the blocks its pages share in `site-blocks.tsx`. Every page (the landing page, Enroll now, Meet the team) wears one frame: the nav, the page's fields, the questions panel (Enroll now and the team page; the landing page says it in Find us), and the footer, with a Ball Lime "Skip to the page" pill for keyboards.
+- **Fields:** each section is a panel on one of six fields. Club Green (with its halftone), Deep Green, Jersey Blue, and Club Ink take white type; Ball Lime and white take Club Ink.
+- **Stickers:** one flat color (Ball Lime, white, Jersey Blue, or Deep Green) in a 3px white die-cut edge with 14px corners, in sticker caps, turned (-4° unless set): "Now enrolling", "Featured", "Program lead", a certification, a photo's caption. A **round sticker** holds one figure in display caps ("FROM ₱1,500 / HEAD", "DUPR 4.62") inside a 2px printed ring; a screen reader hears it as one sentence.
+- **Photo stickers:** a photo in an 8px white border with 18px corners, turned a few degrees and cropped by focus (a portrait keeps the face, a court photo its middle); a sticker can pin over its edge.
+- **Strips:** a Deep Green band turned -3° across its field, reaching 64px past both edges, carrying display caps: the hero's programs and times (the program names in Ball Lime), a coach's specialties.
+- **Slanted action:** the page's main move (Enroll now, a package's Enroll, Enroll in [program]) as a parallelogram skewed -8°, its label upright in black italic caps with an arrow. Ball Lime with Club Ink (hover white) by default; Club Ink with Ball Lime (hover Deep Green) on a plain package card and closing the team roster on phones. Large 56px (20px type, 22px from 1024px), medium 48px (19px), small 38px in the nav (44px from 1024px; its tap area grows to 44px on phones).
+- **Pills:** every other action (Message us, Get directions, See packages, Printable rates, Meet the team, a way to get in touch) as a 52px full pill at 16px/700 (17px from 1024px): white with Deep Green type (hover Ball Lime) as the first move on a dark field, a 2px white ring inside the edge (hover white fill) beside it, and a 2px Club Ink ring (hover Club Ink fill) on white and Ball Lime.
+- **Focus:** every focusable part (links, the nav and its menu, the policies toggle, actions, pills, tabs, and the photo reel) takes a solid 3px ring in its field's focus color, an inherited `--focus`: Club Ink on white and Ball Lime (white cards on dark fields set it back to ink), Ball Lime on Deep Green, Jersey Blue, and Club Ink (the nav, the team panel, the contact bar, the featured package card, and the footer included), and white on Club Green, where Ball Lime would read only about 2.5:1 and white holds 3.5:1. One rule draws it (`:where(.site-root) :focus-visible`, in the utilities layer), so `outline-none` on a link can't blank it; explicit focus utilities still win, like the photo reel's inset ring.
+- **Chips:** who a program is for (level, ages, session length) and a coach's specialties as 15px/700 boxes with 6px corners in a 1.5px ring: white at 80% on a dark field, ink at 70% on white.
+- **Nav:** a slim Deep Green bar, sticky at the top, 56px tall (64px from 1024px) across the 1440px column: the academy's 40px logo tile (white, 13px corners; left out without a logo) and its name in secondary caps on one line; from 1024px its links (Programs, Coaches, Packages, Contact; 16px/600, underlined on hover, the current page underlined 3px in Ball Lime); and the small slanted Enroll now while the academy takes requests, else a 44px outlined Message us. Below 1024px the links fold behind a 44px menu button (10px corners): a Deep Green panel under the bar with 48px rows in secondary caps at 22px between white-at-15% rules, the current one Ball Lime; Escape or a jump to Contact closes it.
+- **The tarp:** the hero, on Club Green with its halftone and, from 1024px, a grommet in each corner: the academy's name (see The Fitted Name and the Slap); its own line (its tagline, else the first sentence of its about, else "Pickleball coaching" in secondary caps); a photo sticker (its cover, else its first website photo, else a coach's portrait) with "Now enrolling" pinned over its corner while the academy takes requests; a white round sticker with the lowest price per head, else a Jersey Blue one with a coach's DUPR rating (the pictured coach's first); the strip with up to three programs' days and times (then "+N more"; "Schedule drops soon" before there are any); the large slanted Enroll now (else "Meet the coaches", or "Meet [coach]" with one, down to the team) with a white Message us; and the next session.
+- **Program panel:** each program on its own field: its name in display caps beside a white round "from" sticker (120px, 140px from 1024px, turned 8°); its days and times in Ball Lime display caps, each schedule as the days over a compact range ("7–10 PM", never broken), else the academy's own schedule note in secondary caps; its description (38ch); its chips; rows with 20px Ball Lime icons for the venue with Directions, who coaches it (to the team page), and the next session; then the large slanted Enroll now, or a white See packages while enrollment is closed. On Enroll now the panel is wide: the name and times on the left, the details in a 440px column on the right.
+- **On court:** the academy's photos (up to 12) as 4:3 photo stickers with their captions as Deep Green stickers: on phones a sideways snap row of photos 78% of the screen wide (at most 416px) that takes one keyboard stop; from 1024px a three-column scatter with the middle column dropped 48px.
+- **The team (landing):** on white, up to three people, alternating sides from 1024px: the portrait as a photo sticker (turned -3°, with the 2px Club Mist keyline; 280px wide on phones, up to 430px) with a Ball Lime DUPR round sticker over its corner; the name in display caps; the title in secondary caps; certifications as Jersey Blue stickers; years coaching and languages; up to three highlights with Club Green medals; the first sentence of their about and what they coach; and their specialties on a strip. Then an outlined "Meet the team" (or "Meet all [N] on the team").
+- **Package card:** a price sticker: a white card with 16px corners, turned a hair (between -1.2° and 1.1°): the tier's name in secondary caps and its sessions, "With [coach]", the price per head in display caps, validity with the month-end advice, the commitment note, inclusions under a 1.5px rule with 18px Club Green checks (a shirt for the uniform), who it's for, and the medium slanted Enroll at the foot, which opens the enrollment wizard. The featured tier is Jersey Blue with a 3px white die-cut edge, white type, Ball Lime checks and Enroll, and a Ball Lime "Featured" sticker over its top edge. While the academy isn't taking requests, the foot is a quiet 12px-cornered note in a 1.5px ring: "Enrollment is closed for now", with up to two ways to get in touch.
+- **Packages:** on Ball Lime, grouped by program (the group's name in secondary caps with its first schedule line and ages, in a 250px column beside the cards from 1024px), then "More packages"; cards one, two (from 640px), or three (from 1024px) to a row, 20px apart (30px from 1024px); then an outlined Printable rates, which opens the rates sheet, a CoachMan print document.
+- **How to enroll:** on Deep Green, three steps true for every academy (choose a program and package, send your request, pay and upload your receipt): giant Ball Lime numerals beside a secondary-caps title and one line; from 1024px three columns, each 44px lower than the last, like stairs. On the landing page the large slanted Enroll now and Message us follow.
+- **Find us:** on Jersey Blue, "See you at [venue]" in display caps with the address in Ball Lime secondary caps, a white Get directions and an outlined Message us; beside it from 1024px, the academy's about, its contact details as labeled rows, and its policies.
+- **Questions panel:** on Jersey Blue, "Questions before you enroll?" (else "Questions?") in display caps, "Message or call [academy].", the ways to reach it as pills (the first white, the rest outlined; a column from 1024px), and the policies behind an underlined "Read the policies".
+- **Footer:** on Club Ink, the academy's name in secondary caps (24px) with its phone, email, and address in Club Mist (links that turn white on hover); its pages and socials as 16px/600 links with 44px tap areas; then, over a white-at-15% rule, the copyright and "Made with CoachMan" beside the 20px BallMark in 14px Club Mist, with CoachMan's policies. That credit is the only CoachMan mark on the website.
+- **Enroll now:** a Club Green title band (its title in display caps, and a line on how the academy handles requests) with the programs that have packages as tabs: on phones a sideways row of 48px tabs (a 3px white edge, 14px corners, turned ±1.5°; the chosen one Ball Lime) that keeps the chosen tab in view; from 1024px a column of 84px tabs filling the band's right side, each with when it meets and its price from. With one program or none, the academy's photo sticker takes that side. Then the chosen program's panel, its packages, the consents a family will sign, Printable rates, How to enroll (without its actions), the questions panel, and the footer.
+- **Empty states:** see The What's-Coming Rule. The sticker is set on two lines by `fitLines` and is as wide as its longer line (display caps in sticker form, 22px corners), with one plain line in the site lead beside it (under it on phones).
 
-### The Ball's Arc (signature)
-The hero's signature: a ribbon of the academy's own words rides a pickleball's lob across the first screen.
-- **Drawing:** before the ball, its programs, levels, ages, and session lengths trail in from the left in Pewter (500); after it, its days, times, and venues leave toward the top right as Ball Ivory words (600) on an ink band (30px thick on phones, 44px from 640px). The ball is an ivory pill (76×40px, 136×60px from 640px) ringed in 3px ink, holding a lime ball with six ink perforations and a trail of three ink dots fading behind it; while the academy takes requests, a Court Green "Enrolling now" tag sits above it.
-- **Sizing:** drawn in pixels at the screen's width, so the words keep their size (13px, 20px from 640px, 0.01em tracking) while the curve follows the width; on phones it starts higher and runs flatter so the words stay readable.
-- **Motion:** the words drift slowly along the path and run with the page's scroll, forward or back, only while the arc is on screen. With reduced motion, or without support, they hold still.
-- **Access:** decorative and hidden from screen readers; its facts appear in the Programs slab.
+### The Fitted Name and the Slap (signature)
+The tarp's signature: the academy's name set as big as the width allows, and the stickers slapped onto it as the page opens.
+- **Fitting:** `fitLines` (`site-data.ts`) tries every way to break the name into lines, words kept whole and in order (two lines at most from 1024px, three below), and keeps the split whose widest line is narrowest, so the type can run largest; on a tie, fewer lines win. Widths come from `DISPLAY_EM`, the display cut's own advance widths measured from the shipped font files, plus its tracking and extra word spacing (`displayEm`). The size is 96% of the column's width over the widest line's width in em, capped at 30% of the column below 640px, 150px from 640px, and 168px from 1024px, so the name fills the width on first render, with nothing measured in the browser.
+- **The gap sticker:** below 1024px the split also weighs balance. A short first or last line whose free end is at least half the widest line is worth a little size (a 1.12 bonus), because a sticker can sit there; a middle line more than 30% short, a hole nothing fills, costs some (0.85). When the chosen split has such a line, the sticker sits in its gap, sized in the name's own em (about 22% of it, never under 14px): "Now enrolling" while the academy takes requests, else "Pickleball coaching".
+- **The slap:** as the page opens, the hero's stickers land in turn: "Now enrolling" (or the gap sticker) 140ms in, the round sticker at 260ms, the photo at 380ms. Each starts at 1.16 times its size and 8° past its resting turn and settles in 560ms on the ease-out-expo curve, visible from the first frame. With reduced motion there is no animation at all: the stickers are simply there. Everywhere else stickers sit still at their angles.
+- **Elsewhere:** the same measure sets the "drop soon" stickers on two lines and shrinks a program's name and times on phones until their longest word fits the column.
 
 ### Rates Sheet
 A formal document generated from the live catalog: the letterhead, "Rates and packages" (40px light) with the month and currency, each program's name (28px light) and schedule line on a Folder Gray band, and each tier as a 22px light name with its price (28px light tabular) above key-value rows in 13px/500 Slate labels and 15px values; inclusions keep the check marks. A plain toolbar (a white back pill and an ink "Print or save as PDF") sits above it on screen and disappears on paper.
@@ -985,19 +1088,26 @@ One question at a time, in the academy's frame.
 - **Done:** "Request sent" with a Folder Gray "What happens next" well of lime icon circles, and one ink button to the family portal.
 
 ### Team Page (signature)
-The academy's programs turned toward people: a parent meets the coaches of the program they are weighing, in tall portraits with what qualifies them, then enrolls in it or gets in touch. It wears the academy website's frame and materials (the floating nav, the ivory ground, serif titles, ivory cards, outlined chips and pills, the questions box, and the footer) around its own dark block.
-- **Programs:** 44px charcoal pills on phones (the chosen one lime), in a sideways row that opens on the chosen one. Desktop lists them as tiles at least 68px tall (24px corners): the name, a 13px tabular Night Mist line (the first schedule line, or the head count on Everyone), and a stack of up to four 36px faces, then +N, ringed in the tile's own tone. The chosen tile is lime and keeps only its name and faces. Everyone comes last.
-- **Actions:** while the academy takes enrollment requests, a lime Enroll (to the program's packages on Enroll now) leads and Message and Call follow in charcoal; otherwise Message (or Text) is lime and Call charcoal, behind a charcoal See packages when the program has packages. On Everyone, desktop lists the academy's phone, email, address, and socials under them.
-- **Coach card:** an ivory 28px card with a 1.5px Ivory Rule ring per coach, led by its 4:5 portrait (full width on phones; from 768px a sticky column inset 8px, with 22px corners). Then the name in the site title, the title in 15px Slate, and for the program's lead a violet "Program lead" pill; the facts (years coaching, DUPR rating, languages) as Ivory Wash wells (18px corners), a 13px Slate label over a 22px light tabular value, two to a row at every size (languages, or a lone number, take the whole row); certifications as 28px pills ringed in 1.5px ink; highlights as rows led by a 32px Ivory Wash circle holding a Lucide Medal; About at 65ch; specialties as 24px tags ringed in Ivory Rule with Slate text; and the programs they coach as small outlined buttons, the one on show a static Ivory Wash pill. Each block after the facts sits under a 13px Slate label.
-- **Also on the team:** an ivory card ringed in Ivory Rule and titled in the site title, holding the rest of the team, each a 4:5 portrait (20px corners) over a 15px/500 name and a 13px Slate title, opening their card on Everyone. Phones get a snap reel of 85%-wide portraits with the next one peeking; from 640px, a compact grid of columns at least 136px wide.
-- **Program swap:** choosing a program (a pill, a tile, or a program button on a card) swaps the canvas in a view transition. Each portrait carries its person's view-transition name, so people who coach both programs glide to their new place over 340ms while the rest of the page cross-fades in 180ms. Reduced motion swaps at once.
+The academy's programs turned toward people: a parent meets the coaches of the program they are weighing, in tall portraits with what qualifies them, then enrolls in it or gets in touch. It wears the website's frame and world: the nav, Club Green with its halftone as its ground, display caps and stickers, the questions panel, and the footer.
+- **Panel:** Deep Green with 22px corners: "Meet the team" in display caps (60px on phones, 50px on one line from 1024px), the programs as tabs, the chosen program's times in Ball Lime display caps, on desktop its venue with Directions and its next session as rows with Ball Lime icons, the actions, and on desktop Printable rates at its foot above a white-at-20% rule.
+- **Program tabs:** 48px tabs (56px from 1024px) with 14px corners in a 3px white edge, the label in secondary caps at 900 (19px); the chosen one Ball Lime. Phones: a sideways row that scrolls to its edges and keeps the chosen tab in view without moving the page. Desktop: a column, each tab with the program's first schedule line (14px Club Mist, tabular; dropped on the chosen tab) and a stack of up to four 36px faces (then +N in Club Ink), ringed 2px in the tab's own tone. Everyone comes last.
+- **Actions:** while the academy takes requests and the program has packages, the medium slanted Enroll (to that program's packages on Enroll now; full width on desktop) leads, and Message and Call follow as outlined pills (44px on desktop). While it doesn't, a white See packages leads instead; with no program on show, a white Message us. On Everyone, desktop lists the academy's phone (with Send a text), email, address (with Open the map), and socials under them.
+- **Coach card:** a white card with 16px corners per coach (16px padding, 20px from 640px). The 4:5 portrait leads, full width on phones and from 768px a sticky column beside the details, stuck on with a 6px white edge, 14px corners, a -1.5° turn, and a 1px ink-at-10% keyline, with a Ball Lime DUPR round sticker over its corner. Then the name in display caps, the title in secondary caps (22px), a Ball Lime "Program lead" sticker (with an ink edge) for the program's lead beside years coaching and languages (18px/600), and the details under 15px/700 labels: certifications as Jersey Blue stickers, highlights as rows led by a Club Green medal, About at 65ch, specialties as chips, and the programs they coach as 44px outlined pills, the one on show a static Ball Lime pill.
+- **Also on the team:** a white card titled in display caps (44px) with the rest of the team, each a 4:5 portrait in a 6px white edge (14px corners, turned ±1.5°) over a 17px/700 name and a 15px title, opening their card on Everyone. Phones get a snap reel of portraits 70% of the row wide with the next one peeking; from 640px, a grid of columns at least 136px wide.
+- **No one yet:** a white card whose heading is a Ball Lime sticker, "The team is on its way", with a line on asking the academy.
+- **Contact bar (phones):** once the panel's own buttons scroll away, a Deep Green bar with 18px corners and a 2px white ring floats 12px above the bottom edge and the safe area: two 48px buttons with 12px corners, the most direct way (Message) in Ball Lime and Call in white at 12%. It slides in over 200ms.
+- **Program swap:** choosing a program (a tab, or a program pill on a coach's card) swaps the roster in a view transition. Each portrait carries its person's view-transition name, so people who coach both programs glide to their new places over 340ms on the ease-out-expo curve while the rest of the page cross-fades in 180ms. Reduced motion swaps at once.
 
 ### Brand Mark (BallMark)
 - A lime pickleball: a 15-unit lime circle in a 32-unit box with eight 1.9-unit perforations in Command Black. 40px at the top of the rail, 32px in the phone header, 36px in the wordmark beside "CoachMan" at 22px/500 with -0.02em tracking.
-- **Raster provenance:** `public/favicon.svg` is the BallMark vector itself. `public/icons/icon-192.png`, `icon-512.png`, `icon-maskable-512.png` (mark at 56% to stay inside the maskable safe zone), and `apple-touch-icon-180.png` (all on Command Black), plus the transparent white cut-out `badge-72.png`, are rendered from the same geometry by `scripts/generate-icons.mjs` (Playwright screenshots; `npm run icons`). The app ships no other rasters: people are initials (600, ink) on a soft wash unless a coach uploads a photo, which the app crops to JPEG. The academy website ships none of its own either: its photos are the academy's uploads (a cover photo and up to 24 website photos with captions, from Settings), and the ball's arc and the closing call's dotted path are drawn in SVG.
+- **Raster provenance:** `public/favicon.svg` is the BallMark vector itself. `public/icons/icon-192.png`, `icon-512.png`, `icon-maskable-512.png` (mark at 56% to stay inside the maskable safe zone), and `apple-touch-icon-180.png` (all on Command Black), plus the transparent white cut-out `badge-72.png`, are rendered from the same geometry by `scripts/generate-icons.mjs` (Playwright screenshots; `npm run icons`). The app ships no other rasters: people are initials (600, ink) on a soft wash unless a coach uploads a photo, which the app crops to JPEG. The academy website ships none of its own either: its photos are the academy's uploads (a cover photo and up to 24 website photos with captions, from Settings), and its print devices (the halftone, the grommets, stickers, and strips) are drawn in CSS.
 
 ### Named Rules
 **The Proof Rule.** A credit count or a balance is a button that opens its proof: the credit ledger or the client's statement.
+
+**The One Slant Rule.** On the website the slant belongs to the main move alone: Enroll now, a package's Enroll, Enroll in [program], and, while an academy can't take requests, the hero's "Meet the coaches". Every other action is a plain pill, so the slanted Ball Lime shape always means the one thing to do.
+
+**The Real Data Rule.** Every claim, photo, figure, and sticker on the website comes from the academy's own data; the only words the website supplies itself are true for every academy (how enrolling works, what's coming) and, until the academy writes its own line, "Pickleball coaching". A sticker states a fact: that the academy is enrolling now, its lowest price, a coach's DUPR rating or certification, the featured package, a program's lead, a photo's caption, or, on an empty section, what's coming. With nothing to state there is no sticker, and nothing is invented: no testimonials, metrics, slogans, hashtags, or stock photos.
 
 ## Do's and Don'ts
 
@@ -1012,33 +1122,34 @@ The academy's programs turned toward people: a parent meets the coaches of the p
 - **Do** confirm a check-in with the lime fill, the 220ms settle, and an ink toast that offers Undo.
 - **Do** use Lucide icons at 16–24px, with a 1.75 stroke in navigation.
 - **Do** show people as initials on a soft wash unless the coach has uploaded a photo.
-- **Do** show an academy's logo as uploaded, on a white tile, and keep the CoachMan palette around it unchanged.
+- **Do** show an academy's logo as uploaded, on a white tile, and in the app keep the CoachMan palette around it unchanged.
 - **Do** spend lime once per screen in the family portal (the next session, the amount due); make offers white cards with a lime icon circle.
-- **Do** keep the academy website's way in on its first phone screen: the lime Enroll now in the nav and the hero while the academy takes requests, else Message us.
+- **Do** keep the academy website's way in on its first phone screen: the slanted Ball Lime Enroll now in the nav and the hero while the academy takes requests, else Message us (and, in the hero, Meet the coaches).
 - **Do** introduce people on the public pages with 4:5 half-body portraits (else the square photo, else initials on a soft wash), the name and title beside or under the image, never on it. On phones a coach's own card leads with a full-width portrait and the rest of the team scrolls sideways; faces in a stack stay circles.
-- **Do** keep a visible keyboard focus ring on every control: ink on the canvas and on ivory, lime in the dark zone (the website's slabs and black cards included).
+- **Do** keep a visible keyboard focus ring on every control and link: in the app, ink on the canvas and lime in the dark zone; on the website, a 3px ring in the field's focus color: ink on the white and Ball Lime fields, Ball Lime on Deep Green, Jersey Blue, and Club Ink, and white on Club Green.
 - **Do** give a text link set apart from prose a 44px tap area, and open a sideways-scrolling row with its current item in view.
-- **Do** set the academy website on Ball Ivory (#fbfbf0) with full-width Command Black slabs whose corners grow from 32px to 48px (640px) and 64px (1024px), and give the coaches' proof the one Court Green slab.
-- **Do** set the website's page, section, and card titles in EB Garamond at 400 (the hero 96px and section titles 64px from 1024px), two-toned only on a written clause break, and keep every control, body line, and number in Figtree.
-- **Do** build every website section from the academy's own data and leave out a section with nothing real to show; show what's included from one real package, never a blend.
-- **Do** let the ball's arc move only while it is on screen, and hold it still under reduced motion.
+- **Do** build the academy website from full-bleed fields of the club's colors, one per section and never the color of the field before it: Club Green with its halftone, Jersey Blue, Deep Green, Ball Lime, white, and a Club Ink footer.
+- **Do** set the website's names, titles, schedules, prices, stickers, strips, tabs, and slanted actions in Archivo's condensed italic caps (the display cut at 62% width and 900: the hero's name fitted up to 168px, section titles 96px from 1024px), and everything else in Archivo at normal width, in sentence case.
+- **Do** build every website section from the academy's own data. A section with nothing yet keeps its field and says what's coming as a fitted sticker with one line beside it; How to enroll always shows; On court and the team wait for photos and coaches.
+- **Do** measure display words that must fit before they render (`fitLines` and `DISPLAY_EM` in `site-data.ts`), and measure any glyph the table lacks before a fitted line uses it.
+- **Do** keep the website's motion to three things: the hero's stickers slapping on once as the page opens (560ms, starting 140, 260, and 380ms in), the team page's program swap, and the phone's contact bar sliding in. With reduced motion none of it animates: the stickers are simply there and the swap is instant.
 
 ### Don't:
 - **Don't** use lime to mark a category, a tag, or a chart series; categories take the pastels.
 - **Don't** put white text on lime or on any pastel, even though the reference does.
-- **Don't** set any app text at weight 700, or an app heading of 22px or more above weight 300. On the website the serif runs at 400, and only the footer wordmark (800) goes past 600.
-- **Don't** put an eyebrow or kicker above a heading, and don't uppercase labels. A field label above its value is data, not a kicker; a status pill or a date line above a title is a kicker (put it under the title).
+- **Don't** set any app text at weight 700, or an app heading of 22px or more above weight 300. The website's caps run at 800 and 900 by design, and that weight never comes back into the app.
+- **Don't** put an eyebrow or kicker above a heading, in the app or on the website. A field label above its value is data, not a kicker; a status pill or a date line above a title is a kicker (put it under the title). In the app, don't uppercase labels; on the website, caps belong to its display, secondary, and sticker cuts, never to labels, pills, chips, or body copy.
 - **Don't** add a colored side stripe to a card, row, or alert.
-- **Don't** use gradient text; the KPI tile's corner glow is the system's one decorative gradient (the website's closing scrim is there for legibility, not decoration).
+- **Don't** use gradient text; the KPI tile's corner glow is the app's one decorative gradient. The website has none: its halftone is print texture, on Club Green only.
 - **Don't** shadow a card, tile, or panel, and don't give a resting element both a 1px line and a shadow.
 - **Don't** use icons from any set but Lucide, or glyphs and emoji as icons.
-- **Don't** put a dark card on the app's gray canvas or a white card in the command panel; on the website, black cards on ivory are native and white cards don't appear.
+- **Don't** put a dark card on the app's gray canvas or a white card in the command panel. The website has neither: white cards on its color fields are native there.
 - **Don't** introduce a hex outside the `@theme` tokens in `src/app/styles.css`; declare a new color there first.
 - **Don't** use stock or illustrative images of people.
-- **Don't** reintroduce the rejected themed costume ("Court Lines") or flat admin tables; the BallMark is the app's only sport motif, and the ball's arc (with its dotted path in the closing call) the website's.
-- **Don't** stack two lime blocks, or recolor any part of the system to an academy's brand colors.
+- **Don't** reintroduce the rejected themed costume ("Court Lines") or flat admin tables; the BallMark is the app's only sport motif. The website draws no sport art either: its motifs are print's own (stickers, strips, halftone, grommets), and the sport shows in the academy's photos.
+- **Don't** stack two lime blocks, or recolor any part of the app (staff, family portal, wizard, rates sheet) to an academy's brand colors; the club's colors belong to its website alone.
 - **Don't** set a dismissal ("Not now", "Cancel") as an underlined link beside a button; it is a ghost or white button.
 - **Don't** mark more than one link in a navigation as the current page.
-- **Don't** carry the website's ivory, court green, serif display, slabs, or outline and violet buttons into the staff app, the family portal, the wizard, or the rates sheet.
-- **Don't** use Court Green for a button or for decoration; it carries only the academy's own proof.
-- **Don't** give the website the sports-academy template: a dark full-bleed hero photo with a centered slogan, three icon features, plan columns, or a testimonial carousel.
+- **Don't** carry the website's club colors, Archivo caps, stickers, strips, halftone, slanted actions, or turns into the staff app, the family portal, the wizard, or the rates sheet, and don't bring the app's lime, pastels, night tones, gray canvas, Figtree, or shadows onto the website.
+- **Don't** shadow or blur anything on the website, set small white type straight on Club Green, or slant anything but the main move.
+- **Don't** give the website the sports-academy template (a dark full-bleed hero photo with a centered slogan, three icon features, plan columns, or a testimonial carousel), and don't return it to the quiet cream-and-serif page it replaced.

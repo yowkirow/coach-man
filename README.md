@@ -9,7 +9,7 @@ CoachMan (short for *coach manager*) is an installable web app for pickleball ac
 - **Clients**: profiles with contact, guardian and emergency details for juniors, groups, tags, photos, and a full activity timeline.
 - **Progress**: a skill rubric per sport (pickleball built in), fixed-scale assessments, goals, DUPR/coach ratings, and notes.
 - **Packages and rates**: a rate card, credit packages with validity (a number of days, or to the end of a chosen month), earliest-expiry-first usage, an auditable credit ledger, and manual adjustments. Packages double as the tiers of the academy's rates sheet: inclusions, "who it's for", sessions labels, uniforms, and a featured tier.
-- **Academy website**: a public website for each academy (`/a/<slug>`) for families and players: a landing page (its programs, photos, coaches, what its packages include, and where it plays, with a scroll-driven ball's arc and photo reel), **Meet the team**, and **Enroll now** with the packages the academy defines in the admin site, a printable rates sheet, and link previews for Messenger, Viber, and Facebook.
+- **Academy website**: a public website for each academy (`/a/<slug>`) for families and players, set like an enrollment pubmat in the academy's own club colors: a landing page (its programs, photos, coaches, packages, how to enroll, and where to find it, each saying what's coming before it's published), **Meet the team**, and **Enroll now** with the packages the academy defines in the admin site, a printable rates sheet, and link previews for Messenger, Viber, and Facebook.
 - **Enrollment**: a phone-first wizard from Enroll now or the portal (who's training, level and uniform, contact and safety, the month or trial session, consents, check and send); an **Enrollments** inbox where owners and admins approve (selling the tier in one step), waitlist, or decline; one-tap monthly renewal, and a "Not yet renewed" list with a reminder to paste.
 - **Payment proofs**: families pay outside CoachMan (GCash, a bank transfer, cash) and send the screenshot from the portal's **Pay** screen (big photos are shrunk on the phone), or say they'll pay cash at the court; owners and admins confirm it from **Payments to review** on Money (a real payment is recorded) or don't accept it with a reason the family reads. Duplicate references are flagged.
 - **Consents**: versioned waivers and consent forms (starter templates included), signed by typing a name in the family portal or recorded from paper.
@@ -271,37 +271,51 @@ The student's profile has a **Consents** card (signed with version, by whom, and
 
 ### The academy's website
 
-The academy's public pages are its own website, for families and players: the CoachMan app is for coaches and staff. The website sits in CoachMan's family: Figtree for everything you read and tap, the lime that marks the one thing to do now, and black slabs with large rounded corners. It adds:
-- a ball-tinted ivory ground;
-- EB Garamond for its big headlines (each opening clause in grey, the rest in ink);
-- one court-green slab for the coaches;
-- a violet card for where the academy plays.
+The academy's public pages are its own website, for families and players: the CoachMan app is for coaches and staff. The website has its own identity, with CoachMan only as a small "Made with CoachMan" in the footer. It is set like the enrollment pubmat Filipino families already stop scrolling for, in the club's colors from the academy's own banner and jersey:
+- full-bleed color fields, one per section: club green with halftone print dots, jersey blue, deep green, ball lime, white, and an ink footer (`--color-club*` in `styles.css`);
+- Archivo throughout (`@fontsource-variable/archivo`, with its width and italic axes): headlines in extra-condensed black italic caps, everything else at normal width;
+- stickers with a white die-cut edge, photo stickers, schedules on skewed strips, and a slanted lime **Enroll now**.
 
-Every page shares one frame (`src/app/features/public/site.tsx`), all phone-first because links get shared on Messenger and Viber:
-- **Nav:** floating and outlined. It holds the academy's logo tile and name (home), **Programs**, **Coaches**, **Packages**, **Contact**, and **Enroll now** in lime while the academy takes requests (otherwise **Message us**). Phones fold the links into a menu.
-- **Questions box:** "Questions before you enroll?", ruled in ink, with the academy's ways to reach it as violet pills and its policies to read.
-- **Footer:** the programs, the academy's pages, its contact details and socials, then its name set huge, and CoachMan's small credit with its policies.
+The pieces live in `src/app/features/public/pubmat.tsx`, and the blocks the pages share (a program's panel, the package cards and groups, how to enroll) in `site-blocks.tsx`. The palette is the first academy's; the colors are CSS custom properties, so a per-academy setting can drive them later.
+
+Every page shares one frame (`site.tsx`), all phone-first because links get shared on Messenger and Viber:
+- **Nav:** a slim deep-green bar with the academy's logo (when it has one) and name (home), **Programs**, **Coaches**, **Packages**, **Contact**, and the slanted **Enroll now** while the academy takes requests (otherwise **Message us**). Phones fold the links into a menu.
+- **Questions:** "Questions before you enroll?" on a blue field, with the academy's ways to reach it and its policies. Enroll now and the team page end on it; the landing page says the same in Find us.
+- **Footer:** on ink, the academy's name, phone, email, and address, its pages and socials, then CoachMan's small credit with its policies.
 
 **The landing page** (`/a/<slug>`, `landing-page.tsx`, with the pure helpers in `site-data.ts`), top to bottom:
-- **The academy's line:** its tagline as the headline (its name read first by screen readers), the first sentence of its about text, **Enroll now** and **Message us**, and the next session.
-- **The ball's arc:** the academy's programs (name, level, ages, session length) trail in from the left in grey, pass through a ball, and leave as when and where on a black band.
-  - The words are drawn in pixels at the screen's width, so they keep their size, and they drift and move with the page's scroll (`useArcMotion`).
-  - They hold still with reduced motion. While enrollment is open, a court-green "Enrolling now" sits above the ball.
-- **The programs**, on a black slab: outlined pills (the chosen one lime, `?program=<id>`), then the chosen program in full. That is who it's for, its description, days and times, venue with **Directions**, the next session, and its price from (the lowest price per head among its packages), with **Enroll in <program>** (or **See packages**) and **Meet the coaches**. Its coaches are fanned beside it as 4:5 portraits, each opening their space on the team page.
-- **On court:** the academy's website photos with their captions. On laptops the photos travel sideways while the page scrolls down, on a stage pinned for exactly that trip. On phones, with reduced motion, or when they fit, it's a plain sideways reel.
-- **The coaches**, on a court-green slab: their names, **Meet the team**, and up to four cards of proof from their own profiles (highlights first, one coach at a time, then certifications), each opening that coach on the team page.
-- **About and What's included:** the academy's about text beside a black card of one package's inclusions as stacked green pills. The package is the one the academy features, else the one that lists the most, never a blend. The card links to its packages.
-- **Where we play**, a violet card: the venue (or each venue, with directions) and **Enroll now**.
-- **"Ready to play?"** over the academy's cover photo (else its first website photo, else black), with the next session, **Enroll now**, and **Message us**.
-- Then the questions box and the footer.
+- **The tarp:**
+  - the academy's name in giant display caps, broken into lines and sized to fill the width (up to three lines on phones, two on laptops). `fitLines` measures it with the display face's own glyph widths before it renders. On phones the split also weighs balance: a short first or last line leaves room for a sticker beside it ("Now enrolling", else "Pickleball coaching"), the way a pubmat sets "The [Now enrolling] / Pickle Spot / Academy";
+  - its tagline (else the first sentence of its about text, else "Pickleball coaching"; on phones, when that line is on the sticker, the pictured coach's name);
+  - a photo stuck on: the cover, else the first website photo, else a coach's portrait;
+  - "Now enrolling" while the academy takes requests;
+  - a round sticker with the lowest price per head, else a coach's DUPR rating (the pictured coach's first), which laptops slap across the strip's upper edge;
+  - every program's days and times on a strip ("Schedule drops soon" before there are any);
+  - **Enroll now** (else **Meet [the coach]**), **Message us**, and the next session.
 
-Anything the academy hasn't filled in simply isn't shown. An academy with nothing published says its programs and packages are on their way.
+  On laptops it's the tarp on the court's fence, grommets and all. As the page opens, the stickers slap on in turn; with reduced motion they're simply there.
+- **The programs**, each on its own field, jersey blue and deep green by turns (two across on laptops), with:
+  - its name, and its price from as a sticker;
+  - its days and times in giant lime numerals (an academy's own schedule label too, when it reads "days · times"), shrunk on phones when a word ("Saturdays") would run past the column;
+  - its description and who it's for;
+  - the venue with **Directions**, who coaches it (to the team page), and the next session;
+  - **Enroll now**, or **See packages** while enrollment is closed.
+- **On court:** the academy's website photos as photo stickers with their captions, a sideways row on phones and a scatter on laptops.
+- **The team:** up to three people, then **Meet the team**. Each one has:
+  - their photo stuck on, with their DUPR rating as a sticker, and their name huge;
+  - certifications as stickers, years and languages, highlights, and about;
+  - what they coach, with their specialties on a strip.
+- **Packages:** on lime, price-sticker cards grouped by program, then **Printable rates**. Each card has sessions, price per head, validity, inclusions, who it's for, and **Enroll**; the featured one is in blue.
+- **How to enroll:** three steps on deep green, true for every academy: choose, send your request, then pay and upload your receipt.
+- **Find us:** "See you at [venue]" on blue, with directions, the academy's about, its contact details, and its policies.
+
+A section with nothing published yet isn't left empty. It says what's coming, in the same voice ("Programs drop soon", "Packages drop soon", "Location coming soon"), and the steps always show.
 
 **Enroll now** (`/a/<slug>/enroll`, `enroll-page.tsx`) is where the packages live; the academy defines them in the admin site (**Packages & rates**).
-- **Choosing:** the programs that have packages are pills (`?program=<id>`). The chosen one shows on a black card: who it's for, when and where, the next session, and its coaches.
-- **The packages:** its tiers, plus "More packages" in no program, are cards with the price per head, sessions, validity ("Valid until the end of the month; best to enroll early in the month" for month-end tiers), the inclusions checklist, the uniform, who it's for, and the commitment note. The featured tier is in lime.
-- **Enroll:** each card's **Enroll** opens the wizard (`?package=<tier>`). While the academy isn't taking new students, the card shows "Enrollment is closed for now" with ways to get in touch.
-- **Then:** the consents a family will sign, **Printable rates**, and the questions box.
+- **Choosing:** a green title ("Pick a program, then a package") over the programs that have packages, as sticker tabs (`?program=<id>`). On laptops the tabs fill the band's right side, each with when it meets and its price from; with one program or none, the academy's photo takes that side. The chosen program follows on its blue panel, its details beside its times on laptops.
+- **The packages:** its tiers, plus "More packages" in no program, as price-sticker cards with the price per head, sessions, validity, the inclusions, the uniform, who it's for, and the commitment note. Month-end tiers read "Valid until the end of the month. Best to enroll early in the month." The featured tier is in blue.
+- **Enroll:** each card's **Enroll** opens the wizard (`?package=<tier>`). While the academy isn't taking new students, the card says "Enrollment is closed for now", with ways to get in touch.
+- **Then:** the consents a family will sign, **Printable rates**, how to enroll, and the questions panel.
 
 The team page wears the same frame. An unlisted, legacy (`ws-…`), or unknown address shows "This academy page isn't available".
 
@@ -320,19 +334,19 @@ Both are built field by field (`src/worker/lib/public-dto.ts`) from published ro
 
 ### The team page
 
-`/a/<slug>/team` is **Meet the team**, built so parents meet coaches through the program their child will join (`src/app/features/public/team-page.tsx`, with the pure grouping in `team.ts`). It wears the website's frame (nav, ivory ground, serif headings, footer).
+`/a/<slug>/team` is **Meet the team**, built so parents meet coaches through the program their child will join (`src/app/features/public/team-page.tsx`, with the pure grouping in `team.ts`). It wears the website's frame and world: the nav, the club-green tarp as its ground, display caps, and the footer.
 
-The dark block (a sticky panel on laptops, under the nav) holds:
+The deep-green panel (under the nav; on laptops it stays put while the roster scrolls, as long as all of it fits the screen, and on a shorter screen it scrolls with the page) holds:
 - **The programs** that have public coaches, plus **Everyone** (`?program=<id>` or `?program=all`; the first program by default, like the landing page).
-  - Phones show them as pills in a row that scrolls to its edges and keeps the chosen pill in view without moving the page.
-  - Laptops show list tiles, each with when the program meets and its coaches' faces; the chosen tile keeps just its name and faces, since its times show below.
+  - Phones show them as sticker tabs in a row that scrolls to its edges and keeps the chosen tab in view without moving the page.
+  - Laptops show a column of tabs, each with when the program meets and its coaches' faces; the chosen tab (lime) keeps just its name and faces, since its times show below in lime numerals.
 - **When the chosen program meets.** Laptops add where, with **Directions**, and its next session.
 - **Its actions:** **Enroll** (to that program's packages on Enroll now) while the academy takes requests and the program has packages, otherwise **See packages**; then the academy's Message and Call. On laptops, **Everyone** follows them with the academy's phone number, email, address, and social links.
 
-The canvas gives each of the program's coaches a space:
-- their half-body portrait at 4:5 (else their square photo, else initials on a soft wash; the first one loads first);
+Each of the program's coaches gets a white card:
+- their half-body portrait at 4:5, stuck on (else their square photo, else initials on a soft wash; the first one loads first), with their DUPR rating as a sticker;
 - their name, title, and **Program lead** for the program's lead (`PublicCoachRefDto.lead`, so a hidden lead never makes an assistant look like one);
-- years coaching, DUPR rating, and languages (on phones the two numbers share a row and the languages take their own);
+- years coaching and languages;
 - certifications, highlights, about, specialties, and the other programs they coach.
 
 **Also on the team** follows with everyone else: a reel of tall portraits on phones, a compact grid from `sm`. On phones the roster closes with **Enroll in <program>**. **Everyone** shows the whole team in the academy's order.
@@ -744,4 +758,4 @@ GitHub Actions: `ci.yml` runs lint, typecheck, unit tests, build, and Playwright
 
 ## Design
 
-The product brief is in `PRODUCT.md` and the design system in `DESIGN.md`. The visual direction follows a reference the owner picked (Microsoft Dynamics CRM concept by Jack R. for RonDesignLab, Dribbble): a black command panel with lime highlights beside a soft gray canvas of rounded white cards. Text on pastel colors is always near-black for contrast.
+The product brief is in `PRODUCT.md` and the design system in `DESIGN.md`. The visual direction follows a reference the owner picked (Microsoft Dynamics CRM concept by Jack R. for RonDesignLab, Dribbble): a black command panel with lime highlights beside a soft gray canvas of rounded white cards. Text on pastel colors is always near-black for contrast. The academy website is its own world (an enrollment pubmat in the academy's club colors, set in Archivo), chosen by the owner from four mocked directions; DESIGN.md documents it in its own section.

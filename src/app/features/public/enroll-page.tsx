@@ -1,125 +1,18 @@
-import type { PublicProgramDto } from "@shared/api-types";
 import { Link } from "@tanstack/react-router";
 import { ArrowRight, Printer } from "lucide-react";
-import { buttonClass } from "../../components/ui/button";
+import { publicFileUrl } from "../../lib/api";
 import type { Format } from "../../lib/format";
-import { EnrollSlot } from "../enrollment/enroll-slot";
-import { TeamFace } from "./people";
-import { ProgramPlaceRows } from "./public-ui";
+import { FIELD, Panel, PhotoSticker, pillClass, WRAP } from "./pubmat";
 import type { PublicPage } from "./queries";
-import {
-  canEnroll,
-  previewSearch,
-  QuestionsBox,
-  ScheduleText,
-  SiteFrame,
-  useCurrentInView,
-} from "./site";
-import { headlineParts } from "./site-data";
-import { programTeams } from "./team";
-import { agesLabel, scheduleLines, sessionLength, tiersOf } from "./text";
-import { TierCard } from "./tier-card";
-
-const display = "font-display tracking-[-0.02em]";
-
-/** The chosen program on a black card: who it's for, when and where, and who coaches it. */
-function ProgramCard({
-  academy,
-  program,
-  slug,
-  preview,
-  fmt,
-}: {
-  academy: PublicPage["academy"];
-  program: PublicProgramDto;
-  slug: string;
-  preview: boolean;
-  fmt: Format;
-}) {
-  const lines = scheduleLines(program, fmt);
-  const length = program.schedule[0]?.durationMinutes;
-  const chips = [
-    program.level,
-    agesLabel(program.ageMin, program.ageMax),
-    length ? sessionLength(length) : null,
-  ].filter((c): c is string => Boolean(c));
-  const people = programTeams({ programs: [program], coaches: academy.coaches })[0]?.people ?? [];
-  return (
-    <section
-      aria-labelledby="program-title"
-      className="dark-zone grid gap-8 rounded-[32px] bg-night p-6 text-white sm:p-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)] lg:gap-12"
-    >
-      <div className="min-w-0">
-        <h2
-          id="program-title"
-          className={`${display} text-[2rem] leading-tight break-words sm:text-[2.5rem]`}
-        >
-          {program.name}
-        </h2>
-        {chips.length ? (
-          <ul aria-label="Who it's for" className="mt-3 flex flex-wrap gap-1.5">
-            {chips.map((c) => (
-              <li
-                key={c}
-                className="inline-flex h-7 items-center rounded-full px-3 text-[0.8125rem] font-medium ring-1 ring-white/45 ring-inset"
-              >
-                {c}
-              </li>
-            ))}
-          </ul>
-        ) : null}
-        {program.description ? (
-          <p className="mt-5 max-w-[52ch] text-[1rem] whitespace-pre-line text-night-ink-2">
-            {program.description}
-          </p>
-        ) : null}
-      </div>
-      <div className="flex min-w-0 flex-col gap-5">
-        {lines.length ? (
-          <div className="flex flex-col gap-1">
-            {lines.map((l) => (
-              <p
-                key={l}
-                className="num text-[1.5rem] leading-tight font-light tracking-[-0.01em] sm:text-[1.75rem]"
-              >
-                <ScheduleText line={l} />
-              </p>
-            ))}
-          </div>
-        ) : null}
-        <dl className="flex flex-col gap-3 text-[0.9375rem]">
-          <ProgramPlaceRows program={program} fmt={fmt} />
-        </dl>
-        {people.length ? (
-          <Link
-            to="/a/$slug/team"
-            params={{ slug }}
-            search={{ ...previewSearch(preview), program: program.id }}
-            className="group flex items-center gap-3 self-start rounded-full py-1 pr-3 outline-none focus-visible:outline-2 focus-visible:outline-lime"
-          >
-            <span aria-hidden className="flex">
-              {people.slice(0, 4).map((p, i) => (
-                <TeamFace
-                  key={p.id}
-                  person={p}
-                  className={`ring-2 ring-night ${i ? "-ml-2" : ""}`}
-                />
-              ))}
-            </span>
-            <span className="text-[0.9375rem] underline decoration-night-ink-2 underline-offset-4 group-hover:decoration-white">
-              Coached by {people.map((p) => p.name).join(", ")}
-            </span>
-          </Link>
-        ) : null}
-      </div>
-    </section>
-  );
-}
+import { ContactPanel, canEnroll, previewSearch, SiteFrame, useCurrentInView } from "./site";
+import { PackageEnroll, PackageGroups, ProgramPanel, programWhen, StepsPanel } from "./site-blocks";
+import { fromPriceMinor, heroPhoto } from "./site-data";
+import { tiersOf } from "./text";
 
 /**
  * Enroll now (`/a/$slug/enroll`): the packages the academy published in the admin site, by
- * program (`?program=`), each card opening the enrollment wizard; then the consents families
- * sign, the printable rates, and the ways to ask first.
+ * program (`?program=`), as price stickers that each open the enrollment wizard; then how
+ * enrolling works, the consents families sign, the printable rates, and the ways to ask first.
  */
 export function EnrollNowPage({
   page,
@@ -137,151 +30,168 @@ export function EnrollNowPage({
   const search = previewSearch(preview);
   const programs = academy.programs.filter((p) => tiersOf(academy.packages, p.id).length);
   const program = programs.find((p) => p.id === programId) ?? programs[0] ?? null;
-  const tiers = program ? tiersOf(academy.packages, program.id) : [];
-  const others = tiersOf(academy.packages, null);
   const open = canEnroll(academy);
-  const pills = useCurrentInView<HTMLAnchorElement>(
+  const photo = heroPhoto(academy);
+  const src = photo ? publicFileUrl(photo.key) : null;
+  const tabs = useCurrentInView<HTMLAnchorElement>(
     programs.length > 1 ? (program?.id ?? null) : null,
   );
-  const { quiet, strong } = headlineParts(
-    !academy.packages.length
-      ? "Packages are on their way"
-      : open && programs.length > 1
-        ? "Pick a program, then a package"
-        : open
-          ? "Enroll now, in a few steps"
-          : "Packages and rates",
-  );
-  // Families enroll from each card; staff previewing their site see the cards as they are.
-  const slot = (tier: (typeof tiers)[number]) =>
-    page.kind === "public" ? <EnrollSlot academy={academy} tier={tier} /> : undefined;
+  const title = !academy.packages.length
+    ? "Packages drop soon"
+    : open && programs.length > 1
+      ? "Pick a program, then a package"
+      : open
+        ? "Enroll now"
+        : "Packages and rates";
   return (
     <SiteFrame page={page} slug={slug} current="enroll">
-      <section
-        aria-labelledby="enroll-title"
-        className="mx-auto max-w-[1100px] px-4 pt-14 pb-10 text-center sm:px-6 sm:pt-20 sm:pb-14"
-      >
-        <h1
-          id="enroll-title"
-          className={`${display} text-[2.75rem] leading-[1.02] sm:text-[4.5rem]`}
+      <section aria-labelledby="enroll-title" className={`relative overflow-hidden ${FIELD.green}`}>
+        <div
+          className={`${WRAP} relative z-[1] pt-12 pb-12 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,460px)] lg:items-center lg:gap-x-16 lg:pt-20 lg:pb-20`}
         >
-          {quiet ? <span className="text-ink-3">{quiet} </span> : null}
-          {strong}
-        </h1>
-        <p className="mx-auto mt-6 max-w-[40rem] text-[1rem] text-balance sm:text-[1.125rem]">
-          {!academy.packages.length
-            ? `${academy.name} hasn't published its packages here yet. Message them to ask.`
-            : academy.enrollmentOpen
-              ? `${academy.name} reviews every request, then confirms your spot and how to pay.`
-              : `${academy.name} isn't taking enrollment requests right now. Message them to ask when it opens.`}
-        </p>
-        {programs.length > 1 ? (
-          <nav aria-label="Programs" className="mt-9">
-            <ul
-              ref={pills.list}
-              className="relative -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:justify-center sm:overflow-visible sm:px-0"
+          <div>
+            <h1
+              id="enroll-title"
+              className="pm-d1 max-w-[11ch] text-[4rem] text-white lg:max-w-[14ch] lg:text-[7.5rem]"
             >
-              {programs.map((p) => {
-                const on = p.id === program?.id;
-                return (
-                  <li key={p.id} className="shrink-0">
-                    <Link
-                      ref={on ? pills.current : undefined}
-                      to="/a/$slug/enroll"
-                      params={{ slug }}
-                      search={{ ...search, program: p.id }}
-                      replace
-                      resetScroll={false}
-                      aria-current={on ? "true" : undefined}
-                      className={`flex h-11 items-center rounded-full px-4.5 text-[0.9375rem] font-medium whitespace-nowrap ring-[1.5px] outline-none ring-inset focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink ${
-                        on ? "bg-lime text-ink ring-lime" : "text-ink ring-ink hover:bg-ink/6"
-                      }`}
-                    >
-                      {p.name}
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          </nav>
-        ) : null}
+              {title}
+            </h1>
+            <p className="mt-6 max-w-[38ch] text-[1.25rem] leading-snug font-bold text-white lg:text-[1.5rem] lg:font-semibold">
+              {!academy.packages.length
+                ? `${academy.name} hasn't published its packages here yet.`
+                : academy.enrollmentOpen
+                  ? `${academy.name} reviews every request, then confirms your spot and how to pay.`
+                  : `${academy.name} isn't taking enrollment requests right now. Message them to ask when it opens.`}
+            </p>
+            {!academy.packages.length ? (
+              <Link
+                to="/a/$slug"
+                params={{ slug }}
+                search={search}
+                className={pillClass("white", "mt-8")}
+              >
+                Back to {academy.name}
+                <ArrowRight aria-hidden className="size-5" />
+              </Link>
+            ) : null}
+          </div>
+          {programs.length > 1 ? (
+            // Desktop: the choice fills the band's right side, each tab with when it meets and
+            // its price from; phones keep a sideways row of name tabs under the line.
+            <nav aria-label="Programs" className="mt-8 lg:mt-0">
+              <ul
+                ref={tabs.list}
+                className="relative -mx-5 flex gap-3 overflow-x-auto px-5 pt-2 pb-3 [scrollbar-width:none] lg:mx-0 lg:flex-col lg:gap-4 lg:overflow-visible lg:px-0"
+              >
+                {programs.map((p, i) => {
+                  const on = p.id === program?.id;
+                  const when = programWhen(p, fmt)[0];
+                  const from = fromPriceMinor(academy.packages, p.id);
+                  return (
+                    <li key={p.id} className="shrink-0">
+                      <Link
+                        ref={on ? tabs.current : undefined}
+                        to="/a/$slug/enroll"
+                        params={{ slug }}
+                        search={{ ...search, program: p.id }}
+                        replace
+                        resetScroll={false}
+                        aria-current={on ? "true" : undefined}
+                        style={{ rotate: `${i % 2 ? 1.5 : -1.5}deg` }}
+                        className={`pm-d2 flex min-h-12 items-center gap-4 rounded-[14px] border-[3px] px-4 text-[1.25rem] font-black whitespace-nowrap outline-none focus-visible:outline-[3px] focus-visible:outline-offset-[3px] lg:min-h-[5.25rem] lg:justify-between lg:px-6 lg:text-[1.75rem] ${
+                          on
+                            ? "border-white bg-club-ball text-club-ink"
+                            : "border-white text-white hover:bg-white hover:text-club-ink lg:bg-club-deep lg:hover:bg-white"
+                        }`}
+                      >
+                        <span className="min-w-0">
+                          <span className="block truncate">{p.name}</span>
+                          {when ? (
+                            <span className="num mt-1 hidden text-[1rem] font-semibold not-italic normal-case [font-stretch:100%] lg:block">
+                              {when.days} · {when.time}
+                            </span>
+                          ) : null}
+                        </span>
+                        {from != null ? (
+                          <span className="hidden shrink-0 flex-col items-end lg:flex">
+                            <span className="text-[0.875rem] font-extrabold">From</span>
+                            <span className="pm-d1 num text-[2.5rem]">{fmt.moneyShort(from)}</span>
+                          </span>
+                        ) : null}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </nav>
+          ) : src ? (
+            <div className="hidden lg:flex lg:justify-end">
+              <PhotoSticker
+                src={src}
+                rot={3}
+                focus={photo?.kind === "coach" ? "center 22%" : "center 45%"}
+                className="aspect-[0.82] w-full max-w-[380px]"
+              />
+            </div>
+          ) : null}
+        </div>
       </section>
 
-      <div className="mx-auto flex max-w-[1100px] flex-col gap-4 px-3 sm:px-6">
-        {program ? (
-          <>
-            <ProgramCard
-              academy={academy}
-              program={program}
-              slug={slug}
-              preview={preview}
-              fmt={fmt}
-            />
-            <section aria-labelledby="tiers-title">
-              <h2 id="tiers-title" className="sr-only">
-                {program.name} packages
-              </h2>
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {tiers.map((t) => (
-                  <TierCard key={t.id} tier={t} fmt={fmt} surface="ivory" enroll={slot(t)} />
-                ))}
-              </div>
-            </section>
-          </>
-        ) : null}
+      {program ? (
+        <ProgramPanel
+          academy={academy}
+          program={program}
+          field="blue"
+          slug={slug}
+          preview={preview}
+          fmt={fmt}
+          level={2}
+          action={false}
+          wide
+        />
+      ) : null}
 
-        {others.length ? (
-          <section aria-labelledby="others-title" className="mt-10 flex flex-col gap-4">
-            <h2
-              id="others-title"
-              className={`${display} px-1 text-[2rem] leading-tight sm:text-[2.5rem]`}
-            >
-              {program ? "More packages" : "Packages"}
+      {academy.packages.length ? (
+        <Panel field="lime" labelledBy="tiers-title">
+          <div className={`${WRAP} py-14 lg:pt-20 lg:pb-24`}>
+            <h2 id="tiers-title" className="sr-only">
+              {program ? `${program.name} packages` : "Packages"}
             </h2>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {others.map((t) => (
-                <TierCard key={t.id} tier={t} fmt={fmt} surface="ivory" enroll={slot(t)} />
-              ))}
+            <PackageGroups
+              academy={academy}
+              programs={program ? [program] : []}
+              fmt={fmt}
+              level={3}
+              enroll={
+                // Families enroll from each card; staff previewing their site see the cards.
+                page.kind === "public"
+                  ? (t) => <PackageEnroll academy={academy} tier={t} />
+                  : undefined
+              }
+            />
+            <div className="mt-12 flex flex-col items-start gap-5">
+              {academy.consents.length && academy.enrollmentOpen ? (
+                <p className="max-w-[56ch] text-[1.0625rem] font-semibold">
+                  When you enroll, you'll read and sign:{" "}
+                  {academy.consents.map((c) => c.title).join(", ")}.
+                </p>
+              ) : null}
+              <Link
+                to="/a/$slug/rates"
+                params={{ slug }}
+                search={search}
+                className={pillClass("outlineInk")}
+              >
+                <Printer aria-hidden className="size-5" />
+                Printable rates
+              </Link>
             </div>
-          </section>
-        ) : null}
-
-        {academy.packages.length ? (
-          <div className="mt-8 flex flex-col items-center gap-4 text-center">
-            {academy.consents.length && academy.enrollmentOpen ? (
-              <p className="max-w-[56ch] text-[0.9375rem] text-ink-2">
-                When you enroll, you'll read and sign:{" "}
-                {academy.consents.map((c) => c.title).join(", ")}.
-              </p>
-            ) : null}
-            <Link
-              to="/a/$slug/rates"
-              params={{ slug }}
-              search={search}
-              className={buttonClass("outline", "md")}
-            >
-              <Printer aria-hidden className="size-4.5" />
-              Printable rates
-            </Link>
           </div>
-        ) : (
-          <div className="flex justify-center">
-            <Link
-              to="/a/$slug"
-              params={{ slug }}
-              search={search}
-              className={buttonClass("outline", "md")}
-            >
-              Back to {academy.name}
-              <ArrowRight aria-hidden className="size-4.5" />
-            </Link>
-          </div>
-        )}
-      </div>
+        </Panel>
+      ) : null}
 
-      <div className="pt-20 sm:pt-28">
-        <QuestionsBox academy={academy} />
-      </div>
+      <StepsPanel academy={academy} slug={slug} preview={preview} actions={false} />
+      <ContactPanel academy={academy} />
     </SiteFrame>
   );
 }

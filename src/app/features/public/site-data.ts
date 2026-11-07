@@ -1,5 +1,5 @@
 import type {
-  PublicCoachDto,
+  PublicAcademyDto,
   PublicPackageDto,
   PublicProgramDto,
   PublicVenueDto,
@@ -20,24 +20,14 @@ export function tierInclusions(t: Pick<PublicPackageDto, "inclusions" | "include
   return out;
 }
 
-/**
- * The package whose inclusions the landing page shows: the one the academy features, else the
- * one that includes the most (one real package's list, never a blend of several).
- */
-export function showcaseTier(packages: PublicPackageDto[]): PublicPackageDto | null {
-  const featured = packages.find((p) => p.highlight && tierInclusions(p).length);
-  if (featured) return featured;
-  let best: PublicPackageDto | null = null;
-  for (const p of packages) {
-    if (tierInclusions(p).length > (best ? tierInclusions(best).length : 0)) best = p;
-  }
-  return best;
-}
-
 /** The lowest price per head among a program's tiers (`null`: the tiers in no program). */
 export function fromPriceMinor(packages: PublicPackageDto[], programId: string | null) {
+  return lowestPriceMinor(packages.filter((p) => (p.programId ?? null) === programId));
+}
+
+/** The lowest price per head among some tiers, or null with none priced. */
+export function lowestPriceMinor(packages: Pick<PublicPackageDto, "priceMinor">[]) {
   const prices = packages
-    .filter((p) => (p.programId ?? null) === programId)
     .map((p) => p.priceMinor)
     .filter((n): n is number => typeof n === "number");
   return prices.length ? Math.min(...prices) : null;
@@ -75,49 +65,7 @@ export function nextSession(programs: PublicProgramDto[]) {
   return best;
 }
 
-export interface CoachProof {
-  person: PublicCoachDto;
-  text: string;
-  kind: "highlight" | "certification";
-}
-
-/**
- * Up to `limit` lines of proof from the coaches' own profiles: their highlights first, one coach
- * at a time so nobody fills the section alone, then their certifications.
- */
-export function coachProof(coaches: PublicCoachDto[], limit = 4): CoachProof[] {
-  const out: CoachProof[] = [];
-  for (const kind of ["highlight", "certification"] as const) {
-    for (let round = 0; out.length < limit; round++) {
-      let added = false;
-      for (const person of coaches) {
-        const text = (kind === "highlight" ? person.highlights : person.certifications)[round];
-        if (!text?.trim()) continue;
-        out.push({ person, text: text.trim(), kind });
-        added = true;
-        if (out.length >= limit) break;
-      }
-      if (!added) break;
-    }
-  }
-  return out;
-}
-
-/**
- * A headline in two tones, the opening clause quiet and the rest in ink ("Train with purpose," /
- * "play with joy"). Only a written clause break splits it; anything else stays in one tone.
- */
-export function headlineParts(text: string): { quiet: string; strong: string } {
-  const line = text.trim().replace(/\s+/g, " ");
-  const match = /^(.+?[,;:—–])\s+(.+)$/u.exec(line);
-  if (!match?.[1] || !match[2]) return { quiet: "", strong: line };
-  const [quiet, strong] = [match[1], match[2]];
-  if (quiet.split(" ").length < 2 || strong.split(" ").length < 2)
-    return { quiet: "", strong: line };
-  return { quiet, strong };
-}
-
-/** The first sentence of the academy's about text, for the line under the headline. */
+/** The first sentence of the academy's about text, for the line under its name. */
 export function firstSentence(text: string | null | undefined, max = 180): string | null {
   const flat = text?.trim().replace(/\s+/g, " ");
   if (!flat) return null;
@@ -127,9 +75,8 @@ export function firstSentence(text: string | null | undefined, max = 180): strin
 }
 
 /**
- * A schedule line set large ("Tue & Thu · 7:00 – 10:00 PM") split after its last dot, so the time
- * range can be held on one line and a narrow column breaks after the dot, never inside
- * "10:00 PM". (No-break spaces can't do it: browsers still break after the dash.)
+ * A schedule line ("Tue & Thu · 7:00 – 10:00 PM") split after its last dot, so the days and the
+ * time range can be set apart (and the range kept on one line).
  */
 export function scheduleLineParts(line: string): { lead: string; time: string } {
   const at = line.lastIndexOf(" · ");
@@ -137,40 +84,163 @@ export function scheduleLineParts(line: string): { lead: string; time: string } 
   return { lead: line.slice(0, at + 3), time: line.slice(at + 3) };
 }
 
-/** Words for the ball's arc: the parts joined with dots, ending on one so it repeats cleanly. */
-export function ribbonText(parts: (string | null | undefined)[]): string {
-  const clean = parts.map((p) => p?.trim()).filter((p): p is string => Boolean(p));
-  return clean.length ? `${clean.join("  ·  ")}  ·  ` : "";
-}
-
-/** How many copies of a ribbon unit it takes to run past the end of its path, plus one to wrap. */
-export function ribbonCopies(pathLength: number, unitLength: number): number {
-  if (!(unitLength > 0) || !(pathLength > 0)) return 1;
-  return Math.min(40, Math.ceil(pathLength / unitLength) + 1);
+/** A time range as a pubmat sets it: "7:00 – 10:00 PM" becomes "7–10 PM". */
+export function compactTime(range: string): string {
+  return range
+    .replace(/:00(?=\D|$)/g, "")
+    .replace(/\s*[–-]\s*/g, "–")
+    .trim();
 }
 
 /**
- * The ball's arc at a given size: the trail that runs in from the left to the ball (`before`),
- * the ball pill, and the band that leaves it toward the top right (`after`). Sized in pixels, so
- * its words keep their size on every screen while the curve follows the width.
+ * The photo the website's first screen holds: the academy's cover, else its first website photo,
+ * else a coach's portrait (the team page's photo), else none.
  */
-export function arcGeometry(width: number, height: number) {
-  const compact = width < 640;
-  const pillW = compact ? 76 : 136;
-  const pillH = compact ? 40 : 60;
-  const band = compact ? 30 : 44;
-  const cx = width / 2;
-  const cy = Math.round(height * (compact ? 0.74 : 0.72));
-  const left = cx - pillW / 2;
-  const right = cx + pillW / 2;
-  // Phones are narrow for their height: the trail starts high near the left edge, and the band
-  // ends further off screen, so the part in view is flatter and its words stay legible.
-  const rise = compact ? 0.1 : 0.16;
-  const fall = compact ? 0.16 : 0.06;
-  const startX = compact ? -0.1 : -0.06;
-  const endX = compact ? 1.45 : 1.06;
-  const f = (n: number) => Math.round(n * 10) / 10;
-  const before = `M ${f(startX * width)} ${f(height * rise)} C ${f(width * (compact ? 0.12 : 0.16))} ${f(height * Math.max(0, rise - 0.06))}, ${f(width * 0.3)} ${f(cy)}, ${f(left)} ${f(cy)}`;
-  const after = `M ${f(right)} ${f(cy)} C ${f(width * 0.68)} ${f(cy)}, ${f(width * (compact ? 1 : 0.82))} ${f(height * 0.5)}, ${f(width * endX)} ${f(height * fall)}`;
-  return { before, after, cx, cy, pillW, pillH, band, fontSize: compact ? 13 : 20 };
+export function heroPhoto(
+  a: Pick<PublicAcademyDto, "coverKey" | "photos" | "coaches">,
+): { key: string; kind: "cover" | "photo" | "coach" } | null {
+  if (a.coverKey) return { key: a.coverKey, kind: "cover" };
+  const first = a.photos[0];
+  if (first) return { key: first.key, kind: "photo" };
+  for (const c of a.coaches) {
+    const key = c.portraitKey ?? c.photoKey;
+    if (key) return { key, kind: "coach" };
+  }
+  return null;
+}
+
+/**
+ * Advance widths (em) of the website's display cut: Archivo at 62% width, weight 900, italic,
+ * measured from the shipped font files. Lets a headline be sized to fill its width before it
+ * renders; anything not listed counts as an average glyph.
+ */
+export const DISPLAY_EM: Readonly<Record<string, number>> = {
+  A: 0.53,
+  B: 0.498,
+  C: 0.513,
+  D: 0.509,
+  E: 0.462,
+  F: 0.402,
+  G: 0.543,
+  H: 0.513,
+  I: 0.263,
+  J: 0.453,
+  K: 0.51,
+  L: 0.432,
+  M: 0.705,
+  N: 0.518,
+  O: 0.554,
+  P: 0.485,
+  Q: 0.554,
+  R: 0.509,
+  S: 0.469,
+  T: 0.475,
+  U: 0.503,
+  V: 0.49,
+  W: 0.729,
+  X: 0.5,
+  Y: 0.481,
+  Z: 0.475,
+  "0": 0.444,
+  "1": 0.371,
+  "2": 0.427,
+  "3": 0.44,
+  "4": 0.435,
+  "5": 0.437,
+  "6": 0.445,
+  "7": 0.396,
+  "8": 0.432,
+  "9": 0.445,
+  " ": 0.11,
+  ".": 0.222,
+  ",": 0.222,
+  "-": 0.24,
+  "–": 0.31,
+  "—": 0.62,
+  "&": 0.566,
+  "'": 0.213,
+  "’": 0.204,
+  "!": 0.266,
+  "?": 0.424,
+  ":": 0.222,
+  "(": 0.389,
+  ")": 0.389,
+  "/": 0.278,
+  "#": 0.499,
+  "+": 0.528,
+  "@": 0.688,
+  "₱": 0.611,
+};
+
+/** The display cut's tracking (letter-spacing), in em. */
+export const DISPLAY_TRACKING = -0.01;
+/** The display cut's extra word spacing, in em (styles.css `.pm-d1` sets the same). */
+export const DISPLAY_WORD_SPACING = 0.08;
+
+/** How wide a line of display caps runs, in em of its font size. */
+export function displayEm(text: string): number {
+  let w = 0;
+  for (const ch of text.toUpperCase()) {
+    w += (DISPLAY_EM[ch] ?? 0.5) + DISPLAY_TRACKING + (ch === " " ? DISPLAY_WORD_SPACING : 0);
+  }
+  return w;
+}
+
+/** A short first or last line's free end, where a sticker can sit beside the words. */
+export type LineSlot = { line: number; free: number };
+
+/** How much a sticker slot is worth against type size, and what a hole in the middle costs. */
+const SLOT_BONUS = 1.12;
+const HOLE_SHARE = 0.3;
+const HOLE_COST = 0.85;
+
+/**
+ * Splits a headline into at most `maxLines` lines (words kept whole, in order) so its widest line
+ * is as narrow as it can be, which lets the type run as large as the width allows. Returns the
+ * lines and the widest one's width in em; equal widths prefer fewer lines.
+ *
+ * With `slot` (the share of the widest line a sticker needs), the split also weighs balance: a
+ * short first or last line whose free end holds a sticker is worth a little size ("The / Pickle
+ * Spot / Academy" with "Now enrolling" beside "The"), and a short middle line, a hole with
+ * nothing to fill it, costs some. The chosen slot comes back as `slot`.
+ */
+export function fitLines(
+  text: string,
+  maxLines: number,
+  opts: { slot?: number } = {},
+): { lines: string[]; em: number; slot?: LineSlot } {
+  const words = text.trim().split(/\s+/).filter(Boolean);
+  if (!words.length) return { lines: [], em: 0 };
+  const limit = Math.max(1, Math.min(maxLines, words.length));
+  let best: { lines: string[]; em: number; slot?: LineSlot; score: number } | null = null;
+  const visit = (start: number, left: number, acc: string[]) => {
+    if (left === 1) {
+      const lines = [...acc, words.slice(start).join(" ")];
+      const widths = lines.map(displayEm);
+      const em = Math.max(...widths);
+      let score = 1 / em;
+      let slot: LineSlot | undefined;
+      if (opts.slot && lines.length > 1) {
+        const free = (i: number) => (em - (widths[i] ?? em)) / em;
+        if (widths.slice(1, -1).some((w) => (em - w) / em > HOLE_SHARE)) score *= HOLE_COST;
+        for (const line of [0, lines.length - 1]) {
+          if (free(line) >= opts.slot && (!slot || free(line) > slot.free + 1e-9)) {
+            slot = { line, free: free(line) };
+          }
+        }
+        if (slot) score *= SLOT_BONUS;
+      }
+      if (!best || score > best.score + 1e-9) best = { lines, em, slot, score };
+      return;
+    }
+    for (let end = start + 1; end <= words.length - (left - 1); end++) {
+      visit(end, left - 1, [...acc, words.slice(start, end).join(" ")]);
+    }
+  };
+  for (let n = 1; n <= limit; n++) visit(0, n, []);
+  // `best` is set inside `visit`, which control-flow narrowing can't see.
+  const found = best as { lines: string[]; em: number; slot?: LineSlot } | null;
+  if (!found) return { lines: words, em: 0 };
+  const { lines, em, slot } = found;
+  return slot ? { lines, em, slot } : { lines, em };
 }

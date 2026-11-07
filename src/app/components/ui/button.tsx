@@ -2,16 +2,7 @@ import { Loader2 } from "lucide-react";
 import type { ReactNode } from "react";
 import { Button as RACButton, type ButtonProps as RACButtonProps } from "react-aria-components";
 
-export type ButtonVariant =
-  | "dark"
-  | "lime"
-  | "light"
-  | "ghost"
-  | "danger"
-  | "night"
-  | "outline"
-  | "outlineLight"
-  | "violet";
+export type ButtonVariant = "dark" | "lime" | "light" | "ghost" | "danger" | "night";
 export type ButtonSize = "sm" | "md" | "lg";
 
 const base =
@@ -27,12 +18,6 @@ export const buttonVariants: Record<ButtonVariant, string> = {
   ghost: "text-ink hover:bg-ink/6",
   danger: "bg-coral text-ink hover:brightness-95",
   night: "bg-night-3 text-night-ink hover:bg-night-4 data-[focus-visible]:outline-lime",
-  // The academy website's secondary actions: an ink outline on the ivory ground, white on slabs.
-  outline: "text-ink ring-[1.5px] ring-ink ring-inset hover:bg-ink/6",
-  outlineLight:
-    "text-white ring-[1.5px] ring-white/75 ring-inset hover:bg-white/10 data-[focus-visible]:outline-lime",
-  // Its ways to reach the academy: violet with an ink outline.
-  violet: "bg-violet text-ink ring-[1.5px] ring-ink ring-inset hover:bg-lavender",
 };
 
 export const buttonSizes: Record<ButtonSize, string> = {

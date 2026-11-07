@@ -159,7 +159,7 @@ test.describe("the team page", () => {
       .getByRole("link", { name: "Riverside Team Academy" })
       .click();
     await expect(page).toHaveURL(new RegExp(`/a/${slug}$`));
-    const team = page.getByRole("region", { name: "The coaches" });
+    const team = page.getByRole("region", { name: "The team" });
     await expect(team).toContainText("Lia Santos");
     await expect(team).not.toContainText("Quinn Hidden");
     expect(errors).toEqual([]);

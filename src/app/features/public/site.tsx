@@ -4,11 +4,11 @@ import { Link } from "@tanstack/react-router";
 import { ArrowUpRight, Mail, Menu, MessageCircle, Phone, X } from "lucide-react";
 import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 import { BallMark } from "../../components/brand";
-import { buttonClass, tapArea } from "../../components/ui/button";
+import { tapArea } from "../../components/ui/button";
 import { LegalLinks } from "../public-info/legal-links";
 import { AcademyLogo, PreviewBanner } from "./public-ui";
+import { Panel, pillClass, SkewLabel, skewClass, WRAP } from "./pubmat";
 import type { PublicPage } from "./queries";
-import { scheduleLineParts } from "./site-data";
 import { type ContactAction, contactActions } from "./text";
 
 /** Which page of the academy's website is open (its nav marks it). */
@@ -25,10 +25,10 @@ export function canEnroll(a: PublicAcademyDto) {
 }
 
 export const CONTACT_ICON: Record<ContactAction["id"], ReactNode> = {
-  messenger: <MessageCircle aria-hidden className="size-4.5" />,
-  text: <MessageCircle aria-hidden className="size-4.5" />,
-  call: <Phone aria-hidden className="size-4.5" />,
-  email: <Mail aria-hidden className="size-4.5" />,
+  messenger: <MessageCircle aria-hidden className="size-5" />,
+  text: <MessageCircle aria-hidden className="size-5" />,
+  call: <Phone aria-hidden className="size-5" />,
+  email: <Mail aria-hidden className="size-5" />,
 };
 
 /** What a way to reach the academy says on its website (a call shows the number). */
@@ -39,24 +39,10 @@ export function contactLabel(a: ContactAction, phone: string | null): string {
   return "Email us";
 }
 
-/** A schedule line set large, its time range kept on one line. */
-export function ScheduleText({ line }: { line: string }) {
-  const { lead, time } = scheduleLineParts(line);
-  return (
-    <>
-      {lead}
-      {time ? <span className="whitespace-nowrap">{time}</span> : null}
-    </>
-  );
-}
-
 /** Whether the website has a way to reach the academy, or its policies, to show at "Contact". */
-function hasContact(a: PublicAcademyDto) {
+export function hasContact(a: PublicAcademyDto) {
   return contactActions(a).length > 0 || Boolean(a.policies);
 }
-
-/** Grows the phone nav's 36px pill to a 44px tap area without making the bar any taller. */
-const navTap = "before:absolute before:-inset-y-1 before:inset-x-0";
 
 /**
  * Keeps a sideways-scrolling row's current item in view, on arrival and whenever it changes (the
@@ -75,8 +61,9 @@ export function useCurrentInView<C extends HTMLElement>(currentKey: string | nul
 }
 
 /**
- * The website's floating nav: the academy (home), its programs, coaches, and packages, a way to
- * reach it, and Enroll now in lime while it takes requests. Phones fold the links into a menu.
+ * The website's nav: a slim deep-green bar with the academy's name, its programs, coaches,
+ * packages, and contact, and the slanted Enroll now while it takes requests (else Message us).
+ * Phones fold the links into a menu.
  */
 export function SiteNav({
   academy,
@@ -108,8 +95,8 @@ export function SiteNav({
 
   const links = (inMenu: boolean) => {
     const cls = inMenu
-      ? "flex h-12 items-center rounded-[12px] px-3 text-[1rem] font-medium outline-none hover:bg-ink/6 focus-visible:outline-2 focus-visible:outline-ink aria-[current=page]:bg-ink/8"
-      : "rounded-full px-3.5 py-2 text-[0.9375rem] font-medium outline-none hover:bg-ink/6 focus-visible:outline-2 focus-visible:outline-ink aria-[current=page]:bg-ink/8";
+      ? "pm-d2 flex min-h-12 items-center border-t border-white/15 px-1 text-[1.375rem] outline-none hover:text-club-ball aria-[current=page]:text-club-ball"
+      : `${tapArea} rounded-sm text-[1rem] font-semibold underline-offset-[6px] outline-none hover:underline aria-[current=page]:underline aria-[current=page]:decoration-club-ball aria-[current=page]:decoration-[3px]`;
     const close = () => setOpen(false);
     return (
       <>
@@ -161,63 +148,56 @@ export function SiteNav({
   };
 
   return (
-    <header className="sticky top-0 z-50 px-3 pt-2 sm:px-6 sm:pt-4">
+    <header className="pm-dark sticky top-0 z-50 bg-club-deep text-white">
       <nav
         aria-label={academy.name}
-        className="relative mx-auto flex h-14 max-w-[1100px] items-center gap-2 rounded-[18px] border border-ivory-line bg-ivory px-2 sm:h-16 sm:gap-4 sm:px-2.5"
+        className="relative mx-auto flex h-14 max-w-[1440px] items-center gap-2 pr-1.5 pl-3.5 lg:h-16 lg:gap-7 lg:px-16"
       >
         <Link
           to="/a/$slug"
           params={{ slug }}
           search={search}
           activeOptions={{ exact: true, includeSearch: false }}
-          className="flex min-w-0 items-center gap-2.5 rounded-[14px] pr-1 outline-none focus-visible:outline-2 focus-visible:outline-ink"
+          className="mr-auto flex min-w-0 items-center gap-2.5 rounded-sm outline-none"
         >
-          <AcademyLogo name={academy.name} logoKey={academy.logoKey} size={40} onLight />
-          <span className="line-clamp-2 text-[0.875rem] leading-[1.15] font-semibold sm:text-[1rem] md:line-clamp-1">
+          {academy.logoKey ? (
+            <AcademyLogo name={academy.name} logoKey={academy.logoKey} size={40} />
+          ) : null}
+          <span className="pm-d2 truncate text-[0.9375rem] font-extrabold lg:text-[1.1875rem]">
             {academy.name}
           </span>
         </Link>
-        <div className="ml-auto hidden items-center gap-0.5 md:flex">{links(false)}</div>
-        <div className="ml-auto flex shrink-0 items-center gap-1 md:ml-1">
-          {canEnroll(academy) ? (
-            <Link
-              to="/a/$slug/enroll"
-              params={{ slug }}
-              search={search}
-              className={buttonClass(
-                "lime",
-                "sm",
-                `px-3.5 ${navTap} sm:h-11 sm:px-5 sm:text-[0.9375rem]`,
-              )}
-            >
-              Enroll now
-            </Link>
-          ) : message ? (
-            <a
-              href={message.href}
-              className={buttonClass("outline", "sm", `${navTap} sm:h-11 sm:px-5`)}
-            >
-              {message.id === "messenger" ? "Message us" : contactLabel(message, null)}
-            </a>
-          ) : null}
-          <button
-            type="button"
-            aria-expanded={open}
-            aria-controls={menuId}
-            onClick={() => setOpen((v) => !v)}
-            className="relative flex size-10 items-center justify-center rounded-full outline-none before:absolute before:-inset-0.5 hover:bg-ink/6 focus-visible:outline-2 focus-visible:outline-ink md:hidden"
+        <div className="hidden items-center gap-7 lg:flex">{links(false)}</div>
+        {canEnroll(academy) ? (
+          <Link
+            to="/a/$slug/enroll"
+            params={{ slug }}
+            search={search}
+            className={`${skewClass("lime", "sm")} relative before:absolute before:-inset-y-[3px] before:inset-x-0`}
           >
-            {open ? <X aria-hidden className="size-5" /> : <Menu aria-hidden className="size-5" />}
-            <span className="sr-only">{open ? "Close the menu" : "Menu"}</span>
-          </button>
-        </div>
+            <SkewLabel>Enroll now</SkewLabel>
+          </Link>
+        ) : message ? (
+          <a href={message.href} className={pillClass("outline", "min-h-11 text-[0.9375rem]")}>
+            {message.id === "messenger" ? "Message us" : contactLabel(message, null)}
+          </a>
+        ) : null}
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-controls={menuId}
+          onClick={() => setOpen((v) => !v)}
+          className="flex size-11 shrink-0 items-center justify-center rounded-[10px] outline-none hover:bg-white/10 lg:hidden"
+        >
+          {open ? <X aria-hidden className="size-6" /> : <Menu aria-hidden className="size-6" />}
+          <span className="sr-only">{open ? "Close the menu" : "Menu"}</span>
+        </button>
         <div
           id={menuId}
           hidden={!open}
-          className="absolute inset-x-0 top-[calc(100%+8px)] rounded-[18px] bg-ivory p-2 shadow-pop md:hidden"
+          className="absolute inset-x-0 top-full border-t border-white/15 bg-club-deep px-4 pb-4 lg:hidden"
         >
-          <div className="flex flex-col gap-0.5">{links(true)}</div>
+          <div className="flex flex-col">{links(true)}</div>
         </div>
       </nav>
     </header>
@@ -225,72 +205,66 @@ export function SiteNav({
 }
 
 /**
- * "Questions before you enroll?": the academy's ways to reach it as violet pills in an ink-ruled
- * box, and its policies to read. Nothing to show, no box.
+ * "Questions before you enroll?": the academy's ways to reach it and its policies, on a blue
+ * field. Nothing to show, no panel. The landing page says this in its Find us panel instead.
  */
-export function QuestionsBox({ academy }: { academy: PublicAcademyDto }) {
+export function ContactPanel({ academy }: { academy: PublicAcademyDto }) {
   const actions = contactActions(academy);
   if (!actions.length && !academy.policies) return null;
   return (
-    <section
-      id="contact"
-      aria-labelledby="contact-title"
-      className="mx-auto max-w-[1100px] scroll-mt-28 px-4 sm:px-6"
-    >
-      <div className="rounded-[28px] border-2 border-ink px-5 py-10 text-center sm:px-10 sm:py-14">
-        <h2
-          id="contact-title"
-          className="font-display text-[2.5rem] leading-[1.05] tracking-[-0.02em] sm:text-[3rem]"
-        >
-          {canEnroll(academy) ? "Questions before you enroll?" : "Questions?"}
-        </h2>
-        {actions.length ? (
-          <>
-            <p className="mx-auto mt-3 max-w-[40ch] text-[1rem] text-ink-2">
-              Message or call {academy.name}.
-            </p>
-            <ul className="mt-7 flex flex-wrap justify-center gap-2.5">
-              {actions.map((a) => (
+    <Panel field="blue" id="contact" labelledBy="contact-title">
+      <div
+        className={`${WRAP} py-14 lg:grid lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-end lg:gap-x-20 lg:py-24`}
+      >
+        <div>
+          <h2 id="contact-title" className="pm-d1 max-w-[12ch] text-[3.5rem] lg:text-[6rem]">
+            {canEnroll(academy) ? "Questions before you enroll?" : "Questions?"}
+          </h2>
+          {actions.length ? (
+            <p className="mt-5 text-[1.25rem] font-semibold">Message or call {academy.name}.</p>
+          ) : null}
+        </div>
+        <div>
+          {actions.length ? (
+            <ul className="mt-7 flex flex-wrap gap-3 lg:mt-0 lg:flex-col">
+              {actions.map((a, i) => (
                 <li key={a.id}>
-                  <a href={a.href} className={buttonClass("violet", "md")}>
+                  <a
+                    href={a.href}
+                    className={pillClass(i === 0 ? "white" : "outline", "lg:w-full")}
+                  >
                     {CONTACT_ICON[a.id]}
                     {contactLabel(a, academy.contactPhone)}
                   </a>
                 </li>
               ))}
             </ul>
-          </>
-        ) : null}
-        {academy.policies ? (
-          <details className="group mx-auto mt-8 max-w-[65ch] text-left">
-            <summary className="mx-auto flex w-fit cursor-pointer list-none items-center gap-2 rounded-full px-3 py-2 text-[0.9375rem] font-medium underline decoration-ink/40 underline-offset-4 outline-none hover:decoration-ink focus-visible:outline-2 focus-visible:outline-ink [&::-webkit-details-marker]:hidden">
-              <span className="group-open:hidden">Read the policies</span>
-              <span className="hidden group-open:inline">Hide the policies</span>
-            </summary>
-            <p className="mt-4 text-[0.9375rem] whitespace-pre-line">{academy.policies}</p>
-          </details>
-        ) : null}
+          ) : null}
+          {academy.policies ? <Policies text={academy.policies} /> : null}
+        </div>
       </div>
-    </section>
+    </Panel>
   );
 }
 
-const footLink = `${tapArea} rounded-sm text-[0.9375rem] outline-none hover:underline focus-visible:outline-2 focus-visible:outline-ink`;
-
-function FooterColumn({ title, children }: { title: string; children: ReactNode }) {
+/** The academy's policies, folded behind "Read the policies". */
+export function Policies({ text }: { text: string }) {
   return (
-    <div>
-      <h2 className="font-display text-[1.75rem] leading-none tracking-[-0.01em] text-ink-3">
-        {title}
-      </h2>
-      <ul className="mt-5 flex flex-col items-start gap-3">{children}</ul>
-    </div>
+    <details className="group mt-8 max-w-[65ch]">
+      <summary className="flex w-fit cursor-pointer list-none items-center gap-2 rounded-sm py-2 text-[1.0625rem] font-bold underline decoration-2 underline-offset-[6px] outline-none [&::-webkit-details-marker]:hidden">
+        <span className="group-open:hidden">Read the policies</span>
+        <span className="hidden group-open:inline">Hide the policies</span>
+      </summary>
+      <p className="mt-3 text-[1rem] whitespace-pre-line">{text}</p>
+    </details>
   );
 }
+
+const footLink = `${tapArea} rounded-sm text-[1rem] font-semibold underline-offset-4 outline-none hover:underline`;
 
 /**
- * The website's foot: the programs, the academy's pages, and how to reach it, then its name set
- * huge, and CoachMan's small credit with its policies.
+ * The website's foot, on ink: the academy's name and where it is, its pages and socials, then
+ * CoachMan's small credit with its policies.
  */
 export function SiteFooter({
   academy,
@@ -303,124 +277,122 @@ export function SiteFooter({
 }) {
   const search = previewSearch(preview);
   const socials = ACADEMY_SOCIALS.filter((k) => academy.socials[k]);
-  const phone = academy.contactPhone;
-  const contact = Boolean(phone || academy.contactEmail || academy.address || socials.length);
   return (
-    <footer className="mx-auto max-w-[1100px] px-4 pt-24 pb-8 sm:px-6 sm:pt-32">
-      <div className="grid gap-12 sm:grid-cols-3">
-        {academy.programs.length ? (
-          <FooterColumn title="Programs">
-            {academy.programs.map((p) => (
-              <li key={p.id}>
-                <Link
-                  to="/a/$slug"
-                  params={{ slug }}
-                  search={{ ...search, program: p.id }}
-                  hash="programs"
-                  className={footLink}
-                >
-                  {p.name}
-                </Link>
-              </li>
-            ))}
-          </FooterColumn>
-        ) : null}
-        <FooterColumn title="The academy">
-          <li>
-            <Link to="/a/$slug" params={{ slug }} search={search} className={footLink}>
-              Home
-            </Link>
-          </li>
-          {academy.coaches.length ? (
-            <li>
-              <Link to="/a/$slug/team" params={{ slug }} search={search} className={footLink}>
-                Meet the team
-              </Link>
-            </li>
-          ) : null}
-          {academy.packages.length ? (
-            <>
-              <li>
-                <Link to="/a/$slug/enroll" params={{ slug }} search={search} className={footLink}>
-                  {academy.enrollmentOpen ? "Enroll now" : "Packages"}
-                </Link>
-              </li>
-              <li>
-                <Link to="/a/$slug/rates" params={{ slug }} search={search} className={footLink}>
-                  Printable rates
-                </Link>
-              </li>
-            </>
-          ) : null}
-        </FooterColumn>
-        {contact ? (
-          <FooterColumn title="Contact">
-            {phone ? (
-              <li>
-                <a href={`tel:${phone.replace(/[^\d+]/g, "")}`} className={`${footLink} num`}>
-                  {phone}
-                </a>
-              </li>
+    <footer className="pm-dark bg-club-ink text-white">
+      <div className={`${WRAP} py-10 lg:py-12`}>
+        <div className="grid gap-7 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start lg:gap-x-12">
+          <div className="min-w-0">
+            <p className="pm-d2 text-[1.5rem] break-words">{academy.name}</p>
+            {academy.contactPhone || academy.contactEmail || academy.address ? (
+              <ul className="mt-2 flex flex-col items-start gap-1.5 text-[1rem] text-club-mist">
+                {academy.contactPhone ? (
+                  <li>
+                    <a
+                      href={`tel:${academy.contactPhone.replace(/[^\d+]/g, "")}`}
+                      className={`${footLink} num font-medium text-club-mist hover:text-white`}
+                    >
+                      {academy.contactPhone}
+                    </a>
+                  </li>
+                ) : null}
+                {academy.contactEmail ? (
+                  <li>
+                    <a
+                      href={`mailto:${academy.contactEmail}`}
+                      className={`${footLink} font-medium break-all text-club-mist hover:text-white`}
+                    >
+                      {academy.contactEmail}
+                    </a>
+                  </li>
+                ) : null}
+                {academy.address ? (
+                  <li>
+                    {academy.mapUrl ? (
+                      <a
+                        href={academy.mapUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`${footLink} inline-flex items-start gap-1 font-medium text-club-mist hover:text-white`}
+                      >
+                        {academy.address}
+                        <ArrowUpRight aria-hidden className="mt-0.5 size-4 shrink-0" />
+                      </a>
+                    ) : (
+                      academy.address
+                    )}
+                  </li>
+                ) : null}
+              </ul>
             ) : null}
-            {academy.contactEmail ? (
+          </div>
+          <nav aria-label="Website pages">
+            <ul className="flex flex-wrap gap-x-6 gap-y-3">
               <li>
-                <a href={`mailto:${academy.contactEmail}`} className={`${footLink} break-all`}>
-                  {academy.contactEmail}
-                </a>
+                <Link to="/a/$slug" params={{ slug }} search={search} className={footLink}>
+                  Home
+                </Link>
               </li>
-            ) : null}
-            {academy.address ? (
-              <li className="text-[0.9375rem]">
-                {academy.mapUrl ? (
+              {academy.coaches.length ? (
+                <li>
+                  <Link to="/a/$slug/team" params={{ slug }} search={search} className={footLink}>
+                    Meet the team
+                  </Link>
+                </li>
+              ) : null}
+              {academy.packages.length ? (
+                <>
+                  <li>
+                    <Link
+                      to="/a/$slug/enroll"
+                      params={{ slug }}
+                      search={search}
+                      className={footLink}
+                    >
+                      {academy.enrollmentOpen ? "Enroll now" : "Packages"}
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      to="/a/$slug/rates"
+                      params={{ slug }}
+                      search={search}
+                      className={footLink}
+                    >
+                      Printable rates
+                    </Link>
+                  </li>
+                </>
+              ) : null}
+              {socials.map((k) => (
+                <li key={k}>
                   <a
-                    href={academy.mapUrl}
+                    href={academy.socials[k]}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={`${footLink} inline-flex items-start gap-1`}
+                    className={`${footLink} inline-flex items-center gap-1`}
                   >
-                    {academy.address}
-                    <ArrowUpRight aria-hidden className="mt-0.5 size-4 shrink-0" />
+                    {ACADEMY_SOCIAL_LABELS[k]}
+                    <ArrowUpRight aria-hidden className="size-4" />
                   </a>
-                ) : (
-                  academy.address
-                )}
-              </li>
-            ) : null}
-            {socials.map((k) => (
-              <li key={k}>
-                <a
-                  href={academy.socials[k]}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`${footLink} inline-flex items-center gap-1`}
-                >
-                  {ACADEMY_SOCIAL_LABELS[k]}
-                  <ArrowUpRight aria-hidden className="size-4" />
-                </a>
-              </li>
-            ))}
-          </FooterColumn>
-        ) : null}
-      </div>
-      <p
-        aria-hidden
-        className="mt-20 text-[clamp(3rem,10.5vw,9.5rem)] leading-[0.92] font-extrabold tracking-[-0.04em] break-words text-balance"
-      >
-        {academy.name}
-      </p>
-      <div className="mt-10 flex flex-wrap items-center justify-between gap-x-6 gap-y-4 border-t border-ivory-line pt-6">
-        <p className="text-[0.8125rem] text-ink-2">
-          © {academy.today.slice(0, 4)} {academy.name}
-        </p>
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-          <Link
-            to="/about"
-            className={`${tapArea} inline-flex items-center gap-2 rounded-full text-[0.8125rem] text-ink-2 outline-none hover:text-ink focus-visible:outline-2 focus-visible:outline-ink`}
-          >
-            <BallMark className="size-5" holes="#111111" />
-            Made with CoachMan
-          </Link>
-          <LegalLinks about={false} label="CoachMan policies" />
+                </li>
+              ))}
+            </ul>
+          </nav>
+        </div>
+        <div className="mt-9 flex flex-wrap items-center justify-between gap-x-6 gap-y-4 border-t border-white/15 pt-6">
+          <p className="text-[0.875rem] text-club-mist">
+            © {academy.today.slice(0, 4)} {academy.name}
+          </p>
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+            <Link
+              to="/about"
+              className={`${tapArea} inline-flex items-center gap-2 rounded-sm text-[0.875rem] text-club-mist outline-none hover:text-white`}
+            >
+              <BallMark className="size-5" holes="#0d1311" />
+              Made with CoachMan
+            </Link>
+            <LegalLinks tone="dark" about={false} label="CoachMan policies" />
+          </div>
         </div>
       </div>
     </footer>
@@ -428,8 +400,8 @@ export function SiteFooter({
 }
 
 /**
- * Every page of the academy's website: the ivory ground, the floating nav, the staff preview's
- * note, the page itself, and the footer.
+ * Every page of the academy's website: the nav, the staff preview's note, the page's panels, and
+ * the footer.
  */
 export function SiteFrame({
   page,
@@ -449,22 +421,24 @@ export function SiteFrame({
   const preview = page.kind === "preview";
   return (
     <div
-      className={`site-root min-h-dvh bg-ivory text-ink ${bar ? "pb-[calc(76px+env(safe-area-inset-bottom))] lg:pb-0" : ""}`}
+      className={`site-root min-h-dvh bg-club-ink text-club-ink ${bar ? "pb-[calc(76px+env(safe-area-inset-bottom))] lg:pb-0" : ""}`}
     >
       <a
         href="#main"
-        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-70 focus:rounded-full focus:bg-lime focus:px-5 focus:py-2.5 focus:font-semibold focus:text-ink"
+        className="sr-only [--focus:#fff] focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-70 focus:rounded-full focus:bg-club-ball focus:px-5 focus:py-2.5 focus:font-bold focus:text-club-ink"
       >
         Skip to the page
       </a>
       <SiteNav academy={academy} slug={slug} preview={preview} />
       {page.kind === "preview" ? (
-        <div className="mx-auto mt-3 max-w-[1100px] px-3 sm:px-6">
-          <PreviewBanner
-            page={current === "team" ? "team" : "academy"}
-            listed={page.academy.listed}
-            publicUrl={page.academy.publicUrl}
-          />
+        <div className="bg-club-deep px-3 pt-1 pb-3 lg:px-16">
+          <div className="mx-auto max-w-[1312px]">
+            <PreviewBanner
+              page={current === "team" ? "team" : "academy"}
+              listed={page.academy.listed}
+              publicUrl={page.academy.publicUrl}
+            />
+          </div>
         </div>
       ) : null}
       <main id="main">{children}</main>

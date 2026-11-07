@@ -11,15 +11,16 @@ import {
   Medal,
   Phone,
   Printer,
-  UsersRound,
 } from "lucide-react";
-import { type ReactNode, useEffect, useRef } from "react";
-import { buttonClass, tapArea } from "../../components/ui/button";
+import { type ReactNode, useEffect, useRef, useState } from "react";
+import { tapArea } from "../../components/ui/button";
 import type { Format } from "../../lib/format";
 import { TeamFace, TeamPortrait } from "./people";
 import { ContactBar, ProgramPlaceRows, useScrolledPast } from "./public-ui";
+import { FIELD, pillClass, RoundSticker, SkewLabel, Sticker, skewClass } from "./pubmat";
 import type { PublicPage } from "./queries";
-import { QuestionsBox, ScheduleText, SiteFrame } from "./site";
+import { ContactPanel, SiteFrame } from "./site";
+import { programWhen } from "./site-blocks";
 import {
   EVERYONE,
   type ProgramTeam,
@@ -38,7 +39,7 @@ function searchFor(program: string | undefined, preview: boolean) {
   };
 }
 
-/** Up to four faces of the people in a program (and how many more), overlapping, on its tile. */
+/** Up to four faces of the people in a program (and how many more), overlapping, on its tab. */
 function FaceStack({ people }: { people: PublicCoachDto[] }) {
   const shown = people.slice(0, 4);
   const more = people.length - shown.length;
@@ -50,7 +51,7 @@ function FaceStack({ people }: { people: PublicCoachDto[] }) {
       ))}
       {more > 0 ? (
         <span
-          className={`-ml-2 flex size-9 items-center justify-center rounded-full bg-night-3 text-[0.75rem] font-semibold text-night-ink ${ring}`}
+          className={`-ml-2 flex size-9 items-center justify-center rounded-full bg-club-ink text-[0.75rem] font-bold text-white ${ring}`}
         >
           +{more}
         </span>
@@ -60,10 +61,9 @@ function FaceStack({ people }: { people: PublicCoachDto[] }) {
 }
 
 /**
- * The programs as pills (phones) or dark list tiles (desktop: when each meets and who coaches it,
- * as faces; the chosen tile, lime, keeps only its name and faces, since its times show below), and
- * Everyone last. Choosing one swaps the canvas in a view transition (people who coach both glide
- * into place).
+ * The programs as sticker tabs (a sideways row on phones; on desktops a column of tabs, each with
+ * when it meets and who coaches it as faces, the chosen one lime), and Everyone last. Choosing
+ * one swaps the roster in a view transition (people who coach both glide into place).
  */
 function TeamPicker({
   teams,
@@ -82,13 +82,13 @@ function TeamPicker({
 }) {
   const list = useRef<HTMLUListElement>(null);
   const current = useRef<HTMLAnchorElement>(null);
-  // The phone's sideways row keeps the chosen pill in view. Only the row scrolls: the page never
+  // The phone's sideways row keeps the chosen tab in view. Only the row scrolls: the page never
   // moves, so a link to someone's space (#coach-…) keeps its place.
   useEffect(() => {
     const row = list.current;
-    const pill = current.current;
-    if (!row || !pill || row.scrollWidth <= row.clientWidth || !selected) return;
-    row.scrollTo({ left: Math.max(0, pill.offsetLeft - (row.clientWidth - pill.offsetWidth) / 2) });
+    const tab = current.current;
+    if (!row || !tab || row.scrollWidth <= row.clientWidth || !selected) return;
+    row.scrollTo({ left: Math.max(0, tab.offsetLeft - (row.clientWidth - tab.offsetWidth) / 2) });
   }, [selected]);
   const items = [
     ...teams.map((t) => ({
@@ -108,7 +108,7 @@ function TeamPicker({
     <nav aria-label="Programs">
       <ul
         ref={list}
-        className="relative -mx-5 flex scroll-px-5 gap-2 overflow-x-auto px-5 pb-1 [scrollbar-width:none] sm:-mx-6 sm:scroll-px-6 sm:px-6 lg:mx-0 lg:flex-col lg:overflow-visible lg:px-0"
+        className="relative -mx-5 flex scroll-px-5 gap-2.5 overflow-x-auto px-5 pt-1.5 pb-2 [scrollbar-width:none] lg:mx-0 lg:flex-col lg:overflow-visible lg:p-0"
       >
         {items.map((it) => {
           const on = it.id === selected;
@@ -123,16 +123,16 @@ function TeamPicker({
                 resetScroll={false}
                 viewTransition
                 aria-current={on ? "true" : undefined}
-                className={`flex h-11 items-center gap-3 rounded-full px-4 text-[0.9375rem] whitespace-nowrap outline-none transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime lg:h-auto lg:min-h-[4.25rem] lg:rounded-[24px] lg:py-3 lg:whitespace-normal ${
+                className={`flex min-h-12 items-center gap-3 rounded-[14px] border-[3px] border-white px-4 whitespace-nowrap outline-none transition-colors focus-visible:outline-[3px] focus-visible:outline-offset-[3px] lg:min-h-14 lg:py-2 lg:whitespace-normal ${
                   on
-                    ? "bg-lime text-ink [--tile:var(--color-lime)]"
-                    : "bg-night-2 text-night-ink [--tile:var(--color-night-2)] hover:bg-night-3 hover:[--tile:var(--color-night-3)]"
+                    ? "bg-club-ball text-club-ink [--tile:var(--color-club-ball)]"
+                    : "text-white [--tile:var(--color-club-deep)] hover:bg-white/10"
                 }`}
               >
                 <span className="min-w-0 flex-1">
-                  <span className="block">{it.label}</span>
+                  <span className="pm-d2 block text-[1.1875rem] font-black">{it.label}</span>
                   {it.meta && !on ? (
-                    <span className="num mt-0.5 hidden text-[0.8125rem] text-night-ink-2 lg:block">
+                    <span className="num mt-1 hidden text-[0.875rem] font-semibold text-club-mist lg:block">
                       {it.meta}
                     </span>
                   ) : null}
@@ -149,40 +149,44 @@ function TeamPicker({
   );
 }
 
-/** When the chosen program meets, on the dark block (the pill above names it). */
+/** When the chosen program meets, in lime numerals on the panel (the tab above names it). */
 function ProgramTimes({ program, fmt }: { program: PublicProgramDto; fmt: Format }) {
-  const lines = scheduleLines(program, fmt);
-  if (!lines.length) return null;
+  const when = programWhen(program, fmt);
+  const note = program.scheduleNote?.trim();
+  if (!when.length && !note) return null;
   return (
-    <div className="flex flex-col gap-1">
+    <div>
       <p className="sr-only">{program.name} meets</p>
-      {lines.map((l) => (
-        <p
-          key={l}
-          className="num text-[1.5rem] leading-tight font-light tracking-[-0.01em] sm:text-[1.75rem]"
-        >
-          <ScheduleText line={l} />
+      {when.length ? (
+        <p className="pm-d1 num text-[3.25rem] text-club-ball lg:text-[3.5rem]">
+          {when.map((w) => (
+            <span key={`${w.days}-${w.time}`} className="block">
+              <span className="block">{w.days}</span>
+              <span className="block whitespace-nowrap">{w.time}</span>
+            </span>
+          ))}
         </p>
-      ))}
+      ) : (
+        <p className="pm-d2 text-[1.75rem] text-club-ball">{note}</p>
+      )}
     </div>
   );
 }
 
 /**
- * Desktop: where the chosen program meets and when it next meets, under its times, as the academy
- * page's program pass shows them. Phones keep the block short so the first portrait starts at the
- * fold; the academy page carries them there.
+ * Desktop: where the chosen program meets and when it next meets, under its times. Phones keep
+ * the panel short so the first portrait starts at the fold; the landing page carries them there.
  */
 function ProgramPlace({ program, fmt }: { program: PublicProgramDto; fmt: Format }) {
   if (!programVenue(program) && !program.nextSessionAt) return null;
   return (
-    <dl className="hidden flex-col gap-3 text-[0.9375rem] lg:flex">
+    <dl className="hidden flex-col gap-3 text-[1rem] font-medium lg:flex">
       <ProgramPlaceRows program={program} fmt={fmt} />
     </dl>
   );
 }
 
-const panelLink = `${tapArea} rounded-sm underline decoration-night-ink-2 underline-offset-4 outline-none hover:decoration-night-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-lime`;
+const panelLink = `${tapArea} rounded-sm font-semibold underline decoration-2 underline-offset-4 outline-none hover:decoration-club-ball`;
 
 function PanelRow({
   icon: Icon,
@@ -196,7 +200,7 @@ function PanelRow({
   return (
     <div className="flex items-start gap-3">
       <dt className="sr-only">{term}</dt>
-      <Icon aria-hidden className="mt-0.5 size-4.5 shrink-0 text-night-ink-2" />
+      <Icon aria-hidden className="mt-0.5 size-5 shrink-0 text-club-ball" />
       <dd className="min-w-0">{children}</dd>
     </div>
   );
@@ -204,7 +208,7 @@ function PanelRow({
 
 /**
  * Desktop, on Everyone: the academy's contact details under its actions (the number shows on
- * screens that can't dial a Call button), as the academy page's Contact card lists them.
+ * screens that can't dial a Call button).
  */
 function AcademyContactRows({ academy }: { academy: PublicAcademyDto }) {
   const socials = ACADEMY_SOCIALS.filter((k) => academy.socials[k]);
@@ -212,7 +216,7 @@ function AcademyContactRows({ academy }: { academy: PublicAcademyDto }) {
   if (!phone && !academy.contactEmail && !academy.address && !socials.length) return null;
   const dial = phone?.replace(/[^\d+]/g, "");
   return (
-    <dl className="hidden flex-col gap-4 text-[0.9375rem] lg:flex">
+    <dl className="hidden flex-col gap-4 text-[1rem] lg:flex">
       {phone ? (
         <PanelRow icon={Phone} term="Phone">
           <span className="flex flex-wrap gap-x-4">
@@ -240,7 +244,7 @@ function AcademyContactRows({ academy }: { academy: PublicAcademyDto }) {
               href={academy.mapUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-1 inline-flex min-h-11 items-center gap-1.5 rounded-full text-[0.875rem] font-medium text-night-ink underline underline-offset-4"
+              className={`${panelLink} mt-1 inline-flex items-center gap-1.5`}
             >
               Open the map
               <ArrowUpRight aria-hidden className="size-4" />
@@ -279,9 +283,8 @@ function programAction(academy: PublicAcademyDto, program: PublicProgramDto | nu
 }
 
 /**
- * The dark block's actions: Enroll in the chosen program (to its packages on Enroll now, where
- * each has its own Enroll) while the academy takes requests, then the ways to reach it. The
- * first is lime; the rest are charcoal.
+ * The panel's actions: Enroll in the chosen program (to its packages on Enroll now, where each
+ * has its own Enroll) while the academy takes requests, then the ways to reach it.
  */
 function TeamActions({
   program,
@@ -314,27 +317,37 @@ function TeamActions({
           ? "Call"
           : a.label;
   if (!action && !primary) return null;
+  // Desktop: the main move takes the panel's width; Message and Call share the row under it.
+  const compact = "lg:min-h-11 lg:px-4";
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap items-center gap-2.5">
       {program && action ? (
         <Link
           to="/a/$slug/enroll"
           params={{ slug }}
           search={searchFor(program.id, preview)}
-          className={buttonClass(enroll ? "lime" : "night", "md")}
+          className={`${enroll ? skewClass("lime", "md") : pillClass("white")} lg:w-full`}
         >
-          {enroll ? "Enroll" : "See packages"}
-          <span className="sr-only"> in {program.name}</span>
-          <ArrowRight aria-hidden className="size-4.5" />
+          {enroll ? (
+            <SkewLabel>
+              Enroll<span className="sr-only"> in {program.name}</span>
+              <ArrowRight aria-hidden className="size-5" />
+            </SkewLabel>
+          ) : (
+            <>
+              See packages<span className="sr-only"> for {program.name}</span>
+              <ArrowRight aria-hidden className="size-5" />
+            </>
+          )}
         </Link>
       ) : null}
       {primary ? (
-        <a href={primary.href} className={buttonClass(enroll ? "night" : "lime", "md")}>
+        <a href={primary.href} className={pillClass(action ? "outline" : "white", compact)}>
           {contactLabel(primary)}
         </a>
       ) : null}
       {second ? (
-        <a href={second.href} className={buttonClass("night", "md")}>
+        <a href={second.href} className={pillClass("outline", compact)}>
           {contactLabel(second)}
         </a>
       ) : null}
@@ -345,17 +358,23 @@ function TeamActions({
 function Detail({ term, children }: { term: string; children: ReactNode }) {
   return (
     <div>
-      <dt className="text-[0.8125rem] text-ink-2">{term}</dt>
+      <dt className="text-[0.9375rem] font-bold">{term}</dt>
       <dd className="mt-2">{children}</dd>
     </div>
   );
 }
 
+/** "Coach Jerros" when the title is plain "Coach"; otherwise the name, with the title under it. */
+function coachHeading(person: PublicCoachDto) {
+  const plain = /^coach$/i.test(person.title?.trim() ?? "");
+  return { name: plain ? `Coach ${person.name}` : person.name, title: plain ? null : person.title };
+}
+
 /**
- * One person's space: the half-body portrait leads (full width on phones; beside the details from
- * md, where it stays in view along a long read), then name and title, the facts a parent weighs
- * (years, rating, languages), certifications, highlights, about, specialties, and the programs
- * they coach.
+ * One person's space, a white card on the tarp: the half-body portrait stuck on (full width on
+ * phones; beside the details from md, where it stays in view along a long read) with their DUPR
+ * as a sticker, then the name, the facts a parent weighs, certifications as stickers, highlights,
+ * about, specialties, and the programs they coach.
  */
 function CoachSpace({
   person,
@@ -375,73 +394,52 @@ function CoachSpace({
   preview: boolean;
 }) {
   const nameId = `coach-${person.id}-name`;
+  const { name, title } = coachHeading(person);
   const years = person.yearsCoaching;
-  const numbers = [
-    years ? { term: "Coaching", value: `${years} ${years === 1 ? "year" : "years"}` } : null,
-    person.duprRating != null ? { term: "DUPR rating", value: person.duprRating.toFixed(2) } : null,
-  ].filter((f): f is { term: string; value: string } => f !== null);
-  // The numbers pair in two columns; the languages (a list) and a lone number take the row.
   const facts = [
-    ...numbers.map((f) => ({ ...f, wide: numbers.length === 1 })),
-    ...(person.languages.length
-      ? [
-          {
-            term: person.languages.length === 1 ? "Language" : "Languages",
-            value: person.languages.join(", "),
-            wide: true,
-          },
-        ]
-      : []),
-  ];
+    years ? `${years} ${years === 1 ? "year" : "years"} coaching` : null,
+    person.languages.length ? person.languages.join(", ") : null,
+  ].filter((f): f is string => Boolean(f));
   return (
-    <li id={`coach-${person.id}`} className="scroll-mt-4">
+    <li id={`coach-${person.id}`} className="scroll-mt-20">
       <article
         aria-labelledby={nameId}
-        className="overflow-clip rounded-[28px] bg-ivory ring-[1.5px] ring-ivory-line ring-inset md:grid md:grid-cols-[minmax(0,17.5rem)_minmax(0,1fr)] md:gap-1 md:p-2 lg:grid-cols-[minmax(0,15rem)_minmax(0,1fr)]"
+        className="rounded-2xl bg-white p-4 text-club-ink [--focus:var(--color-club-ink)] sm:p-5 md:grid md:grid-cols-[minmax(0,17.5rem)_minmax(0,1fr)] md:gap-6 lg:grid-cols-[minmax(0,15rem)_minmax(0,1fr)]"
       >
-        <div className="md:sticky md:top-[100px] md:self-start">
-          <TeamPortrait
-            person={person}
-            size="lg"
-            transition
-            priority={first}
-            className="md:rounded-[22px]"
-          />
+        <div className="relative md:sticky md:top-[88px] md:self-start">
+          <span className="block [rotate:-1.5deg] overflow-hidden rounded-[14px] border-[6px] border-white bg-white ring-1 ring-club-ink/10">
+            <TeamPortrait person={person} size="lg" transition priority={first} />
+          </span>
+          {person.duprRating != null ? (
+            <RoundSticker
+              label={`DUPR rating ${person.duprRating.toFixed(2)}`}
+              top="DUPR"
+              figure={person.duprRating.toFixed(2)}
+              tone="lime"
+              rot={-8}
+              className="absolute -top-3 -left-2 z-[2] w-[104px] text-[0.8125rem]"
+            />
+          ) : null}
         </div>
-        <div className="flex min-w-0 flex-col gap-5 p-5 sm:p-6 md:py-4">
+        <div className="flex min-w-0 flex-col gap-5 pt-6 md:pt-1">
           <header>
-            <h3
-              id={nameId}
-              className="font-display text-[2rem] leading-tight tracking-[-0.01em] break-words"
-            >
-              {person.name}
+            <h3 id={nameId} className="pm-d1 text-[3.25rem] break-words lg:text-[3.5rem]">
+              {name}
             </h3>
-            {person.title ? (
-              <p className="mt-1 text-[0.9375rem] text-ink-2">{person.title}</p>
-            ) : null}
-            {lead ? (
-              <p className="mt-3">
-                <span className="inline-flex h-7 items-center rounded-full bg-violet px-3 text-[0.8125rem] font-medium text-ink">
-                  Program lead
-                </span>
+            {title ? <p className="pm-d2 mt-2 text-[1.375rem]">{title}</p> : null}
+            {lead || facts.length ? (
+              <p className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
+                {lead ? (
+                  <Sticker tone="lime" rot={-3} className="border-club-ink text-[0.9375rem]">
+                    Program lead
+                  </Sticker>
+                ) : null}
+                {facts.length ? (
+                  <span className="text-[1.125rem] font-semibold">{facts.join(" · ")}</span>
+                ) : null}
               </p>
             ) : null}
           </header>
-          {facts.length ? (
-            <dl className="grid grid-cols-2 gap-2">
-              {facts.map((f) => (
-                <div
-                  key={f.term}
-                  className={`rounded-[18px] bg-ivory-2 px-4 py-3 ${f.wide ? "col-span-2" : ""}`}
-                >
-                  <dt className="text-[0.8125rem] text-ink-2">{f.term}</dt>
-                  <dd className="num mt-0.5 text-[1.375rem] leading-tight font-light tracking-[-0.01em] break-words">
-                    {f.value}
-                  </dd>
-                </div>
-              ))}
-            </dl>
-          ) : null}
           {person.certifications.length ||
           person.highlights.length ||
           person.bio ||
@@ -450,13 +448,16 @@ function CoachSpace({
             <dl className="flex flex-col gap-5">
               {person.certifications.length ? (
                 <Detail term="Certifications">
-                  <ul className="flex flex-wrap gap-1.5">
-                    {person.certifications.map((c) => (
-                      <li
-                        key={c}
-                        className="inline-flex min-h-7 items-center rounded-full px-3 py-1 text-[0.8125rem] font-medium text-ink ring-[1.5px] ring-ink ring-inset"
-                      >
-                        {c}
+                  <ul className="flex flex-wrap gap-2.5 pt-1">
+                    {person.certifications.map((c, i) => (
+                      <li key={c}>
+                        <Sticker
+                          tone="blue"
+                          rot={i % 2 ? 3 : -3}
+                          className="border-club-ink/10 text-[1.125rem] normal-case"
+                        >
+                          {c}
+                        </Sticker>
                       </li>
                     ))}
                   </ul>
@@ -466,11 +467,9 @@ function CoachSpace({
                 <Detail term="Highlights">
                   <ul className="flex flex-col gap-2.5">
                     {person.highlights.map((h) => (
-                      <li key={h} className="flex items-start gap-3">
-                        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-ivory-2">
-                          <Medal aria-hidden className="size-4" />
-                        </span>
-                        <span className="pt-1 text-[0.9375rem]">{h}</span>
+                      <li key={h} className="flex items-start gap-3 text-[1.0625rem] font-semibold">
+                        <Medal aria-hidden className="mt-0.5 size-5 shrink-0 text-club" />
+                        <span>{h}</span>
                       </li>
                     ))}
                   </ul>
@@ -478,16 +477,18 @@ function CoachSpace({
               ) : null}
               {person.bio ? (
                 <Detail term="About">
-                  <p className="max-w-[65ch] text-[0.9375rem] whitespace-pre-line">{person.bio}</p>
+                  <p className="max-w-[65ch] text-[1.0625rem] leading-relaxed whitespace-pre-line">
+                    {person.bio}
+                  </p>
                 </Detail>
               ) : null}
               {person.specialties.length ? (
                 <Detail term="Specialties">
-                  <ul className="flex flex-wrap gap-1.5">
+                  <ul className="flex flex-wrap gap-2">
                     {person.specialties.map((s) => (
                       <li
                         key={s}
-                        className="inline-flex h-6 items-center rounded-full px-2.5 text-[0.75rem] font-medium text-ink-2 ring-1 ring-ivory-line"
+                        className="rounded-md border-[1.5px] border-club-ink/70 px-2.5 pt-[5px] pb-1.5 text-[0.9375rem] leading-tight font-bold"
                       >
                         {s}
                       </li>
@@ -503,7 +504,7 @@ function CoachSpace({
                         <li
                           key={p.id}
                           aria-current="true"
-                          className="inline-flex h-9 items-center rounded-full bg-ivory-2 px-3.5 text-[0.875rem] font-medium"
+                          className="inline-flex min-h-11 items-center rounded-full bg-club-ball px-4 text-[1rem] font-bold"
                         >
                           {p.name}
                         </li>
@@ -515,7 +516,7 @@ function CoachSpace({
                             search={searchFor(p.id, preview)}
                             hash={`coach-${person.id}`}
                             viewTransition
-                            className={buttonClass("outline", "sm")}
+                            className={pillClass("outlineInk", "min-h-11")}
                           >
                             {p.name}
                           </Link>
@@ -534,8 +535,8 @@ function CoachSpace({
 }
 
 /**
- * Everyone else: on phones a sideways reel of tall portraits (the next one peeking), from `sm` a
- * compact grid; each opens their own space.
+ * Everyone else, on a white card: on phones a sideways row of photo stickers (the next one
+ * peeking), from `sm` a compact grid; each opens their own space.
  */
 function AlsoOnTheTeam({
   people,
@@ -549,31 +550,33 @@ function AlsoOnTheTeam({
   return (
     <section
       aria-labelledby="also-title"
-      className="rounded-[28px] bg-ivory py-5 ring-[1.5px] ring-ivory-line ring-inset sm:p-6"
+      className="rounded-2xl bg-white py-5 text-club-ink [--focus:var(--color-club-ink)] sm:p-6"
     >
-      <h2
-        id="also-title"
-        className="px-5 font-display text-[2rem] leading-tight tracking-[-0.01em] sm:px-0"
-      >
+      <h2 id="also-title" className="pm-d1 px-5 text-[2.75rem] sm:px-0">
         Also on the team
       </h2>
-      <ul className="mt-4 flex snap-x snap-mandatory scroll-px-5 gap-3 overflow-x-auto px-5 pb-1 [scrollbar-width:none] sm:grid sm:grid-cols-[repeat(auto-fill,minmax(8.5rem,1fr))] sm:gap-y-5 sm:overflow-visible sm:px-0">
-        {people.map((p) => (
-          <li key={p.id} className="w-[85%] shrink-0 snap-start sm:w-auto">
+      <ul className="mt-5 flex snap-x snap-mandatory scroll-px-5 gap-4 overflow-x-auto px-5 pt-1 pb-2 [scrollbar-width:none] sm:grid sm:grid-cols-[repeat(auto-fill,minmax(8.5rem,1fr))] sm:gap-y-6 sm:overflow-visible sm:px-0">
+        {people.map((p, i) => (
+          <li key={p.id} className="w-[70%] shrink-0 snap-start sm:w-auto">
             <Link
               to="/a/$slug/team"
               params={{ slug }}
               search={searchFor(EVERYONE, preview)}
               hash={`coach-${p.id}`}
               viewTransition
-              className="group block rounded-[20px] outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+              className="group block rounded-[14px] outline-none focus-visible:outline-[3px] focus-visible:outline-offset-4 focus-visible:outline-club-ink"
             >
-              <TeamPortrait person={p} size="reel" transition className="rounded-[20px]" />
-              <span className="mt-2 block text-[0.9375rem] leading-tight font-medium underline-offset-4 group-hover:underline">
+              <span
+                className="block overflow-hidden rounded-[14px] border-[6px] border-white ring-1 ring-club-ink/10"
+                style={{ rotate: `${i % 2 ? 1.5 : -1.5}deg` }}
+              >
+                <TeamPortrait person={p} size="reel" transition />
+              </span>
+              <span className="mt-3 block text-[1.0625rem] leading-tight font-bold underline-offset-4 group-hover:underline">
                 {p.name}
               </span>
               {p.title ? (
-                <span className="mt-0.5 block text-[0.8125rem] text-ink-2">{p.title}</span>
+                <span className="mt-0.5 block text-[0.9375rem] text-club-ink/75">{p.title}</span>
               ) : null}
             </Link>
           </li>
@@ -584,11 +587,35 @@ function AlsoOnTheTeam({
 }
 
 /**
+ * Desktop: the panel sticks under the nav only while all of it fits on screen. Taller (a short
+ * laptop, many programs), it scrolls away with the page, so nothing in it is ever cut off.
+ */
+function usePanelFits() {
+  const ref = useRef<HTMLElement>(null);
+  const [fits, setFits] = useState(true);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    // The nav's 88px above it, and a little air below.
+    const check = () => setFits(el.offsetHeight <= window.innerHeight - 104);
+    check();
+    const observer = new ResizeObserver(check);
+    observer.observe(el);
+    window.addEventListener("resize", check);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", check);
+    };
+  }, []);
+  return [ref, fits] as const;
+}
+
+/**
  * "Meet the team" (Persuade, phone-first): parents meet coaches through the program their child
- * will join. The dark block holds the academy, the programs (`?program=`, Everyone last), when the
- * chosen one meets (on desktop also where, and its next session), and Enroll; on Everyone, desktop
- * adds the academy's contact details. The canvas gives each of its coaches a space led by a
- * half-body portrait, then the rest of the team, and on phones closes on Enroll again.
+ * will join. On the tarp, the deep-green panel holds the programs as sticker tabs (`?program=`,
+ * Everyone last), when the chosen one meets (on desktop also where, and its next session), and
+ * Enroll; on Everyone, desktop adds the academy's contact details. Each coach gets a white card
+ * led by their portrait, then the rest of the team; on phones the roster closes on Enroll again.
  */
 export function TeamPage({
   page,
@@ -610,6 +637,7 @@ export function TeamPage({
   const action = programAction(academy, program);
   const actions = contactActions(academy);
   const [actionsRef, barShown] = useScrolledPast(actions.length > 0);
+  const [panel, fits] = usePanelFits();
   return (
     <SiteFrame
       page={page}
@@ -621,121 +649,124 @@ export function TeamPage({
         ) : undefined
       }
     >
-      <div className="mx-auto max-w-[1100px] px-3 pt-4 sm:px-6 lg:grid lg:grid-cols-[minmax(0,340px)_minmax(0,1fr)] lg:gap-4 lg:pt-10 xl:grid-cols-[minmax(0,360px)_minmax(0,1fr)]">
-        <aside className="dark-zone flex flex-col gap-6 rounded-[32px] bg-night px-5 pt-7 pb-7 text-night-ink sm:px-6 lg:sticky lg:top-[100px] lg:max-h-[calc(100dvh-116px)] lg:self-start lg:overflow-y-auto lg:p-6">
-          <h1 className="font-display text-[2.5rem] leading-[1.02] tracking-[-0.02em] lg:text-[3rem]">
-            Meet the team
-          </h1>
-          {teams.length ? (
-            <TeamPicker
-              teams={teams}
-              everyone={academy.coaches}
-              selected={program?.id ?? EVERYONE}
-              slug={slug}
-              preview={preview}
-              fmt={fmt}
-            />
-          ) : null}
-          {program ? <ProgramTimes program={program} fmt={fmt} /> : null}
-          {program ? <ProgramPlace program={program} fmt={fmt} /> : null}
-          <div ref={actionsRef}>
-            <TeamActions
-              program={program}
-              action={action}
-              actions={actions}
-              slug={slug}
-              preview={preview}
-            />
-          </div>
-          {program ? null : <AcademyContactRows academy={academy} />}
-          {academy.packages.length ? (
-            <div className="mt-auto hidden border-t border-night-line pt-5 lg:block">
-              <Link
-                to="/a/$slug/rates"
-                params={{ slug }}
-                search={searchFor(undefined, preview)}
-                className={buttonClass("night", "md")}
-              >
-                <Printer aria-hidden className="size-4.5" />
-                Printable rates
-              </Link>
+      <div className={`relative overflow-clip ${FIELD.green}`}>
+        <div className="relative z-[1] mx-auto max-w-[1440px] px-3 pt-4 pb-14 sm:px-5 lg:grid lg:grid-cols-[minmax(0,360px)_minmax(0,1fr)] lg:gap-6 lg:px-16 lg:pt-10 lg:pb-24">
+          <aside
+            ref={panel}
+            className={`pm-dark flex flex-col gap-6 rounded-[22px] bg-club-deep px-5 pt-7 pb-7 text-white sm:px-6 lg:gap-5 lg:self-start lg:p-6 ${fits ? "lg:sticky lg:top-[88px]" : ""}`}
+          >
+            <h1 className="pm-d1 text-[3.75rem] lg:text-[3.125rem] lg:whitespace-nowrap">
+              Meet the team
+            </h1>
+            {teams.length ? (
+              <TeamPicker
+                teams={teams}
+                everyone={academy.coaches}
+                selected={program?.id ?? EVERYONE}
+                slug={slug}
+                preview={preview}
+                fmt={fmt}
+              />
+            ) : null}
+            {program ? <ProgramTimes program={program} fmt={fmt} /> : null}
+            {program ? <ProgramPlace program={program} fmt={fmt} /> : null}
+            <div ref={actionsRef}>
+              <TeamActions
+                program={program}
+                action={action}
+                actions={actions}
+                slug={slug}
+                preview={preview}
+              />
             </div>
-          ) : null}
-        </aside>
+            {program ? null : <AcademyContactRows academy={academy} />}
+            {academy.packages.length ? (
+              <div className="mt-auto hidden border-t border-white/20 pt-4 lg:block">
+                <Link
+                  to="/a/$slug/rates"
+                  params={{ slug }}
+                  search={searchFor(undefined, preview)}
+                  className={`${panelLink} inline-flex items-center gap-2`}
+                >
+                  <Printer aria-hidden className="size-5" />
+                  Printable rates
+                </Link>
+              </div>
+            ) : null}
+          </aside>
 
-        <div className="flex min-w-0 flex-col gap-4 pt-8 lg:pt-0">
-          {people.length ? (
-            <section aria-labelledby="team-title" className="flex flex-col gap-3">
-              <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-3 px-1">
+          <div className="flex min-w-0 flex-col gap-5 pt-8 lg:pt-0">
+            {people.length ? (
+              <section aria-labelledby="team-title" className="flex flex-col gap-5">
+                <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-2 px-1 text-white">
+                  <h2
+                    id="team-title"
+                    className="pm-d1 scroll-mt-20 text-[3.25rem] lg:text-[4.5rem]"
+                  >
+                    {program ? `${program.name} coaches` : "The whole team"}
+                  </h2>
+                  <p className="num text-[1.25rem] font-bold">
+                    {view.kind === "program"
+                      ? teamCountLine(view.team)
+                      : `${people.length} ${people.length === 1 ? "person" : "people"}`}
+                  </p>
+                </div>
+                <ol className="flex flex-col gap-5">
+                  {people.map((p, i) => (
+                    <CoachSpace
+                      key={p.id}
+                      person={p}
+                      lead={view.kind === "program" && view.team.leadId === p.id}
+                      programs={programsOf(teams, p.id)}
+                      current={program?.id ?? null}
+                      first={i === 0}
+                      slug={slug}
+                      preview={preview}
+                    />
+                  ))}
+                </ol>
+              </section>
+            ) : (
+              <section
+                aria-labelledby="team-title"
+                className="rounded-2xl bg-white p-6 text-club-ink [--focus:var(--color-club-ink)]"
+              >
                 <h2
                   id="team-title"
-                  className="scroll-mt-28 font-display text-[2.5rem] leading-[1.05] tracking-[-0.02em] lg:text-[3rem]"
+                  className="pm-sticker pm-d1 block w-fit max-w-full rounded-[18px] bg-club-ball px-[0.28em] pt-[0.2em] pb-[0.14em] text-[2.75rem] leading-[0.86] whitespace-normal text-club-ink"
+                  style={{ rotate: "-3deg" }}
                 >
-                  {program ? `${program.name} coaches` : "The whole team"}
+                  The team is on its way
                 </h2>
-                <p className="num text-[0.875rem] text-ink-2">
-                  {view.kind === "program"
-                    ? teamCountLine(view.team)
-                    : `${people.length} ${people.length === 1 ? "person" : "people"}`}
+                <p className="mt-5 max-w-[60ch] text-[1.125rem] font-semibold">
+                  {academy.name} hasn't added its coaches here yet.
+                  {actions.length ? " Message or call them to ask." : ""}
                 </p>
-              </div>
-              <ol className="flex flex-col gap-3">
-                {people.map((p, i) => (
-                  <CoachSpace
-                    key={p.id}
-                    person={p}
-                    lead={view.kind === "program" && view.team.leadId === p.id}
-                    programs={programsOf(teams, p.id)}
-                    current={program?.id ?? null}
-                    first={i === 0}
-                    slug={slug}
-                    preview={preview}
-                  />
-                ))}
-              </ol>
-            </section>
-          ) : (
-            <section
-              aria-labelledby="team-title"
-              className="rounded-[28px] bg-ivory p-5 ring-[1.5px] ring-ivory-line ring-inset sm:p-6"
-            >
-              <div className="flex size-12 items-center justify-center rounded-full bg-lime text-ink">
-                <UsersRound aria-hidden className="size-5" />
-              </div>
-              <h2
-                id="team-title"
-                className="mt-3 font-display text-[2rem] leading-tight tracking-[-0.01em]"
+              </section>
+            )}
+
+            {view.kind === "program" && view.others.length ? (
+              <AlsoOnTheTeam people={view.others} slug={slug} preview={preview} />
+            ) : null}
+
+            {program && action === "enroll" ? (
+              // Phones: the decision comes after meeting the coaches, so Enroll closes the roster.
+              <Link
+                to="/a/$slug/enroll"
+                params={{ slug }}
+                search={searchFor(program.id, preview)}
+                className={`${skewClass("ink", "lg")} w-full lg:hidden`}
               >
-                The team is on its way
-              </h2>
-              <p className="mt-2 max-w-[60ch] text-ink-2">
-                {academy.name} hasn't added its coaches here yet.
-                {actions.length ? " Message or call them to ask." : ""}
-              </p>
-            </section>
-          )}
-
-          {view.kind === "program" && view.others.length ? (
-            <AlsoOnTheTeam people={view.others} slug={slug} preview={preview} />
-          ) : null}
-
-          {program && action === "enroll" ? (
-            // Phones: the decision comes after meeting the coaches, so Enroll closes the roster.
-            <Link
-              to="/a/$slug/enroll"
-              params={{ slug }}
-              search={searchFor(program.id, preview)}
-              className={buttonClass("dark", "lg", "w-full lg:hidden")}
-            >
-              Enroll in {program.name}
-              <ArrowRight aria-hidden className="size-5" />
-            </Link>
-          ) : null}
+                <SkewLabel>
+                  Enroll in {program.name}
+                  <ArrowRight aria-hidden className="size-[22px]" />
+                </SkewLabel>
+              </Link>
+            ) : null}
+          </div>
         </div>
       </div>
-      <div className="pt-20 sm:pt-28">
-        <QuestionsBox academy={academy} />
-      </div>
+      <ContactPanel academy={academy} />
     </SiteFrame>
   );
 }

@@ -10,7 +10,7 @@ export { UNIFORM_WORDS };
 /**
  * One package tier as families see it, on the public page and in the staff editor's preview:
  * price per head, sessions, validity, what's included, who it's for. The tier the academy
- * features is the lime card. `enroll` is where WS4b puts the Enroll button.
+ * features is the lime card. `enroll` is where the portal puts the Enroll button.
  */
 export function TierCard({
   tier,
@@ -24,11 +24,8 @@ export function TierCard({
   fmt: Format;
   headingLevel?: 2 | 3 | 4;
   enroll?: ReactNode;
-  /**
-   * The card's own tone when it isn't the featured tier: white, panel grey on white, or ivory with
-   * a ruled edge (the academy's website).
-   */
-  surface?: "card" | "panel" | "ivory";
+  /** The card's own tone when it isn't the featured tier: white, or panel grey on white. */
+  surface?: "card" | "panel";
   className?: string;
 }) {
   const Heading = `h${headingLevel}` as "h2" | "h3" | "h4";
@@ -36,20 +33,8 @@ export function TierCard({
   const headingId = `tier-${tier.id}`;
   const quiet = featured ? "text-ink/75" : "text-ink-2";
   const inclusions = tierInclusions(tier);
-  const tone = featured
-    ? "bg-lime"
-    : surface === "ivory"
-      ? "bg-ivory ring-[1.5px] ring-ivory-line ring-inset"
-      : surface === "panel"
-        ? "bg-panel"
-        : "bg-card";
-  const well = featured
-    ? "bg-white/45"
-    : surface === "ivory"
-      ? "bg-ivory-2"
-      : surface === "panel"
-        ? "bg-card"
-        : "bg-panel";
+  const tone = featured ? "bg-lime" : surface === "panel" ? "bg-panel" : "bg-card";
+  const well = featured ? "bg-white/45" : surface === "panel" ? "bg-card" : "bg-panel";
   return (
     <article
       aria-labelledby={headingId}

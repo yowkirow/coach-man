@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { BallMark } from "../../components/brand";
+import { tapArea } from "../../components/ui/button";
 import { publicFileUrl } from "../../lib/api";
 import { type Format, initials } from "../../lib/format";
 import { LegalLinks } from "../public-info/legal-links";
@@ -76,8 +77,8 @@ function contactPair(actions: ContactAction[]): ContactAction[] {
 }
 
 /**
- * Where a program meets (with directions) and when it next meets, as rows of a `dl` on the dark
- * block: the program pass here, and the team page's panel.
+ * Where a program meets (with directions) and when it next meets, as rows of a `dl` on the team
+ * page's deep-green panel.
  */
 export function ProgramPlaceRows({ program, fmt }: { program: PublicProgramDto; fmt: Format }) {
   const venue = programVenue(program);
@@ -86,15 +87,15 @@ export function ProgramPlaceRows({ program, fmt }: { program: PublicProgramDto; 
       {venue ? (
         <div className="flex items-start gap-3">
           <dt className="sr-only">Where</dt>
-          <MapPin aria-hidden className="mt-0.5 size-4.5 shrink-0 text-night-ink-2" />
+          <MapPin aria-hidden className="mt-0.5 size-5 shrink-0 text-club-ball" />
           <dd className="min-w-0">
             <span className="block">{venue.name}</span>
-            {venue.address ? <span className="block text-night-ink-2">{venue.address}</span> : null}
+            {venue.address ? <span className="block text-club-mist">{venue.address}</span> : null}
             <a
               href={directionsUrl(venue)}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-1 inline-flex min-h-11 items-center gap-1.5 rounded-full text-[0.875rem] font-medium text-night-ink underline underline-offset-4"
+              className={`${tapArea} mt-1 inline-flex items-center gap-1.5 rounded-sm text-[0.9375rem] font-semibold underline decoration-2 underline-offset-4 outline-none hover:decoration-club-ball`}
             >
               Directions
               <ArrowUpRight aria-hidden className="size-4" />
@@ -105,7 +106,7 @@ export function ProgramPlaceRows({ program, fmt }: { program: PublicProgramDto; 
       {program.nextSessionAt ? (
         <div className="flex items-start gap-3">
           <dt className="sr-only">Next session</dt>
-          <CalendarClock aria-hidden className="mt-0.5 size-4.5 shrink-0 text-night-ink-2" />
+          <CalendarClock aria-hidden className="mt-0.5 size-5 shrink-0 text-club-ball" />
           <dd className="num">
             Next session {fmt.day(fmt.dayOf(program.nextSessionAt))} ·{" "}
             {fmt.time(program.nextSessionAt)}
@@ -214,7 +215,7 @@ export function ContactBar({
     <nav
       aria-label={`Contact ${academyName}`}
       inert={!shown}
-      className={`dark-zone fixed inset-x-3 bottom-[calc(12px+env(safe-area-inset-bottom))] z-40 rounded-full bg-night p-1.5 shadow-pop transition-[translate,opacity] duration-200 ease-out lg:hidden ${
+      className={`pm-dark fixed inset-x-3 bottom-[calc(12px+env(safe-area-inset-bottom))] z-40 rounded-[18px] bg-club-deep p-1.5 ring-2 ring-white transition-[translate,opacity] duration-200 ease-out lg:hidden ${
         shown ? "" : "pointer-events-none translate-y-[calc(100%+24px)] opacity-0"
       }`}
     >
@@ -223,8 +224,8 @@ export function ContactBar({
           <li key={a.id} className="min-w-0 flex-1">
             <a
               href={a.href}
-              className={`flex h-12 w-full items-center justify-center gap-2 rounded-full text-[0.9375rem] font-medium outline-none focus-visible:outline-2 focus-visible:outline-lime ${
-                i === 0 ? "bg-lime text-ink" : "bg-night-3 text-night-ink"
+              className={`flex h-12 w-full items-center justify-center gap-2 rounded-[12px] text-[1rem] font-bold outline-none focus-visible:outline-[3px] ${
+                i === 0 ? "bg-club-ball text-club-ink" : "bg-white/12 text-white"
               }`}
             >
               {actionIcon[a.id]}

@@ -63,7 +63,7 @@ Success means an academy can run a full week of lessons, clinics, and camps with
 
 - Name: **CoachMan**, short for "coach manager".
 - Pickleball is the launch sport; the name and product must still work when other sports are added.
-- An academy brings its own name and logo to its public page and family portal; the CoachMan system itself is never recolored.
+- An academy brings its own name and logo to its family portal, and its public website wears its own identity: the club's colors, with CoachMan only as a small "Made with CoachMan" credit. The CoachMan app and portal themselves are never recolored.
 - Visual register: **pinned by the user to a reference**: Dribbble shot "Microsoft Dynamics CRM – Lead Relationship Management Platform" by Jack R. for RonDesignLab (https://dribbble.com/shots/23069967). That means:
   - a black rounded panel holding an icon rail and a dark list column (KPI tiles, dark list cards, the selected card in lime)
   - a soft gray canvas with white rounded cards

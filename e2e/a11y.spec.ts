@@ -56,6 +56,10 @@ async function seriousViolations(page: import("@playwright/test").Page) {
     ]);
   });
   const results = await new AxeBuilder({ page })
+    // React Aria's live announcer is assistive-technology plumbing, not page content. It announces
+    // a pending button through a short-lived role="img" node labelled by that button, which axe
+    // flags once the button is gone (after a request is sent, say), whenever the node lands.
+    .exclude("[data-live-announcer]")
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
     .analyze();
   return results.violations
@@ -454,11 +458,6 @@ test.describe("accessibility of enrolling", () => {
     await check("review");
     await page.getByRole("button", { name: "Send request" }).click();
     await expect(page.getByRole("heading", { name: "Request sent" })).toBeVisible();
-    // React Aria announces the send button's pending state through a short-lived node in its
-    // live region (role="img", labelled by the button, which is gone now); it clears itself.
-    await expect(page.locator('[data-live-announcer] [role="img"]')).toHaveCount(0, {
-      timeout: 15_000,
-    });
     await check("sent");
     await visit(page, "/my/enroll");
     await expect(page.getByRole("heading", { name: "Enroll", level: 1 })).toBeVisible();

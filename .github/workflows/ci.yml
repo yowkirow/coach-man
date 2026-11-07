@@ -50,6 +50,10 @@ jobs:
             echo "GOOGLE_CLIENT_SECRET=ci"
             echo "E2E_AUTH_BYPASS=1"
             echo "E2E_BYPASS_SECRET=${E2E_BYPASS_SECRET}"
+            # Throwaway Web Push keys for this run only: without them push is off, and the
+            # family reminders specs (and their axe checks) need it on.
+            node scripts/vapid.mjs | grep '^VAPID_'
+            echo "VAPID_SUBJECT=mailto:ci@coachman.test"
           } > .dev.vars
       - run: npm run db:migrate:local
       - run: npm run build

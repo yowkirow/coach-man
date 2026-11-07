@@ -9,7 +9,7 @@ import type {
   TeamDto,
   TodayDto,
 } from "../src/shared/api-types";
-import { addMember, expect, test, testEmail, visit, watchErrors } from "./support";
+import { addMember, expect, test, testEmail, toggle, visit, watchErrors } from "./support";
 
 // Coaching in an academy: who coaches each student (with history and handoff notes), who leads
 // each session ("Mine / Everyone"), and notes that stay with the coaches unless shared.
@@ -43,8 +43,12 @@ test.describe("coaching", () => {
     await sheet.getByRole("button", { name: /Primary coach/ }).click();
     await page.getByRole("option", { name: /Sam Rivera/ }).click();
     await expect(sheet.getByRole("button", { name: /Primary coach/ })).toContainText("Sam Rivera");
+    // The picker closes first: a tap during its exit animation lands on it instead.
+    await expect(page.getByRole("listbox")).toHaveCount(0);
     // The owner stays on as an assistant.
-    await sheet.getByRole("checkbox", { name: /Robin Coach/ }).check({ force: true });
+    const assistant = sheet.getByRole("checkbox", { name: /Robin Coach/ });
+    await toggle(assistant);
+    await expect(assistant).toBeChecked();
     await sheet.getByRole("button", { name: "Save coaches" }).click();
 
     const handoff = page.getByRole("dialog", { name: "Write a handoff note?" });

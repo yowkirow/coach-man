@@ -532,7 +532,7 @@ test.describe("family reminders", () => {
     expect(off.json).toEqual({ staff: true, family: false });
   });
 
-  test("owners and admins hear about new enrollment requests and payment proofs; coaches don't", async ({
+  test("owners, admins, and the front desk hear about new enrollment requests and payment proofs; coaches don't", async ({
     seeded,
     personas,
   }, info) => {
@@ -543,7 +543,7 @@ test.describe("family reminders", () => {
     const ownerId = await userIdOf(seeded.request);
     await subscribeStaff(seeded.api);
 
-    const staff = async (role: "admin" | "coach", name: string) => {
+    const staff = async (role: "admin" | "front_desk" | "coach", name: string) => {
       const email = testEmail(`push-${role}`, info);
       const added = await addMember(seeded.request, { email, name, role });
       const session = await personas.open({ email, name, persona: "none" });
@@ -551,6 +551,7 @@ test.describe("family reminders", () => {
       return { ...added, ...session };
     };
     const admin = await staff("admin", "Ari Admin");
+    const desk = await staff("front_desk", "Dana Desk");
     const coach = await staff("coach", "Casey Coach");
     const quietAdmin = await staff("admin", "Quinn Admin");
     // "Enrollments & payments" off in the staff app's notification settings.
@@ -585,6 +586,7 @@ test.describe("family reminders", () => {
     expect(toOwner?.payload.body).toContain("Mia");
     expect(toOwner?.payload.body).not.toContain("Santos");
     await pushes(seeded.request, admin.userId, isRequest);
+    await pushes(seeded.request, desk.userId, isRequest);
 
     const detail = await seeded.api.post<EnrollmentDetailDto>(
       `/enrollments/${sent.request.id}/approve`,
@@ -605,6 +607,7 @@ test.describe("family reminders", () => {
     });
     expect(`${proofToOwner?.payload.title} ${proofToOwner?.payload.body}`).not.toMatch(/\d/);
     await pushes(seeded.request, admin.userId, isProof);
+    await pushes(seeded.request, desk.userId, isProof);
 
     await settle();
     expect((await sinkOf(seeded.request, coach.userId)).items).toEqual([]);

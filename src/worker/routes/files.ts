@@ -51,7 +51,7 @@ export const fileRoutes = new Hono<AppBindings>()
   .get("/files/*", async (c) => {
     const key = decodeURIComponent(new URL(c.req.url).pathname.replace(/^\/api\/v1\/files\//, ""));
     if (!key.startsWith(`ws/${c.var.workspaceId}/`) || key.includes("..")) throw notFound("File");
-    // Payment proofs are money: owner and admins (money or enrollment review) only.
+    // Payment proofs are money: roles with `money` or `enrollment` (owners, admins, front desk).
     if (
       PAYMENT_PROOF_KEY.test(key) &&
       !can(c.var.role, "money") &&

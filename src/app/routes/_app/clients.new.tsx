@@ -25,7 +25,7 @@ import { normPhone } from "../../features/clients/client-utils";
 import { ClientWorklist } from "../../features/clients/worklist";
 import { api, errorMessage, fieldErrors } from "../../lib/api";
 import { fullName, useFormat } from "../../lib/format";
-import { useCan, useClients, useCoaches, useHasTeam, useMe } from "../../lib/hooks";
+import { useCan, useClients, useCoaches, useHasTeam, useIsCoach, useMe } from "../../lib/hooks";
 import { notify } from "../../lib/notify";
 import { useOnline } from "../../lib/offline";
 import { keys } from "../../lib/query";
@@ -67,11 +67,14 @@ function NewClientPage() {
   const [values, setValues] = useState<ClientFormValues>(emptyClientValues);
   const [errors, setErrors] = useState<ClientErrors>({});
   const hasTeam = useHasTeam();
+  const isCoach = useIsCoach();
   const coaches = useCoaches().data ?? [];
   const me = useMe().data;
-  // Whoever adds a student coaches them unless they pick someone else (or nobody yet).
+  // Whoever adds a student coaches them unless they pick someone else (or nobody yet); the front
+  // desk doesn't coach, so their students start with no coach.
   const [coachSel, setCoachSel] = useState<string | null>(null);
-  const primaryCoach = coachSel ?? me?.user.id ?? "none";
+  const you = isCoach ? me?.user.id : undefined;
+  const primaryCoach = coachSel ?? you ?? "none";
 
   const dirty = useMemo(
     () => JSON.stringify(values) !== JSON.stringify(emptyClientValues()),

@@ -16,7 +16,7 @@ import type {
   TodayDto,
   VenueDto,
 } from "@shared/api-types";
-import { CAPABILITY_NAMES, type Capabilities } from "@shared/roles";
+import { CAPABILITY_NAMES, type Capabilities, isCoachingRole } from "@shared/roles";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { accountApi, api } from "./api";
@@ -136,7 +136,10 @@ export function useSkills() {
   return useQuery({ queryKey: keys.skills, queryFn: () => api.get<SkillDto[]>("/skills") });
 }
 
-/** Everyone on the team (current staff), for coach pickers and avatars. Cached for offline use. */
+/**
+ * Everyone on the team who coaches (never the front desk), for coach pickers and avatars. Cached
+ * for offline use.
+ */
 export function useCoaches() {
   return useQuery({
     queryKey: keys.coaches,
@@ -151,9 +154,20 @@ export function useCoachMap(): Map<string, CoachSummaryDto> {
   return useMemo(() => new Map((coaches ?? []).map((c) => [c.userId, c])), [coaches]);
 }
 
-/** More than one person on the team: coach pickers and "Mine / Everyone" have a choice to offer. */
+/** Whether you coach here (the front desk doesn't). False until your profile has loaded. */
+export function useIsCoach(): boolean {
+  const me = useMe().data;
+  return me ? isCoachingRole(me.role) : false;
+}
+
+/**
+ * A coach to choose: someone besides you who coaches, or for the front desk (who doesn't coach)
+ * anyone who does. Coach pickers and coach lines show only then.
+ */
 export function useHasTeam(): boolean {
-  return (useCoaches().data?.length ?? 0) > 1;
+  const coaches = useCoaches().data?.length ?? 0;
+  const me = useMe().data;
+  return coaches > 1 || (coaches > 0 && me !== undefined && !isCoachingRole(me.role));
 }
 
 export function useAcademy() {
@@ -164,7 +178,7 @@ export function useTeam() {
   return useQuery({ queryKey: keys.team, queryFn: () => api.get<TeamDto>("/team") });
 }
 
-/** Enrollment requests waiting for a decision: the nav badge (owners and admins). */
+/** Enrollment requests waiting for a decision: the nav badge (roles with `enrollment`). */
 export function useEnrollmentCount() {
   const can = useCan();
   return useQuery({
@@ -176,7 +190,7 @@ export function useEnrollmentCount() {
   });
 }
 
-/** Payment proofs waiting for review: the Money badge (owners and admins). */
+/** Payment proofs waiting for review: the Money badge (roles with `enrollment` and `money`). */
 export function useProofCount() {
   const can = useCan();
   return useQuery({

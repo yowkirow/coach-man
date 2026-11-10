@@ -29,7 +29,7 @@ import {
 import { auditEntry } from "../lib/audit";
 import { notFound } from "../lib/errors";
 import type { Ctx } from "../types";
-import { staffIds } from "./coaches";
+import { coachIds } from "./coaches";
 import { runBatch } from "./credits";
 import {
   answersOf,
@@ -45,7 +45,7 @@ import { activeGuardianCount } from "./family";
 import { rebuildAllocations } from "./money";
 import { planPackageSale } from "./packages";
 
-// Deciding enrollment requests (owners and admins): approve, waitlist, decline.
+// Deciding enrollment requests (owners, admins, and the front desk): approve, waitlist, decline.
 
 const ATTENDING = (s: string) => s !== "excused" && s !== "late_cancel";
 
@@ -458,7 +458,7 @@ export async function approveEnrollment(
       .where(and(eq(client.id, student.id), eq(client.workspaceId, ws))),
   );
 
-  // A coach for a new student: the program's lead (when they're still on the team).
+  // A coach for a new student: the program's lead (when they're still on the team, and coach).
   if (program?.coachUserId) {
     const primary = await db.query.clientCoach.findFirst({
       where: and(
@@ -468,7 +468,7 @@ export async function approveEnrollment(
         isNull(clientCoach.endedOn),
       ),
     });
-    if (!primary && (await staffIds(db, ws)).has(program.coachUserId)) {
+    if (!primary && (await coachIds(db, ws)).has(program.coachUserId)) {
       statements.push(
         db.insert(clientCoach).values({
           id: uuidv7(),

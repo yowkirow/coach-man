@@ -1,6 +1,6 @@
 import type { AccountDto, InviteAcceptedDto, InvitePreviewDto } from "@shared/api-types";
 import { FAMILY_RELATION_LABELS } from "@shared/domain";
-import { STAFF_ROLE_LABELS } from "@shared/roles";
+import { STAFF_ROLE_NOUNS } from "@shared/roles";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, KeyRound } from "lucide-react";
@@ -79,12 +79,9 @@ function State({
   );
 }
 
-/** What the invite makes you: "a coach", "an admin", "Mia's parent or guardian". */
+/** What the invite makes you: "a coach", "front desk staff", "Mia's parent or guardian". */
 function inviteRole(p: InvitePreviewDto): string {
-  if (p.kind === "staff" && p.role) {
-    const label = STAFF_ROLE_LABELS[p.role].toLowerCase();
-    return `${/^[aeiou]/.test(label) ? "an" : "a"} ${label}`;
-  }
+  if (p.kind === "staff" && p.role) return STAFF_ROLE_NOUNS[p.role];
   if (p.relation === "guardian") {
     return `${p.student?.firstName ? `${p.student.firstName}'s ` : "a student's "}${FAMILY_RELATION_LABELS.guardian.toLowerCase()}`;
   }

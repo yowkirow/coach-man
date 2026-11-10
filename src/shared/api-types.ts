@@ -161,7 +161,7 @@ export interface AcademyPhotoDto {
   createdAt: number;
 }
 
-/** A staff member as pickers and avatars need them (GET /api/v1/coaches, current staff only). */
+/** Someone who coaches, as pickers and avatars need them (GET /api/v1/coaches; no front desk). */
 export interface CoachSummaryDto {
   userId: string;
   /** The coach profile's display name, else the account name. */
@@ -190,7 +190,10 @@ export interface CoachProfileDto extends CoachSummaryDto {
   portraitFraming: PhotoFraming | null;
   /** Tournament results, titles, and milestones, in the order written. */
   highlights: string[];
-  /** Shown on the academy's public pages (the academy page and its team page). */
+  /**
+   * Shown on the academy's public pages (the academy page and its team page). The front desk is
+   * never shown, whatever this says.
+   */
   isPublic: boolean;
   sortOrder: number;
 }
@@ -237,9 +240,9 @@ export interface StaffInviteCreatedDto {
 
 // --- The team page (staff side) -----------------------------------------------------------------
 //
-// The academy's public team page shows staff coach profiles and display-only people (people the
-// academy shows who don't sign in) in one order the academy sets. Owners and admins (`team`)
-// manage it through /api/v1/team-page.
+// The academy's public team page shows the coach profiles of staff who coach (never the front
+// desk) and display-only people (people the academy shows who don't sign in) in one order the
+// academy sets. Owners and admins (`team`) manage it through /api/v1/team-page.
 
 /** A display-only person on the team page (GET/PATCH /api/v1/team-page/people/:id). */
 export interface TeamPersonDto {
@@ -1819,7 +1822,7 @@ export interface RenewalDueDto {
   contactPhone: string | null;
 }
 
-/** GET /api/v1/enrollments/renewals: "Not yet renewed" (owners and admins). */
+/** GET /api/v1/enrollments/renewals: "Not yet renewed" (roles with `enrollment`). */
 export interface RenewalsDueDto {
   academyName: string;
   today: string;
@@ -1837,8 +1840,8 @@ export interface EnrollmentCountDto {
 // --- Payment proofs (WS4c) -----------------------------------------------------------------------
 //
 // Families pay outside CoachMan and send a screenshot (or say they'll pay cash at the court);
-// owners and admins confirm it, which records a payment through the money service, or don't
-// accept it with a reason the family reads.
+// owners, admins, and the front desk confirm it, which records a payment through the money service,
+// or don't accept it with a reason the family reads.
 
 /** Another proof or payment of the academy that looks like the same money. */
 export interface ProofDuplicateDto {
@@ -1856,7 +1859,7 @@ export interface ProofDuplicateDto {
   status: PaymentSubmissionStatus | "recorded";
 }
 
-/** A payment proof as owners and admins review it (GET /api/v1/payment-proofs and friends). */
+/** A payment proof as staff review it (GET /api/v1/payment-proofs and friends). */
 export interface PaymentProofDto {
   id: string;
   status: PaymentSubmissionStatus;

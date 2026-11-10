@@ -9,7 +9,8 @@ import { TierCard } from "../public/tier-card";
 
 /**
  * The program's package tiers as families see them. Coaches see the tiers without prices (the
- * staff API leaves money out for them); owners and admins see prices and can edit in Packages.
+ * staff API leaves money out for them); roles with money see prices, and owners and admins edit
+ * them in Packages.
  */
 export function ProgramTiersCard({ group }: { group: GroupDto }) {
   const fmt = useFormat();

@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import type { Context } from "hono";
 import { Hono } from "hono";
-import { can } from "../../shared/roles";
+import { can, isCoachingRole } from "../../shared/roles";
 import { coachProfileUpdateSchema } from "../../shared/schemas";
 import { coachProfile } from "../db/schema";
 import { auditEntry } from "../lib/audit";
@@ -51,15 +51,15 @@ async function profileIdOf(ctx: Ctx, userId: string): Promise<string> {
 }
 
 /**
- * Coach profiles (staff API). Everyone on the team lists the coaches (pickers, avatars); each person
- * edits their own profile, and people who manage the team (`team`) edit anyone's. Photos (square)
- * and team page photos (half-body, 4:5) are public R2 keys (ws/<id>/public/coaches/…) because the
- * academy's public pages show them.
+ * Coach profiles (staff API). Everyone on the team lists the people who coach (pickers, avatars;
+ * never the front desk); each person edits their own profile, and people who manage the team
+ * (`team`) edit anyone's. Photos (square) and team page photos (half-body, 4:5) are public R2 keys
+ * (ws/<id>/public/coaches/…) because the academy's public pages show them.
  */
 export const coachRoutes = new Hono<AppBindings>()
   .get("/coaches", async (c) => {
     const rows = await staffRows(c.var.db, c.var.workspaceId);
-    return c.json(rows.map(toCoachSummary));
+    return c.json(rows.filter((r) => isCoachingRole(r.role)).map(toCoachSummary));
   })
 
   .get("/coaches/:userId", async (c) => {

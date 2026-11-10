@@ -27,10 +27,10 @@ async function loadStudent(ctx: Ctx, id: string) {
 }
 
 /**
- * Family access on a student's page (staff API, `familyAccess`: owners and admins). Linked
- * parents and the student's own login, invite links (Copy, Share, a message to paste; no email),
- * and revoking. The age rules decide which invites can be made, and say why not. Every grant and
- * revoke is audited.
+ * Family access on a student's page (staff API, `familyAccess`: owners, admins, and the front
+ * desk). Linked parents and the student's own login, invite links (Copy, Share, a message to paste;
+ * no email), and revoking. The age rules decide which invites can be made, and say why not. Every
+ * grant and revoke is audited.
  */
 export const familyRoutes = new Hono<AppBindings>()
   .get("/clients/:id/family", requireCap("familyAccess"), async (c) => {

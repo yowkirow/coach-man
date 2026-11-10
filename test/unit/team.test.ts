@@ -19,10 +19,32 @@ describe("changing roles", () => {
     }
   });
 
-  it("keeps coaches from changing anyone", () => {
+  it("lets owners and admins move people to and from the front desk", () => {
+    for (const actorRole of ["owner", "admin"] as const) {
+      for (const [targetRole, newRole] of [
+        ["coach", "front_desk"],
+        ["admin", "front_desk"],
+        ["front_desk", "coach"],
+        ["front_desk", "admin"],
+      ] as const) {
+        expect(checkRoleChange({ actorRole, targetRole, newRole, ownerCount: 1 }).ok).toBe(true);
+      }
+    }
+  });
+
+  it("keeps coaches and the front desk from changing anyone", () => {
     expect(
       checkRoleChange({ actorRole: "coach", targetRole: "coach", newRole: "admin", ownerCount: 1 }),
     ).toMatchObject({ ok: false, status: 403 });
+    for (const [targetRole, newRole] of [
+      ["coach", "front_desk"],
+      ["front_desk", "coach"],
+      ["front_desk", "admin"],
+    ] as const) {
+      expect(
+        checkRoleChange({ actorRole: "front_desk", targetRole, newRole, ownerCount: 1 }),
+      ).toMatchObject({ ok: false, status: 403 });
+    }
   });
 
   it("lets only an owner make or unmake an owner", () => {
@@ -31,6 +53,22 @@ describe("changing roles", () => {
     ).toMatchObject({ ok: false, status: 403 });
     expect(
       checkRoleChange({ actorRole: "admin", targetRole: "owner", newRole: "admin", ownerCount: 2 }),
+    ).toMatchObject({ ok: false, status: 403 });
+    expect(
+      checkRoleChange({
+        actorRole: "admin",
+        targetRole: "front_desk",
+        newRole: "owner",
+        ownerCount: 1,
+      }),
+    ).toMatchObject({ ok: false, status: 403 });
+    expect(
+      checkRoleChange({
+        actorRole: "admin",
+        targetRole: "owner",
+        newRole: "front_desk",
+        ownerCount: 2,
+      }),
     ).toMatchObject({ ok: false, status: 403 });
     expect(
       checkRoleChange({ actorRole: "owner", targetRole: "coach", newRole: "owner", ownerCount: 1 })
@@ -47,28 +85,55 @@ describe("changing roles", () => {
       checkRoleChange({ actorRole: "owner", targetRole: "owner", newRole: "admin", ownerCount: 1 }),
     ).toMatchObject({ ok: false, status: 409, code: "last_owner" });
     expect(
+      checkRoleChange({
+        actorRole: "owner",
+        targetRole: "owner",
+        newRole: "front_desk",
+        ownerCount: 1,
+      }),
+    ).toMatchObject({ ok: false, status: 409, code: "last_owner" });
+    expect(
       checkRoleChange({ actorRole: "owner", targetRole: "owner", newRole: "owner", ownerCount: 1 })
         .ok,
     ).toBe(true);
   });
 
   it("offers each actor only the roles that would work", () => {
-    expect(assignableRoles("owner", "coach", 1)).toEqual(["owner", "admin", "coach"]);
-    expect(assignableRoles("admin", "coach", 1)).toEqual(["admin", "coach"]);
+    expect(assignableRoles("owner", "coach", 1)).toEqual(["owner", "admin", "front_desk", "coach"]);
+    expect(assignableRoles("admin", "coach", 1)).toEqual(["admin", "front_desk", "coach"]);
+    expect(assignableRoles("admin", "front_desk", 1)).toEqual(["admin", "front_desk", "coach"]);
+    expect(assignableRoles("owner", "front_desk", 1)).toEqual([
+      "owner",
+      "admin",
+      "front_desk",
+      "coach",
+    ]);
     expect(assignableRoles("admin", "owner", 2)).toEqual(["owner"]);
     expect(assignableRoles("owner", "owner", 1)).toEqual(["owner"]);
+    expect(assignableRoles("owner", "owner", 2)).toEqual(["owner", "admin", "front_desk", "coach"]);
     expect(assignableRoles("coach", "coach", 1)).toEqual(["coach"]);
+    expect(assignableRoles("front_desk", "coach", 1)).toEqual(["coach"]);
+    expect(assignableRoles("front_desk", "front_desk", 1)).toEqual(["front_desk"]);
   });
 });
 
 describe("removing people and transferring ownership", () => {
-  it("lets owners and admins remove coaches and admins", () => {
+  it("lets owners and admins remove coaches, the front desk, and admins", () => {
     expect(checkRemoval({ actorRole: "admin", targetRole: "coach", ownerCount: 1 }).ok).toBe(true);
+    expect(checkRemoval({ actorRole: "admin", targetRole: "front_desk", ownerCount: 1 }).ok).toBe(
+      true,
+    );
     expect(checkRemoval({ actorRole: "admin", targetRole: "admin", ownerCount: 1 }).ok).toBe(true);
     expect(checkRemoval({ actorRole: "coach", targetRole: "coach", ownerCount: 1 })).toMatchObject({
       ok: false,
       status: 403,
     });
+    expect(
+      checkRemoval({ actorRole: "front_desk", targetRole: "coach", ownerCount: 1 }),
+    ).toMatchObject({ ok: false, status: 403 });
+    expect(
+      checkRemoval({ actorRole: "front_desk", targetRole: "front_desk", ownerCount: 1 }),
+    ).toMatchObject({ ok: false, status: 403 });
   });
 
   it("keeps owners in the owners' hands, and the last owner in place", () => {
@@ -87,6 +152,10 @@ describe("removing people and transferring ownership", () => {
   it("lets only an owner hand over ownership, to someone else", () => {
     expect(checkTransfer({ actorRole: "owner", actorId: "a", targetId: "b" }).ok).toBe(true);
     expect(checkTransfer({ actorRole: "admin", actorId: "a", targetId: "b" })).toMatchObject({
+      ok: false,
+      status: 403,
+    });
+    expect(checkTransfer({ actorRole: "front_desk", actorId: "a", targetId: "b" })).toMatchObject({
       ok: false,
       status: 403,
     });
@@ -121,5 +190,17 @@ describe("the invite message", () => {
         expires: "x",
       }),
     ).toContain("as a coach");
+  });
+
+  it('names the front desk as staff, never as "a front desk"', () => {
+    const text = staffInviteMessage({
+      academyName: "Riverside Academy",
+      role: "front_desk",
+      email: "pat@example.com",
+      link: "https://coachman.cloud/join/abc",
+      expires: "Mon 10 Nov",
+    });
+    expect(text).toContain("join Riverside Academy on CoachMan as front desk staff.");
+    expect(text).not.toMatch(/an? front desk/);
   });
 });

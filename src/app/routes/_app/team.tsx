@@ -1,5 +1,5 @@
 import type { TeamMemberDto } from "@shared/api-types";
-import type { StaffRole } from "@shared/roles";
+import { isCoachingRole, type StaffRole } from "@shared/roles";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { UserPlus, UserRound } from "lucide-react";
 import { useState } from "react";
@@ -23,9 +23,13 @@ export const Route = createFileRoute("/_app/team")({
   component: TeamPage,
 });
 
+/** Whose profile the sheet edits (their role words it: the front desk's isn't a coach profile). */
+type ProfileTarget = Pick<TeamMemberDto, "userId" | "name" | "role">;
+
 /**
  * The academy's team: who is on it, their roles and coach profiles, and (for owners and admins)
- * invite links, role changes, and removal. Coaches see the team and edit their own profile.
+ * invite links, role changes, and removal. Coaches and the front desk see the team and edit their
+ * own profile.
  */
 function TeamPage() {
   const me = useMe().data;
@@ -35,7 +39,7 @@ function TeamPage() {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const [again, setAgain] = useState<{ email: string; role: StaffRole } | null>(null);
-  const [profileOf, setProfileOf] = useState<{ userId: string; name: string } | null>(null);
+  const [profileOf, setProfileOf] = useState<ProfileTarget | null>(null);
 
   const setInvite = (open: boolean) =>
     void navigate({ search: open ? { invite: "1" } : {}, replace: !open });
@@ -43,8 +47,8 @@ function TeamPage() {
     setAgain(initial ?? null);
     setInvite(true);
   };
-  const editProfile = (m: Pick<TeamMemberDto, "userId" | "name">) =>
-    setProfileOf({ userId: m.userId, name: m.name });
+  const editProfile = (m: ProfileTarget) =>
+    setProfileOf({ userId: m.userId, name: m.name, role: m.role });
   const members = team.data?.members ?? [];
   const self = members.find((m) => m.userId === me?.user.id);
 
@@ -74,10 +78,11 @@ function TeamPage() {
                 icon={<UserRound aria-hidden className="size-4.5" />}
                 isDisabled={!me}
                 onPress={() =>
-                  me && editProfile(self ?? { userId: me.user.id, name: me.user.name })
+                  me &&
+                  editProfile(self ?? { userId: me.user.id, name: me.user.name, role: me.role })
                 }
               >
-                My coach profile
+                {me && !isCoachingRole(me.role) ? "My profile" : "My coach profile"}
               </Button>
               {can.team ? (
                 <Button
@@ -128,6 +133,7 @@ function TeamPage() {
       <CoachProfileSheet
         userId={profileOf?.userId ?? null}
         name={profileOf?.name ?? ""}
+        role={profileOf?.role}
         onClose={() => setProfileOf(null)}
       />
     </>

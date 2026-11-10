@@ -26,6 +26,7 @@ import {
   useCoachMap,
   useGroups,
   useHasTeam,
+  useIsCoach,
   useMe,
   useRates,
   useVenues,
@@ -134,6 +135,7 @@ export function NewSessionSheet({
   const ratesQ = useRates();
   const venuesQ = useVenues();
   const hasTeam = useHasTeam();
+  const isCoach = useIsCoach();
   const coachMap = useCoachMap();
   const today = fmt.today();
 
@@ -252,12 +254,14 @@ export function NewSessionSheet({
   const capacity =
     capacitySel ?? (kind === "group" && group?.capacity ? String(group.capacity) : "");
 
-  // Sessions of a group or event start with its coaches; anything else with you as the lead.
+  // Sessions of a group or event start with its coaches; anything else with you as the lead (when
+  // you coach: the front desk's sessions start with no lead).
   const coachSource = kind === "group" ? group : kind === "event" ? ev : undefined;
+  const you = isCoach ? (me?.user.id ?? null) : null;
   const autoLead =
     coachSource?.coachUserId && coachMap.has(coachSource.coachUserId)
       ? coachSource.coachUserId
-      : (me?.user.id ?? null);
+      : you;
   const coaches: CoachChoice = coachSel ?? {
     lead: autoLead,
     assistants: (coachSource?.assistantCoachIds ?? []).filter(

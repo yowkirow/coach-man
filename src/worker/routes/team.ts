@@ -7,7 +7,7 @@ import type {
   TeamMemberDto,
 } from "../../shared/api-types";
 import { uuidv7 } from "../../shared/ids";
-import { can, normalizeRole } from "../../shared/roles";
+import { can, isCoachingRole, normalizeRole } from "../../shared/roles";
 import { memberRoleSchema, staffInviteSchema, transferOwnershipSchema } from "../../shared/schemas";
 import {
   checkRemoval,
@@ -137,7 +137,11 @@ function refuse(result: { ok: false; status: 403 | 409; code: string; message: s
   throw new ApiError(result.status, result.code, result.message);
 }
 
-/** Removes someone from upcoming sessions, series, programs, and events they coach. */
+/**
+ * Ends someone's coaching (on leaving the team, or moving to the front desk): their current
+ * students lose them as coach, with the history kept, and upcoming sessions, series, programs, and
+ * events lose them as lead or assistant.
+ */
 function releaseCoachStatements(ctx: Ctx, userId: string, today: string) {
   const { db, workspaceId } = ctx;
   const now = Date.now();
@@ -319,7 +323,19 @@ export const teamRoutes = new Hono<AppBindings>()
       if (!changed.length) {
         throw owner ? new ApiError(409, "last_owner", LAST_OWNER_MESSAGE) : conflict(ROLE_CHANGED);
       }
-      await auditEntry(ctx, "role", "member", target.userId, { from: target.role, to: role });
+      // Someone who stops coaching (moved to the front desk) lets go of it as if they'd left the
+      // team: their students and everything ahead lose them as coach; what they coached stays.
+      const releasing = isCoachingRole(target.role) && !isCoachingRole(role);
+      await runBatch(ctx, [
+        ...(releasing
+          ? releaseCoachStatements(ctx, target.userId, todayIn(ctx.settings.timezone))
+          : []),
+        auditEntry(ctx, "role", "member", target.userId, {
+          from: target.role,
+          to: role,
+          ...(releasing ? { releasedCoaching: true } : {}),
+        }),
+      ]);
     }
     return c.json(await loadTeam(target.userId === ctx.userId ? { ...ctx, role } : ctx));
   })

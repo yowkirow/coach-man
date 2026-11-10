@@ -17,6 +17,7 @@ import {
 } from "./enroll-support";
 import { approvedEnrollment, screenshot, sendProofOk } from "./proof-support";
 import {
+  addMember,
   bornYearsAgo,
   expect,
   linkFamily,
@@ -144,6 +145,32 @@ test.describe("accessibility", () => {
     const { page } = await personas.open({ email, name: "Sam Rivera", persona: "none" });
     await visit(page, path);
     await expect(page.getByRole("button", { name: /^Join / })).toBeVisible();
+    expect(await seriousViolations(page)).toEqual([]);
+  });
+
+  test("the invite and role sheets, with the front desk among the roles, have no serious violations", async ({
+    page,
+    seeded,
+  }, info) => {
+    await addMember(seeded.request, {
+      email: testEmail("a11y-role", info),
+      name: "Sam Rivera",
+      role: "coach",
+    });
+    await visit(page, "/team?invite=1");
+    const invite = page.getByRole("dialog", { name: "Invite someone" });
+    await toggle(invite.getByRole("radio", { name: /^Front desk/ }));
+    await expect(invite.getByRole("radio", { name: /^Front desk/ })).toBeChecked();
+    expect(await seriousViolations(page)).toEqual([]);
+    await invite.getByRole("button", { name: "Cancel" }).click();
+    await expect(invite).toBeHidden();
+
+    // Moving a coach to the front desk: the sheet says they stop coaching.
+    await page.getByRole("button", { name: "Options for Sam Rivera" }).click();
+    await page.getByRole("menuitem", { name: "Change role" }).click();
+    const role = page.getByRole("dialog", { name: "Change role" });
+    await toggle(role.getByRole("radio", { name: /^Front desk/ }));
+    await expect(role.getByText(/Sam Rivera stops coaching/)).toBeVisible();
     expect(await seriousViolations(page)).toEqual([]);
   });
 });

@@ -11,7 +11,7 @@ import { LESSON_KIND_LABELS, type LessonKind } from "../../shared/domain";
 import { isLastWeekOfMonth } from "../../shared/enrollment";
 import { isMinor } from "../../shared/family";
 import { uuidv7 } from "../../shared/ids";
-import { can } from "../../shared/roles";
+import { can, isCoachingRole } from "../../shared/roles";
 import type { LessonCreateInput } from "../../shared/schemas";
 import {
   addDays,
@@ -45,7 +45,7 @@ import { badRequest, notFound } from "../lib/errors";
 import { inList, unique } from "../lib/sql";
 import type { Ctx } from "../types";
 import { liveAnnouncements } from "./announcements";
-import { cleanCoaches, coachRefs, staffIds } from "./coaches";
+import { assertStaff, cleanCoaches, coachIds, coachRefs } from "./coaches";
 import {
   effectivePrice,
   packagesForClients,
@@ -612,28 +612,25 @@ export async function materializeSeries(
 }
 
 /**
- * Lead and assistant coaches for new sessions: what the request says, else the group's or event's
- * coaches (those still on the team), else whoever schedules them as the lead.
+ * Lead and assistant coaches for new sessions: what the request says (people who coach), else the
+ * group's or event's coaches (those still on the team who coach), else whoever schedules them as
+ * the lead when they coach. The front desk's sessions start with no lead.
  */
 async function sessionCoaches(
   ctx: Ctx,
   input: Pick<LessonCreateInput, "coachUserId" | "assistantCoachIds">,
   source: { coachUserId: string | null; assistantCoachIds: string[] } | undefined,
 ) {
-  const team = await staffIds(ctx.db, ctx.workspaceId);
-  const explicit = [input.coachUserId, ...(input.assistantCoachIds ?? [])].filter(
-    (id): id is string => Boolean(id),
-  );
-  if (explicit.some((id) => !team.has(id))) {
-    throw badRequest("Pick coaches from your team.", {
-      fields: { coachUserId: "That person isn't on your team." },
-    });
-  }
+  await assertStaff(ctx, [input.coachUserId, ...(input.assistantCoachIds ?? [])]);
+  const coaching = await coachIds(ctx.db, ctx.workspaceId);
   const fromSource =
-    source?.coachUserId && team.has(source.coachUserId) ? source.coachUserId : null;
-  const lead = input.coachUserId !== undefined ? input.coachUserId : (fromSource ?? ctx.userId);
+    source?.coachUserId && coaching.has(source.coachUserId) ? source.coachUserId : null;
+  const lead =
+    input.coachUserId !== undefined
+      ? input.coachUserId
+      : (fromSource ?? (isCoachingRole(ctx.role) ? ctx.userId : null));
   const assistants =
-    input.assistantCoachIds ?? (source?.assistantCoachIds ?? []).filter((id) => team.has(id));
+    input.assistantCoachIds ?? (source?.assistantCoachIds ?? []).filter((id) => coaching.has(id));
   return cleanCoaches(lead, assistants);
 }
 

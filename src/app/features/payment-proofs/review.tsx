@@ -23,9 +23,9 @@ import { ProofThumb } from "./proof-image";
 import { useInvalidateProofs } from "./queries";
 import { proofStatusPill } from "./text";
 
-// Reviewing payment proofs (owners and admins): one dense row per proof with the screenshot, what
-// the family says they paid, who sent it, what it pays, duplicate warnings, and Confirm (records
-// the payment) or Not accepted (with the reason the family reads).
+// Reviewing payment proofs (owners, admins, and the front desk): one dense row per proof with the
+// screenshot, what the family says they paid, who sent it, what it pays, duplicate warnings, and
+// Confirm (records the payment) or Not accepted (with the reason the family reads).
 
 /** Where a proof list sits: the Money queue shows everything, a student's or a request's less. */
 export type ProofContext = "queue" | "client" | "request";

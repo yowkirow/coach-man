@@ -129,22 +129,27 @@ describe("who hears about a student's news", () => {
     }
   });
 
-  it("alerts owners and admins on the team, not coaches, not whoever sent it", () => {
+  it("alerts owners, admins, and the front desk on the team, not coaches, not whoever sent it", () => {
     const team = [
       { userId: "owner", role: "owner" },
       { userId: "admin", role: "admin" },
       { userId: "coach", role: "coach" },
       { userId: "legacy", role: "member" },
       { userId: "quiet-admin", role: "admin" },
+      { userId: "desk", role: "front_desk" },
     ];
     const alertsOff = new Set(["quiet-admin"]);
     expect(staffAlertRecipients(team, { needs: ["enrollment"], alertsOff })).toEqual([
       "owner",
       "admin",
+      "desk",
     ]);
     expect(
       staffAlertRecipients(team, { needs: ["enrollment", "money"], alertsOff, except: "admin" }),
-    ).toEqual(["owner"]);
+    ).toEqual(["owner", "desk"]);
+    expect(
+      staffAlertRecipients(team, { needs: ["enrollment"], alertsOff: new Set(["desk"]) }),
+    ).toEqual(["owner", "admin", "quiet-admin"]);
   });
 
   it("sends someone who is staff and family one push for one thing", () => {

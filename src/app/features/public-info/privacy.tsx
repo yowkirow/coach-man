@@ -1,4 +1,4 @@
-// Reviewed for accuracy against the code on 2026-11-06 (what's collected, who sees it, how long
+// Reviewed for accuracy against the code on 2026-11-10 (what's collected, who sees it, how long
 // it's kept, what's public): every statement here should stay true of the code, so change them
 // together. Written in plain language as a starting point; it is not legal advice. A lawyer's
 // review under the Data Privacy Act of 2012 (RA 10173) and the NPC's rules is still recommended,
@@ -12,7 +12,7 @@ import { Bullets, type DocSection, DocumentPage, Sub } from "./shell";
 const link =
   "rounded-sm font-medium underline decoration-line-strong underline-offset-4 outline-none hover:decoration-ink focus-visible:outline-2 focus-visible:outline-ink";
 
-export const PRIVACY_UPDATED = "November 6, 2026";
+export const PRIVACY_UPDATED = "November 10, 2026";
 
 const SECTIONS: DocSection[] = [
   {
@@ -192,8 +192,8 @@ const SECTIONS: DocSection[] = [
             read their health details and pickup people but not change them; their parent does.
           </li>
           <li>
-            Families only ever see their own students. Coaches' comments stay among coaches unless a
-            coach shares one.
+            Families only ever see their own students. Coaches' comments stay with the academy's
+            staff unless a coach shares one.
           </li>
         </Bullets>
       </>
@@ -206,8 +206,9 @@ const SECTIONS: DocSection[] = [
       <>
         <p>
           Within an academy, people see what their role needs: owners and admins see everything for
-          their academy, coaches see students and progress but no money, and families see only their
-          own students. Academies don't see each other's information.
+          their academy, front desk staff see students, the schedule, and payments, coaches see
+          students and progress but no money, and families see only their own students. Academies
+          don't see each other's information.
         </p>
         <p>
           An academy can also publish a public page and a team page. Anyone can see what it puts

@@ -59,6 +59,9 @@ describe("who may change a note", () => {
     expect(canDeleteNote({ userId: "boss", role: "owner" }, comment)).toBe(true);
     expect(canDeleteNote({ userId: "boss", role: "admin" }, comment)).toBe(true);
     expect(canDeleteNote({ userId: "boss", role: "member" }, comment)).toBe(false);
+    // The front desk deletes only their own notes.
+    expect(canDeleteNote({ userId: "desk", role: "front_desk" }, comment)).toBe(false);
+    expect(canDeleteNote({ userId: "desk", role: "front_desk" }, { createdBy: "desk" })).toBe(true);
   });
 
   it("marks a note edited when its author changes the words or who sees it", () => {

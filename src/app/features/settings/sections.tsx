@@ -1,5 +1,5 @@
 import type { MeDto } from "@shared/api-types";
-import type { Capability } from "@shared/roles";
+import { type Capability, isCoachingRole } from "@shared/roles";
 import {
   BadgeCheck,
   BellRing,
@@ -19,7 +19,7 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 import { Button } from "../../components/ui/button";
 import { Avatar } from "../../components/ui/display";
 import { plural } from "../../lib/format";
-import { useCan } from "../../lib/hooks";
+import { useCan, useMe } from "../../lib/hooks";
 import { scrollToId } from "./scroll";
 
 export const SETTINGS_SECTIONS = [
@@ -44,12 +44,23 @@ export const SETTINGS_SECTIONS = [
 }[];
 
 export type SectionId = (typeof SETTINGS_SECTIONS)[number]["id"];
-type Section = (typeof SETTINGS_SECTIONS)[number];
 
-/** The settings sections this role can use (academy settings are for owners and admins). */
+interface Section {
+  id: SectionId;
+  label: string;
+  icon: typeof Building2;
+}
+
+/**
+ * The settings sections this role can use (academy settings are for owners and admins). The front
+ * desk's profile is just "My profile": they don't coach.
+ */
 export function useSettingsSections(): readonly Section[] {
   const can = useCan();
-  return SETTINGS_SECTIONS.filter((s) => !("cap" in s) || can[s.cap]);
+  const coaches = isCoachingRole(useMe().data?.role);
+  return SETTINGS_SECTIONS.filter((s) => !("cap" in s) || can[s.cap]).map((s) =>
+    s.id === "coach-profile" && !coaches ? { ...s, label: "My profile" } : s,
+  );
 }
 
 /** A settings card: white, with an h2 the nav can move focus to. */

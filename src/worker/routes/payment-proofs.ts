@@ -27,9 +27,9 @@ import {
 import type { AppBindings, Ctx } from "../types";
 
 /**
- * Payment proofs to review (/api/v1/payment-proofs): owners and admins. Reviewing is the
- * `enrollment` capability; confirming records a payment, so it also needs `money` (owners and
- * admins have both). Coaches get 403 on every route.
+ * Payment proofs to review (/api/v1/payment-proofs): owners, admins, and the front desk. Reviewing
+ * is the `enrollment` capability; confirming records a payment, so it also needs `money` (all three
+ * have both). Coaches get 403 on every route.
  */
 export const paymentProofRoutes = new Hono<AppBindings>()
   .use("/payment-proofs", requireCap("enrollment"))

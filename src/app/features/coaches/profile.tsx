@@ -1,5 +1,6 @@
 import type { CoachProfileDto } from "@shared/api-types";
 import { framingOr, type PhotoFraming, PORTRAIT_FRAMING } from "@shared/framing";
+import { isCoachingRole, type StaffRole } from "@shared/roles";
 import { type CoachProfileUpdateInput, coachProfileUpdateSchema } from "@shared/schemas";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ImagePlus, Trash2 } from "lucide-react";
@@ -12,6 +13,7 @@ import { ErrorState, InlineError, RowsSkeleton } from "../../components/ui/feedb
 import { Switch, TextField } from "../../components/ui/field";
 import { Sheet } from "../../components/ui/overlay";
 import { api, errorMessage, fieldErrors, fileUrl } from "../../lib/api";
+import { useMe } from "../../lib/hooks";
 import { prepareImage, putImage } from "../../lib/images";
 import { notify } from "../../lib/notify";
 import { useOnline } from "../../lib/offline";
@@ -89,7 +91,10 @@ function useCoachProfileForm(profile: CoachProfileDto | undefined, onSaved?: () 
       api.patch<CoachProfileDto>(`/coaches/${profile?.userId}`, patch),
     onSuccess: (p) => {
       refresh(p);
-      notify({ tone: "success", title: "Coach profile saved" });
+      notify({
+        tone: "success",
+        title: isCoachingRole(p.role) ? "Coach profile saved" : "Profile saved",
+      });
       onSaved?.();
     },
     // The server's field errors join the form's own, so editing a field clears them.
@@ -193,7 +198,9 @@ export function CoachPhoto({ profile }: { profile: CoachProfileDto }) {
           ) : null}
         </div>
         <p className="text-[0.8125rem] text-ink-2">
-          A clear face photo helps students and parents know who they're training with.
+          {isCoachingRole(profile.role)
+            ? "A clear face photo helps students and parents know who they're training with."
+            : "A clear face photo helps your team know who's who."}
         </p>
       </div>
       {error ? (
@@ -292,26 +299,39 @@ function ProfileFields({
 }) {
   const { draft, set, update, err } = form;
   if (!draft) return null;
+  const name = (
+    <TextField
+      label="Name shown"
+      value={draft.displayName}
+      onChange={(v) => set("displayName", v)}
+      placeholder={profile.accountName}
+      description="Leave empty to use the name on the account."
+      error={err("displayName")}
+    />
+  );
+  // The front desk doesn't coach and is never on the academy's pages: a name, a title, and a photo.
+  if (!isCoachingRole(profile.role)) {
+    return (
+      <div className="flex flex-col gap-5">
+        <CoachPhoto profile={profile} />
+        <div className="grid gap-x-4 gap-y-5 sm:grid-cols-2">
+          {name}
+          <TextField
+            label="Title"
+            value={draft.title}
+            onChange={(v) => set("title", v)}
+            placeholder="e.g. Front desk"
+            error={err("title")}
+          />
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="flex flex-col gap-5">
       <CoachPhoto profile={profile} />
       <CoachPortrait profile={profile} />
-      <CoachingFields
-        voice="you"
-        draft={draft}
-        set={update}
-        err={err}
-        name={
-          <TextField
-            label="Name shown"
-            value={draft.displayName}
-            onChange={(v) => set("displayName", v)}
-            placeholder={profile.accountName}
-            description="Leave empty to use the name on the account."
-            error={err("displayName")}
-          />
-        }
-      />
+      <CoachingFields voice="you" draft={draft} set={update} err={err} name={name} />
       <div className="rounded-[22px] bg-panel px-4 py-2">
         <Switch
           isSelected={draft.isPublic}
@@ -325,16 +345,20 @@ function ProfileFields({
   );
 }
 
-/** Settings: every staff member's own coach profile. */
+/**
+ * Settings: every staff member's own profile (a coach profile for people who coach; the front
+ * desk's name, title, and photo).
+ */
 export function MyCoachProfileSection({ userId }: { userId: string }) {
   const online = useOnline();
+  const isCoach = isCoachingRole(useMe().data?.role);
   const q = useCoachProfile(userId);
   const form = useCoachProfileForm(q.data);
   if (q.isPending) return <RowsSkeleton rows={3} />;
   if (!q.data) {
     return (
       <ErrorState
-        title="Couldn't load your coach profile"
+        title={isCoach ? "Couldn't load your coach profile" : "Couldn't load your profile"}
         message={errorMessage(q.error)}
         onRetry={() => void q.refetch()}
       />
@@ -379,14 +403,19 @@ export function MyCoachProfileSection({ userId }: { userId: string }) {
   );
 }
 
-/** Team: edit anyone's coach profile (people who manage the team), or your own. */
+/**
+ * Team: edit anyone's profile (people who manage the team), or your own. `role` (when known) words
+ * the sheet before the profile loads: the front desk's is a profile, not a coach profile.
+ */
 export function CoachProfileSheet({
   userId,
   name,
+  role,
   onClose,
 }: {
   userId: string | null;
   name: string;
+  role?: StaffRole;
   onClose: () => void;
 }) {
   const online = useOnline();
@@ -397,7 +426,7 @@ export function CoachProfileSheet({
       isOpen={userId !== null}
       onOpenChange={(o) => !o && onClose()}
       size="lg"
-      title="Coach profile"
+      title={isCoachingRole(role ?? q.data?.role) ? "Coach profile" : "Profile"}
       description={name}
       footer={
         <>

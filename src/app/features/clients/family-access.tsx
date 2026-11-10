@@ -47,9 +47,9 @@ function useFamilyAccess(clientId: string) {
 }
 
 /**
- * Who follows this student in the family portal (owners and admins, `familyAccess`): linked
- * parents and the student's own login, waiting invite links, and the two invites, each explaining
- * why it isn't available when the age rules say no.
+ * Who follows this student in the family portal (owners, admins, and the front desk:
+ * `familyAccess`): linked parents and the student's own login, waiting invite links, and the two
+ * invites, each explaining why it isn't available when the age rules say no.
  */
 export function FamilyAccessCard({ detail }: { detail: ClientDetailDto }) {
   const c = detail.client;

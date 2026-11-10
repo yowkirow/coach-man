@@ -34,8 +34,8 @@ export function assertSendableEndpoint(env: Env, endpoint: string) {
 
 /**
  * Staff notifications (/api/v1): settings (session reminders, the morning digest, package expiry,
- * and for owners and admins "Enrollments & payments"), this device's registration, and a test.
- * Families' own settings and devices are under /api/portal/notifications.
+ * and for roles with `enrollment` "Enrollments & payments"), this device's registration, and a
+ * test. Families' own settings and devices are under /api/portal/notifications.
  */
 export const pushRoutes = new Hono<AppBindings>()
   .get("/notification-prefs", async (c) => {

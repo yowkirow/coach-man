@@ -1,3 +1,4 @@
+import { isCoachingRole } from "@shared/roles";
 import { createFileRoute } from "@tanstack/react-router";
 import { Page, ShellAside, useIsDesktop } from "../../components/layout/app-shell";
 import { PageHeader } from "../../components/ui/display";
@@ -29,6 +30,7 @@ export const Route = createFileRoute("/_app/settings")({ component: SettingsPage
 function SettingsPage() {
   const me = useMe().data;
   const can = useCan();
+  const isCoach = isCoachingRole(me?.role);
   const desktop = useIsDesktop();
   const sections = useSettingsSections();
   const { active, jump } = useActiveSection(sections.map((s) => s.id));
@@ -55,8 +57,12 @@ function SettingsPage() {
         ) : null}
         <SettingsSection
           id="coach-profile"
-          title="My coach profile"
-          description="How you appear to your team, and to your academy's students and parents."
+          title={isCoach ? "My coach profile" : "My profile"}
+          description={
+            isCoach
+              ? "How you appear to your team, and to your academy's students and parents."
+              : "How you appear to your team."
+          }
         >
           {me ? <MyCoachProfileSection userId={me.user.id} /> : null}
         </SettingsSection>

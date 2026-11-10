@@ -22,9 +22,9 @@ import {
 } from "../../features/clients/client-utils";
 import { useAllClients, useGroupMap } from "../../features/clients/queries";
 import { errorMessage } from "../../lib/api";
-import { isMyStudent } from "../../lib/coaches";
+import { isMyStudent, useMineFilter } from "../../lib/coaches";
 import { fullName, plural, useFormat } from "../../lib/format";
-import { useCan, useGroups, useHasTeam, useMe } from "../../lib/hooks";
+import { useCan, useGroups, useMe } from "../../lib/hooks";
 
 export const Route = createFileRoute("/_app/clients/")({
   validateSearch: (
@@ -471,7 +471,7 @@ function PhoneFilters({
   onChange: (patch: Partial<ListSearch>) => void;
 }) {
   const can = useCan();
-  const hasTeam = useHasTeam();
+  const offerMine = useMineFilter();
   const chips: Chip[] = [
     {
       id: "all",
@@ -480,7 +480,7 @@ function PhoneFilters({
       on: !search.status && !search.filter && !search.group && !search.mine,
       patch: { status: undefined, filter: undefined, group: undefined, mine: undefined },
     },
-    ...(hasTeam
+    ...(offerMine
       ? [
           {
             id: "mine",
@@ -671,7 +671,7 @@ function ListPanel({
 }) {
   const dash = "–";
   const can = useCan();
-  const hasTeam = useHasTeam();
+  const offerMine = useMineFilter();
   const q: ListSearch = search.q ? { q: search.q } : {};
   const plain = !search.status && !search.filter && !search.group && !search.mine;
   const groupCount = (id: string) => current?.filter((c) => c.groupIds.includes(id)).length;
@@ -738,7 +738,7 @@ function ListPanel({
       <nav aria-label="Client lists" className="flex flex-col gap-2">
         <h3 className="px-1 pt-1 text-[1.125rem] font-light">Lists</h3>
         <FilterRow label="Everyone" count={counts?.all} selected={plain} search={q} />
-        {hasTeam ? (
+        {offerMine ? (
           <FilterRow
             label="My students"
             count={counts?.mine}

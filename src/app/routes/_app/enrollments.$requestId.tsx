@@ -17,7 +17,7 @@ function RequestRoute() {
     return (
       <NoAccess
         title="Enrollments"
-        body="Enrollment requests are for the academy's owner and admins. New students show up in Clients once they're approved."
+        body="Enrollment requests are for the academy's owner, admins, and front desk staff. New students show up in Clients once they're approved."
       />
     );
   }

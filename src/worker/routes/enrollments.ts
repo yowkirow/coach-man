@@ -34,9 +34,9 @@ import type { AppBindings, Ctx } from "../types";
 import { appOrigin } from "./academy";
 
 /**
- * The Enrollments inbox (/api/v1/enrollments): owners and admins (`enrollment`) review what
- * families asked for and approve, waitlist, or decline it; and see who hasn't renewed this month.
- * Coaches get 403 on every route.
+ * The Enrollments inbox (/api/v1/enrollments): owners, admins, and the front desk (`enrollment`)
+ * review what families asked for and approve, waitlist, or decline it; and see who hasn't renewed
+ * this month. Coaches get 403 on every route.
  */
 export const enrollmentRoutes = new Hono<AppBindings>()
   .use("/enrollments", requireCap("enrollment"))

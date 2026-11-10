@@ -1,4 +1,5 @@
 import type { NotificationPrefDto } from "@shared/api-types";
+import { isCoachingRole } from "@shared/roles";
 import { notificationPrefSchema } from "@shared/schemas";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { BellOff, BellRing, Send } from "lucide-react";
@@ -8,7 +9,7 @@ import { ErrorState, InlineError, RowsSkeleton } from "../../components/ui/feedb
 import { Segmented, Switch, TextField } from "../../components/ui/field";
 import { api, errorMessage } from "../../lib/api";
 import { plural } from "../../lib/format";
-import { useCan } from "../../lib/hooks";
+import { useCan, useMe } from "../../lib/hooks";
 import { notify } from "../../lib/notify";
 import { useOnline } from "../../lib/offline";
 import { disablePush, enablePush, pushDeviceState, pushSupported } from "../../lib/pwa";
@@ -60,6 +61,7 @@ function draftOf(p: NotificationPrefDto): PrefDraft {
 export function NotificationsSection() {
   const online = useOnline();
   const can = useCan();
+  const isCoach = isCoachingRole(useMe().data?.role);
   const qc = useQueryClient();
   const prefs = useQuery({
     queryKey: keys.notificationPrefs,
@@ -304,7 +306,7 @@ export function NotificationsSection() {
               <p className="mt-1.5 text-[0.8125rem] text-ink-2">
                 {draft.reminder === "off"
                   ? "No nudge before sessions."
-                  : `A nudge ${draft.reminder} minutes before each session you're coaching.`}
+                  : `A nudge ${draft.reminder} minutes before each session ${isCoach ? "you're coaching" : "with no coach"}.`}
               </p>
             </div>
             <div className="flex flex-wrap items-start gap-x-6 gap-y-3 py-4">

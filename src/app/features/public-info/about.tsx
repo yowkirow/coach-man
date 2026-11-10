@@ -40,7 +40,7 @@ const CAPABILITIES: { icon: LucideIcon; title: string; body: string }[] = [
   {
     icon: IdCardLanyard,
     title: "Roles for your team",
-    body: "Owners, admins, and coaches. Coaches see every student's progress and credits, and never prices, payments, or balances.",
+    body: "Owners, admins, front desk staff, and coaches. Coaches see every student's progress and credits, and never prices, payments, or balances.",
   },
   {
     icon: ClipboardList,

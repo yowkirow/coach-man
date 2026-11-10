@@ -1086,7 +1086,7 @@ export async function notifyAnnouncement(
   await sendFamilyNotices(db, env, notices, now);
 }
 
-// --- Staff alerts (owners and admins) ---------------------------------------------------------
+// --- Staff alerts (owners, admins, and the front desk) ------------------------------------------
 
 /** Who turned "Enrollments & payments" off in the staff app's notification settings. */
 async function alertsOff(db: Db, userIds: readonly string[]): Promise<Set<string>> {
@@ -1110,7 +1110,7 @@ async function teamOf(db: Db, workspaceId: string) {
     .where(eq(member.organizationId, workspaceId));
 }
 
-/** A new enrollment request (or renewal) to review: owners and admins, never the sender. */
+/** A new enrollment request (or renewal) to review: roles with `enrollment`, never the sender. */
 export async function notifyStaffEnrollmentRequest(
   db: Db,
   env: Env,
@@ -1159,7 +1159,7 @@ export async function notifyStaffEnrollmentRequest(
   }
 }
 
-/** A new payment proof to review: owners and admins (they confirm it), never the sender. */
+/** A new payment proof to review: roles that confirm it (`money` too), never the sender. */
 export async function notifyStaffProof(
   db: Db,
   env: Env,

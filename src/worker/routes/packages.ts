@@ -26,7 +26,7 @@ import { rebuildAllocations } from "../services/money";
 import { planPackageSale } from "../services/packages";
 import type { AppBindings, Ctx } from "../types";
 
-/** Selling, voiding, extending, and adjusting packages is money: owner and admins only. */
+/** Selling, voiding, extending, and adjusting packages takes `money`. */
 const moneyOnly = requireCap("money");
 
 async function packageDto(ctx: Ctx, clientId: string, id: string): Promise<PackageBalanceDto> {

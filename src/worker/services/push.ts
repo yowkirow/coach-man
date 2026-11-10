@@ -96,7 +96,8 @@ export async function runReminders(db: Db, env: Env, now: Date) {
         scope,
         and(eq(lesson.status, "scheduled"), gte(lesson.startsAt, from), lt(lesson.startsAt, to)),
       );
-      // A session's lead and assistants hear about it; one without a coach goes to owners/admins.
+      // A session's lead and assistants hear about it; one without a coach goes to the owners,
+      // admins, and front desk.
       for (const { summary, row } of upcoming.filter((u) =>
         isRecipient(u.row, target.userId, team),
       )) {
@@ -125,7 +126,8 @@ export async function runReminders(db: Db, env: Env, now: Date) {
     if (target.digest && inWindow(localTime(t, target.timezone), target.digest, 5)) {
       const date = todayIn(target.timezone, t);
       const me = { userId: target.userId, role: target.role };
-      // Owners and admins get the whole academy; a coach gets their sessions and students.
+      // Owners, admins, and the front desk get the whole academy; a coach gets their sessions and
+      // students.
       const academyWide = digestScope(target.role) === "academy";
       const [lessonsToday, expiring, balances, students] = await Promise.all([
         lessonSummaries(

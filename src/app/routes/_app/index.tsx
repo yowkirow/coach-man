@@ -332,7 +332,7 @@ const ALERT_TONES = {
   uniform: { icon: Shirt, cls: "bg-mint" },
 } as const;
 
-/** Owners and admins: the Enrollments inbox's work, as Today items that open it. */
+/** Roles with `enrollment`: the Enrollments inbox's work, as Today items that open it. */
 function enrollmentWork(alerts: TodayDto["alerts"]) {
   const e = alerts.enrollments;
   if (!e) return [];
@@ -405,7 +405,7 @@ function Attention({
       text: a.age ? `Turns ${a.age} today` : "Birthday today",
       kind: "birthday" as const,
     })),
-    // Owners and admins: uniforms sold with a package and not handed out yet.
+    // Owners, admins, and the front desk: uniforms sold with a package and not handed out yet.
     ...(alerts.uniforms ?? []).map((a) => ({
       key: `uniform-${a.clientPackageId}`,
       clientId: a.clientId,

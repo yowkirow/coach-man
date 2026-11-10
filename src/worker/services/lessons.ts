@@ -11,6 +11,7 @@ import { LESSON_KIND_LABELS, type LessonKind } from "../../shared/domain";
 import { isLastWeekOfMonth } from "../../shared/enrollment";
 import { isMinor } from "../../shared/family";
 import { uuidv7 } from "../../shared/ids";
+import { canReadNote } from "../../shared/notes";
 import { can, isCoachingRole } from "../../shared/roles";
 import type { LessonCreateInput } from "../../shared/schemas";
 import {
@@ -250,6 +251,7 @@ export async function lessonDetail(ctx: Ctx, lessonId: string): Promise<LessonDe
   return (await lessonDetails(ctx, [item]))[0] as LessonDetailDto;
 }
 
+/** Sessions with their rosters and the notes the caller may read (see canReadNote). */
 async function lessonDetails(
   ctx: Ctx,
   items: Awaited<ReturnType<typeof lessonSummaries>>,
@@ -258,7 +260,7 @@ async function lessonDetails(
   const { db, workspaceId } = ctx;
   const ids = items.map((i) => i.row.id);
   const rateIds = unique(items.map((i) => i.row.rateId).filter((v): v is string => Boolean(v)));
-  const [rosters, notes, rates] = await Promise.all([
+  const [rosters, allNotes, rates] = await Promise.all([
     rostersFor(
       ctx,
       items.map((i) => i.row),
@@ -275,6 +277,7 @@ async function lessonDetails(
           .where(and(eq(rate.workspaceId, workspaceId), inList(rate.id, rateIds)))
       : Promise.resolve([]),
   ]);
+  const notes = allNotes.filter((n) => canReadNote(ctx.role, n));
   const authors = await coachRefs(
     db,
     workspaceId,
@@ -389,8 +392,8 @@ export async function today(ctx: Ctx): Promise<TodayDto> {
           sql`substr(${client.birthDate}, 6, 5) = ${monthDay(date)}`,
         ),
       ),
-    // Owners and admins hand out the uniforms packages came with.
-    can(ctx.role, "catalog")
+    // Whoever sells packages (`money`) hands out the uniforms they came with.
+    can(ctx.role, "money")
       ? db
           .select({
             id: clientPackage.id,
@@ -414,7 +417,7 @@ export async function today(ctx: Ctx): Promise<TodayDto> {
           .orderBy(asc(clientPackage.purchasedOn))
           .limit(20)
       : Promise.resolve([]),
-    // Owners and admins: requests to review, and in the month's last week who hasn't renewed.
+    // `enrollment`: requests to review, and in the month's last week who hasn't renewed.
     can(ctx.role, "enrollment")
       ? Promise.all([
           requestedCount(ctx),

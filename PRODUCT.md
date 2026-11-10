@@ -15,7 +15,7 @@ Installable single-page PWA built with Vite and React (TypeScript). The API is H
 CoachMan serves pickleball **academies**: a team of coaches under one owner, with the players they train and the parents of junior players. A solo coach is a one-person academy. The first academy is The Pickle Spot Academy.
 
 - **Owners and admins** run the academy: the team, the rate card and packages, programs and events, money, enrollment, and academy settings. Mostly at a desk, on a laptop.
-- **Front desk** staff handle the academy's day to day: payments, check-in, the schedule, enrollments, and family invites. They don't coach, and don't change prices, settings, or the team.
+- **Front desk** staff handle the academy's day to day: payments, check-in, the schedule, enrollments, and family invites. They don't coach (of a student's progress, they see what the family sees), and don't change prices, settings, or the team.
 - **Coaches** run sessions. On court, on a phone: checking players in, using package credits, jotting quick notes between and during sessions, often with poor reception. They see every academy student and their progress, but no money.
 - **Students** (adults, and teens 13–17 once a parent is linked) and **parents** of junior players see their own training: sessions, progress, coaches' shared comments, and what they owe. Phone first.
 

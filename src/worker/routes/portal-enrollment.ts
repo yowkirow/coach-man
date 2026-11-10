@@ -106,7 +106,7 @@ export const portalEnrollmentRoutes = new Hono<AppBindings>()
     return c.json<EnrollmentSubmittedDto>(body, body.replay ? 200 : 201);
   });
 
-/** Owners and admins hear about a new request after the response. */
+/** Whoever reviews requests (`enrollment`) hears about a new one after the response. */
 function toReview(c: Context<AppBindings>, body: EnrollmentSubmittedDto) {
   later(c, "Enrollment request push failed", () =>
     notifyStaffEnrollmentRequest(c.var.db, c.env, {

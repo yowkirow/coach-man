@@ -4,6 +4,9 @@ import type {
   CoachSummaryDto,
   LessonDetailDto,
   MeDto,
+  NoteDto,
+  OfflinePackDto,
+  ProgressDto,
   PublicAcademyDto,
   PublicAcademyPreviewDto,
   TeamDto,
@@ -12,6 +15,7 @@ import type {
 } from "../src/shared/api-types";
 import { addDays, weekdayOf } from "../src/shared/time";
 import {
+  Api,
   addMember,
   auditLog,
   expect,
@@ -28,11 +32,16 @@ import {
 } from "./support";
 
 // The front desk: staff who handle payments, check-in, the schedule, enrollments, and family
-// invites, and don't coach. They're never in a coach picker, on the team page, or on the public
-// site; they can't be named anyone's coach; and moving a coach to the front desk ends their
-// coaching, as leaving the team does. The roles matrix (roles.spec.ts) covers their capabilities.
+// invites, and don't coach. The team list names them, but they're never offered as a coach, on the
+// team page, or on the public site; they can't be named anyone's coach; moving a coach to the
+// front desk ends their coaching, as leaving the team does; and of a student's progress they see
+// what the family sees and write none of it. The roles matrix (roles.spec.ts) covers their
+// capabilities.
 
 const DOESNT_COACH = "Front desk staff don't coach.";
+const NO_NOTES = "Front desk staff don't write coaching notes.";
+const NO_ASSESSMENTS = "Front desk staff don't write assessments.";
+const NO_GOALS = "Front desk staff don't set goals.";
 const DESCRIPTION =
   "Payments, enrollments, check-in, the schedule, and family invites. Doesn't coach; no prices, settings, or team.";
 
@@ -49,7 +58,7 @@ function refusal(res: { status: number; json: unknown }) {
 test.describe("the front desk, at the API", () => {
   test.skip(({ isMobile }) => isMobile, "API checks: one browser is enough");
 
-  test("is never listed as a coach: not in the pickers, on the team page, or on the public site", async ({
+  test("is named in the team list but never as a coach: not on the team page or the public site", async ({
     coach: owner,
     personas,
     playwright,
@@ -76,11 +85,16 @@ test.describe("the front desk, at the API", () => {
       }),
     ).toMatchObject({ role: "front_desk", title: "Front desk lead", isPublic: true });
 
-    // The coach pickers list the people who coach, for everyone; the team lists everyone.
+    // Everyone is listed with their role, for names and avatars; pickers offer only people who
+    // coach (the role says who), and naming the front desk a coach is refused (below).
     const desk = await personas.open({ email: deskEmail, name: "Dana Desk", persona: "none" });
     for (const who of [api, desk.api]) {
       const coaches = await who.get<CoachSummaryDto[]>("/coaches");
-      expect(coaches.map((c) => c.userId).sort()).toEqual([me.user.id, kimId].sort());
+      expect(Object.fromEntries(coaches.map((c) => [c.userId, c.role]))).toEqual({
+        [me.user.id]: "owner",
+        [kimId]: "coach",
+        [deskId]: "front_desk",
+      });
     }
     const team = await desk.api.get<TeamDto>("/team");
     expect(team.members.find((m) => m.userId === deskId)?.role).toBe("front_desk");
@@ -373,9 +387,10 @@ test.describe("the front desk, at the API", () => {
     expect(
       (await api.get<LessonDetailDto>(`/lessons/${assisted.lesson.lesson.id}`)).lesson,
     ).toMatchObject({ coachUserId: me.user.id, assistantCoachIds: [] });
-    expect((await api.get<CoachSummaryDto[]>("/coaches")).map((c) => c.userId)).toEqual([
-      me.user.id,
-    ]);
+    // Still named (past sessions keep showing who led them), now as front desk.
+    expect(
+      (await api.get<CoachSummaryDto[]>("/coaches")).find((c) => c.userId === samId),
+    ).toMatchObject({ name: "Sam Rivera", role: "front_desk" });
 
     // The audit log names the release; moving back to coach has nothing to release.
     const roleChange = async () =>
@@ -386,6 +401,157 @@ test.describe("the front desk, at the API", () => {
     await api.patch<TeamDto>(`/team/members/${samId}`, { role: "coach" });
     expect(await roleChange()).toEqual({ from: "front_desk", to: "coach" });
     expect((await api.get<ClientDetailDto>(`/clients/${kai.id}`)).coaches?.primary).toBeNull();
+  });
+
+  test("sees what the family sees of a student's progress, and writes none of it", async ({
+    coach: owner,
+    personas,
+  }, info) => {
+    const { api, request } = owner;
+    await onboard(api);
+    const { date: today } = await api.get<TodayDto>("/today");
+    const deskEmail = testEmail("desk-progress", info);
+    await addMember(request, { email: deskEmail, name: "Dana Desk", role: "front_desk" });
+    const kai = await api.post<{ id: string }>("/clients", {
+      firstName: "Kai",
+      lastName: "Mendoza",
+    });
+    const session = await api.post<{ lesson: LessonDetailDto }>("/lessons", {
+      kind: "private",
+      date: today,
+      startTime: "07:00",
+      durationMinutes: 60,
+      clientIds: [kai.id],
+    });
+    const lessonId = session.lesson.lesson.id;
+    // The owner coaches: a shared comment, a coaches-only one, a handoff, and two session notes.
+    const shared = await api.post<NoteDto>("/notes", {
+      clientId: kai.id,
+      body: "Great footwork today.",
+      visibility: "shared",
+    });
+    await api.post("/notes", { clientId: kai.id, body: "Watch the left knee." });
+    await api.post("/notes", { clientId: kai.id, body: "Ready for Kim's group.", kind: "handoff" });
+    await api.post("/notes", {
+      lessonId,
+      clientId: kai.id,
+      body: "Shared from the session.",
+      visibility: "shared",
+    });
+    await api.post("/notes", { lessonId, body: "The plan worked; more drops next time." });
+    const assessed = await api.post<ProgressDto>(`/clients/${kai.id}/assessments`, {
+      assessedOn: today,
+      scores: [],
+      notes: "Shared with the family.",
+    });
+    await api.post(`/clients/${kai.id}/assessments`, {
+      assessedOn: today,
+      scores: [],
+      notes: "Held back.",
+      sharedWithFamily: false,
+    });
+    const withGoal = await api.post<ProgressDto>(`/clients/${kai.id}/goals`, {
+      title: "Land the third-shot drop",
+    });
+    const assessment = assessed.assessments[0];
+    const goal = withGoal.goals[0];
+    if (!assessment || !goal) throw new Error("The assessment and goal weren't saved");
+
+    // The front desk reads the shared comments and assessments, and every goal, as families do.
+    const desk = await personas.open({ email: deskEmail, name: "Dana Desk", persona: "none" });
+    const progress = await desk.api.get<ProgressDto>(`/clients/${kai.id}/progress`);
+    expect(progress.notes.map((n) => n.body).sort()).toEqual([
+      "Great footwork today.",
+      "Shared from the session.",
+    ]);
+    expect(progress.assessments.map((a) => a.notes)).toEqual(["Shared with the family."]);
+    expect(progress.goals.map((g) => g.title)).toEqual(["Land the third-shot drop"]);
+    // The owner, who coaches, reads everything.
+    const full = await api.get<ProgressDto>(`/clients/${kai.id}/progress`);
+    expect(full.notes.map((n) => n.body).sort()).toEqual([
+      "Great footwork today.",
+      "Ready for Kim's group.",
+      "Shared from the session.",
+      "Watch the left knee.",
+    ]);
+    const assessments = [
+      ["Held back.", false],
+      ["Shared with the family.", true],
+    ];
+    expect(full.assessments.map((a) => [a.notes, a.sharedWithFamily]).sort()).toEqual(assessments);
+    // The same on the session and in the offline pack.
+    const sessionNotes = async (who: typeof api) =>
+      (await who.get<LessonDetailDto>(`/lessons/${lessonId}`)).notes.map((n) => n.body).sort();
+    expect(await sessionNotes(desk.api)).toEqual(["Shared from the session."]);
+    expect(await sessionNotes(api)).toEqual([
+      "Shared from the session.",
+      "The plan worked; more drops next time.",
+    ]);
+    const pack = await desk.api.get<OfflinePackDto>("/offline-pack");
+    expect(pack.lessons.find((l) => l.lesson.id === lessonId)?.notes.map((n) => n.body)).toEqual([
+      "Shared from the session.",
+    ]);
+
+    // Writing, sharing, pinning, or deleting any of it is refused.
+    const writes: [string, string, { status: number; json: unknown }][] = [
+      [
+        "POST /notes",
+        NO_NOTES,
+        await desk.api.raw("POST", "/notes", { clientId: kai.id, body: "From the desk." }),
+      ],
+      [
+        "PATCH /notes/:id (pin)",
+        NO_NOTES,
+        await desk.api.raw("PATCH", `/notes/${shared.id}`, { pinned: true }),
+      ],
+      ["DELETE /notes/:id", NO_NOTES, await desk.api.raw("DELETE", `/notes/${shared.id}`)],
+      [
+        "POST /clients/:id/assessments",
+        NO_ASSESSMENTS,
+        await desk.api.raw("POST", `/clients/${kai.id}/assessments`, {
+          assessedOn: today,
+          scores: [],
+        }),
+      ],
+      [
+        "PATCH /assessments/:id (hold back)",
+        NO_ASSESSMENTS,
+        await desk.api.raw("PATCH", `/assessments/${assessment.id}`, { sharedWithFamily: false }),
+      ],
+      [
+        "DELETE /assessments/:id",
+        NO_ASSESSMENTS,
+        await desk.api.raw("DELETE", `/assessments/${assessment.id}`),
+      ],
+      [
+        "POST /clients/:id/goals",
+        NO_GOALS,
+        await desk.api.raw("POST", `/clients/${kai.id}/goals`, { title: "From the desk" }),
+      ],
+      [
+        "PATCH /goals/:id (reached)",
+        NO_GOALS,
+        await desk.api.raw("PATCH", `/goals/${goal.id}`, { status: "achieved" }),
+      ],
+      ["DELETE /goals/:id", NO_GOALS, await desk.api.raw("DELETE", `/goals/${goal.id}`)],
+    ];
+    expect(
+      Object.fromEntries(writes.map(([name, , res]) => [name, [Api.code(res), refusal(res)]])),
+    ).toEqual(
+      Object.fromEntries(
+        writes.map(([name, message]) => [name, ["forbidden", { status: 403, message }]]),
+      ),
+    );
+
+    // Nothing changed.
+    const after = await api.get<ProgressDto>(`/clients/${kai.id}/progress`);
+    expect(after.notes.map((n) => [n.body, n.pinned]).sort()).toEqual(
+      full.notes.map((n) => [n.body, n.pinned]).sort(),
+    );
+    expect(after.assessments.map((a) => [a.notes, a.sharedWithFamily]).sort()).toEqual(assessments);
+    expect(after.goals.map((g) => [g.title, g.status])).toEqual([
+      ["Land the third-shot drop", "active"],
+    ]);
   });
 });
 
@@ -541,6 +707,121 @@ test.describe("the front desk, in the app", () => {
     expect((await seeded.api.get<CoachProfileDto>(`/coaches/${samId}`)).title).toBe(
       "Front desk lead",
     );
+    expect(errors).toEqual([]);
+  });
+
+  test("the front desk reads what's shared with the family, with nothing to write", async ({
+    coach: owner,
+    personas,
+  }, info) => {
+    const { api, request } = owner;
+    await onboard(api);
+    const deskEmail = testEmail("desk-reads", info);
+    await addMember(request, { email: deskEmail, name: "Dana Desk", role: "front_desk" });
+    const kai = await api.post<{ id: string }>("/clients", {
+      firstName: "Kai",
+      lastName: "Mendoza",
+    });
+    for (const note of [
+      { body: "Great footwork today.", visibility: "shared" },
+      { body: "Watch the left knee." },
+      { body: "Ready for Kim's group.", kind: "handoff" },
+    ]) {
+      await api.post("/notes", { clientId: kai.id, ...note });
+    }
+    await api.post(`/clients/${kai.id}/goals`, { title: "Land the third-shot drop" });
+    const desk = await personas.open({ email: deskEmail, name: "Dana Desk", persona: "none" });
+    const errors = watchErrors(desk.page);
+
+    await visit(desk.page, `/clients/${kai.id}`);
+    const notes = desk.page.getByRole("region", { name: "Coach notes" });
+    await expect(notes.getByText("Great footwork today.")).toBeVisible();
+    await expect(notes.getByRole("button", { name: "Add note" })).toHaveCount(0);
+    for (const action of ["Add a note", "New assessment"]) {
+      await expect(desk.page.getByRole("button", { name: action })).toHaveCount(0);
+    }
+
+    // Progress: the shared comment and the goal, never the coaches-only note or the handoff, and
+    // no composer, note actions, assessment, or goal to add or tick.
+    await desk.page.getByRole("tab", { name: "Progress" }).click();
+    const timeline = desk.page.getByRole("region", { name: "Coaching timeline" });
+    await expect(timeline.getByText("Great footwork today.")).toBeVisible();
+    await expect(timeline.getByText("Shared with family")).toBeVisible();
+    for (const hidden of ["Watch the left knee.", "Ready for Kim's group."]) {
+      await expect(desk.page.getByText(hidden)).toHaveCount(0);
+    }
+    await expect(timeline.getByText("Handoff · coaches only")).toHaveCount(0);
+    await expect(timeline.getByLabel("Note about Kai")).toHaveCount(0);
+    await expect(timeline.getByRole("button", { name: "Note actions" })).toHaveCount(0);
+    const skills = desk.page.getByRole("region", { name: "Skills" });
+    await expect(skills.getByText("No assessments yet")).toBeVisible();
+    await expect(skills.getByRole("button")).toHaveCount(0);
+    const goals = desk.page.getByRole("region", { name: "Goals" });
+    await expect(
+      goals.getByRole("checkbox", { name: "Land the third-shot drop: not reached yet" }),
+    ).toBeVisible();
+    await expect(goals.getByRole("button")).toHaveCount(0);
+    await desk.page.waitForLoadState("networkidle");
+    expect(errors).toEqual([]);
+  });
+
+  test("coach pickers offer only people who coach, and a past session keeps its lead's name", async ({
+    page,
+    coach: owner,
+  }, info) => {
+    const { api, request } = owner;
+    await onboard(api);
+    const { date: today } = await api.get<TodayDto>("/today");
+    const { userId: samId } = await addMember(request, {
+      email: testEmail("desk-past-lead", info),
+      name: "Sam Rivera",
+      role: "coach",
+    });
+    await addMember(request, {
+      email: testEmail("desk-picker-kim", info),
+      name: "Kim Lee",
+      role: "coach",
+    });
+    await addMember(request, {
+      email: testEmail("desk-picker-dana", info),
+      name: "Dana Desk",
+      role: "front_desk",
+    });
+    const past = await api.post<{ lesson: LessonDetailDto }>("/lessons", {
+      kind: "private",
+      date: addDays(today, -1),
+      startTime: "07:00",
+      durationMinutes: 60,
+      coachUserId: samId,
+    });
+    await api.patch<TeamDto>(`/team/members/${samId}`, { role: "front_desk" });
+    const kai = await api.post<{ id: string }>("/clients", {
+      firstName: "Kai",
+      lastName: "Mendoza",
+    });
+    const errors = watchErrors(page);
+
+    // The session Sam led before moving to the front desk still names him.
+    await visit(page, `/sessions/${past.lesson.lesson.id}`);
+    await expect(page.getByText("Sam Rivera · lead")).toBeVisible();
+    await expect(page.getByText("Former coach")).toHaveCount(0);
+
+    // A student's coaches: the people who coach, never the front desk.
+    await visit(page, `/clients/${kai.id}`);
+    await page
+      .getByRole("region", { name: "Coaches" })
+      .getByRole("button", { name: "Change" })
+      .click();
+    const sheet = page.getByRole("dialog", { name: "Kai's coaches" });
+    await expect(sheet.getByRole("checkbox", { name: /Kim Lee/ })).toBeVisible();
+    await sheet.getByRole("button", { name: /Primary coach/ }).click();
+    await expect(page.getByRole("option", { name: /Kim Lee/ })).toBeVisible();
+    for (const name of [/Dana Desk/, /Sam Rivera/]) {
+      await expect(page.getByRole("option", { name })).toHaveCount(0);
+      await expect(sheet.getByRole("checkbox", { name })).toHaveCount(0);
+    }
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("listbox")).toHaveCount(0);
     expect(errors).toEqual([]);
   });
 });

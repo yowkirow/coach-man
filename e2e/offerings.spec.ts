@@ -312,7 +312,8 @@ test.describe("programs and package tiers", () => {
     });
     expect(sold).toMatchObject({ includesUniform: true, uniformSize: null, uniformIssuedAt: null });
 
-    // Owners and admins see it on Today until it's handed out.
+    // Whoever sells packages (owners, admins, and the front desk) sees it on Today until it's
+    // handed out.
     await visit(page, "/");
     const attention = page.getByRole("region", { name: "Needs attention" });
     await expect(attention).toContainText("Uniform to hand out · Monthly");
@@ -341,7 +342,7 @@ test.describe("programs and package tiers", () => {
     const today = await api.get<TodayDto>("/today");
     expect(today.alerts.uniforms ?? []).toEqual([]);
 
-    // Any staff member can update it at the court; Today's list is for owners and admins.
+    // Any staff member can update it at the court; Today's list isn't for coaches.
     const email = testEmail("uniform-coach", info);
     await addMember(coach.request, { email, name: "Sam Rivera", role: "coach" });
     const sam = await personas.open({ email, name: "Sam Rivera", persona: "none" });
@@ -352,9 +353,18 @@ test.describe("programs and package tiers", () => {
     expect(changed.status).toBe(200);
     expect(changed.json).toMatchObject({ uniformSize: "XL", uniformIssuedAt: null });
     expect((await sam.api.get<TodayDto>("/today")).alerts.uniforms ?? []).toEqual([]);
-    expect((await api.get<TodayDto>("/today")).alerts.uniforms?.map((u) => u.uniformSize)).toEqual([
-      "XL",
-    ]);
+    const deskEmail = testEmail("uniform-desk", info);
+    await addMember(coach.request, { email: deskEmail, name: "Dana Desk", role: "front_desk" });
+    const desk = await personas.open({ email: deskEmail, name: "Dana Desk", persona: "none" });
+    for (const who of [api, desk.api]) {
+      expect(
+        (await who.get<TodayDto>("/today")).alerts.uniforms?.map((u) => u.uniformSize),
+      ).toEqual(["XL"]);
+    }
+    await visit(desk.page, "/");
+    await expect(desk.page.getByRole("region", { name: "Needs attention" })).toContainText(
+      "Uniform to hand out · size XL · Monthly",
+    );
     expect(errors).toEqual([]);
   });
 });

@@ -161,13 +161,14 @@ export interface AcademyPhotoDto {
   createdAt: number;
 }
 
-/** Someone who coaches, as pickers and avatars need them (GET /api/v1/coaches; no front desk). */
+/** A staff member as pickers and avatars need them (GET /api/v1/coaches, current staff only). */
 export interface CoachSummaryDto {
   userId: string;
   /** The coach profile's display name, else the account name. */
   name: string;
   title: string | null;
   photoKey: string | null;
+  /** Coach pickers offer only people who coach (see isCoachingRole); the front desk is named only. */
   role: StaffRole;
 }
 
@@ -708,8 +709,8 @@ export interface TodayDto {
     balancesDue: { clientId: string; name: string; balanceMinor: number }[];
     birthdays: { clientId: string; name: string; age: number | null }[];
     /**
-     * Uniforms sold with a package and not handed out yet (owners and admins; empty for coaches).
-     * Optional for Today pages cached before WS4a.
+     * Uniforms sold with a package and not handed out yet (`money`: owners, admins, and the front
+     * desk; empty for coaches). Optional for Today pages cached before WS4a.
      */
     uniforms?: {
       clientId: string;
@@ -719,9 +720,9 @@ export interface TodayDto {
       uniformSize: string | null;
     }[];
     /**
-     * Owners and admins (`enrollment`): requests waiting in the inbox, and in the month's last
-     * week the students who haven't renewed (null outside it). Absent for coaches and for Today
-     * pages cached before WS4b.
+     * Owners, admins, and the front desk (`enrollment`): requests waiting in the inbox, and in the
+     * month's last week the students who haven't renewed (null outside it). Absent for coaches and
+     * for Today pages cached before WS4b.
      */
     enrollments?: { requested: number; notRenewed: number | null };
   };
@@ -907,7 +908,7 @@ export interface NotificationPrefDto {
   sessionReminderMinutes: number | null;
   dailyDigestTime: string | null;
   packageExpiryDays: number;
-  /** Owners and admins: new enrollment requests and payment proofs (optional for old caches). */
+  /** Who reviews them: new enrollment requests and payment proofs (optional for old caches). */
   enrollmentAlerts?: boolean;
   subscriptions: number;
   vapidPublicKey: string | null;

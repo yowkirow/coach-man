@@ -12,6 +12,7 @@ import { TextAreaField, TextField } from "../../components/ui/field";
 import { ActionMenu, ConfirmSheet, Sheet } from "../../components/ui/overlay";
 import { api, errorMessage, fieldErrors } from "../../lib/api";
 import { useFormat } from "../../lib/format";
+import { useWritesCoaching } from "../../lib/hooks";
 import { notify } from "../../lib/notify";
 import { useOnline } from "../../lib/offline";
 import { keys } from "../../lib/query";
@@ -112,16 +113,19 @@ function useToggleGoal(clientId: string) {
   };
 }
 
+/** A goal with its tick; `readOnly` for people who don't coach (they see it, not change it). */
 function GoalCheck({
   goal,
   onToggle,
   isDisabled,
+  readOnly = false,
   onBento = false,
   showDetail = false,
 }: {
   goal: GoalDto;
   onToggle: (achieved: boolean) => void;
   isDisabled?: boolean;
+  readOnly?: boolean;
   onBento?: boolean;
   showDetail?: boolean;
 }) {
@@ -132,10 +136,15 @@ function GoalCheck({
       isSelected={achieved}
       onChange={onToggle}
       isDisabled={isDisabled || goal.status === "dropped"}
+      isReadOnly={readOnly}
       aria-label={
-        achieved ? `${goal.title}: reached. Mark not reached` : `Mark reached: ${goal.title}`
+        readOnly
+          ? `${goal.title}: ${achieved ? "reached" : "not reached yet"}`
+          : achieved
+            ? `${goal.title}: reached. Mark not reached`
+            : `Mark reached: ${goal.title}`
       }
-      className="group flex min-h-11 flex-1 cursor-pointer items-start gap-3 py-1.5 outline-none data-[disabled]:cursor-default"
+      className="group flex min-h-11 flex-1 cursor-pointer items-start gap-3 py-1.5 outline-none data-[disabled]:cursor-default data-[readonly]:cursor-default"
     >
       <span
         className={`mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full border transition-colors group-data-[selected]:border-ink group-data-[selected]:bg-ink group-data-[focus-visible]:outline-2 group-data-[focus-visible]:outline-offset-2 group-data-[focus-visible]:outline-ink ${
@@ -185,7 +194,10 @@ function GoalCheck({
 /** Reached goals stay on the bento this many days, so the win (and its Undo) is visible. */
 const RECENT_DAYS = 14;
 
-/** Lime bento in the right column: the active goals, tick one off when it's reached. */
+/**
+ * Lime bento in the right column: the active goals, tick one off when it's reached (people who
+ * coach; anyone else sees them).
+ */
 export function GoalsBento({
   clientId,
   goals,
@@ -199,6 +211,7 @@ export function GoalsBento({
 }) {
   const online = useOnline();
   const fmt = useFormat();
+  const writes = useWritesCoaching();
   const toggle = useToggleGoal(clientId);
   const today = fmt.today();
   const active = (goals ?? []).filter((g) => g.status === "active");
@@ -233,6 +246,7 @@ export function GoalsBento({
                 goal={g}
                 onBento
                 isDisabled={!online}
+                readOnly={!writes}
                 onToggle={(on) => toggle(g, on ? "achieved" : "active")}
               />
             </li>
@@ -240,30 +254,38 @@ export function GoalsBento({
         </ul>
       ) : goals !== undefined ? (
         <p className="text-[0.9375rem] text-ink/75">
-          {reached
-            ? "Every goal is reached. Set the next one to keep lessons focused."
-            : "No goals yet. A clear target, like a rating or a shot to master, keeps lessons focused."}
+          {!writes
+            ? reached
+              ? "Every goal is reached."
+              : "No goals yet."
+            : reached
+              ? "Every goal is reached. Set the next one to keep lessons focused."
+              : "No goals yet. A clear target, like a rating or a shot to master, keeps lessons focused."}
         </p>
       ) : null}
       {shown.length > 5 ? (
         <p className="mt-1 text-[0.8125rem] text-ink/75">and {shown.length - 5} more</p>
       ) : null}
-      <div className="mt-4 flex flex-wrap gap-2">
-        <Button
-          variant="dark"
-          size="sm"
-          isDisabled={!online}
-          icon={<Plus aria-hidden className="size-4" />}
-          onPress={onAdd}
-        >
-          Add goal
-        </Button>
-        {goals?.length ? (
-          <Button variant="light" size="sm" onPress={onAll}>
-            All goals
-          </Button>
-        ) : null}
-      </div>
+      {writes || goals?.length ? (
+        <div className="mt-4 flex flex-wrap gap-2">
+          {writes ? (
+            <Button
+              variant="dark"
+              size="sm"
+              isDisabled={!online}
+              icon={<Plus aria-hidden className="size-4" />}
+              onPress={onAdd}
+            >
+              Add goal
+            </Button>
+          ) : null}
+          {goals?.length ? (
+            <Button variant="light" size="sm" onPress={onAll}>
+              All goals
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
     </Bento>
   );
 }
@@ -274,7 +296,10 @@ const SECTIONS: { status: GoalStatus; title: string }[] = [
   { status: "dropped", title: "Dropped" },
 ];
 
-/** Progress tab: every goal by status, with add, edit, reached, drop, and delete. */
+/**
+ * Progress tab: every goal by status, with add, edit, reached, drop, and delete for people who
+ * coach (anyone else sees the goals, as the family does).
+ */
 export function GoalsCard({
   clientId,
   goals,
@@ -287,6 +312,7 @@ export function GoalsCard({
   onEdit: (g: GoalDto) => void;
 }) {
   const online = useOnline();
+  const writes = useWritesCoaching();
   const toggle = useToggleGoal(clientId);
   const [deleting, setDeleting] = useState<GoalDto | null>(null);
   return (
@@ -295,15 +321,17 @@ export function GoalsCard({
         title="Goals"
         count={goals.length || undefined}
         action={
-          <Button
-            variant="light"
-            size="sm"
-            isDisabled={!online}
-            icon={<Plus aria-hidden className="size-4" />}
-            onPress={onAdd}
-          >
-            Add goal
-          </Button>
+          writes ? (
+            <Button
+              variant="light"
+              size="sm"
+              isDisabled={!online}
+              icon={<Plus aria-hidden className="size-4" />}
+              onPress={onAdd}
+            >
+              Add goal
+            </Button>
+          ) : undefined
         }
       />
       {goals.length ? (
@@ -323,6 +351,7 @@ export function GoalsCard({
                         goal={g}
                         showDetail
                         isDisabled={!online}
+                        readOnly={!writes}
                         onToggle={(on) => toggle(g, on ? "achieved" : "active")}
                       />
                       {g.status === "dropped" ? (
@@ -330,38 +359,40 @@ export function GoalsCard({
                           Dropped
                         </Pill>
                       ) : null}
-                      <ActionMenu
-                        label={`Actions for goal: ${g.title}`}
-                        trigger={
-                          <IconButton
-                            label={`Actions for goal: ${g.title}`}
-                            isDisabled={!online}
-                            className="shrink-0"
-                          >
-                            <Ellipsis aria-hidden className="size-5" />
-                          </IconButton>
-                        }
-                        actions={[
-                          { id: "edit", label: "Edit", onAction: () => onEdit(g) },
-                          g.status === "active"
-                            ? {
-                                id: "drop",
-                                label: "Drop goal",
-                                onAction: () => toggle(g, "dropped"),
-                              }
-                            : {
-                                id: "reactivate",
-                                label: "Back to in progress",
-                                onAction: () => toggle(g, "active"),
-                              },
-                          {
-                            id: "delete",
-                            label: "Delete",
-                            tone: "danger",
-                            onAction: () => setDeleting(g),
-                          },
-                        ]}
-                      />
+                      {writes ? (
+                        <ActionMenu
+                          label={`Actions for goal: ${g.title}`}
+                          trigger={
+                            <IconButton
+                              label={`Actions for goal: ${g.title}`}
+                              isDisabled={!online}
+                              className="shrink-0"
+                            >
+                              <Ellipsis aria-hidden className="size-5" />
+                            </IconButton>
+                          }
+                          actions={[
+                            { id: "edit", label: "Edit", onAction: () => onEdit(g) },
+                            g.status === "active"
+                              ? {
+                                  id: "drop",
+                                  label: "Drop goal",
+                                  onAction: () => toggle(g, "dropped"),
+                                }
+                              : {
+                                  id: "reactivate",
+                                  label: "Back to in progress",
+                                  onAction: () => toggle(g, "active"),
+                                },
+                            {
+                              id: "delete",
+                              label: "Delete",
+                              tone: "danger",
+                              onAction: () => setDeleting(g),
+                            },
+                          ]}
+                        />
+                      ) : null}
                     </li>
                   ))}
                 </ul>
@@ -372,7 +403,9 @@ export function GoalsCard({
       ) : (
         <div className="flex items-start gap-3 px-5 pb-5 text-ink-2">
           <Target aria-hidden className="mt-0.5 size-4.5 shrink-0" />
-          <p>No goals yet. Add one so every lesson has a direction.</p>
+          <p>
+            {writes ? "No goals yet. Add one so every lesson has a direction." : "No goals yet."}
+          </p>
         </div>
       )}
       <DeleteGoalSheet goal={deleting} clientId={clientId} onClose={() => setDeleting(null)} />

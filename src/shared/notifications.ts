@@ -365,9 +365,9 @@ export function linkRecipients(
 }
 
 /**
- * Owners and admins who get a staff alert (a new enrollment request or payment proof): their role
- * has every capability it needs and they haven't turned "Enrollments & payments" off (on unless
- * they did); never the person who sent it.
+ * Who gets a staff alert (a new enrollment request or payment proof): owners, admins, and the front
+ * desk whose role has every capability it needs and who haven't turned "Enrollments & payments" off
+ * (on unless they did); never the person who sent it.
  */
 export function staffAlertRecipients(
   team: readonly { userId: string; role: string }[],

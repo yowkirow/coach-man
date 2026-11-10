@@ -889,7 +889,10 @@ function capabilityProbes(w: World, self: string): Probe[] {
   ];
 }
 
-/** What every staff role may do: the people, their progress, the schedule, and check-in. */
+/**
+ * What every staff role may do: the people, their progress, the schedule, and check-in. Writing a
+ * note, an assessment, or a goal takes someone who coaches (COACHING_WRITES).
+ */
 function openProbes(w: World, self: string): Open[] {
   const s = w.studentId;
   return [
@@ -922,6 +925,18 @@ function openProbes(w: World, self: string): Open[] {
       method: "POST",
       path: "/notes",
       body: { clientId: s, body: "Good footwork.", visibility: "shared" },
+    },
+    {
+      name: "POST /clients/:id/assessments",
+      method: "POST",
+      path: `/clients/${s}/assessments`,
+      body: { assessedOn: w.today, scores: [] },
+    },
+    {
+      name: "POST /clients/:id/goals",
+      method: "POST",
+      path: `/clients/${s}/goals`,
+      body: { title: "Serve deep to the backhand" },
     },
     { name: "GET /clients/:id/ledger (credits)", method: "GET", path: `/clients/${s}/ledger` },
     {
@@ -986,6 +1001,13 @@ function openProbes(w: World, self: string): Open[] {
     },
   ];
 }
+
+/** The open routes only people who coach may use: the front desk gets `403 forbidden`. */
+const COACHING_WRITES = new Set([
+  "POST /notes (shared)",
+  "POST /clients/:id/assessments",
+  "POST /clients/:id/goals",
+]);
 
 async function send(
   request: APIRequestContext,
@@ -1126,14 +1148,19 @@ test.describe("who can do what, at the API", () => {
       "money",
     ]);
 
-    // Everything open to every staff role stays open to them.
+    // Everything open to every staff role stays open to them, but for coaching's own writes: they
+    // don't coach, so a note, an assessment, or a goal is refused.
     const open = openProbes(w, userId);
     const answers: Record<string, string> = {};
     for (const p of open) {
       const res = await send(desk.context.request, p);
       answers[p.name] = res.status < 300 ? "ok" : `${res.status} ${Api.code(res)}`;
     }
-    expect(answers).toEqual(Object.fromEntries(open.map((p) => [p.name, "ok"])));
+    expect(answers).toEqual(
+      Object.fromEntries(
+        open.map((p) => [p.name, COACHING_WRITES.has(p.name) ? "403 forbidden" : "ok"]),
+      ),
+    );
 
     // Amounts reach them: Today's who-owes and rosters, and a student's balance.
     for (const path of ["/today", `/clients/${w.studentId}`]) {

@@ -41,7 +41,14 @@ import {
 import { ActionMenu, ConfirmSheet, Sheet } from "../../components/ui/overlay";
 import { ApiRequestError, api, errorMessage } from "../../lib/api";
 import { type Format, fullName, plural, useFormat } from "../../lib/format";
-import { useCan, useCoachMap, useHasTeam, useLesson, useVenues } from "../../lib/hooks";
+import {
+  useCan,
+  useCoachMap,
+  useHasTeam,
+  useLesson,
+  useVenues,
+  useWritesCoaching,
+} from "../../lib/hooks";
 import { notify } from "../../lib/notify";
 import { type CompleteVars, keys, type NoteVars, storeLesson } from "../../lib/query";
 
@@ -235,6 +242,7 @@ function SessionHeader({
   const sync = useLessonCacheSync();
   const hasTeam = useHasTeam();
   const coachMap = useCoachMap();
+  const writes = useWritesCoaching();
   const l = detail.lesson;
   const cancelled = l.status === "cancelled";
   const completed = l.status === "completed";
@@ -311,9 +319,11 @@ function SessionHeader({
         >
           <UserPlus aria-hidden className="size-5" />
         </IconButton>
-        <IconButton label="Add a note" variant="lime" size="lg" onPress={onNote}>
-          <NotebookPen aria-hidden className="size-5" />
-        </IconButton>
+        {writes ? (
+          <IconButton label="Add a note" variant="lime" size="lg" onPress={onNote}>
+            <NotebookPen aria-hidden className="size-5" />
+          </IconButton>
+        ) : null}
         {completed ? (
           <IconButton
             label="Reopen session"
@@ -475,8 +485,10 @@ function RosterPanel({ detail, onAdd }: { detail: LessonDetailDto; onAdd: () => 
   );
 }
 
+/** Session notes; people who don't coach read the shared ones and write none. */
 function NotesPanel({ detail, autoFocus }: { detail: LessonDetailDto; autoFocus: boolean }) {
   const fmt = useFormat();
+  const writes = useWritesCoaching();
   const [body, setBody] = useState("");
   const create = useMutation<unknown, Error, NoteVars>({ mutationKey: ["notes", "create"] });
   const names = new Map(detail.roster.map((r) => [r.clientId, fullName(r)]));
@@ -485,34 +497,36 @@ function NotesPanel({ detail, autoFocus }: { detail: LessonDetailDto; autoFocus:
 
   return (
     <Card className="p-5" label="Session notes">
-      <form
-        className="flex flex-col gap-3"
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (!body.trim()) return;
-          create.mutate({ id: uuidv7(), lessonId: detail.lesson.id, body: body.trim() });
-          setBody("");
-        }}
-      >
-        <TextAreaField
-          label="Add a note"
-          value={body}
-          onChange={setBody}
-          autoFocus={autoFocus}
-          placeholder="Drills, what clicked, what to fix next time…"
-        />
-        <Button
-          type="submit"
-          variant="dark"
-          size="sm"
-          className="self-end"
-          isDisabled={!body.trim()}
+      {writes ? (
+        <form
+          className="flex flex-col gap-3"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!body.trim()) return;
+            create.mutate({ id: uuidv7(), lessonId: detail.lesson.id, body: body.trim() });
+            setBody("");
+          }}
         >
-          Save note
-        </Button>
-      </form>
+          <TextAreaField
+            label="Add a note"
+            value={body}
+            onChange={setBody}
+            autoFocus={autoFocus}
+            placeholder="Drills, what clicked, what to fix next time…"
+          />
+          <Button
+            type="submit"
+            variant="dark"
+            size="sm"
+            className="self-end"
+            isDisabled={!body.trim()}
+          >
+            Save note
+          </Button>
+        </form>
+      ) : null}
       {notes.length ? (
-        <ol className="mt-4 flex flex-col divide-y divide-line">
+        <ol className={`flex flex-col divide-y divide-line ${writes ? "mt-4" : ""}`}>
           {notes.map((n) => (
             <li key={n.id} className="py-3.5">
               <div className="flex flex-wrap items-center gap-2 text-[0.8125rem] text-ink-2">
@@ -541,9 +555,10 @@ function NotesPanel({ detail, autoFocus }: { detail: LessonDetailDto; autoFocus:
           ))}
         </ol>
       ) : (
-        <p className="mt-4 text-ink-2">
-          No notes yet. Notes about a player also appear on their profile. Session notes are for
-          coaches only.
+        <p className={`text-ink-2 ${writes ? "mt-4" : ""}`}>
+          {writes
+            ? "No notes yet. Notes about a player also appear on their profile. Session notes are for coaches only."
+            : "No notes shared with families yet."}
         </p>
       )}
     </Card>

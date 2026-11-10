@@ -16,6 +16,7 @@ import type {
   TodayDto,
   VenueDto,
 } from "@shared/api-types";
+import { canWriteCoaching } from "@shared/notes";
 import { CAPABILITY_NAMES, type Capabilities, isCoachingRole } from "@shared/roles";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
@@ -137,8 +138,8 @@ export function useSkills() {
 }
 
 /**
- * Everyone on the team who coaches (never the front desk), for coach pickers and avatars. Cached
- * for offline use.
+ * Everyone on the team, for names and avatars (the front desk too, so their past sessions still
+ * show who led them). Coach pickers use useCoachChoices. Cached for offline use.
  */
 export function useCoaches() {
   return useQuery({
@@ -148,10 +149,16 @@ export function useCoaches() {
   });
 }
 
-/** Coaches by user id. */
+/** Everyone on the team by user id, for names and avatars. */
 export function useCoachMap(): Map<string, CoachSummaryDto> {
   const coaches = useCoaches().data;
   return useMemo(() => new Map((coaches ?? []).map((c) => [c.userId, c])), [coaches]);
+}
+
+/** The people a coach picker offers: everyone on the team who coaches (never the front desk). */
+export function useCoachChoices(): CoachSummaryDto[] {
+  const coaches = useCoaches().data;
+  return useMemo(() => (coaches ?? []).filter((c) => isCoachingRole(c.role)), [coaches]);
 }
 
 /** Whether you coach here (the front desk doesn't). False until your profile has loaded. */
@@ -161,11 +168,20 @@ export function useIsCoach(): boolean {
 }
 
 /**
+ * Whether you write coaching notes, assessments, and goals (people who coach do; the front desk
+ * reads what the family reads). False until your profile has loaded.
+ */
+export function useWritesCoaching(): boolean {
+  const me = useMe().data;
+  return me ? canWriteCoaching(me.role) : false;
+}
+
+/**
  * A coach to choose: someone besides you who coaches, or for the front desk (who doesn't coach)
  * anyone who does. Coach pickers and coach lines show only then.
  */
 export function useHasTeam(): boolean {
-  const coaches = useCoaches().data?.length ?? 0;
+  const coaches = useCoachChoices().length;
   const me = useMe().data;
   return coaches > 1 || (coaches > 0 && me !== undefined && !isCoachingRole(me.role));
 }

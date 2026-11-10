@@ -25,7 +25,14 @@ import { normPhone } from "../../features/clients/client-utils";
 import { ClientWorklist } from "../../features/clients/worklist";
 import { api, errorMessage, fieldErrors } from "../../lib/api";
 import { fullName, useFormat } from "../../lib/format";
-import { useCan, useClients, useCoaches, useHasTeam, useIsCoach, useMe } from "../../lib/hooks";
+import {
+  useCan,
+  useClients,
+  useCoachChoices,
+  useHasTeam,
+  useIsCoach,
+  useMe,
+} from "../../lib/hooks";
 import { notify } from "../../lib/notify";
 import { useOnline } from "../../lib/offline";
 import { keys } from "../../lib/query";
@@ -68,7 +75,7 @@ function NewClientPage() {
   const [errors, setErrors] = useState<ClientErrors>({});
   const hasTeam = useHasTeam();
   const isCoach = useIsCoach();
-  const coaches = useCoaches().data ?? [];
+  const coaches = useCoachChoices();
   const me = useMe().data;
   // Whoever adds a student coaches them unless they pick someone else (or nobody yet); the front
   // desk doesn't coach, so their students start with no coach.

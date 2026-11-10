@@ -1,5 +1,6 @@
 import type { PackageTemplateDto } from "@shared/api-types";
 import { LESSON_KINDS, type LessonKind, type ValidityMode } from "@shared/domain";
+import { STAFF_ROLE_LABELS } from "@shared/roles";
 import { packageTemplateSchema } from "@shared/schemas";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
@@ -17,7 +18,7 @@ import {
 import { Sheet } from "../../components/ui/overlay";
 import { api, errorMessage, fieldErrors } from "../../lib/api";
 import { plural, useFormat } from "../../lib/format";
-import { useCoaches, useGroups, useHasTeam } from "../../lib/hooks";
+import { useCoachChoices, useCoachMap, useGroups, useHasTeam } from "../../lib/hooks";
 import { notify } from "../../lib/notify";
 import { useOnline } from "../../lib/offline";
 import { keys } from "../../lib/query";
@@ -112,7 +113,8 @@ export function PackageTemplateSheet({
   const online = useOnline();
   const qc = useQueryClient();
   const groups = useGroups();
-  const coaches = useCoaches();
+  const coaches = useCoachChoices();
+  const team = useCoachMap();
   const hasTeam = useHasTeam();
   const [d, setDraft] = useState<Draft>(() => draftOf(null));
   const set = (patch: Partial<Draft>) => setDraft((prev) => ({ ...prev, ...patch }));
@@ -173,15 +175,25 @@ export function PackageTemplateSheet({
       ? [{ id: d.programId, label: "Current program (archived)" }]
       : []),
   ];
+  // Someone set here who no longer coaches stays listed until it's changed.
+  const kept = team.get(d.coachUserId);
   const coachOptions = [
     { id: "none", label: "Any coach" },
-    ...(coaches.data ?? []).map((c) => ({
+    ...coaches.map((c) => ({
       id: c.userId,
       label: c.name,
       description: c.title ?? undefined,
     })),
-    ...(d.coachUserId !== "none" && !(coaches.data ?? []).some((c) => c.userId === d.coachUserId)
-      ? [{ id: d.coachUserId, label: "Former coach" }]
+    ...(d.coachUserId !== "none" && !coaches.some((c) => c.userId === d.coachUserId)
+      ? [
+          kept
+            ? {
+                id: d.coachUserId,
+                label: kept.name,
+                description: `${STAFF_ROLE_LABELS[kept.role]} now`,
+              }
+            : { id: d.coachUserId, label: "Former coach" },
+        ]
       : []),
   ];
   const program = programs.find((g) => g.id === d.programId);
@@ -251,7 +263,7 @@ export function PackageTemplateSheet({
   const toggleKind = (k: LessonKind, on: boolean) =>
     set({ kinds: on ? orderedKinds([...d.kinds, k]) : d.kinds.filter((x) => x !== k) });
 
-  const coach = (coaches.data ?? []).find((c) => c.userId === d.coachUserId);
+  const coach = coaches.find((c) => c.userId === d.coachUserId);
   const preview = tierPreview(
     {
       id: editing?.id ?? "new",

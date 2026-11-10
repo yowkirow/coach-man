@@ -192,8 +192,8 @@ const SECTIONS: DocSection[] = [
             read their health details and pickup people but not change them; their parent does.
           </li>
           <li>
-            Families only ever see their own students. Coaches' comments stay with the academy's
-            staff unless a coach shares one.
+            Families only ever see their own students. Coaches' comments stay among coaches unless a
+            coach shares one.
           </li>
         </Bullets>
       </>
@@ -206,9 +206,10 @@ const SECTIONS: DocSection[] = [
       <>
         <p>
           Within an academy, people see what their role needs: owners and admins see everything for
-          their academy, front desk staff see students, the schedule, and payments, coaches see
-          students and progress but no money, and families see only their own students. Academies
-          don't see each other's information.
+          their academy, front desk staff see students, the schedule, and payments (of a student's
+          progress, only what's shared with the family), coaches see students and progress but no
+          money, and families see only their own students. Academies don't see each other's
+          information.
         </p>
         <p>
           An academy can also publish a public page and a team page. Anyone can see what it puts

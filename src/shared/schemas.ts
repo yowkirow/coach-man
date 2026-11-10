@@ -976,7 +976,7 @@ export const notificationPrefSchema = z.object({
   sessionReminderMinutes: z.number().int().min(5).max(240).nullable(),
   dailyDigestTime: time.nullable(),
   packageExpiryDays: z.number().int().min(1).max(60),
-  /** Owners and admins: a push for each new enrollment request and payment proof (on unless off). */
+  /** Who reviews them: a push for each new enrollment request and payment proof (on unless off). */
   enrollmentAlerts: z.boolean().optional(),
 });
 export type NotificationPrefInput = z.infer<typeof notificationPrefSchema>;

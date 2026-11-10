@@ -76,8 +76,9 @@ export function capabilitiesFor(role: string | null | undefined): Capabilities {
 
 /**
  * The roles that coach. People who coach can be a student's coach, lead or assist sessions,
- * programs, and events, and appear on the team page. The front desk doesn't coach. Coaching isn't
- * a capability: it decides who can be named a coach, not what someone may do.
+ * programs, and events, appear on the team page, and write coaching notes, assessments, and goals
+ * (see notes.ts). The front desk doesn't coach. Coaching isn't a capability: it closes no page,
+ * only coaching's own parts of the pages everyone opens.
  */
 export const COACHING_ROLES = ["owner", "admin", "coach"] as const satisfies readonly StaffRole[];
 

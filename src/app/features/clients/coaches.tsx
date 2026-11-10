@@ -17,7 +17,7 @@ import { TextAreaField } from "../../components/ui/field";
 import { Sheet } from "../../components/ui/overlay";
 import { api, errorMessage } from "../../lib/api";
 import { useFormat } from "../../lib/format";
-import { useCoachMap, useMe } from "../../lib/hooks";
+import { useCoachMap, useMe, useWritesCoaching } from "../../lib/hooks";
 import { notify } from "../../lib/notify";
 import { useOnline } from "../../lib/offline";
 import { keys } from "../../lib/query";
@@ -52,12 +52,14 @@ function CoachRow({ c, you }: { c: ClientCoachDto; you: boolean }) {
 
 /**
  * The student's coaches on the profile: primary and assistants now, and who coached them before.
- * Any coach can change them; changing the primary coach offers a handoff note.
+ * Anyone on the team can change them; changing the primary coach offers a handoff note to people
+ * who coach.
  */
 export function CoachesCard({ detail }: { detail: ClientDetailDto }) {
   const fmt = useFormat();
   const me = useMe().data;
   const online = useOnline();
+  const writes = useWritesCoaching();
   const [editing, setEditing] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [handoff, setHandoff] = useState<{ from: CoachRefDto; to: CoachRefDto | null } | null>(
@@ -139,7 +141,9 @@ export function CoachesCard({ detail }: { detail: ClientDetailDto }) {
         clientId={c.id}
         firstName={c.firstName}
         coaches={coaches}
-        onPrimaryChanged={(from, to) => setHandoff({ from, to })}
+        onPrimaryChanged={(from, to) => {
+          if (writes) setHandoff({ from, to });
+        }}
       />
       <HandoffSheet
         handoff={handoff}

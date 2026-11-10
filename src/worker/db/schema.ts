@@ -1247,7 +1247,7 @@ export const notificationPref = sqliteTable("notification_pref", {
   /** Local HH:MM for the daily digest; null = off. */
   dailyDigestTime: text().default("07:00"),
   packageExpiryDays: integer().notNull().default(7),
-  /** Owners and admins: a push for each new enrollment request and payment proof to review. */
+  /** Who reviews them: a push for each new enrollment request and payment proof to review. */
   enrollmentAlerts: integer({ mode: "boolean" }).notNull().default(true),
   updatedAt: updatedAt(),
 });

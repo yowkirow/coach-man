@@ -7,7 +7,7 @@ import type {
   TeamMemberDto,
 } from "../../shared/api-types";
 import { uuidv7 } from "../../shared/ids";
-import { can, normalizeRole } from "../../shared/roles";
+import { can, isCoachingRole, normalizeRole } from "../../shared/roles";
 import { memberRoleSchema, staffInviteSchema, transferOwnershipSchema } from "../../shared/schemas";
 import {
   checkRemoval,
@@ -34,6 +34,7 @@ import { v } from "../lib/validate";
 import { ctxOf, requireCap } from "../middleware";
 import { coachName, type StaffRow, staffRows, toCoachSummary } from "../services/coaches";
 import { runBatch } from "../services/credits";
+import { emailStaffInvite } from "../services/email";
 import type { AppBindings, Ctx } from "../types";
 import { appOrigin } from "./academy";
 
@@ -137,7 +138,11 @@ function refuse(result: { ok: false; status: 403 | 409; code: string; message: s
   throw new ApiError(result.status, result.code, result.message);
 }
 
-/** Removes someone from upcoming sessions, series, programs, and events they coach. */
+/**
+ * Ends someone's coaching (on leaving the team, or moving to the front desk): their current
+ * students lose them as coach, with the history kept, and upcoming sessions, series, programs, and
+ * events lose them as lead or assistant.
+ */
 function releaseCoachStatements(ctx: Ctx, userId: string, today: string) {
   const { db, workspaceId } = ctx;
   const now = Date.now();
@@ -212,9 +217,9 @@ function releaseCoachStatements(ctx: Ctx, userId: string, today: string) {
 
 /**
  * The team (staff API): members with their role, when they joined, and their coach profile; staff
- * invite links; role changes, removal, and ownership. Everyone on the team can see who's on it;
- * managing it takes `team`, and anything that touches an owner takes `ownership`. An academy
- * always keeps at least one owner.
+ * invite links (emailed to the invited address too); role changes, removal, and ownership.
+ * Everyone on the team can see who's on it; managing it takes `team`, and anything that touches
+ * an owner takes `ownership`. An academy always keeps at least one owner.
  */
 export const teamRoutes = new Hono<AppBindings>()
   .get("/team", async (c) => c.json(await loadTeam(ctxOf(c))))
@@ -266,9 +271,20 @@ export const teamRoutes = new Hono<AppBindings>()
     const row = await ctx.db.query.invite.findFirst({ where: eq(invite.id, id) });
     if (!row) throw notFound("Invite");
     const me = await ctx.db.query.user.findFirst({ where: eq(user.id, ctx.userId) });
+    const link = `${appOrigin(ctx.env)}/join/${token}`;
+    // Sent now, so the answer says whether it went; the link works either way.
+    const emailed = await emailStaffInvite(ctx.db, ctx.env, {
+      workspaceId: ctx.workspaceId,
+      inviter: me ? { name: me.name, email: me.email } : null,
+      to: email,
+      role,
+      link,
+      expiresAt: row.expiresAt,
+    });
     const body: StaffInviteCreatedDto = {
       invite: toInviteDto(row, me?.name ?? null, now),
-      link: `${appOrigin(ctx.env)}/join/${token}`,
+      link,
+      ...emailed,
     };
     return c.json(body, 201);
   })
@@ -319,7 +335,19 @@ export const teamRoutes = new Hono<AppBindings>()
       if (!changed.length) {
         throw owner ? new ApiError(409, "last_owner", LAST_OWNER_MESSAGE) : conflict(ROLE_CHANGED);
       }
-      await auditEntry(ctx, "role", "member", target.userId, { from: target.role, to: role });
+      // Someone who stops coaching (moved to the front desk) lets go of it as if they'd left the
+      // team: their students and everything ahead lose them as coach; what they coached stays.
+      const releasing = isCoachingRole(target.role) && !isCoachingRole(role);
+      await runBatch(ctx, [
+        ...(releasing
+          ? releaseCoachStatements(ctx, target.userId, todayIn(ctx.settings.timezone))
+          : []),
+        auditEntry(ctx, "role", "member", target.userId, {
+          from: target.role,
+          to: role,
+          ...(releasing ? { releasedCoaching: true } : {}),
+        }),
+      ]);
     }
     return c.json(await loadTeam(target.userId === ctx.userId ? { ...ctx, role } : ctx));
   })

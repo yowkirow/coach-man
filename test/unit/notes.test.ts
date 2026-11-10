@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   canDeleteNote,
   canEditNote,
+  canReadAssessment,
+  canReadNote,
+  canWriteCoaching,
   isFamilyVisible,
   noteVisibilityFor,
   planNoteUpdate,
@@ -46,6 +49,38 @@ describe("note visibility", () => {
   });
 });
 
+describe("the front desk", () => {
+  const staffOnly = { kind: "comment" as const, visibility: "staff" as const };
+  const shared = { kind: "comment" as const, visibility: "shared" as const };
+  const handoffNote = { kind: "handoff" as const, visibility: "staff" as const };
+
+  it("reads only the notes the family reads", () => {
+    expect(canReadNote("front_desk", shared)).toBe(true);
+    expect(canReadNote("front_desk", staffOnly)).toBe(false);
+    expect(canReadNote("front_desk", handoffNote)).toBe(false);
+    // A handoff note is never shared, whatever it says.
+    expect(canReadNote("front_desk", { kind: "handoff", visibility: "shared" })).toBe(false);
+  });
+
+  it("reads only the assessments shared with the family", () => {
+    expect(canReadAssessment("front_desk", { sharedWithFamily: true })).toBe(true);
+    expect(canReadAssessment("front_desk", { sharedWithFamily: false })).toBe(false);
+  });
+
+  it("writes no coaching notes, assessments, or goals", () => {
+    expect(canWriteCoaching("front_desk")).toBe(false);
+  });
+
+  it("leaves people who coach reading and writing everything", () => {
+    for (const role of ["owner", "admin", "coach"]) {
+      expect(canWriteCoaching(role)).toBe(true);
+      expect(canReadNote(role, staffOnly)).toBe(true);
+      expect(canReadNote(role, handoffNote)).toBe(true);
+      expect(canReadAssessment(role, { sharedWithFamily: false })).toBe(true);
+    }
+  });
+});
+
 describe("who may change a note", () => {
   it("lets only the author edit", () => {
     expect(canEditNote("sam", comment)).toBe(true);
@@ -59,6 +94,11 @@ describe("who may change a note", () => {
     expect(canDeleteNote({ userId: "boss", role: "owner" }, comment)).toBe(true);
     expect(canDeleteNote({ userId: "boss", role: "admin" }, comment)).toBe(true);
     expect(canDeleteNote({ userId: "boss", role: "member" }, comment)).toBe(false);
+    // The front desk deletes no notes, even one they wrote while they coached.
+    expect(canDeleteNote({ userId: "desk", role: "front_desk" }, comment)).toBe(false);
+    expect(canDeleteNote({ userId: "desk", role: "front_desk" }, { createdBy: "desk" })).toBe(
+      false,
+    );
   });
 
   it("marks a note edited when its author changes the words or who sees it", () => {

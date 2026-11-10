@@ -1,5 +1,6 @@
-import { and, asc, desc, eq, max } from "drizzle-orm";
+import { and, asc, desc, eq, max, ne } from "drizzle-orm";
 import { Hono } from "hono";
+import { createMiddleware } from "hono/factory";
 import type {
   AssessmentDto,
   CoachRefDto,
@@ -11,10 +12,14 @@ import type {
 import { uuidv7 } from "../../shared/ids";
 import {
   canDeleteNote,
+  canReadAssessment,
+  canReadNote,
+  canWriteCoaching,
   isFamilyVisible,
   noteVisibilityFor,
   planNoteUpdate,
 } from "../../shared/notes";
+import { isCoachingRole } from "../../shared/roles";
 import {
   assessmentSchema,
   assessmentUpdateSchema,
@@ -38,7 +43,8 @@ import {
   skill,
 } from "../db/schema";
 import { afterResponse } from "../lib/defer";
-import { ApiError, badRequest, notFound } from "../lib/errors";
+import { drainBody } from "../lib/drain";
+import { ApiError, badRequest, forbidden, notFound } from "../lib/errors";
 import { idempotent } from "../lib/idempotency";
 import { inList, unique } from "../lib/sql";
 import { v } from "../lib/validate";
@@ -70,6 +76,19 @@ function assessmentShared(ctx: Ctx, assessmentId: string) {
     }),
   );
 }
+
+/** 403 unless the caller coaches: coaching notes, assessments, and goals are theirs to write. */
+const requireCoaching = (message: string) =>
+  createMiddleware<AppBindings>(async (c, next) => {
+    if (!canWriteCoaching(c.var.role)) {
+      await drainBody(c);
+      throw forbidden(message);
+    }
+    await next();
+  });
+const onlyCoachesNote = requireCoaching("Front desk staff don't write coaching notes.");
+const onlyCoachesAssess = requireCoaching("Front desk staff don't write assessments.");
+const onlyCoachesSetGoals = requireCoaching("Front desk staff don't set goals.");
 
 type Authors = Map<string, CoachRefDto>;
 const authorOf = (id: string | null, authors: Authors) => (id ? (authors.get(id) ?? null) : null);
@@ -135,9 +154,14 @@ function scoreRows(
   }));
 }
 
+/**
+ * A student's progress as the caller may see it: people who coach see everything; anyone else
+ * sees what the family sees (shared comments and assessments, and every goal).
+ */
 async function loadProgress(ctx: Ctx, clientId: string): Promise<ProgressDto> {
   const { db, workspaceId } = ctx;
-  const [skills, assessments, scores, goals, ratings, notes] = await Promise.all([
+  const familyView = !isCoachingRole(ctx.role);
+  const [skills, allAssessments, scores, goals, ratings, allNotes] = await Promise.all([
     db.select().from(skill).where(eq(skill.workspaceId, workspaceId)).orderBy(asc(skill.sortOrder)),
     db
       .select()
@@ -164,10 +188,19 @@ async function loadProgress(ctx: Ctx, clientId: string): Promise<ProgressDto> {
     db
       .select()
       .from(note)
-      .where(and(eq(note.workspaceId, workspaceId), eq(note.clientId, clientId)))
+      .where(
+        and(
+          eq(note.workspaceId, workspaceId),
+          eq(note.clientId, clientId),
+          // The newest 200 the caller may read, not the newest 200 of all.
+          ...(familyView ? [eq(note.visibility, "shared"), ne(note.kind, "handoff")] : []),
+        ),
+      )
       .orderBy(desc(note.pinned), desc(note.createdAt))
       .limit(200),
   ]);
+  const assessments = allAssessments.filter((a) => canReadAssessment(ctx.role, a));
+  const notes = allNotes.filter((n) => canReadNote(ctx.role, n));
   const authors = await coachRefs(db, workspaceId, [
     ...assessments.map((a) => a.createdBy),
     ...goals.map((g) => g.createdBy),
@@ -273,7 +306,7 @@ export const progressRoutes = new Hono<AppBindings>()
     return c.json(await loadProgress(ctx, c.req.param("id")));
   })
 
-  .post("/clients/:id/assessments", v("json", assessmentSchema), async (c) => {
+  .post("/clients/:id/assessments", onlyCoachesAssess, v("json", assessmentSchema), async (c) => {
     const ctx = ctxOf(c);
     const clientId = c.req.param("id");
     await ensureClient(ctx, clientId);
@@ -306,7 +339,7 @@ export const progressRoutes = new Hono<AppBindings>()
     return c.json(await loadProgress(ctx, clientId), 201);
   })
 
-  .patch("/assessments/:id", v("json", assessmentUpdateSchema), async (c) => {
+  .patch("/assessments/:id", onlyCoachesAssess, v("json", assessmentUpdateSchema), async (c) => {
     const ctx = ctxOf(c);
     const row = await ctx.db.query.assessment.findFirst({
       where: and(eq(assessment.id, c.req.param("id")), eq(assessment.workspaceId, ctx.workspaceId)),
@@ -344,7 +377,7 @@ export const progressRoutes = new Hono<AppBindings>()
     return c.json(await loadProgress(ctx, row.clientId));
   })
 
-  .delete("/assessments/:id", async (c) => {
+  .delete("/assessments/:id", onlyCoachesAssess, async (c) => {
     const ctx = ctxOf(c);
     const row = await ctx.db.query.assessment.findFirst({
       where: and(eq(assessment.id, c.req.param("id")), eq(assessment.workspaceId, ctx.workspaceId)),
@@ -354,7 +387,7 @@ export const progressRoutes = new Hono<AppBindings>()
     return c.json(await loadProgress(ctx, row.clientId));
   })
 
-  .post("/clients/:id/goals", v("json", goalSchema), async (c) => {
+  .post("/clients/:id/goals", onlyCoachesSetGoals, v("json", goalSchema), async (c) => {
     const ctx = ctxOf(c);
     const clientId = c.req.param("id");
     await ensureClient(ctx, clientId);
@@ -372,7 +405,7 @@ export const progressRoutes = new Hono<AppBindings>()
     return c.json(await loadProgress(ctx, clientId), 201);
   })
 
-  .patch("/goals/:id", v("json", goalSchema.partial()), async (c) => {
+  .patch("/goals/:id", onlyCoachesSetGoals, v("json", goalSchema.partial()), async (c) => {
     const ctx = ctxOf(c);
     const row = await ctx.db.query.goal.findFirst({
       where: and(eq(goal.id, c.req.param("id")), eq(goal.workspaceId, ctx.workspaceId)),
@@ -392,7 +425,7 @@ export const progressRoutes = new Hono<AppBindings>()
     return c.json(await loadProgress(ctx, row.clientId));
   })
 
-  .delete("/goals/:id", async (c) => {
+  .delete("/goals/:id", onlyCoachesSetGoals, async (c) => {
     const ctx = ctxOf(c);
     const row = await ctx.db.query.goal.findFirst({
       where: and(eq(goal.id, c.req.param("id")), eq(goal.workspaceId, ctx.workspaceId)),
@@ -436,7 +469,7 @@ export const progressRoutes = new Hono<AppBindings>()
     return c.json(await loadProgress(ctx, row.clientId));
   })
 
-  .post("/notes", v("json", noteSchema), async (c) => {
+  .post("/notes", onlyCoachesNote, v("json", noteSchema), async (c) => {
     const ctx = ctxOf(c);
     const input = c.req.valid("json");
     return idempotent(c, async () => {
@@ -473,7 +506,7 @@ export const progressRoutes = new Hono<AppBindings>()
     });
   })
 
-  .patch("/notes/:id", v("json", noteUpdateSchema), async (c) => {
+  .patch("/notes/:id", onlyCoachesNote, v("json", noteUpdateSchema), async (c) => {
     const ctx = ctxOf(c);
     const row = await loadNote(ctx, c.req.param("id"));
     const plan = planNoteUpdate(ctx.userId, row, c.req.valid("json"), Date.now());
@@ -491,7 +524,7 @@ export const progressRoutes = new Hono<AppBindings>()
     return c.json(await noteDto(ctx, updated ?? row));
   })
 
-  .delete("/notes/:id", async (c) => {
+  .delete("/notes/:id", onlyCoachesNote, async (c) => {
     const ctx = ctxOf(c);
     const row = await loadNote(ctx, c.req.param("id"));
     if (!canDeleteNote({ userId: ctx.userId, role: ctx.role }, row)) {

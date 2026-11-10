@@ -11,6 +11,7 @@ import {
   type Page,
   type TestInfo,
 } from "@playwright/test";
+import type { StaffRole } from "../src/shared/roles";
 
 export const BYPASS_HEADER = "x-e2e-bypass";
 
@@ -153,7 +154,7 @@ export async function signIn(
 /** Adds a user (created if new) to the caller's workspace as staff with `role`. */
 export async function addMember(
   request: APIRequestContext,
-  input: { email: string; name: string; role: "owner" | "admin" | "coach" },
+  input: { email: string; name: string; role: StaffRole },
 ): Promise<{ userId: string; workspaceId: string }> {
   const res = await request.post("/api/test/member", {
     headers: { [BYPASS_HEADER]: bypassSecret() },

@@ -11,7 +11,8 @@ import { LESSON_KIND_LABELS, type LessonKind } from "../../shared/domain";
 import { isLastWeekOfMonth } from "../../shared/enrollment";
 import { isMinor } from "../../shared/family";
 import { uuidv7 } from "../../shared/ids";
-import { can } from "../../shared/roles";
+import { canReadNote } from "../../shared/notes";
+import { can, isCoachingRole } from "../../shared/roles";
 import type { LessonCreateInput } from "../../shared/schemas";
 import {
   addDays,
@@ -45,7 +46,7 @@ import { badRequest, notFound } from "../lib/errors";
 import { inList, unique } from "../lib/sql";
 import type { Ctx } from "../types";
 import { liveAnnouncements } from "./announcements";
-import { cleanCoaches, coachRefs, staffIds } from "./coaches";
+import { assertStaff, cleanCoaches, coachIds, coachRefs } from "./coaches";
 import {
   effectivePrice,
   packagesForClients,
@@ -250,6 +251,7 @@ export async function lessonDetail(ctx: Ctx, lessonId: string): Promise<LessonDe
   return (await lessonDetails(ctx, [item]))[0] as LessonDetailDto;
 }
 
+/** Sessions with their rosters and the notes the caller may read (see canReadNote). */
 async function lessonDetails(
   ctx: Ctx,
   items: Awaited<ReturnType<typeof lessonSummaries>>,
@@ -258,7 +260,7 @@ async function lessonDetails(
   const { db, workspaceId } = ctx;
   const ids = items.map((i) => i.row.id);
   const rateIds = unique(items.map((i) => i.row.rateId).filter((v): v is string => Boolean(v)));
-  const [rosters, notes, rates] = await Promise.all([
+  const [rosters, allNotes, rates] = await Promise.all([
     rostersFor(
       ctx,
       items.map((i) => i.row),
@@ -275,6 +277,7 @@ async function lessonDetails(
           .where(and(eq(rate.workspaceId, workspaceId), inList(rate.id, rateIds)))
       : Promise.resolve([]),
   ]);
+  const notes = allNotes.filter((n) => canReadNote(ctx.role, n));
   const authors = await coachRefs(
     db,
     workspaceId,
@@ -389,8 +392,8 @@ export async function today(ctx: Ctx): Promise<TodayDto> {
           sql`substr(${client.birthDate}, 6, 5) = ${monthDay(date)}`,
         ),
       ),
-    // Owners and admins hand out the uniforms packages came with.
-    can(ctx.role, "catalog")
+    // Whoever sells packages (`money`) hands out the uniforms they came with.
+    can(ctx.role, "money")
       ? db
           .select({
             id: clientPackage.id,
@@ -414,7 +417,7 @@ export async function today(ctx: Ctx): Promise<TodayDto> {
           .orderBy(asc(clientPackage.purchasedOn))
           .limit(20)
       : Promise.resolve([]),
-    // Owners and admins: requests to review, and in the month's last week who hasn't renewed.
+    // `enrollment`: requests to review, and in the month's last week who hasn't renewed.
     can(ctx.role, "enrollment")
       ? Promise.all([
           requestedCount(ctx),
@@ -612,28 +615,25 @@ export async function materializeSeries(
 }
 
 /**
- * Lead and assistant coaches for new sessions: what the request says, else the group's or event's
- * coaches (those still on the team), else whoever schedules them as the lead.
+ * Lead and assistant coaches for new sessions: what the request says (people who coach), else the
+ * group's or event's coaches (those still on the team who coach), else whoever schedules them as
+ * the lead when they coach. The front desk's sessions start with no lead.
  */
 async function sessionCoaches(
   ctx: Ctx,
   input: Pick<LessonCreateInput, "coachUserId" | "assistantCoachIds">,
   source: { coachUserId: string | null; assistantCoachIds: string[] } | undefined,
 ) {
-  const team = await staffIds(ctx.db, ctx.workspaceId);
-  const explicit = [input.coachUserId, ...(input.assistantCoachIds ?? [])].filter(
-    (id): id is string => Boolean(id),
-  );
-  if (explicit.some((id) => !team.has(id))) {
-    throw badRequest("Pick coaches from your team.", {
-      fields: { coachUserId: "That person isn't on your team." },
-    });
-  }
+  await assertStaff(ctx, [input.coachUserId, ...(input.assistantCoachIds ?? [])]);
+  const coaching = await coachIds(ctx.db, ctx.workspaceId);
   const fromSource =
-    source?.coachUserId && team.has(source.coachUserId) ? source.coachUserId : null;
-  const lead = input.coachUserId !== undefined ? input.coachUserId : (fromSource ?? ctx.userId);
+    source?.coachUserId && coaching.has(source.coachUserId) ? source.coachUserId : null;
+  const lead =
+    input.coachUserId !== undefined
+      ? input.coachUserId
+      : (fromSource ?? (isCoachingRole(ctx.role) ? ctx.userId : null));
   const assistants =
-    input.assistantCoachIds ?? (source?.assistantCoachIds ?? []).filter((id) => team.has(id));
+    input.assistantCoachIds ?? (source?.assistantCoachIds ?? []).filter((id) => coaching.has(id));
   return cleanCoaches(lead, assistants);
 }
 

@@ -13,6 +13,7 @@ import {
   auditLog,
   client,
   clientAccess,
+  emailSink,
   familyNotificationQueue,
   invite,
   organization,
@@ -107,6 +108,8 @@ const familySchema = z.object({
  *   cleanup of abandoned ones.
  * - GET /push-sink?userId= lists the pushes the test sink recorded for a person (and what waits
  *   for their quiet hours to end); DELETE /push-sink?userId= clears them.
+ * - GET /email-sink?to= lists the emails the test sink recorded for an address; DELETE
+ *   /email-sink?to= clears them.
  * - POST /run-reminders { at?, steps? } runs the 5-minute cron's reminder steps as of `at`.
  * - POST /run-family-sweeps { at? } runs the daily family sweeps as of `at`.
  * - POST /seed fills the caller's workspace with the sample data; POST /reset deletes the
@@ -323,6 +326,29 @@ export const testRoutes = new Hono<AppBindings>()
     const userId = c.req.query("userId") ?? "";
     if (!userId) throw notFound("Person");
     await getDb(c.env.DB).delete(pushSink).where(eq(pushSink.userId, userId));
+    return c.body(null, 204);
+  })
+
+  /**
+   * What the email sink recorded for an address (outside production with the bypass on, every
+   * email is recorded instead of sent; see lib/email-sink.ts), oldest first.
+   */
+  .get("/email-sink", async (c) => {
+    const to = (c.req.query("to") ?? "").trim().toLowerCase();
+    if (!to) throw notFound("Address");
+    const items = await getDb(c.env.DB)
+      .select()
+      .from(emailSink)
+      .where(eq(emailSink.toEmail, to))
+      .orderBy(asc(emailSink.createdAt), asc(emailSink.id));
+    return c.json({ items });
+  })
+
+  /** Clears an address's recorded emails. */
+  .delete("/email-sink", async (c) => {
+    const to = (c.req.query("to") ?? "").trim().toLowerCase();
+    if (!to) throw notFound("Address");
+    await getDb(c.env.DB).delete(emailSink).where(eq(emailSink.toEmail, to));
     return c.body(null, 204);
   })
 

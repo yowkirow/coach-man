@@ -25,6 +25,10 @@
     }
   ],
   "r2_buckets": [{ "binding": "FILES", "bucket_name": "coachman-files-dev" }],
+  // Cloudflare Email Sending (invites, enrollment and payment updates, staff alerts), always from
+  // EMAIL_FROM. Bindings aren't inherited, so each environment declares it. Locally, wrangler
+  // simulates it: it logs the email and never sends it.
+  "send_email": [{ "name": "EMAIL" }],
   // Every 5 minutes: session reminders + per-coach daily digests. Daily 03:15 UTC: maintenance.
   "triggers": { "crons": ["*/5 * * * *", "15 3 * * *"] },
   "vars": {
@@ -33,7 +37,9 @@
     "PASSKEY_RP_ID": "localhost",
     "PASSKEY_RP_NAME": "CoachMan",
     // Shown on /privacy, /terms, and /about as the address for privacy and data requests.
-    "PUBLIC_CONTACT_EMAIL": "privacy@coachman.cloud"
+    "PUBLIC_CONTACT_EMAIL": "privacy@coachman.cloud",
+    // The address CoachMan's emails come from (Email Sending is enabled on coachman.cloud).
+    "EMAIL_FROM": "notifications@coachman.cloud"
   },
   "env": {
     "staging": {
@@ -45,7 +51,8 @@
         "APP_URL": "https://coachman-staging.jerrosyap05.workers.dev",
         "PASSKEY_RP_ID": "coachman-staging.jerrosyap05.workers.dev",
         "PASSKEY_RP_NAME": "CoachMan (staging)",
-        "PUBLIC_CONTACT_EMAIL": "privacy@coachman.cloud"
+        "PUBLIC_CONTACT_EMAIL": "privacy@coachman.cloud",
+        "EMAIL_FROM": "notifications@coachman.cloud"
       },
       "d1_databases": [
         {
@@ -56,6 +63,7 @@
         }
       ],
       "r2_buckets": [{ "binding": "FILES", "bucket_name": "coachman-files-staging" }],
+      "send_email": [{ "name": "EMAIL" }],
       "triggers": { "crons": ["*/5 * * * *", "15 3 * * *"] }
     },
     "production": {
@@ -71,7 +79,8 @@
         "APP_URL": "https://coachman.cloud",
         "PASSKEY_RP_ID": "coachman.cloud",
         "PASSKEY_RP_NAME": "CoachMan",
-        "PUBLIC_CONTACT_EMAIL": "privacy@coachman.cloud"
+        "PUBLIC_CONTACT_EMAIL": "privacy@coachman.cloud",
+        "EMAIL_FROM": "notifications@coachman.cloud"
       },
       "d1_databases": [
         {
@@ -82,6 +91,7 @@
         }
       ],
       "r2_buckets": [{ "binding": "FILES", "bucket_name": "coachman-files" }],
+      "send_email": [{ "name": "EMAIL" }],
       "triggers": { "crons": ["*/5 * * * *", "15 3 * * *"] }
     }
   }

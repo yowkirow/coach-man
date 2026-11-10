@@ -138,7 +138,8 @@ function Welcome() {
                 <p>Your academy links your account to the right player. To get started:</p>
                 <ul className="flex list-disc flex-col gap-1 pl-5 text-ink-2">
                   <li>
-                    Open the invite link your academy sent you, on Messenger, Viber, or by text.
+                    Open the invite link your academy sent you, by email, on Messenger, Viber, or by
+                    text.
                   </li>
                   <li>Or enroll from your academy's CoachMan page.</li>
                 </ul>

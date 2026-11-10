@@ -8,6 +8,7 @@ import type {
 import { isAcademySlug } from "../../shared/domain";
 import { SESSION_WINDOW_DAYS } from "../../shared/enrollment";
 import { UUID_RE } from "../../shared/ids";
+import { isCoachingRole } from "../../shared/roles";
 import { addDays, daysBetween, startOfLocalDay, todayIn } from "../../shared/time";
 import type { Db } from "../db/client";
 import {
@@ -98,9 +99,10 @@ async function findAcademy(db: Db, target: PublicTarget, preview: boolean) {
 }
 
 /**
- * The team page's people: current staff with a public coach profile and the academy's public
- * display-only people, merged in the academy's order (`team`). `byUser` holds the staff among
- * them by user id: program and tier coach refs name staff only.
+ * The team page's people: current staff who coach, with a public coach profile, and the academy's
+ * public display-only people, merged in the academy's order (`team`). The front desk is never
+ * there, whatever their profile says. `byUser` holds the staff among them by user id: program and
+ * tier coach refs name staff only.
  */
 async function publicCoaches(
   db: Db,
@@ -108,7 +110,12 @@ async function publicCoaches(
 ): Promise<{ team: PublicCoachFacts[]; byUser: Map<string, PublicCoachFacts> }> {
   const [rows, people] = await Promise.all([
     db
-      .select({ userId: member.userId, accountName: user.name, p: coachProfile })
+      .select({
+        userId: member.userId,
+        role: member.role,
+        accountName: user.name,
+        p: coachProfile,
+      })
       .from(member)
       .innerJoin(user, eq(user.id, member.userId))
       .innerJoin(
@@ -125,7 +132,7 @@ async function publicCoaches(
   const byUser = new Map<string, PublicCoachFacts>();
   const staff: Placed[] = [];
   for (const r of rows) {
-    if (byUser.has(r.userId)) continue;
+    if (byUser.has(r.userId) || !isCoachingRole(r.role)) continue;
     const name = coachName({ displayName: r.p.displayName, accountName: r.accountName });
     const facts: PublicCoachFacts = {
       profileId: r.p.id,

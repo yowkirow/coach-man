@@ -42,14 +42,21 @@ describe("academy addresses", () => {
     expect(academyUpdateSchema.safeParse({ mapUrl: "maps" }).success).toBe(false);
   });
 
-  it("invites admins and coaches by a lowercased email", () => {
+  it("invites admins, the front desk, and coaches by a lowercased email", () => {
     expect(staffInviteSchema.parse({ email: " Sam@Example.COM ", role: "coach" })).toEqual({
       email: "sam@example.com",
       role: "coach",
     });
+    expect(staffInviteSchema.parse({ email: "pat@example.com", role: "front_desk" })).toEqual({
+      email: "pat@example.com",
+      role: "front_desk",
+    });
     expect(staffInviteSchema.safeParse({ email: "sam@example.com", role: "owner" }).success).toBe(
       false,
     );
+    expect(
+      staffInviteSchema.safeParse({ email: "sam@example.com", role: "frontDesk" }).success,
+    ).toBe(false);
   });
 });
 

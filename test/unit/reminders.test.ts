@@ -11,6 +11,7 @@ const team = [
   { userId: "admin", role: "admin" },
   { userId: "sam", role: "coach" },
   { userId: "kim", role: "member" },
+  { userId: "desk", role: "front_desk" },
 ];
 
 describe("session reminder recipients", () => {
@@ -26,17 +27,21 @@ describe("session reminder recipients", () => {
     ]);
   });
 
-  it("falls back to owners and admins when nobody coaches it", () => {
+  it("falls back to owners, admins, and the front desk when nobody coaches it", () => {
     expect(sessionRecipients({ coachUserId: null, assistantCoachIds: [] }, team)).toEqual([
       "owner",
       "admin",
+      "desk",
     ]);
+    // The front desk hears about sessions with a coach only when nobody coaches them.
+    expect(isRecipient({ coachUserId: "sam", assistantCoachIds: [] }, "desk", team)).toBe(false);
+    expect(isRecipient({ coachUserId: null, assistantCoachIds: [] }, "desk", team)).toBe(true);
   });
 
   it("treats coaches who left the team as no coach", () => {
     expect(
       sessionRecipients({ coachUserId: "gone", assistantCoachIds: ["also-gone"] }, team),
-    ).toEqual(["owner", "admin"]);
+    ).toEqual(["owner", "admin", "desk"]);
     expect(sessionRecipients({ coachUserId: "gone", assistantCoachIds: ["kim"] }, team)).toEqual([
       "kim",
     ]);
@@ -51,7 +56,7 @@ describe("session reminder recipients", () => {
         ...team,
         { userId: "owner", role: "owner" },
       ]),
-    ).toEqual(["owner", "admin"]);
+    ).toEqual(["owner", "admin", "desk"]);
   });
 
   it("answers per person", () => {
@@ -75,6 +80,14 @@ describe("daily digests", () => {
     expect(digestScope("admin,member")).toBe("academy");
     expect(
       digestSessions(sessions, { userId: "admin", role: "admin" }, team).map((s) => s.id),
+    ).toEqual(["a", "b", "c", "d"]);
+  });
+
+  it("gives the front desk the whole academy too", () => {
+    expect(digestScope("front_desk")).toBe("academy");
+    expect(digestScope("member,front_desk")).toBe("academy");
+    expect(
+      digestSessions(sessions, { userId: "desk", role: "front_desk" }, team).map((s) => s.id),
     ).toEqual(["a", "b", "c", "d"]);
   });
 

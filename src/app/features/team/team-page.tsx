@@ -1,5 +1,6 @@
 import type { TeamPageEntryDto } from "@shared/api-types";
 import { framingOr, framingStyle, PORTRAIT_FRAMING } from "@shared/framing";
+import type { StaffRole } from "@shared/roles";
 import { Link } from "@tanstack/react-router";
 import { ArrowDown, ArrowUp, Eye, Pencil, UserPlus } from "lucide-react";
 import { useState } from "react";
@@ -97,7 +98,7 @@ function TeamPageRow({
 export function TeamPageCard({
   onEditStaff,
 }: {
-  onEditStaff: (staff: { userId: string; name: string }) => void;
+  onEditStaff: (staff: { userId: string; name: string; role: StaffRole }) => void;
 }) {
   const online = useOnline();
   const page = useTeamPage();
@@ -172,7 +173,7 @@ export function TeamPageCard({
                 onMove={(by) => order.mutate(moveEntry(entries, i, by))}
                 onEdit={() =>
                   e.kind === "staff"
-                    ? onEditStaff({ userId: e.userId, name: e.name })
+                    ? onEditStaff({ userId: e.userId, name: e.name, role: e.role })
                     : open({ id: e.id, name: e.name })
                 }
               />

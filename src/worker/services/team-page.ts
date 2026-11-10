@@ -1,5 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import type { TeamPageDto, TeamPageEntryDto, TeamPersonDto } from "../../shared/api-types";
+import { isCoachingRole } from "../../shared/roles";
 import type { Db } from "../db/client";
 import { academyProfile, organization, teamPerson } from "../db/schema";
 import { notFound } from "../lib/errors";
@@ -99,13 +100,19 @@ function personEntry(p: TeamPersonRow): PlacedEntry {
   };
 }
 
-/** Everyone on the page (current staff and display-only people), in the page's order. */
+/**
+ * Everyone on the page (current staff who coach, and display-only people), in the page's order.
+ * The front desk is never on it, whatever their profile says.
+ */
 export async function placedEntries(ctx: Pick<Ctx, "db" | "workspaceId">): Promise<PlacedEntry[]> {
   const [staff, people] = await Promise.all([
     staffRows(ctx.db, ctx.workspaceId),
     teamPeople(ctx.db, ctx.workspaceId),
   ]);
-  return teamPageOrder(staff.map(staffEntry), people.map(personEntry));
+  return teamPageOrder(
+    staff.filter((s) => isCoachingRole(s.role)).map(staffEntry),
+    people.map(personEntry),
+  );
 }
 
 /** GET /team-page: the page's people in order, and where the page lives. */

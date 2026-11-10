@@ -23,9 +23,10 @@ import { api, errorMessage, fieldErrors } from "../../lib/api";
 import { fullName, plural, useFormat } from "../../lib/format";
 import {
   useCan,
-  useCoachMap,
+  useCoachChoices,
   useGroups,
   useHasTeam,
+  useIsCoach,
   useMe,
   useRates,
   useVenues,
@@ -134,7 +135,8 @@ export function NewSessionSheet({
   const ratesQ = useRates();
   const venuesQ = useVenues();
   const hasTeam = useHasTeam();
-  const coachMap = useCoachMap();
+  const isCoach = useIsCoach();
+  const coachChoices = useCoachChoices();
   const today = fmt.today();
 
   const [kind, setKind] = useState<LessonKind>("private");
@@ -252,16 +254,19 @@ export function NewSessionSheet({
   const capacity =
     capacitySel ?? (kind === "group" && group?.capacity ? String(group.capacity) : "");
 
-  // Sessions of a group or event start with its coaches; anything else with you as the lead.
+  // Sessions of a group or event start with its coaches (those who still coach here); anything
+  // else with you as the lead (when you coach: the front desk's sessions start with no lead).
   const coachSource = kind === "group" ? group : kind === "event" ? ev : undefined;
+  const coaching = new Set(coachChoices.map((c) => c.userId));
+  const you = isCoach ? (me?.user.id ?? null) : null;
   const autoLead =
-    coachSource?.coachUserId && coachMap.has(coachSource.coachUserId)
+    coachSource?.coachUserId && coaching.has(coachSource.coachUserId)
       ? coachSource.coachUserId
-      : (me?.user.id ?? null);
+      : you;
   const coaches: CoachChoice = coachSel ?? {
     lead: autoLead,
     assistants: (coachSource?.assistantCoachIds ?? []).filter(
-      (id) => id !== autoLead && coachMap.has(id),
+      (id) => id !== autoLead && coaching.has(id),
     ),
   };
 

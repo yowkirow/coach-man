@@ -2,9 +2,9 @@ import type { PaymentSubmissionStatus } from "./domain";
 import { addDays, compareDates, DATE_RE } from "./time";
 
 // Payment proofs (WS4c): families pay outside CoachMan (GCash, a bank transfer, cash at the court)
-// and send a screenshot with the amount and reference; owners and admins confirm it, which records
-// a real payment, or don't accept it, with a reason the family reads. Everything here is pure so
-// the Worker, the app, and the unit tests share one set of rules.
+// and send a screenshot with the amount and reference; owners, admins, and the front desk confirm
+// it, which records a real payment, or don't accept it, with a reason the family reads. Everything
+// here is pure so the Worker, the app, and the unit tests share one set of rules.
 
 // --- Status ------------------------------------------------------------------------------------
 

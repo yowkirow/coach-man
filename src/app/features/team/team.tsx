@@ -4,7 +4,14 @@ import type {
   TeamDto,
   TeamMemberDto,
 } from "@shared/api-types";
-import { STAFF_ROLE_LABELS, type StaffRole } from "@shared/roles";
+import { inviteEmailNote } from "@shared/email";
+import {
+  isCoachingRole,
+  STAFF_ROLE_LABELS,
+  STAFF_ROLE_NOUNS,
+  STAFF_ROLES,
+  type StaffRole,
+} from "@shared/roles";
 import { assignableRoles, checkRemoval, staffInviteMessage } from "@shared/team";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Copy, Ellipsis, Mail, MessageSquareText, Share2, UserPlus } from "lucide-react";
@@ -28,14 +35,20 @@ import { OfflineNote } from "../settings/offline";
 export const ROLE_DESCRIPTIONS: Record<StaffRole, string> = {
   owner: "Everything an admin does, plus owners and the academy itself.",
   admin: "Runs the academy: the team, money, rates and programs, and settings.",
+  front_desk:
+    "Payments, enrollments, check-in, the schedule, and family invites. Doesn't coach; no prices, settings, or team.",
   coach: "Students, progress, the schedule, and check-in. No prices or payments.",
 };
 
 const ROLE_TONES: Record<StaffRole, PillTone> = {
   owner: "lavender",
   admin: "sky",
+  front_desk: "mint",
   coach: "panel",
 };
+
+/** The roles an invite can give: owners are made from inside the team. */
+const INVITE_ROLES = ["coach", "front_desk", "admin"] as const satisfies readonly StaffRole[];
 
 export function RolePill({ role }: { role: StaffRole }) {
   return <Pill tone={ROLE_TONES[role]}>{STAFF_ROLE_LABELS[role]}</Pill>;
@@ -142,7 +155,13 @@ export function MembersCard({
           const removable = checkRemoval({ actorRole: myRole, targetRole: m.role, ownerCount }).ok;
           const actions = [
             ...(self || can.team
-              ? [{ id: "profile", label: "Edit coach profile", onAction: () => onEditProfile(m) }]
+              ? [
+                  {
+                    id: "profile",
+                    label: isCoachingRole(m.role) ? "Edit coach profile" : "Edit profile",
+                    onAction: () => onEditProfile(m),
+                  },
+                ]
               : []),
             ...(roles.length > 1
               ? [{ id: "role", label: "Change role", onAction: () => setRoleFor(m) }]
@@ -175,7 +194,8 @@ export function MembersCard({
                 </p>
                 {meta ? <p className="truncate text-[0.8125rem] text-ink-2">{meta}</p> : null}
                 <p className="num text-[0.8125rem] text-ink-2">
-                  Joined {fmt.date(fmt.dayOf(m.joinedAt))} · {plural(m.students, "student")}
+                  Joined {fmt.date(fmt.dayOf(m.joinedAt))}
+                  {isCoachingRole(m.role) ? ` · ${plural(m.students, "student")}` : ""}
                 </p>
               </div>
               <span className="hidden sm:inline-flex">
@@ -228,7 +248,7 @@ function RoleSheet({
       refresh(data);
       notify({
         tone: "success",
-        title: `${current?.name ?? "Role"} is now ${v.role === "admin" ? "an" : "a"} ${STAFF_ROLE_LABELS[v.role].toLowerCase()}`,
+        title: `${current?.name ?? "Role"} is now ${STAFF_ROLE_NOUNS[v.role]}`,
       });
       onClose();
     },
@@ -242,16 +262,13 @@ function RoleSheet({
   }, [member?.userId]);
   const roles = current ? assignableRoles(me?.role ?? "coach", current.role, ownerCount) : [];
   const lastOwner = current?.role === "owner" && ownerCount <= 1;
+  const stopsCoaching = current ? isCoachingRole(current.role) && !isCoachingRole(role) : false;
   return (
     <Sheet
       isOpen={member !== null}
       onOpenChange={(o) => !o && onClose()}
       title="Change role"
-      description={
-        current
-          ? `${current.name} is ${current.role === "admin" || current.role === "owner" ? "an" : "a"} ${STAFF_ROLE_LABELS[current.role].toLowerCase()}.`
-          : undefined
-      }
+      description={current ? `${current.name} is ${STAFF_ROLE_NOUNS[current.role]}.` : undefined}
       footer={
         <>
           <Button variant="light" onPress={onClose}>
@@ -273,6 +290,11 @@ function RoleSheet({
         {lastOwner ? (
           <p className="rounded-2xl bg-amber-soft px-4 py-3 text-[0.875rem]">
             Every academy needs an owner. Make someone else an owner first, or transfer ownership.
+          </p>
+        ) : null}
+        {stopsCoaching ? (
+          <p role="status" className="rounded-2xl bg-amber-soft px-4 py-3 text-[0.875rem]">
+            {current?.name} stops coaching: their students and upcoming sessions lose them as coach.
           </p>
         ) : null}
         {save.error ? <InlineError>{errorMessage(save.error)}</InlineError> : null}
@@ -327,8 +349,8 @@ function RemoveSheet({ member, onClose }: { member: TeamMemberDto | null; onClos
               ? "You lose access to this academy right away. Someone who manages the team can invite you back."
               : `${current?.name ?? "They"} lose access right away.`}{" "}
             Notes and past sessions keep their names. Students they coach lose them as coach, and
-            sessions they lead lose their lead coach, so reminders go to owners and admins until
-            someone else takes over.
+            sessions they lead lose their lead coach, so reminders go to owners, admins, and front
+            desk staff until someone else takes over.
           </p>
           {remove.error ? <InlineError>{errorMessage(remove.error)}</InlineError> : null}
           <OfflineNote />
@@ -483,7 +505,7 @@ export function InvitesCard({
           <EmptyState
             icon={<UserPlus aria-hidden className="size-5" />}
             title="No invites waiting"
-            body="Invite a coach or an admin with a link you send them on Messenger, Viber, or by text. They sign in with the Google account you invite."
+            body="Invite a coach, an admin, or front desk staff. We email them a link, and you can share it on Messenger, Viber, or by text. They sign in with the Google account you invite."
             action={
               <Button variant="dark" isDisabled={!online} onPress={() => onInvite()}>
                 Invite someone
@@ -497,8 +519,9 @@ export function InvitesCard({
 }
 
 /**
- * Invite a coach or an admin: an email and a role make a single-use link. The link is shown once
- * (only its hash is stored), with Copy, Share, and a message ready to paste.
+ * Invite a coach, front desk staff, or an admin: an email and a role make a single-use link. The
+ * server emails it to them; it's also shown once here (only its hash is stored), with Copy, Share,
+ * and a message ready to paste.
  */
 export function InviteSheet({
   isOpen,
@@ -530,7 +553,7 @@ export function InviteSheet({
   useEffect(() => {
     if (!isOpen) return;
     setEmail(initial?.email ?? "");
-    setRole(initial?.role === "admin" ? "admin" : "coach");
+    setRole(INVITE_ROLES.find((r) => r === initial?.role) ?? "coach");
     setCreated(null);
     create.reset();
   }, [isOpen]);
@@ -556,7 +579,10 @@ export function InviteSheet({
         isOpen={isOpen}
         onOpenChange={onOpenChange}
         title="Invite link ready"
-        description={`Send it to ${created.invite.email} on Messenger, Viber, or by text.`}
+        description={
+          inviteEmailNote(created) ??
+          `Send it to ${created.invite.email} on Messenger, Viber, or by text.`
+        }
         footer={
           <>
             <Button variant="ghost" className="mr-auto" onPress={() => setCreated(null)}>
@@ -631,7 +657,7 @@ export function InviteSheet({
       isOpen={isOpen}
       onOpenChange={onOpenChange}
       title="Invite someone"
-      description="They sign in with Google, using the email address you enter here."
+      description="They sign in with Google, using the email address you enter here. We email them the link, and you can share it too."
       footer={
         <>
           <Button variant="light" onPress={() => onOpenChange(false)}>
@@ -666,7 +692,7 @@ export function InviteSheet({
           placeholder="name@gmail.com"
           error={fieldErrors(create.error).email}
         />
-        <RoleOptions label="Role" roles={["coach", "admin"]} value={role} onChange={setRole} />
+        <RoleOptions label="Role" roles={INVITE_ROLES} value={role} onChange={setRole} />
         {create.error && !fieldErrors(create.error).email ? (
           <InlineError>{errorMessage(create.error)}</InlineError>
         ) : null}
@@ -702,7 +728,7 @@ export function TeamPanel({ team }: { team?: TeamDto }) {
           tint="lime"
         />
         <KpiTile
-          label="Owners & admins"
+          label="Other staff"
           value={team ? members.filter((m) => m.role !== "coach").length : dash}
           tint="violet"
         />
@@ -713,13 +739,15 @@ export function TeamPanel({ team }: { team?: TeamDto }) {
             tint="amber"
           />
         ) : null}
-        <KpiTile label="Your students" value={mine ? mine.students : dash} tint="sky" />
+        {me && isCoachingRole(me.role) ? (
+          <KpiTile label="Your students" value={mine ? mine.students : dash} tint="sky" />
+        ) : null}
       </div>
       <section aria-labelledby="team-roles" className="flex flex-col gap-2.5">
         <h3 id="team-roles" className="px-1 pt-1 text-[1.125rem] font-light">
           What each role can do
         </h3>
-        {(["owner", "admin", "coach"] as const).map((r) => (
+        {STAFF_ROLES.map((r) => (
           <div key={r} className="rounded-[24px] bg-night-2 p-4">
             <p className="text-[1rem]">{STAFF_ROLE_LABELS[r]}</p>
             <p className="mt-1 text-[0.8125rem] text-night-ink-2">{ROLE_DESCRIPTIONS[r]}</p>

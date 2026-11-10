@@ -55,9 +55,9 @@ import { renewalFacts, renewalOf } from "./enrollment-family";
 import { hasGoogleAccount } from "./family";
 import { pendingByRequest, requestProofs } from "./payment-proofs";
 
-// The staff side of enrollment (WS4b): the Enrollments inbox (owners and admins, `enrollment`),
-// a request's detail, and who hasn't renewed. Approving, waitlisting, and declining live in
-// enrollment-decide.ts.
+// The staff side of enrollment (WS4b): the Enrollments inbox (owners, admins, and the front desk,
+// `enrollment`), a request's detail, and who hasn't renewed. Approving, waitlisting, and declining
+// live in enrollment-decide.ts.
 
 const ATTENDING_STATUSES = (s: string) => s !== "excused" && s !== "late_cancel";
 

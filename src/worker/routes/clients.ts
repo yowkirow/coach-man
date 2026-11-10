@@ -10,7 +10,7 @@ import type {
 import { normalizeCoaches, planCoachChanges } from "../../shared/coaches";
 import { CLIENT_STATUSES } from "../../shared/domain";
 import { uuidv7 } from "../../shared/ids";
-import { can } from "../../shared/roles";
+import { can, isCoachingRole } from "../../shared/roles";
 import { clientCoachesSchema, clientSchema, clientUpdateSchema } from "../../shared/schemas";
 import { localDate, todayIn } from "../../shared/time";
 import {
@@ -271,8 +271,10 @@ export const clientRoutes = new Hono<AppBindings>()
     const ctx = ctxOf(c);
     const { groupIds, id: requestedId, primaryCoachUserId, ...input } = c.req.valid("json");
     const id = requestedId ?? uuidv7();
-    // Whoever adds a student coaches them until someone changes it; null = no coach yet.
-    const primary = primaryCoachUserId === undefined ? ctx.userId : primaryCoachUserId;
+    // Whoever adds a student coaches them until someone changes it, when they coach (a student the
+    // front desk adds starts with no coach); null = no coach yet.
+    const adder = isCoachingRole(ctx.role) ? ctx.userId : null;
+    const primary = primaryCoachUserId === undefined ? adder : primaryCoachUserId;
     if (primaryCoachUserId) await assertStaff(ctx, [primaryCoachUserId], "primaryCoachUserId");
     const today = todayIn(ctx.settings.timezone);
     await runBatch(ctx, [
@@ -400,7 +402,8 @@ export const clientRoutes = new Hono<AppBindings>()
 
   /**
    * A student's current coaches. Assignments are never overwritten: rows that no longer apply end
-   * today and new ones start today, so the history shows who coached when. Open to every coach.
+   * today and new ones start today, so the history shows who coached when. Open to everyone on the
+   * team; the people named must coach.
    */
   .put("/clients/:id/coaches", v("json", clientCoachesSchema), async (c) => {
     const ctx = ctxOf(c);

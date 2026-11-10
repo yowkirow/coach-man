@@ -12,7 +12,7 @@ import { Switch, TextAreaField, TextField } from "../../components/ui/field";
 import { Sheet } from "../../components/ui/overlay";
 import { api, errorMessage } from "../../lib/api";
 import { plural, useFormat } from "../../lib/format";
-import { useSkills } from "../../lib/hooks";
+import { useSkills, useWritesCoaching } from "../../lib/hooks";
 import { notify } from "../../lib/notify";
 import { useOnline } from "../../lib/offline";
 import { OfflineHint, SectionHead } from "./bits";
@@ -183,7 +183,10 @@ function Legend({ latest, previous }: { latest: string; previous?: string }) {
   );
 }
 
-/** Each skill's latest score on the fixed scale, with its score the time before ghosted. */
+/**
+ * Each skill's latest score on the fixed scale, with its score the time before ghosted. People who
+ * don't coach see only the assessments shared with the family, and start none.
+ */
 export function SkillsCard({
   progress,
   onNew,
@@ -194,12 +197,13 @@ export function SkillsCard({
   canWrite: boolean;
 }) {
   const fmt = useFormat();
+  const writes = useWritesCoaching();
   const latest = progress.assessments.at(-1);
   const rows = useMemo(() => latestPerSkill(progress.assessments), [progress.assessments]);
   const levels = progress.assessments.filter((a) => a.overallLevel);
   const level = levels.at(-1)?.overallLevel;
   const levelBefore = levels.at(-2)?.overallLevel;
-  const action = (
+  const action = writes ? (
     <Button
       variant="light"
       size="sm"
@@ -209,7 +213,7 @@ export function SkillsCard({
     >
       New assessment
     </Button>
-  );
+  ) : undefined;
   if (!latest) {
     return (
       <Card label="Skills">
@@ -218,11 +222,17 @@ export function SkillsCard({
           <EmptyState
             icon={<ClipboardCheck aria-hidden className="size-5" />}
             title="No assessments yet"
-            body="Score each skill from 1 to 5 to set a baseline. Later assessments show the change against it, on the same scale."
+            body={
+              writes
+                ? "Score each skill from 1 to 5 to set a baseline. Later assessments show the change against it, on the same scale."
+                : "Coaches' assessments show here once they're shared with the family."
+            }
             action={
-              <Button variant="dark" isDisabled={!canWrite} onPress={onNew}>
-                Start a baseline
-              </Button>
+              writes ? (
+                <Button variant="dark" isDisabled={!canWrite} onPress={onNew}>
+                  Start a baseline
+                </Button>
+              ) : undefined
             }
           />
         </div>
@@ -340,7 +350,10 @@ function SharedWithFamilySwitch({
   );
 }
 
-/** Read-only view of one assessment, compared with the one before it. */
+/**
+ * Read-only view of one assessment, compared with the one before it. People who coach also share
+ * it with the family or hold it back, and delete it.
+ */
 export function AssessmentDetailSheet({
   assessment,
   progress,
@@ -356,6 +369,7 @@ export function AssessmentDetailSheet({
 }) {
   const fmt = useFormat();
   const online = useOnline();
+  const writes = useWritesCoaching();
   const storeProgress = useStoreProgress();
   const refresh = useRefreshClient();
   const [confirming, setConfirming] = useState(false);
@@ -428,14 +442,16 @@ export function AssessmentDetailSheet({
           </>
         ) : (
           <>
-            <Button
-              variant="ghost"
-              className="mr-auto text-[#b42318]"
-              isDisabled={!online}
-              onPress={() => setConfirming(true)}
-            >
-              Delete
-            </Button>
+            {writes ? (
+              <Button
+                variant="ghost"
+                className="mr-auto text-[#b42318]"
+                isDisabled={!online}
+                onPress={() => setConfirming(true)}
+              >
+                Delete
+              </Button>
+            ) : null}
             <Button variant="dark" onPress={onClose}>
               Done
             </Button>
@@ -463,12 +479,14 @@ export function AssessmentDetailSheet({
           {assessment.notes ? (
             <p className="rounded-2xl bg-panel px-4 py-3">{assessment.notes}</p>
           ) : null}
-          <SharedWithFamilySwitch
-            isSelected={current?.sharedWithFamily ?? true}
-            isDisabled={!online || share.isPending}
-            firstName={firstName}
-            onChange={(v) => current && share.mutate({ id: current.id, sharedWithFamily: v })}
-          />
+          {writes ? (
+            <SharedWithFamilySwitch
+              isSelected={current?.sharedWithFamily ?? true}
+              isDisabled={!online || share.isPending}
+              firstName={firstName}
+              onChange={(v) => current && share.mutate({ id: current.id, sharedWithFamily: v })}
+            />
+          ) : null}
           {share.error ? <InlineError>{errorMessage(share.error)}</InlineError> : null}
           {remove.error ? <InlineError>{errorMessage(remove.error)}</InlineError> : null}
         </div>

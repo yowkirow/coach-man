@@ -8,7 +8,7 @@ import type {
 } from "../../shared/api-types";
 import type { PhotoFraming } from "../../shared/framing";
 import { uuidv7 } from "../../shared/ids";
-import { normalizeRole, type StaffRole } from "../../shared/roles";
+import { isCoachingRole, normalizeRole, type StaffRole } from "../../shared/roles";
 import type { Db } from "../db/client";
 import { clientCoach, coachProfile, member, user } from "../db/schema";
 import { badRequest } from "../lib/errors";
@@ -119,18 +119,28 @@ export function toCoachProfile(r: StaffRow): CoachProfileDto {
   };
 }
 
-/** Ids of everyone currently on the team. */
-export async function staffIds(db: Db, workspaceId: string): Promise<Set<string>> {
-  const rows = await db
-    .select({ userId: member.userId })
+/** Everyone on the team with their stored role. */
+function members(db: Db, workspaceId: string) {
+  return db
+    .select({ userId: member.userId, role: member.role })
     .from(member)
     .where(eq(member.organizationId, workspaceId));
-  return new Set(rows.map((r) => r.userId));
+}
+
+/** Ids of everyone currently on the team. */
+export async function staffIds(db: Db, workspaceId: string): Promise<Set<string>> {
+  return new Set((await members(db, workspaceId)).map((m) => m.userId));
+}
+
+/** Ids of the people on the team who coach (the front desk doesn't). */
+export async function coachIds(db: Db, workspaceId: string): Promise<Set<string>> {
+  const rows = await members(db, workspaceId);
+  return new Set(rows.filter((m) => isCoachingRole(m.role)).map((m) => m.userId));
 }
 
 /**
- * Checks that every id given is on the team (a session can't be led by a stranger). `field` names
- * the form field for the error.
+ * Checks that every id given is someone on the team who coaches (a session can't be led by a
+ * stranger, or by the front desk). `field` names the form field for the error.
  */
 export async function assertStaff(
   ctx: Pick<Ctx, "db" | "workspaceId">,
@@ -139,11 +149,13 @@ export async function assertStaff(
 ): Promise<void> {
   const wanted = unique(ids.filter((id): id is string => Boolean(id)));
   if (!wanted.length) return;
-  const team = await staffIds(ctx.db, ctx.workspaceId);
-  if (wanted.some((id) => !team.has(id))) {
-    throw badRequest("Pick coaches from your team.", {
-      fields: { [field]: "That person isn't on your team." },
-    });
+  const team = await members(ctx.db, ctx.workspaceId);
+  const roles = new Map(team.map((m) => [m.userId, m.role]));
+  const refuse = (why: string) =>
+    badRequest("Pick coaches from your team.", { fields: { [field]: why } });
+  if (wanted.some((id) => !roles.has(id))) throw refuse("That person isn't on your team.");
+  if (wanted.some((id) => !isCoachingRole(roles.get(id)))) {
+    throw refuse("Front desk staff don't coach.");
   }
 }
 

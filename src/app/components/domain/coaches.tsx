@@ -11,7 +11,7 @@ import {
   Text,
 } from "react-aria-components";
 import { personOf, type SessionScope } from "../../lib/coaches";
-import { useCoaches } from "../../lib/hooks";
+import { useCoachChoices, useCoachMap } from "../../lib/hooks";
 import { Avatar } from "../ui/display";
 import { SelectField } from "../ui/field";
 
@@ -86,8 +86,9 @@ export interface CoachChoice {
 
 /**
  * Lead coach and assistant coaches for the create and edit sheets: a select for the lead and
- * checkbox chips for the assistants. Someone who has left stays listed while they're still set,
- * so saving never changes a coach nobody touched.
+ * checkbox chips for the assistants, offering the people who coach. Someone who no longer coaches
+ * here (moved to the front desk, or left) stays listed while they're still set, so saving never
+ * changes a coach nobody touched.
  */
 export function CoachFields({
   value,
@@ -104,10 +105,11 @@ export function CoachFields({
   description?: ReactNode;
   error?: string;
 }) {
-  const coaches = useCoaches().data ?? [];
-  const known = new Set(coaches.map((c) => c.userId));
-  const former = [value.lead, ...value.assistants].filter(
-    (id): id is string => Boolean(id) && !known.has(id as string),
+  const coaches = useCoachChoices();
+  const team = useCoachMap();
+  const offered = new Set(coaches.map((c) => c.userId));
+  const kept = [value.lead, ...value.assistants].filter(
+    (id): id is string => Boolean(id) && !offered.has(id as string),
   );
   const everyone: { userId: string; name: string; photoKey: string | null; detail: string }[] = [
     ...coaches.map((c) => ({
@@ -116,12 +118,17 @@ export function CoachFields({
       photoKey: c.photoKey,
       detail: c.title ?? STAFF_ROLE_LABELS[c.role],
     })),
-    ...former.map((id) => ({
-      userId: id,
-      name: "Former coach",
-      photoKey: null,
-      detail: "Left the team",
-    })),
+    ...kept.map((id) => {
+      const person = team.get(id);
+      return person
+        ? {
+            userId: id,
+            name: person.name,
+            photoKey: person.photoKey,
+            detail: `${STAFF_ROLE_LABELS[person.role]} now`,
+          }
+        : { userId: id, name: "Former coach", photoKey: null, detail: "Left the team" };
+    }),
   ];
   const assistantChoices = everyone.filter((c) => c.userId !== value.lead);
   return (

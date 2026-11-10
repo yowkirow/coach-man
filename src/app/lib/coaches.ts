@@ -1,6 +1,6 @@
 import type { ClientListItemDto } from "@shared/api-types";
 import { useSyncExternalStore } from "react";
-import { useHasTeam, useMe } from "./hooks";
+import { useHasTeam, useIsCoach, useMe } from "./hooks";
 
 /** A coach's name as Avatar wants it (initials from the first and last words). */
 export function personOf(name: string, photoKey?: string | null) {
@@ -56,13 +56,23 @@ function subscribe(cb: () => void) {
 }
 
 /**
+ * Whether "Mine" has a choice to offer (Today's and the Schedule's "Mine / Everyone", Clients' "My
+ * students"): you coach, and so does someone else.
+ */
+export function useMineFilter(): boolean {
+  const hasTeam = useHasTeam();
+  const coaches = useIsCoach();
+  return hasTeam && coaches;
+}
+
+/**
  * "Mine / Everyone" on Today and the Schedule, remembered on this device for each person. Coaches
  * start on their own sessions; owners and admins on everyone's. A one-person academy has no choice
- * to make, so it always shows everything.
+ * to make, and nor does the front desk (they don't coach), so both always show everything.
  */
 export function useSessionScope() {
   const me = useMe().data;
-  const enabled = useHasTeam();
+  const enabled = useMineFilter();
   const userId = me?.user.id ?? "";
   const stored = useSyncExternalStore(
     subscribe,

@@ -889,7 +889,10 @@ function capabilityProbes(w: World, self: string): Probe[] {
   ];
 }
 
-/** What every staff role may do: the people, their progress, the schedule, and check-in. */
+/**
+ * What every staff role may do: the people, their progress, the schedule, and check-in. Writing a
+ * note, an assessment, or a goal takes someone who coaches (COACHING_WRITES).
+ */
 function openProbes(w: World, self: string): Open[] {
   const s = w.studentId;
   return [
@@ -913,7 +916,8 @@ function openProbes(w: World, self: string): Open[] {
       name: "PUT /clients/:id/coaches",
       method: "PUT",
       path: `/clients/${s}/coaches`,
-      body: { primaryCoachUserId: self, assistantCoachIds: [] },
+      // The owner coaches: whoever probes names them (the front desk can't name itself).
+      body: { primaryCoachUserId: w.ownerId, assistantCoachIds: [] },
     },
     { name: "GET /clients/:id/progress", method: "GET", path: `/clients/${s}/progress` },
     {
@@ -921,6 +925,18 @@ function openProbes(w: World, self: string): Open[] {
       method: "POST",
       path: "/notes",
       body: { clientId: s, body: "Good footwork.", visibility: "shared" },
+    },
+    {
+      name: "POST /clients/:id/assessments",
+      method: "POST",
+      path: `/clients/${s}/assessments`,
+      body: { assessedOn: w.today, scores: [] },
+    },
+    {
+      name: "POST /clients/:id/goals",
+      method: "POST",
+      path: `/clients/${s}/goals`,
+      body: { title: "Serve deep to the backhand" },
     },
     { name: "GET /clients/:id/ledger (credits)", method: "GET", path: `/clients/${s}/ledger` },
     {
@@ -985,6 +1001,13 @@ function openProbes(w: World, self: string): Open[] {
     },
   ];
 }
+
+/** The open routes only people who coach may use: the front desk gets `403 forbidden`. */
+const COACHING_WRITES = new Set([
+  "POST /notes (shared)",
+  "POST /clients/:id/assessments",
+  "POST /clients/:id/goals",
+]);
 
 async function send(
   request: APIRequestContext,
@@ -1098,6 +1121,57 @@ test.describe("who can do what, at the API", () => {
     const team = await owner.api.get<{ members: { userId: string; role: string }[] }>("/team");
     expect(team.members.find((m) => m.userId === w.ownerId)?.role).toBe("owner");
     expect(team.members.find((m) => m.userId === w.spareB)?.role).toBe("coach");
+  });
+
+  test("the front desk handles money, enrollments, and family access, and nothing else", async ({
+    coach: owner,
+    personas,
+  }, info) => {
+    test.slow();
+    const w = await academyWithEverything(owner, info);
+    const email = testEmail("matrix-desk", info);
+    const { userId } = await addMember(owner.request, {
+      email,
+      name: "Dana Desk",
+      role: "front_desk",
+    });
+    const desk = await personas.open({ email, name: "Dana Desk", persona: "none" });
+
+    const probes = capabilityProbes(w, userId);
+    const want = Object.fromEntries(probes.map((p) => [p.name, expected("front_desk", p)]));
+    expect(await probeAll(desk.context.request, probes)).toEqual(want);
+    // Of every capability the table probes, the front desk has exactly these three.
+    const caps = [...new Set(probes.map((p) => p.cap))];
+    expect(caps.filter((cap) => can("front_desk", cap)).sort()).toEqual([
+      "enrollment",
+      "familyAccess",
+      "money",
+    ]);
+
+    // Everything open to every staff role stays open to them, but for coaching's own writes: they
+    // don't coach, so a note, an assessment, or a goal is refused.
+    const open = openProbes(w, userId);
+    const answers: Record<string, string> = {};
+    for (const p of open) {
+      const res = await send(desk.context.request, p);
+      answers[p.name] = res.status < 300 ? "ok" : `${res.status} ${Api.code(res)}`;
+    }
+    expect(answers).toEqual(
+      Object.fromEntries(
+        open.map((p) => [p.name, COACHING_WRITES.has(p.name) ? "403 forbidden" : "ok"]),
+      ),
+    );
+
+    // Amounts reach them: Today's who-owes and rosters, and a student's balance.
+    for (const path of ["/today", `/clients/${w.studentId}`]) {
+      const res = await send(desk.context.request, { method: "GET", path });
+      expect(res.status, path).toBe(200);
+      expect(res.text, path).toMatch(MONEY_FIELD);
+    }
+    // The refusals left the team as it was.
+    const team = await owner.api.get<{ members: { userId: string; role: string }[] }>("/team");
+    expect(team.members.find((m) => m.userId === w.ownerId)?.role).toBe("owner");
+    expect(team.members.find((m) => m.userId === userId)?.role).toBe("front_desk");
   });
 
   test("only the owner hands the academy over or changes an owner", async ({

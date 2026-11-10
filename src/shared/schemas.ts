@@ -195,7 +195,10 @@ export const academyPhotoOrderSchema = z.object({
 });
 export type AcademyPhotoOrderInput = z.infer<typeof academyPhotoOrderSchema>;
 
-/** POST /team/invites: owners are made from inside the team, so invites are for admins and coaches. */
+/**
+ * POST /team/invites: owners are made from inside the team, so invites are for admins, the front
+ * desk, and coaches.
+ */
 export const staffInviteSchema = z.object({
   email: z
     .string()
@@ -204,12 +207,18 @@ export const staffInviteSchema = z.object({
     .pipe(z.email("That email doesn't look complete."))
     // Passkey-only family accounts carry a placeholder address; it must never match a staff invite.
     .refine((e) => !isPlaceholderEmail(e), "Use the person's Google email address."),
-  role: z.enum(["admin", "coach"]),
+  role: z.enum(["admin", "front_desk", "coach"]),
 });
 export type StaffInviteInput = z.infer<typeof staffInviteSchema>;
 
-/** POST /clients/:id/family/invites: a parent's link, or the student's own login. */
-export const familyInviteSchema = z.object({ relation: z.enum(FAMILY_RELATIONS) });
+/**
+ * POST /clients/:id/family/invites: a parent's link, or the student's own login, and optionally
+ * an address to email it to (empty means none).
+ */
+export const familyInviteSchema = z.object({
+  relation: z.enum(FAMILY_RELATIONS),
+  email: optionalEmail,
+});
 
 /** GET /api/portal/students/:id/schedule: an optional window of local dates. */
 export const portalRangeQuerySchema = z.object({
@@ -315,7 +324,10 @@ export const clientSchema = z.object({
   joinedOn: date.nullable().optional(),
   shirtSize,
   groupIds: z.array(id).max(50).optional(),
-  /** New clients only: their primary coach. Omitted = whoever adds them; null = no coach yet. */
+  /**
+   * New clients only: their primary coach. Omitted = whoever adds them, when they coach (else no
+   * coach); null = no coach yet.
+   */
   primaryCoachUserId: userId.nullable().optional(),
 });
 export type ClientInput = z.infer<typeof clientSchema>;
@@ -529,7 +541,10 @@ export const lessonCreateSchema = z.object({
   notes: optionalText(2000),
   clientIds: z.array(id).max(200).default([]),
   recurrence: recurrenceSchema.nullable().optional(),
-  /** Lead coach. Omitted = the group's or event's lead coach, else whoever schedules it. */
+  /**
+   * Lead coach. Omitted = the group's or event's lead coach, else whoever schedules it when they
+   * coach (the front desk's sessions start with no lead).
+   */
   coachUserId: userId.nullable().optional(),
   /** Omitted = the group's or event's assistants. */
   assistantCoachIds: coachIds.optional(),
@@ -967,7 +982,7 @@ export const notificationPrefSchema = z.object({
   sessionReminderMinutes: z.number().int().min(5).max(240).nullable(),
   dailyDigestTime: time.nullable(),
   packageExpiryDays: z.number().int().min(1).max(60),
-  /** Owners and admins: a push for each new enrollment request and payment proof (on unless off). */
+  /** Who reviews them: an email and a push for each new request and proof (on unless off). */
   enrollmentAlerts: z.boolean().optional(),
 });
 export type NotificationPrefInput = z.infer<typeof notificationPrefSchema>;

@@ -51,9 +51,10 @@ import { modeOf, paymentsFor, refuse, requestPayment, startDateOf } from "./enro
 import { balancesFor, planPayment, rebuildAllocations } from "./money";
 
 // Payment proofs (WS4c). Families send a screenshot of a payment made outside CoachMan (or say
-// they'll pay cash at the court) from the portal; owners and admins confirm it, which records a
-// real payment through the money service (allocations and balances follow), or don't accept it
-// with a reason the family reads. Staff reads and decisions are here, and the family's side too.
+// they'll pay cash at the court) from the portal; owners, admins, and the front desk confirm it,
+// which records a real payment through the money service (allocations and balances follow), or
+// don't accept it with a reason the family reads. Staff reads and decisions are here, and the
+// family's side too.
 
 type ProofRow = typeof paymentSubmission.$inferSelect;
 

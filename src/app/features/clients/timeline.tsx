@@ -7,6 +7,7 @@ import { Button } from "../../components/ui/button";
 import { Card, Pill } from "../../components/ui/display";
 import { SelectField } from "../../components/ui/field";
 import { type Format, plural, useFormat } from "../../lib/format";
+import { useWritesCoaching } from "../../lib/hooks";
 import { SectionHead } from "./bits";
 import { DeleteNoteSheet, EditNoteSheet, NoteComposer, NoteItem } from "./notes";
 
@@ -94,7 +95,8 @@ const ICON = "flex size-9 shrink-0 items-center justify-center rounded-full bg-p
 
 /**
  * Every coach's notes, assessments, and goals for this student on one timeline, newest first
- * (pinned notes on top), with who wrote each and a filter by coach. New notes start here.
+ * (pinned notes on top), with who wrote each and a filter by coach. New notes start here. People
+ * who don't coach see what the family sees, and write nothing.
  */
 export function CoachingTimelineCard({
   clientId,
@@ -108,6 +110,7 @@ export function CoachingTimelineCard({
   onOpenAssessment: (a: AssessmentDto) => void;
 }) {
   const fmt = useFormat();
+  const writes = useWritesCoaching();
   const [coach, setCoach] = useState("all");
   const [limit, setLimit] = useState(12);
   const [editing, setEditing] = useState<NoteDto | null>(null);
@@ -152,11 +155,11 @@ export function CoachingTimelineCard({
         }
       />
       <div className="px-5 pb-2">
-        <NoteComposer clientId={clientId} firstName={firstName} />
+        {writes ? <NoteComposer clientId={clientId} firstName={firstName} /> : null}
         {shown.length ? (
           <ol
             aria-label="Notes, assessments, and goals"
-            className="mt-3 flex flex-col divide-y divide-line border-t border-line"
+            className={`flex flex-col divide-y divide-line ${writes ? "mt-3 border-t border-line" : ""}`}
           >
             {shown.map((e) => {
               if (e.kind === "note") {
@@ -165,8 +168,8 @@ export function CoachingTimelineCard({
                     key={e.id}
                     note={e.note}
                     clientId={clientId}
-                    onEdit={setEditing}
-                    onDelete={setDeleting}
+                    onEdit={writes ? setEditing : undefined}
+                    onDelete={writes ? setDeleting : undefined}
                   />
                 );
               }
@@ -232,9 +235,11 @@ export function CoachingTimelineCard({
         ) : (
           <p className="mt-4 mb-3 flex items-center gap-2 text-ink-2">
             <NotebookPen aria-hidden className="size-4.5 shrink-0" />
-            {coach === "all"
-              ? "Nothing yet. Notes, assessments, and goals from every coach land here."
-              : "Nothing from this coach yet."}
+            {coach !== "all"
+              ? "Nothing from this coach yet."
+              : writes
+                ? "Nothing yet. Notes, assessments, and goals from every coach land here."
+                : "Nothing shared with the family yet."}
           </p>
         )}
         {hidden > 0 ? (

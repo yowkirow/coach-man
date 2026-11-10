@@ -149,12 +149,13 @@ export const requireWorkspace = createMiddleware<AppBindings>(async (c, next) =>
 });
 
 const CAPABILITY_DENIED: Record<Capability, string> = {
-  money: "Only the academy's owner and admins can see or change money.",
+  money: "Only the academy's owner, admins, and front desk staff can see or change money.",
   catalog: "Only the academy's owner and admins can change rates, packages, programs, and events.",
   team: "Only the academy's owner and admins can manage the team.",
   settings: "Only the academy's owner and admins can change academy settings.",
-  enrollment: "Only the academy's owner and admins can review enrollments and payments.",
-  familyAccess: "Only the academy's owner and admins can manage family access.",
+  enrollment:
+    "Only the academy's owner, admins, and front desk staff can review enrollments and payments.",
+  familyAccess: "Only the academy's owner, admins, and front desk staff can manage family access.",
   announcements: "Only the academy's owner and admins can publish announcements.",
   data: "Only the academy's owner and admins can import, export, or delete data.",
   ownership: "Only the academy's owner can do this.",

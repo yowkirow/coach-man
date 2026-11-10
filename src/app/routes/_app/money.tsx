@@ -60,7 +60,7 @@ function MoneyRoute() {
     return (
       <NoAccess
         title="Money"
-        body="Payments, charges, and balances are for the academy's owner and admins. You still see every player's credits on their profile and at check-in."
+        body="Payments, charges, and balances are for the academy's owner, admins, and front desk staff. You still see every player's credits on their profile and at check-in."
       />
     );
   }

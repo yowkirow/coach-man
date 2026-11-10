@@ -15,6 +15,7 @@ import { notFound } from "../lib/errors";
 import { linkFor } from "../lib/portal-scope";
 import { clientIp, enforce } from "../lib/rate-limit";
 import { v } from "../lib/validate";
+import { emailEnrollmentReceived, emailStaffEnrollmentRequest } from "../services/email";
 import {
   cancelEnrollment,
   enrollAcademies,
@@ -106,13 +107,23 @@ export const portalEnrollmentRoutes = new Hono<AppBindings>()
     return c.json<EnrollmentSubmittedDto>(body, body.replay ? 200 : 201);
   });
 
-/** Owners and admins hear about a new request after the response. */
+/**
+ * After the response: whoever reviews requests (`enrollment`) hears about a new one by push and by
+ * email, and whoever sent it gets "We got your request" by email.
+ */
 function toReview(c: Context<AppBindings>, body: EnrollmentSubmittedDto) {
+  const input = {
+    workspaceId: body.request.workspaceId,
+    requestId: body.request.id,
+    actorUserId: c.var.user.id,
+  };
   later(c, "Enrollment request push failed", () =>
-    notifyStaffEnrollmentRequest(c.var.db, c.env, {
-      workspaceId: body.request.workspaceId,
-      requestId: body.request.id,
-      actorUserId: c.var.user.id,
-    }),
+    notifyStaffEnrollmentRequest(c.var.db, c.env, input),
+  );
+  later(c, "Enrollment request email failed", () =>
+    emailStaffEnrollmentRequest(c.var.db, c.env, input),
+  );
+  later(c, "Enrollment received email failed", () =>
+    emailEnrollmentReceived(c.var.db, c.env, input),
   );
 }

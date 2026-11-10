@@ -1,7 +1,7 @@
 // Team rules: who may change whose role, remove whom, and hand over ownership. The Worker enforces
 // them; the app uses them to offer only what will work. An academy always keeps an owner.
 
-import { can, STAFF_ROLE_LABELS, STAFF_ROLES, type StaffRole } from "./roles";
+import { can, STAFF_ROLE_NOUNS, STAFF_ROLES, type StaffRole } from "./roles";
 
 export type TeamRuleResult =
   | { ok: true }
@@ -26,7 +26,10 @@ export interface RoleChangeInput {
   ownerCount: number;
 }
 
-/** Changing a member's role: `team` for admins and coaches; owners only for anything owner. */
+/**
+ * Changing a member's role: `team` for admins, the front desk, and coaches; owners only for
+ * anything owner.
+ */
 export function checkRoleChange({
   actorRole,
   targetRole,
@@ -91,7 +94,7 @@ export function assignableRoles(
 
 /**
  * The message staff paste into Messenger, Viber, or a text: who is invited, as what, the link, and
- * which Google account to use. No email is sent by CoachMan.
+ * which Google account to use. CoachMan also emails the link (src/shared/email.ts).
  */
 export function staffInviteMessage(input: {
   academyName: string;
@@ -101,10 +104,8 @@ export function staffInviteMessage(input: {
   /** Already formatted for the reader, e.g. "Mon 10 Nov". */
   expires: string;
 }): string {
-  const role = STAFF_ROLE_LABELS[input.role].toLowerCase();
-  const article = /^[aeiou]/.test(role) ? "an" : "a";
   return [
-    `You're invited to join ${input.academyName} on CoachMan as ${article} ${role}.`,
+    `You're invited to join ${input.academyName} on CoachMan as ${STAFF_ROLE_NOUNS[input.role]}.`,
     `Open this link and sign in with Google as ${input.email}: ${input.link}`,
     `The link works once, until ${input.expires}.`,
   ].join("\n");

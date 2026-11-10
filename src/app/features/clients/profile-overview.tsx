@@ -22,7 +22,7 @@ import { type ReactNode, useState } from "react";
 import { Button } from "../../components/ui/button";
 import { Card, KeyValue, Pill, Timeline, type TimelineEntry } from "../../components/ui/display";
 import { type Format, plural, useFormat } from "../../lib/format";
-import { useCan } from "../../lib/hooks";
+import { useCan, useWritesCoaching } from "../../lib/hooks";
 import { ConsentsCard } from "../consents/client-card";
 import { PickupsCard, SafetyUpdatedLine } from "../safety/staff";
 import { SectionHead } from "./bits";
@@ -495,6 +495,7 @@ function CoachNotesCard({
   onNote: () => void;
   onAll: () => void;
 }) {
+  const writes = useWritesCoaching();
   const notes = progress?.notes ?? [];
   const shown = notes.slice(0, 3);
   return (
@@ -503,14 +504,16 @@ function CoachNotesCard({
         title="Coach notes"
         count={notes.length || undefined}
         action={
-          <Button
-            variant="light"
-            size="sm"
-            icon={<NotebookPen aria-hidden className="size-4" />}
-            onPress={onNote}
-          >
-            Add note
-          </Button>
+          writes ? (
+            <Button
+              variant="light"
+              size="sm"
+              icon={<NotebookPen aria-hidden className="size-4" />}
+              onPress={onNote}
+            >
+              Add note
+            </Button>
+          ) : undefined
         }
       />
       <div className="px-5 pb-3">
@@ -522,9 +525,11 @@ function CoachNotesCard({
           </ol>
         ) : (
           <p className="pb-2 text-ink-2">
-            {progress
-              ? "No notes yet. Jot what clicked and what to work on; it saves even offline."
-              : "Loading notes…"}
+            {!progress
+              ? "Loading notes…"
+              : writes
+                ? "No notes yet. Jot what clicked and what to work on; it saves even offline."
+                : "No notes shared with the family yet."}
           </p>
         )}
         {notes.length > shown.length ? (

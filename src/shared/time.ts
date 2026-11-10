@@ -112,6 +112,11 @@ export function dateLabel(ymd: string, locale: string): string {
   return calendarLabel(ymd, locale, { day: "numeric", month: "short", year: "numeric" }, ymd);
 }
 
+/** "Tue, Dec 1" for a local date in the academy's locale, as the app's `fmt.day` writes it. */
+export function dayLabel(ymd: string, locale: string): string {
+  return calendarLabel(ymd, locale, { weekday: "short", day: "numeric", month: "short" }, ymd);
+}
+
 /** "December 2026" for a YYYY-MM month in the academy's locale. */
 export function monthLabel(ym: string, locale: string): string {
   return calendarLabel(`${ym}-01`, locale, { month: "long", year: "numeric" }, ym);

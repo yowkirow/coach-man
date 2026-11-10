@@ -86,7 +86,7 @@ test.describe("enrollment access", () => {
     await expect(p.getByRole("link", { name: /Enrollments/ })).toHaveCount(0);
     await visit(p, "/enrollments");
     await expect(
-      p.getByText(/Enrollment requests are for the academy's owner and admins/),
+      p.getByText(/Enrollment requests are for the academy's owner, admins, and front desk staff/),
     ).toBeVisible();
   });
 

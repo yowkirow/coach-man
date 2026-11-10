@@ -8,6 +8,7 @@ import { client, invite, user } from "../db/schema";
 import { ApiError, conflict, notFound } from "../lib/errors";
 import { v } from "../lib/validate";
 import { ctxOf, requireCap } from "../middleware";
+import { emailFamilyInvite } from "../services/email";
 import {
   activeGuardianCount,
   createFamilyInvite,
@@ -27,10 +28,10 @@ async function loadStudent(ctx: Ctx, id: string) {
 }
 
 /**
- * Family access on a student's page (staff API, `familyAccess`: owners and admins). Linked
- * parents and the student's own login, invite links (Copy, Share, a message to paste; no email),
- * and revoking. The age rules decide which invites can be made, and say why not. Every grant and
- * revoke is audited.
+ * Family access on a student's page (staff API, `familyAccess`: owners, admins, and the front
+ * desk). Linked parents and the student's own login, invite links (Copy, Share, a message to
+ * paste, and an email when staff give an address), and revoking. The age rules decide which
+ * invites can be made, and say why not. Every grant and revoke is audited.
  */
 export const familyRoutes = new Hono<AppBindings>()
   .get("/clients/:id/family", requireCap("familyAccess"), async (c) => {
@@ -51,7 +52,7 @@ export const familyRoutes = new Hono<AppBindings>()
     async (c) => {
       const ctx = ctxOf(c);
       const student = await loadStudent(ctx, c.req.param("id"));
-      const { relation } = c.req.valid("json");
+      const { relation, email } = c.req.valid("json");
       const rule = checkFamilyAccess({
         relation,
         birthDate: student.birthDate,
@@ -67,6 +68,17 @@ export const familyRoutes = new Hono<AppBindings>()
         createdBy: ctx.userId,
         by: "staff",
       });
+      // Sent now, so the answer says whether it went; the link works either way.
+      const emailed = email
+        ? await emailFamilyInvite(ctx.db, ctx.env, {
+            workspaceId: ctx.workspaceId,
+            to: email,
+            firstName: student.firstName,
+            relation,
+            link,
+            expiresAt: row.expiresAt,
+          })
+        : { emailedTo: null, emailError: null };
       const me = await ctx.db.query.user.findFirst({
         where: eq(user.id, ctx.userId),
         columns: { name: true },
@@ -74,6 +86,7 @@ export const familyRoutes = new Hono<AppBindings>()
       const body: FamilyInviteCreatedDto = {
         invite: toFamilyInviteDto(row, me?.name ?? null),
         link,
+        ...emailed,
       };
       return c.json(body, 201);
     },

@@ -17,6 +17,7 @@ import {
 } from "./enroll-support";
 import { approvedEnrollment, screenshot, sendProofOk } from "./proof-support";
 import {
+  addMember,
   bornYearsAgo,
   expect,
   linkFamily,
@@ -144,6 +145,39 @@ test.describe("accessibility", () => {
     const { page } = await personas.open({ email, name: "Sam Rivera", persona: "none" });
     await visit(page, path);
     await expect(page.getByRole("button", { name: /^Join / })).toBeVisible();
+    expect(await seriousViolations(page)).toEqual([]);
+  });
+
+  test("the invite and role sheets, with the front desk among the roles, have no serious violations", async ({
+    page,
+    seeded,
+  }, info) => {
+    await addMember(seeded.request, {
+      email: testEmail("a11y-role", info),
+      name: "Sam Rivera",
+      role: "coach",
+    });
+    await visit(page, "/team?invite=1");
+    const invite = page.getByRole("dialog", { name: "Invite someone" });
+    await toggle(invite.getByRole("radio", { name: /^Front desk/ }));
+    await expect(invite.getByRole("radio", { name: /^Front desk/ })).toBeChecked();
+    expect(await seriousViolations(page)).toEqual([]);
+    // The link, and the line saying it was emailed.
+    const invitee = testEmail("a11y-invitee", info);
+    await invite.getByLabel("Their Google email").fill(invitee);
+    await invite.getByRole("button", { name: "Create invite link" }).click();
+    const ready = page.getByRole("dialog", { name: "Invite link ready" });
+    await expect(ready.getByText(`We emailed the link to ${invitee}.`)).toBeVisible();
+    expect(await seriousViolations(page)).toEqual([]);
+    await ready.getByRole("button", { name: "Done" }).click();
+    await expect(ready).toBeHidden();
+
+    // Moving a coach to the front desk: the sheet says they stop coaching.
+    await page.getByRole("button", { name: "Options for Sam Rivera" }).click();
+    await page.getByRole("menuitem", { name: "Change role" }).click();
+    const role = page.getByRole("dialog", { name: "Change role" });
+    await toggle(role.getByRole("radio", { name: /^Front desk/ }));
+    await expect(role.getByText(/Sam Rivera stops coaching/)).toBeVisible();
     expect(await seriousViolations(page)).toEqual([]);
   });
 });
@@ -278,12 +312,18 @@ test.describe("accessibility of the family portal", () => {
     );
     const path = new URL(created.link).pathname;
 
-    // The staff side: the student's profile with its family access card and a waiting link.
+    // The staff side: the student's profile with its family access card and a waiting link, and
+    // the invite sheet with its address to email the link to.
     await visit(page, `/clients/${kid.id}`);
-    await expect(page.getByRole("region", { name: "Family access" })).toContainText(
-      "Parent or guardian link",
-    );
+    const card = page.getByRole("region", { name: "Family access" });
+    await expect(card).toContainText("Parent or guardian link");
     expect(await seriousViolations(page)).toEqual([]);
+    await card.getByRole("button", { name: "Invite parent / guardian" }).click();
+    const sheet = page.getByRole("dialog", { name: "Invite a parent or guardian" });
+    await expect(sheet.getByLabel("Email the link to")).toBeVisible();
+    expect(await seriousViolations(page)).toEqual([]);
+    await sheet.getByRole("button", { name: "Cancel" }).click();
+    await expect(sheet).toBeHidden();
 
     const signedOut = await browser.newContext({ serviceWorkers: "block" });
     const outPage = await signedOut.newPage();

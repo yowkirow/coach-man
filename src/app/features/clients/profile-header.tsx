@@ -20,7 +20,7 @@ import { InlineError } from "../../components/ui/feedback";
 import { ActionMenu, ConfirmSheet, Sheet } from "../../components/ui/overlay";
 import { ApiRequestError, api, errorMessage, fieldErrors } from "../../lib/api";
 import { fullName, useFormat } from "../../lib/format";
-import { useCan } from "../../lib/hooks";
+import { useCan, useWritesCoaching } from "../../lib/hooks";
 import { notify } from "../../lib/notify";
 import { useOnline } from "../../lib/offline";
 import { keys } from "../../lib/query";
@@ -106,6 +106,7 @@ export function ProfileHeader({
 }) {
   const fmt = useFormat();
   const can = useCan();
+  const writes = useWritesCoaching();
   const online = useOnline();
   const desktop = useIsDesktop();
   const c = detail.client;
@@ -331,18 +332,22 @@ export function ProfileHeader({
               </IconButton>
             </>
           ) : null}
-          <IconButton label="Add a note" variant="lime" size="lg" onPress={onNote}>
-            <NotebookPen aria-hidden className="size-5" />
-          </IconButton>
-          <IconButton
-            label="New assessment"
-            variant="lime"
-            size="lg"
-            isDisabled={!online}
-            onPress={onAssess}
-          >
-            <ClipboardCheck aria-hidden className="size-5" />
-          </IconButton>
+          {writes ? (
+            <>
+              <IconButton label="Add a note" variant="lime" size="lg" onPress={onNote}>
+                <NotebookPen aria-hidden className="size-5" />
+              </IconButton>
+              <IconButton
+                label="New assessment"
+                variant="lime"
+                size="lg"
+                isDisabled={!online}
+                onPress={onAssess}
+              >
+                <ClipboardCheck aria-hidden className="size-5" />
+              </IconButton>
+            </>
+          ) : null}
           <ActionMenu
             label="More client actions"
             trigger={

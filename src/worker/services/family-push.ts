@@ -38,6 +38,7 @@ import {
   whoOf,
 } from "../../shared/notifications";
 import { requestPayState } from "../../shared/payment-proofs";
+import type { Capability } from "../../shared/roles";
 import { todayIn } from "../../shared/time";
 import { addMonths, lastDayOf, monthOf } from "../../shared/validity";
 import { chunkRows, type Db } from "../db/client";
@@ -829,14 +830,11 @@ async function noticesForStudent(
   }));
 }
 
-/** An enrollment request was approved, waitlisted, or declined: everyone linked to the student. */
-export async function notifyEnrollmentDecision(
-  db: Db,
-  env: Env,
-  input: { workspaceId: string; requestId: string; actorUserId: string | null },
-  now = Date.now(),
-): Promise<void> {
-  if (!canPush(env)) return;
+/**
+ * A request just decided (approved, waitlisted, or declined), with its tier's name and whether
+ * something is owed for it (never how much). Null for any other state.
+ */
+export async function decidedRequest(db: Db, workspaceId: string, requestId: string) {
   const [req] = await db
     .select({ r: enrollmentRequest, tierName: packageTemplate.name })
     .from(enrollmentRequest)
@@ -847,37 +845,48 @@ export async function notifyEnrollmentDecision(
         eq(packageTemplate.workspaceId, enrollmentRequest.workspaceId),
       ),
     )
-    .where(
-      and(
-        eq(enrollmentRequest.id, input.requestId),
-        eq(enrollmentRequest.workspaceId, input.workspaceId),
-      ),
-    )
+    .where(and(eq(enrollmentRequest.id, requestId), eq(enrollmentRequest.workspaceId, workspaceId)))
     .limit(1);
   const status = req?.r.status;
-  if (!req || (status !== "approved" && status !== "waitlisted" && status !== "declined")) return;
+  if (!req || (status !== "approved" && status !== "waitlisted" && status !== "declined")) {
+    return null;
+  }
   let amountDue = false;
   if (status === "approved" && req.r.chargeId) {
-    const payments = await paymentsFor(db, input.workspaceId, [req.r.chargeId]);
+    const payments = await paymentsFor(db, workspaceId, [req.r.chargeId]);
     amountDue = (payments.get(req.r.chargeId)?.dueMinor ?? 0) > 0;
   }
+  return { request: req.r, tierName: req.tierName, status, amountDue };
+}
+
+/** An enrollment request was approved, waitlisted, or declined: everyone linked to the student. */
+export async function notifyEnrollmentDecision(
+  db: Db,
+  env: Env,
+  input: { workspaceId: string; requestId: string; actorUserId: string | null },
+  now = Date.now(),
+): Promise<void> {
+  if (!canPush(env)) return;
+  const decided = await decidedRequest(db, input.workspaceId, input.requestId);
+  if (!decided) return;
+  const { request, status, amountDue } = decided;
   const notices = await noticesForStudent(db, {
     workspaceId: input.workspaceId,
-    clientId: req.r.clientId,
+    clientId: request.clientId,
     now,
     audience: NOTICE_AUDIENCE.enrollment_decision,
     except: [input.actorUserId],
     make: (academy, link) => ({
       kind: "enrollment_decision",
-      refKey: `${req.r.id}:${status}`,
+      refKey: `${request.id}:${status}`,
       item: {
-        ...baseOf(academy, req.r.clientId),
+        ...baseOf(academy, request.clientId),
         kind: "enrollment_decision",
         who: whoFor(link),
-        requestId: req.r.id,
+        requestId: request.id,
         status,
-        tierName: req.tierName ?? "the package",
-        startMonth: req.r.startMonth,
+        tierName: decided.tierName ?? "the package",
+        startMonth: request.startMonth,
         amountDue,
       },
     }),
@@ -1086,7 +1095,7 @@ export async function notifyAnnouncement(
   await sendFamilyNotices(db, env, notices, now);
 }
 
-// --- Staff alerts (owners and admins) ---------------------------------------------------------
+// --- Staff alerts (owners, admins, and the front desk) ------------------------------------------
 
 /** Who turned "Enrollments & payments" off in the staff app's notification settings. */
 async function alertsOff(db: Db, userIds: readonly string[]): Promise<Set<string>> {
@@ -1110,13 +1119,29 @@ async function teamOf(db: Db, workspaceId: string) {
     .where(eq(member.organizationId, workspaceId));
 }
 
-/** A new enrollment request (or renewal) to review: owners and admins, never the sender. */
-export async function notifyStaffEnrollmentRequest(
+/**
+ * Who gets a staff alert, by push and by email: roles with every capability in `needs`, with
+ * "Enrollments & payments" on, never the person who sent it.
+ */
+export async function staffAlertUsers(
   db: Db,
-  env: Env,
-  input: { workspaceId: string; requestId: string; actorUserId: string | null },
-): Promise<void> {
-  if (!canPush(env)) return;
+  workspaceId: string,
+  needs: readonly Capability[],
+  except: string | null,
+): Promise<string[]> {
+  const team = await teamOf(db, workspaceId);
+  return staffAlertRecipients(team, {
+    needs,
+    alertsOff: await alertsOff(
+      db,
+      team.map((m) => m.userId),
+    ),
+    except,
+  });
+}
+
+/** A request still waiting for review, with the student's first name and the tier's name. */
+export async function openRequest(db: Db, workspaceId: string, requestId: string) {
   const [req] = await db
     .select({ r: enrollmentRequest, firstName: client.firstName, tierName: packageTemplate.name })
     .from(enrollmentRequest)
@@ -1128,23 +1153,32 @@ export async function notifyStaffEnrollmentRequest(
         eq(packageTemplate.workspaceId, enrollmentRequest.workspaceId),
       ),
     )
-    .where(
-      and(
-        eq(enrollmentRequest.id, input.requestId),
-        eq(enrollmentRequest.workspaceId, input.workspaceId),
-      ),
-    )
+    .where(and(eq(enrollmentRequest.id, requestId), eq(enrollmentRequest.workspaceId, workspaceId)))
     .limit(1);
-  if (!req || !isOpenEnrollment(req.r.status)) return;
-  const team = await teamOf(db, input.workspaceId);
-  const users = staffAlertRecipients(team, {
-    needs: ["enrollment"],
-    alertsOff: await alertsOff(
-      db,
-      team.map((m) => m.userId),
-    ),
-    except: input.actorUserId,
-  });
+  return req && isOpenEnrollment(req.r.status) ? req : null;
+}
+
+/** A payment proof still waiting for review, with the student's first name. */
+export async function pendingProof(db: Db, workspaceId: string, proofId: string) {
+  const [proof] = await db
+    .select({ p: paymentSubmission, firstName: client.firstName })
+    .from(paymentSubmission)
+    .innerJoin(client, eq(client.id, paymentSubmission.clientId))
+    .where(and(eq(paymentSubmission.id, proofId), eq(paymentSubmission.workspaceId, workspaceId)))
+    .limit(1);
+  return proof?.p.status === "pending" ? proof : null;
+}
+
+/** A new enrollment request (or renewal) to review: roles with `enrollment`, never the sender. */
+export async function notifyStaffEnrollmentRequest(
+  db: Db,
+  env: Env,
+  input: { workspaceId: string; requestId: string; actorUserId: string | null },
+): Promise<void> {
+  if (!canPush(env)) return;
+  const req = await openRequest(db, input.workspaceId, input.requestId);
+  if (!req) return;
+  const users = await staffAlertUsers(db, input.workspaceId, ["enrollment"], input.actorUserId);
   const payload = staffEnrollmentPayload({
     requestId: req.r.id,
     studentFirstName: req.firstName,
@@ -1159,34 +1193,21 @@ export async function notifyStaffEnrollmentRequest(
   }
 }
 
-/** A new payment proof to review: owners and admins (they confirm it), never the sender. */
+/** A new payment proof to review: roles that confirm it (`money` too), never the sender. */
 export async function notifyStaffProof(
   db: Db,
   env: Env,
   input: { workspaceId: string; proofId: string; actorUserId: string | null },
 ): Promise<void> {
   if (!canPush(env)) return;
-  const [proof] = await db
-    .select({ p: paymentSubmission, firstName: client.firstName })
-    .from(paymentSubmission)
-    .innerJoin(client, eq(client.id, paymentSubmission.clientId))
-    .where(
-      and(
-        eq(paymentSubmission.id, input.proofId),
-        eq(paymentSubmission.workspaceId, input.workspaceId),
-      ),
-    )
-    .limit(1);
-  if (proof?.p.status !== "pending") return;
-  const team = await teamOf(db, input.workspaceId);
-  const users = staffAlertRecipients(team, {
-    needs: ["enrollment", "money"],
-    alertsOff: await alertsOff(
-      db,
-      team.map((m) => m.userId),
-    ),
-    except: input.actorUserId,
-  });
+  const proof = await pendingProof(db, input.workspaceId, input.proofId);
+  if (!proof) return;
+  const users = await staffAlertUsers(
+    db,
+    input.workspaceId,
+    ["enrollment", "money"],
+    input.actorUserId,
+  );
   const payload = staffProofPayload({ proofId: proof.p.id, studentFirstName: proof.firstName });
   for (const userId of users) {
     await notifyUser(db, env, { userId, workspaceId: input.workspaceId }, payload, {

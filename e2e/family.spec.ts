@@ -53,13 +53,16 @@ test.describe("family invites", () => {
       "Students under 13 don't get their own login. Invite a parent instead.",
     );
     await card.getByRole("button", { name: "Invite parent / guardian" }).click();
-    await page
-      .getByRole("dialog", { name: "Invite a parent or guardian" })
-      .getByRole("button", { name: "Create invite link" })
-      .click();
+    const sheet = page.getByRole("dialog", { name: "Invite a parent or guardian" });
+    // No parent's email on file: nothing to email it to, so it's a link to share.
+    await expect(sheet.getByLabel("Email the link to")).toHaveValue("");
+    await sheet.getByRole("button", { name: "Create invite link" }).click();
 
     const ready = page.getByRole("dialog", { name: "Invite link ready" });
     await expect(ready).toBeVisible();
+    await expect(
+      ready.getByText("Send it to Mia's parent or guardian on Messenger, Viber, or by text."),
+    ).toBeVisible();
     const link = await ready.getByLabel("Invite link").inputValue();
     expect(new URL(link).origin).toBe(new URL(page.url()).origin);
     const token = inviteToken(link);

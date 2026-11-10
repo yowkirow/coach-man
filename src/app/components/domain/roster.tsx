@@ -9,7 +9,7 @@ import { ToggleButton } from "react-aria-components";
 import { RosterSafety } from "../../features/safety/roster";
 import { api } from "../../lib/api";
 import { fullName, plural, useFormat } from "../../lib/format";
-import { useCan } from "../../lib/hooks";
+import { useCan, useWritesCoaching } from "../../lib/hooks";
 import { notify } from "../../lib/notify";
 import { type AttendanceVars, keys, type NoteVars } from "../../lib/query";
 import { Button } from "../ui/button";
@@ -255,6 +255,7 @@ function PlayerSheet({
 }) {
   const fmt = useFormat();
   const can = useCan();
+  const writes = useWritesCoaching();
   const [ledgerOpen, setLedgerOpen] = useState(false);
   const [note, setNote] = useState("");
   const createNote = useMutation<unknown, Error, NoteVars>({ mutationKey: ["notes", "create"] });
@@ -365,37 +366,39 @@ function PlayerSheet({
             </section>
           ) : null}
 
-          <section aria-label="Note" className="flex flex-col gap-2">
-            <TextAreaField
-              label={`Note about ${entry.firstName}`}
-              value={note}
-              onChange={setNote}
-              rows={2}
-              placeholder="What clicked today, what to work on next…"
-            />
-            <Button
-              variant="light"
-              size="sm"
-              className="self-start"
-              isDisabled={!note.trim()}
-              onPress={() => {
-                createNote.mutate({
-                  id: uuidv7(),
-                  lessonId,
-                  clientId: entry.clientId,
-                  body: note.trim(),
-                });
-                setNote("");
-                notify({
-                  tone: "success",
-                  title: "Note saved",
-                  body: `On ${entry.firstName}'s profile and this session.`,
-                });
-              }}
-            >
-              Save note
-            </Button>
-          </section>
+          {writes ? (
+            <section aria-label="Note" className="flex flex-col gap-2">
+              <TextAreaField
+                label={`Note about ${entry.firstName}`}
+                value={note}
+                onChange={setNote}
+                rows={2}
+                placeholder="What clicked today, what to work on next…"
+              />
+              <Button
+                variant="light"
+                size="sm"
+                className="self-start"
+                isDisabled={!note.trim()}
+                onPress={() => {
+                  createNote.mutate({
+                    id: uuidv7(),
+                    lessonId,
+                    clientId: entry.clientId,
+                    body: note.trim(),
+                  });
+                  setNote("");
+                  notify({
+                    tone: "success",
+                    title: "Note saved",
+                    body: `On ${entry.firstName}'s profile and this session.`,
+                  });
+                }}
+              >
+                Save note
+              </Button>
+            </section>
+          ) : null}
 
           <div className="flex flex-wrap gap-2 border-t border-line pt-4">
             <Button

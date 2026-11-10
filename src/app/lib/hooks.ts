@@ -16,7 +16,8 @@ import type {
   TodayDto,
   VenueDto,
 } from "@shared/api-types";
-import { CAPABILITY_NAMES, type Capabilities } from "@shared/roles";
+import { canWriteCoaching } from "@shared/notes";
+import { CAPABILITY_NAMES, type Capabilities, isCoachingRole } from "@shared/roles";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { accountApi, api } from "./api";
@@ -136,7 +137,10 @@ export function useSkills() {
   return useQuery({ queryKey: keys.skills, queryFn: () => api.get<SkillDto[]>("/skills") });
 }
 
-/** Everyone on the team (current staff), for coach pickers and avatars. Cached for offline use. */
+/**
+ * Everyone on the team, for names and avatars (the front desk too, so their past sessions still
+ * show who led them). Coach pickers use useCoachChoices. Cached for offline use.
+ */
 export function useCoaches() {
   return useQuery({
     queryKey: keys.coaches,
@@ -145,15 +149,41 @@ export function useCoaches() {
   });
 }
 
-/** Coaches by user id. */
+/** Everyone on the team by user id, for names and avatars. */
 export function useCoachMap(): Map<string, CoachSummaryDto> {
   const coaches = useCoaches().data;
   return useMemo(() => new Map((coaches ?? []).map((c) => [c.userId, c])), [coaches]);
 }
 
-/** More than one person on the team: coach pickers and "Mine / Everyone" have a choice to offer. */
+/** The people a coach picker offers: everyone on the team who coaches (never the front desk). */
+export function useCoachChoices(): CoachSummaryDto[] {
+  const coaches = useCoaches().data;
+  return useMemo(() => (coaches ?? []).filter((c) => isCoachingRole(c.role)), [coaches]);
+}
+
+/** Whether you coach here (the front desk doesn't). False until your profile has loaded. */
+export function useIsCoach(): boolean {
+  const me = useMe().data;
+  return me ? isCoachingRole(me.role) : false;
+}
+
+/**
+ * Whether you write coaching notes, assessments, and goals (people who coach do; the front desk
+ * reads what the family reads). False until your profile has loaded.
+ */
+export function useWritesCoaching(): boolean {
+  const me = useMe().data;
+  return me ? canWriteCoaching(me.role) : false;
+}
+
+/**
+ * A coach to choose: someone besides you who coaches, or for the front desk (who doesn't coach)
+ * anyone who does. Coach pickers and coach lines show only then.
+ */
 export function useHasTeam(): boolean {
-  return (useCoaches().data?.length ?? 0) > 1;
+  const coaches = useCoachChoices().length;
+  const me = useMe().data;
+  return coaches > 1 || (coaches > 0 && me !== undefined && !isCoachingRole(me.role));
 }
 
 export function useAcademy() {
@@ -164,7 +194,7 @@ export function useTeam() {
   return useQuery({ queryKey: keys.team, queryFn: () => api.get<TeamDto>("/team") });
 }
 
-/** Enrollment requests waiting for a decision: the nav badge (owners and admins). */
+/** Enrollment requests waiting for a decision: the nav badge (roles with `enrollment`). */
 export function useEnrollmentCount() {
   const can = useCan();
   return useQuery({
@@ -176,7 +206,7 @@ export function useEnrollmentCount() {
   });
 }
 
-/** Payment proofs waiting for review: the Money badge (owners and admins). */
+/** Payment proofs waiting for review: the Money badge (roles with `enrollment` and `money`). */
 export function useProofCount() {
   const can = useCan();
   return useQuery({

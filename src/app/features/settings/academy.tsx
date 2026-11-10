@@ -1,4 +1,4 @@
-import { STAFF_ROLE_LABELS } from "@shared/roles";
+import { STAFF_ROLE_LABELS, STAFF_ROLE_NOUNS } from "@shared/roles";
 import { useMutation } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { ArrowLeftRight, ArrowUpRight, Check, IdCardLanyard } from "lucide-react";
@@ -143,7 +143,7 @@ export function AcademySection() {
       description={
         <>
           You're in <span className="font-medium text-ink">{me.workspace.name}</span> as{" "}
-          {me.role === "owner" ? "the owner" : me.role === "admin" ? "an admin" : "a coach"}.
+          {STAFF_ROLE_NOUNS[me.role] ?? STAFF_ROLE_NOUNS.coach}.
           {me.can?.money
             ? ""
             : " Money, packages, and academy settings are handled by its owner and admins."}

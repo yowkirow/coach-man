@@ -15,6 +15,7 @@ import { afterResponse } from "../lib/defer";
 import { notFound } from "../lib/errors";
 import { v } from "../lib/validate";
 import { assertCan, ctxOf, requireCap } from "../middleware";
+import { emailProofDecision } from "../services/email";
 import { notifyProofDecision } from "../services/family-push";
 import {
   clientProofs,
@@ -27,9 +28,9 @@ import {
 import type { AppBindings, Ctx } from "../types";
 
 /**
- * Payment proofs to review (/api/v1/payment-proofs): owners and admins. Reviewing is the
- * `enrollment` capability; confirming records a payment, so it also needs `money` (owners and
- * admins have both). Coaches get 403 on every route.
+ * Payment proofs to review (/api/v1/payment-proofs): owners, admins, and the front desk. Reviewing
+ * is the `enrollment` capability; confirming records a payment, so it also needs `money` (all three
+ * have both). Coaches get 403 on every route.
  */
 export const paymentProofRoutes = new Hono<AppBindings>()
   .use("/payment-proofs", requireCap("enrollment"))
@@ -77,13 +78,18 @@ export const paymentProofRoutes = new Hono<AppBindings>()
     return c.json<PaymentProofDto[]>(await clientProofs(ctx, row.id));
   });
 
-/** The family hears whether the proof was confirmed or not, after the response (deduped). */
+/**
+ * The family hears whether the proof was confirmed or not after the response, by push and by
+ * email, each on its own (deduped).
+ */
 function reviewed(ctx: Ctx, proofId: string) {
-  return afterResponse(ctx, "Payment proof decision push failed", () =>
-    notifyProofDecision(ctx.db, ctx.env, {
-      workspaceId: ctx.workspaceId,
-      proofId,
-      actorUserId: ctx.userId,
-    }),
-  );
+  const input = { workspaceId: ctx.workspaceId, proofId, actorUserId: ctx.userId };
+  return Promise.all([
+    afterResponse(ctx, "Payment proof decision push failed", () =>
+      notifyProofDecision(ctx.db, ctx.env, input),
+    ),
+    afterResponse(ctx, "Payment proof decision email failed", () =>
+      emailProofDecision(ctx.db, ctx.env, input),
+    ),
+  ]);
 }

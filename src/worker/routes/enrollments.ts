@@ -18,6 +18,7 @@ import { organization } from "../db/schema";
 import { afterResponse } from "../lib/defer";
 import { v } from "../lib/validate";
 import { ctxOf, requireCap } from "../middleware";
+import { emailEnrollmentDecision } from "../services/email";
 import {
   approveEnrollment,
   declineEnrollment,
@@ -34,9 +35,9 @@ import type { AppBindings, Ctx } from "../types";
 import { appOrigin } from "./academy";
 
 /**
- * The Enrollments inbox (/api/v1/enrollments): owners and admins (`enrollment`) review what
- * families asked for and approve, waitlist, or decline it; and see who hasn't renewed this month.
- * Coaches get 403 on every route.
+ * The Enrollments inbox (/api/v1/enrollments): owners, admins, and the front desk (`enrollment`)
+ * review what families asked for and approve, waitlist, or decline it; and see who hasn't renewed
+ * this month. Coaches get 403 on every route.
  */
 export const enrollmentRoutes = new Hono<AppBindings>()
   .use("/enrollments", requireCap("enrollment"))
@@ -94,13 +95,18 @@ export const enrollmentRoutes = new Hono<AppBindings>()
     return c.json<EnrollmentDetailDto>(detail);
   });
 
-/** The family hears about a decision after the response (a replay is deduped by the log). */
+/**
+ * The family hears about a decision after the response, by push and by email, each on its own (a
+ * replay is deduped by the log).
+ */
 function decided(ctx: Ctx, requestId: string) {
-  return afterResponse(ctx, "Enrollment decision push failed", () =>
-    notifyEnrollmentDecision(ctx.db, ctx.env, {
-      workspaceId: ctx.workspaceId,
-      requestId,
-      actorUserId: ctx.userId,
-    }),
-  );
+  const input = { workspaceId: ctx.workspaceId, requestId, actorUserId: ctx.userId };
+  return Promise.all([
+    afterResponse(ctx, "Enrollment decision push failed", () =>
+      notifyEnrollmentDecision(ctx.db, ctx.env, input),
+    ),
+    afterResponse(ctx, "Enrollment decision email failed", () =>
+      emailEnrollmentDecision(ctx.db, ctx.env, input),
+    ),
+  ]);
 }

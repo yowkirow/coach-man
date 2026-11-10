@@ -24,7 +24,8 @@ export async function copyText(
 
 /**
  * A freshly made invite link, shown once: the link to copy, the phone's share sheet where there
- * is one, and a message ready to paste into Messenger, Viber, or a text. No email is sent.
+ * is one, and a message ready to paste into Messenger, Viber, or a text (the sheet says whether
+ * CoachMan emailed it too).
  */
 export function InviteLinkPanel({
   link,

@@ -15,6 +15,7 @@ Installable single-page PWA built with Vite and React (TypeScript). The API is H
 CoachMan serves pickleball **academies**: a team of coaches under one owner, with the players they train and the parents of junior players. A solo coach is a one-person academy. The first academy is The Pickle Spot Academy.
 
 - **Owners and admins** run the academy: the team, the rate card and packages, programs and events, money, enrollment, and academy settings. Mostly at a desk, on a laptop.
+- **Front desk** staff handle the academy's day to day: payments, check-in, the schedule, enrollments, and family invites. They don't coach (of a student's progress, they see what the family sees), and don't change prices, settings, or the team.
 - **Coaches** run sessions. On court, on a phone: checking players in, using package credits, jotting quick notes between and during sessions, often with poor reception. They see every academy student and their progress, but no money.
 - **Students** (adults, and teens 13–17 once a parent is linked) and **parents** of junior players see their own training: sessions, progress, coaches' shared comments, and what they owe. Phone first.
 
@@ -42,11 +43,11 @@ Success means an academy can run a full week of lessons, clinics, and camps with
 - Lessons are private, semi-private, or group, plus clinics. Programs run a fixed weekly schedule at a venue. Packages hold a number of sessions and expire after a number of days or at the end of the month.
 - Seasonal programs include summer camps, academies, clinics, tournaments, and socials.
 - Payment happens outside the app (GCash, bank transfer, cash). Families upload a screenshot as proof and staff confirm it. Payment methods are configurable per academy.
-- Families are reached on Messenger, Viber, or SMS. There is no email service: invites are links that staff share.
+- Families are reached on Messenger, Viber, or SMS, and by email for invites, enrollment, and payments: CoachMan emails invite links, and staff can share them too.
 
 ## Capabilities and Constraints
 
-- **Roles:** owner, admin, and coach. One shared capability map (`src/shared/roles.ts`) decides what each may do; the API enforces it on every route and the app hides what a role can't use. Coaches see credits (they need them at check-in) but no prices, payments, charges, balances, or revenue.
+- **Roles:** owner, admin, front desk, and coach. One shared capability map (`src/shared/roles.ts`) decides what each may do; the API enforces it on every route and the app hides what a role can't use. Coaches see credits (they need them at check-in) but no prices, payments, charges, balances, or revenue. The front desk handles money, enrollments, and family access, never the rate card, settings, the team, data, or announcements, and doesn't coach: it's never anyone's coach, in coach pickers, or on the team page or public site.
 - **Sign-in:** Google or passkey. Coaches set up an academy themselves or join through a staff invite. Families arrive through an invite link or the academy's public page; a family member who never uses Google gets a passkey-only account, which can link Google later. Nobody gets an academy just by signing in.
 - **Tenancy:** each academy is a private workspace. Staff of more than one academy switch between them. The family portal has its own API that only ever returns the students a person is linked to.
 - **Offline:** the app is installable. Today's schedule and client information can be read offline. Check-ins and notes queue offline and sync exactly once when back online.
@@ -55,6 +56,7 @@ Success means an academy can run a full week of lessons, clinics, and camps with
   - staff roles and invites, coach profiles, primary and assistant coaches per student, and attributed coach comments with a share toggle
   - the family portal, a public academy page with a printable rates sheet, enrollment requests that staff approve, and manual payment proofs
   - consents and waivers (including Data Privacy Act RA 10173 and parental consent), medical and emergency info, authorized pickup people, announcements, and family reminders
+  - transactional email through Cloudflare: invite links, enrollment and payment updates to families, and new requests and proofs to staff, never with amounts or health details
 - **Sport:** pickleball first. The model is sport-agnostic underneath, for other sports later.
 - **No assumed market:** currency, timezone, locale, and payment-method names are per-academy settings.
 - **Not in this release:** online checkout (PayMongo), booking private lessons from coach availability, coach pay reports, email or SMS reminders, calendar sync, video notes, round-robin generator, drill library.

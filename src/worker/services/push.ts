@@ -7,6 +7,7 @@ import {
   session as authSession,
   clientCoach,
   clientPackage,
+  emailSink,
   familyNotificationQueue,
   idempotencyKey,
   lesson,
@@ -96,7 +97,8 @@ export async function runReminders(db: Db, env: Env, now: Date) {
         scope,
         and(eq(lesson.status, "scheduled"), gte(lesson.startsAt, from), lt(lesson.startsAt, to)),
       );
-      // A session's lead and assistants hear about it; one without a coach goes to owners/admins.
+      // A session's lead and assistants hear about it; one without a coach goes to the owners,
+      // admins, and front desk.
       for (const { summary, row } of upcoming.filter((u) =>
         isRecipient(u.row, target.userId, team),
       )) {
@@ -125,7 +127,8 @@ export async function runReminders(db: Db, env: Env, now: Date) {
     if (target.digest && inWindow(localTime(t, target.timezone), target.digest, 5)) {
       const date = todayIn(target.timezone, t);
       const me = { userId: target.userId, role: target.role };
-      // Owners and admins get the whole academy; a coach gets their sessions and students.
+      // Owners, admins, and the front desk get the whole academy; a coach gets their sessions and
+      // students.
       const academyWide = digestScope(target.role) === "academy";
       const [lessonsToday, expiring, balances, students] = await Promise.all([
         lessonSummaries(
@@ -234,11 +237,12 @@ export async function runMaintenance(
   // came from: delete it (signing out already deletes the row; the privacy policy says both).
   await db.delete(authSession).where(lt(authSession.expiresAt, now));
   // Family notifications held for quiet hours go out within a day; a week-old one is stale. The
-  // test sink keeps a day of payloads (tests read theirs within minutes).
+  // test sinks keep a day of pushes and emails (tests read theirs within minutes).
   await db
     .delete(familyNotificationQueue)
     .where(lt(familyNotificationQueue.sendAfter, now.getTime() - 7 * 86_400_000));
   await db.delete(pushSink).where(lt(pushSink.createdAt, now.getTime() - 86_400_000));
+  await db.delete(emailSink).where(lt(emailSink.createdAt, now.getTime() - 86_400_000));
   // Passkey-only accounts whose passkey never arrived can't be signed into: remove them after a day.
   await deleteAbandonedPasskeyAccounts(db, now.getTime());
 }

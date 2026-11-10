@@ -168,6 +168,7 @@ export interface CoachSummaryDto {
   name: string;
   title: string | null;
   photoKey: string | null;
+  /** Coach pickers offer only people who coach (see isCoachingRole); the front desk is named only. */
   role: StaffRole;
 }
 
@@ -190,7 +191,10 @@ export interface CoachProfileDto extends CoachSummaryDto {
   portraitFraming: PhotoFraming | null;
   /** Tournament results, titles, and milestones, in the order written. */
   highlights: string[];
-  /** Shown on the academy's public pages (the academy page and its team page). */
+  /**
+   * Shown on the academy's public pages (the academy page and its team page). The front desk is
+   * never shown, whatever this says.
+   */
   isPublic: boolean;
   sortOrder: number;
 }
@@ -229,17 +233,25 @@ export interface TeamDto {
   invites: StaffInviteDto[];
 }
 
+/** Whether a new invite link was emailed: where to, or why not. */
+export interface InviteEmailDto {
+  /** The address it was emailed to, or null (not asked for, or it failed). */
+  emailedTo: string | null;
+  /** Why the email didn't go, as a short sentence, or null. The link works either way. */
+  emailError: string | null;
+}
+
 /** POST /api/v1/team/invites: the link carries the only copy of the token; it is never shown again. */
-export interface StaffInviteCreatedDto {
+export interface StaffInviteCreatedDto extends InviteEmailDto {
   invite: StaffInviteDto;
   link: string;
 }
 
 // --- The team page (staff side) -----------------------------------------------------------------
 //
-// The academy's public team page shows staff coach profiles and display-only people (people the
-// academy shows who don't sign in) in one order the academy sets. Owners and admins (`team`)
-// manage it through /api/v1/team-page.
+// The academy's public team page shows the coach profiles of staff who coach (never the front
+// desk) and display-only people (people the academy shows who don't sign in) in one order the
+// academy sets. Owners and admins (`team`) manage it through /api/v1/team-page.
 
 /** A display-only person on the team page (GET/PATCH /api/v1/team-page/people/:id). */
 export interface TeamPersonDto {
@@ -374,8 +386,11 @@ export interface FamilyAccessDto {
   rules: Record<FamilyRelation, FamilyRuleDto>;
 }
 
-/** POST /api/v1/clients/:id/family/invites: the link carries the only copy of the token. */
-export interface FamilyInviteCreatedDto {
+/**
+ * POST /api/v1/clients/:id/family/invites: the link carries the only copy of the token. Emailed
+ * when the request gave an address.
+ */
+export interface FamilyInviteCreatedDto extends InviteEmailDto {
   invite: FamilyInviteDto;
   link: string;
 }
@@ -705,8 +720,8 @@ export interface TodayDto {
     balancesDue: { clientId: string; name: string; balanceMinor: number }[];
     birthdays: { clientId: string; name: string; age: number | null }[];
     /**
-     * Uniforms sold with a package and not handed out yet (owners and admins; empty for coaches).
-     * Optional for Today pages cached before WS4a.
+     * Uniforms sold with a package and not handed out yet (`money`: owners, admins, and the front
+     * desk; empty for coaches). Optional for Today pages cached before WS4a.
      */
     uniforms?: {
       clientId: string;
@@ -716,9 +731,9 @@ export interface TodayDto {
       uniformSize: string | null;
     }[];
     /**
-     * Owners and admins (`enrollment`): requests waiting in the inbox, and in the month's last
-     * week the students who haven't renewed (null outside it). Absent for coaches and for Today
-     * pages cached before WS4b.
+     * Owners, admins, and the front desk (`enrollment`): requests waiting in the inbox, and in the
+     * month's last week the students who haven't renewed (null outside it). Absent for coaches and
+     * for Today pages cached before WS4b.
      */
     enrollments?: { requested: number; notRenewed: number | null };
   };
@@ -904,7 +919,7 @@ export interface NotificationPrefDto {
   sessionReminderMinutes: number | null;
   dailyDigestTime: string | null;
   packageExpiryDays: number;
-  /** Owners and admins: new enrollment requests and payment proofs (optional for old caches). */
+  /** Who reviews them: new enrollment requests and payment proofs (optional for old caches). */
   enrollmentAlerts?: boolean;
   subscriptions: number;
   vapidPublicKey: string | null;
@@ -1819,7 +1834,7 @@ export interface RenewalDueDto {
   contactPhone: string | null;
 }
 
-/** GET /api/v1/enrollments/renewals: "Not yet renewed" (owners and admins). */
+/** GET /api/v1/enrollments/renewals: "Not yet renewed" (roles with `enrollment`). */
 export interface RenewalsDueDto {
   academyName: string;
   today: string;
@@ -1837,8 +1852,8 @@ export interface EnrollmentCountDto {
 // --- Payment proofs (WS4c) -----------------------------------------------------------------------
 //
 // Families pay outside CoachMan and send a screenshot (or say they'll pay cash at the court);
-// owners and admins confirm it, which records a payment through the money service, or don't
-// accept it with a reason the family reads.
+// owners, admins, and the front desk confirm it, which records a payment through the money service,
+// or don't accept it with a reason the family reads.
 
 /** Another proof or payment of the academy that looks like the same money. */
 export interface ProofDuplicateDto {
@@ -1856,7 +1871,7 @@ export interface ProofDuplicateDto {
   status: PaymentSubmissionStatus | "recorded";
 }
 
-/** A payment proof as owners and admins review it (GET /api/v1/payment-proofs and friends). */
+/** A payment proof as staff review it (GET /api/v1/payment-proofs and friends). */
 export interface PaymentProofDto {
   id: string;
   status: PaymentSubmissionStatus;

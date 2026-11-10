@@ -365,9 +365,9 @@ export function linkRecipients(
 }
 
 /**
- * Owners and admins who get a staff alert (a new enrollment request or payment proof): their role
- * has every capability it needs and they haven't turned "Enrollments & payments" off (on unless
- * they did); never the person who sent it.
+ * Who gets a staff alert (a new enrollment request or payment proof): owners, admins, and the front
+ * desk whose role has every capability it needs and who haven't turned "Enrollments & payments" off
+ * (on unless they did); never the person who sent it.
  */
 export function staffAlertRecipients(
   team: readonly { userId: string; role: string }[],
@@ -1099,7 +1099,7 @@ export function familyPayload(items: readonly NoticeItem[], now: number): PushPa
 
 // --- Staff alerts ----------------------------------------------------------------------------
 
-/** A new enrollment request (or renewal) to review: owners and admins. */
+/** A new enrollment request (or renewal) to review: owners, admins, and the front desk. */
 export function staffEnrollmentPayload(input: {
   requestId: string;
   studentFirstName: string;
@@ -1114,7 +1114,7 @@ export function staffEnrollmentPayload(input: {
   };
 }
 
-/** A new payment proof to review: owners and admins (never the amount). */
+/** A new payment proof to review: owners, admins, and the front desk (never the amount). */
 export function staffProofPayload(input: {
   proofId: string;
   studentFirstName: string;

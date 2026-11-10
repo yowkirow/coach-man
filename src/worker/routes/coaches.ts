@@ -51,10 +51,11 @@ async function profileIdOf(ctx: Ctx, userId: string): Promise<string> {
 }
 
 /**
- * Coach profiles (staff API). Everyone on the team lists the coaches (pickers, avatars); each person
- * edits their own profile, and people who manage the team (`team`) edit anyone's. Photos (square)
- * and team page photos (half-body, 4:5) are public R2 keys (ws/<id>/public/coaches/…) because the
- * academy's public pages show them.
+ * Coach profiles (staff API). Everyone on the team lists the team with their roles (names and
+ * avatars for everyone; coach pickers offer only people who coach); each person edits their own
+ * profile, and people who manage the team (`team`) edit anyone's. Photos (square) and team page
+ * photos (half-body, 4:5) are public R2 keys (ws/<id>/public/coaches/…) because the academy's public
+ * pages show them.
  */
 export const coachRoutes = new Hono<AppBindings>()
   .get("/coaches", async (c) => {

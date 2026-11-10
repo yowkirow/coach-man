@@ -353,8 +353,8 @@ function DeviceCard({ data }: { data: FamilyNotificationsDto }) {
             <p className="num">Your family reminders go to {plural(data.devices, "device")}.</p>
           ) : null}
           <p>
-            CoachMan reminds you only with notifications on the devices you turn on. There are no
-            emails or text messages.
+            Reminders come only as notifications on the devices you turn on. CoachMan emails you
+            only about invites, enrollment, and payments.
           </p>
         </div>
       </div>

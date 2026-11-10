@@ -10,6 +10,7 @@ import { linkFor } from "../lib/portal-scope";
 import { enforce } from "../lib/rate-limit";
 import { MAX_IMAGE_BYTES, readImageFile } from "../lib/uploads";
 import { parseWith } from "../lib/validate";
+import { emailStaffProof } from "../services/email";
 import { notifyStaffProof } from "../services/family-push";
 import {
   familyProofs,
@@ -112,13 +113,13 @@ export const portalPaymentRoutes = new Hono<AppBindings>()
       image,
     );
     if (!replay) {
-      later(c, "Payment proof push failed", () =>
-        notifyStaffProof(c.var.db, c.env, {
-          workspaceId: proof.workspaceId,
-          proofId: proof.id,
-          actorUserId: c.var.user.id,
-        }),
-      );
+      const alert = {
+        workspaceId: proof.workspaceId,
+        proofId: proof.id,
+        actorUserId: c.var.user.id,
+      };
+      later(c, "Payment proof push failed", () => notifyStaffProof(c.var.db, c.env, alert));
+      later(c, "Payment proof email failed", () => emailStaffProof(c.var.db, c.env, alert));
     }
     return c.json<PortalPaymentProofDto>(proof, replay ? 200 : 201);
   })

@@ -94,7 +94,7 @@ export function assignableRoles(
 
 /**
  * The message staff paste into Messenger, Viber, or a text: who is invited, as what, the link, and
- * which Google account to use. No email is sent by CoachMan.
+ * which Google account to use. CoachMan also emails the link (src/shared/email.ts).
  */
 export function staffInviteMessage(input: {
   academyName: string;

@@ -159,6 +159,10 @@ const SECTIONS: DocSection[] = [
             academy's);
           </li>
           <li>to send the reminders and notifications you turn on (your consent);</li>
+          <li>
+            to email invite links, updates on enrollment requests and payments, and alerts for staff
+            (what's needed to provide the service);
+          </li>
           <li>to keep the records the academy needs, such as signed consents and payments.</li>
         </Bullets>
         <p>
@@ -225,9 +229,9 @@ const SECTIONS: DocSection[] = [
         <Bullets>
           <li>
             <strong className="font-medium">Cloudflare</strong> hosts CoachMan, stores its database
-            and files (in its Asia-Pacific region), keeps its request logs, and protects it on the
-            way in. Like any website, requests pass through Cloudflare's network, which may be
-            outside the Philippines.
+            and files (in its Asia-Pacific region), keeps its request logs, protects it on the way
+            in, and sends CoachMan's emails. Like any website, requests pass through Cloudflare's
+            network, which may be outside the Philippines.
           </li>
           <li>
             <strong className="font-medium">Google</strong>, only if you choose to sign in with
@@ -239,6 +243,14 @@ const SECTIONS: DocSection[] = [
             being able to read it.
           </li>
         </Bullets>
+        <p>
+          CoachMan sends a few emails: invite links, to the address staff give; updates on
+          enrollment requests and payment proofs, to the family members linked to the student; and
+          alerts about new requests and proofs, to the academy's staff who review them. Emails carry
+          no amounts or health details: they say what happened and link to CoachMan for the rest.
+          Replies to a staff invite reach whoever sent it, and replies to families' emails reach the
+          academy when it has set a contact email. Otherwise, replies aren't read.
+        </p>
         <p>
           CoachMan doesn't process payments, so no payment company receives your information from
           us. We share information with authorities only when the law requires it.
@@ -266,7 +278,7 @@ const SECTIONS: DocSection[] = [
           <li>our rate-limit counters are cleared within two days;</li>
           <li>request logs are deleted after 7 days at most;</li>
           <li>passkey-only accounts that never got a passkey are deleted within two days;</li>
-          <li>the record of which notifications were sent is deleted after 90 days;</li>
+          <li>the record of which notifications and emails were sent is deleted after 90 days;</li>
           <li>
             the short-term records used to sync offline changes exactly once are deleted after 30
             days.

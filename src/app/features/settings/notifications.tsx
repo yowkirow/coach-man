@@ -350,7 +350,7 @@ export function NotificationsSection() {
                 <Switch
                   isSelected={draft.enrollmentAlerts}
                   onChange={(v) => set("enrollmentAlerts", v)}
-                  description="A push for each new enrollment request and each payment proof to review."
+                  description="An email and a push for each new enrollment request and each payment proof to review."
                 >
                   Enrollments & payments
                 </Switch>

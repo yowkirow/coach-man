@@ -211,8 +211,14 @@ export const staffInviteSchema = z.object({
 });
 export type StaffInviteInput = z.infer<typeof staffInviteSchema>;
 
-/** POST /clients/:id/family/invites: a parent's link, or the student's own login. */
-export const familyInviteSchema = z.object({ relation: z.enum(FAMILY_RELATIONS) });
+/**
+ * POST /clients/:id/family/invites: a parent's link, or the student's own login, and optionally
+ * an address to email it to (empty means none).
+ */
+export const familyInviteSchema = z.object({
+  relation: z.enum(FAMILY_RELATIONS),
+  email: optionalEmail,
+});
 
 /** GET /api/portal/students/:id/schedule: an optional window of local dates. */
 export const portalRangeQuerySchema = z.object({
@@ -976,7 +982,7 @@ export const notificationPrefSchema = z.object({
   sessionReminderMinutes: z.number().int().min(5).max(240).nullable(),
   dailyDigestTime: time.nullable(),
   packageExpiryDays: z.number().int().min(1).max(60),
-  /** Who reviews them: a push for each new enrollment request and payment proof (on unless off). */
+  /** Who reviews them: an email and a push for each new request and proof (on unless off). */
   enrollmentAlerts: z.boolean().optional(),
 });
 export type NotificationPrefInput = z.infer<typeof notificationPrefSchema>;

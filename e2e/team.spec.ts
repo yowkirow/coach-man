@@ -57,6 +57,8 @@ test.describe("staff invites", () => {
 
     const ready = page.getByRole("dialog", { name: "Invite link ready" });
     await expect(ready).toBeVisible();
+    // CoachMan emailed it too (to the test sink); the link is still here to share.
+    await expect(ready.getByText(`We emailed the link to ${email.toLowerCase()}.`)).toBeVisible();
     const link = await ready.getByLabel("Invite link").inputValue();
     // Built from APP_URL, which is the served origin locally and on staging.
     expect(new URL(link).origin).toBe(new URL(page.url()).origin);

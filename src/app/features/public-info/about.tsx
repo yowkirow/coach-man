@@ -365,9 +365,9 @@ export function AboutPage() {
                 Students and parents
               </h3>
               <p className="mt-4 max-w-[52ch]">
-                Your academy sends you an invite link on Messenger, Viber, or by text, or you enroll
-                from its CoachMan page. Sign in with Google, or create a passkey on your phone:
-                there's no password.
+                Your academy sends you an invite link by email, on Messenger, Viber, or by text, or
+                you enroll from its CoachMan page. Sign in with Google, or create a passkey on your
+                phone: there's no password.
               </p>
               <p className="mt-3 max-w-[52ch] text-ink-2">
                 Already have an account? Sign in, and CoachMan opens your family portal.

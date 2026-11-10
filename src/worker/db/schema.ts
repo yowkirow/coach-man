@@ -1247,17 +1247,18 @@ export const notificationPref = sqliteTable("notification_pref", {
   /** Local HH:MM for the daily digest; null = off. */
   dailyDigestTime: text().default("07:00"),
   packageExpiryDays: integer().notNull().default(7),
-  /** Who reviews them: a push for each new enrollment request and payment proof to review. */
+  /** Who reviews them: an email and a push for each new request and payment proof to review. */
   enrollmentAlerts: integer({ mode: "boolean" }).notNull().default(true),
   updatedAt: updatedAt(),
 });
 
 /**
- * One row per (person, kind, thing) ever notified: what keeps every push to once per person, for
- * staff and families alike. `workspace_id` is the academy the notification is about (families
- * need no membership: their notifications are always about a student of some academy). A session
- * reminder uses the same kind and key (`session_reminder`, the lesson id) for a coach and for a
- * parent, so someone who is both hears about a session once.
+ * One row per (person, kind, thing) ever notified: what keeps every push and email to once per
+ * person, for staff and families alike (emails log as `email_<kind>`). `workspace_id` is the
+ * academy the notification is about (families need no membership: their notifications are always
+ * about a student of some academy). A session reminder uses the same kind and key
+ * (`session_reminder`, the lesson id) for a coach and for a parent, so someone who is both hears
+ * about a session once.
  */
 export const notificationLog = sqliteTable(
   "notification_log",
@@ -1358,6 +1359,27 @@ export const pushSink = sqliteTable(
     createdAt: createdAt(),
   },
   (t) => [index("push_sink_user_idx").on(t.userId, t.createdAt)],
+);
+
+/**
+ * Test only: the emails CoachMan would have sent, recorded instead of sent when the E2E bypass is
+ * on outside production (see lib/email-sink.ts). Read and cleared through /api/test/email-sink.
+ */
+export const emailSink = sqliteTable(
+  "email_sink",
+  {
+    id: text().primaryKey(),
+    workspaceId: text(),
+    toEmail: text().notNull(),
+    kind: text().notNull(),
+    subject: text().notNull(),
+    text: text().notNull(),
+    html: text().notNull(),
+    fromName: text(),
+    replyTo: text(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("email_sink_to_idx").on(t.toEmail, t.createdAt)],
 );
 
 export const idempotencyKey = sqliteTable(

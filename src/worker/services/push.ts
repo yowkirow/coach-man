@@ -7,6 +7,7 @@ import {
   session as authSession,
   clientCoach,
   clientPackage,
+  emailSink,
   familyNotificationQueue,
   idempotencyKey,
   lesson,
@@ -236,11 +237,12 @@ export async function runMaintenance(
   // came from: delete it (signing out already deletes the row; the privacy policy says both).
   await db.delete(authSession).where(lt(authSession.expiresAt, now));
   // Family notifications held for quiet hours go out within a day; a week-old one is stale. The
-  // test sink keeps a day of payloads (tests read theirs within minutes).
+  // test sinks keep a day of pushes and emails (tests read theirs within minutes).
   await db
     .delete(familyNotificationQueue)
     .where(lt(familyNotificationQueue.sendAfter, now.getTime() - 7 * 86_400_000));
   await db.delete(pushSink).where(lt(pushSink.createdAt, now.getTime() - 86_400_000));
+  await db.delete(emailSink).where(lt(emailSink.createdAt, now.getTime() - 86_400_000));
   // Passkey-only accounts whose passkey never arrived can't be signed into: remove them after a day.
   await deleteAbandonedPasskeyAccounts(db, now.getTime());
 }

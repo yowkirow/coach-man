@@ -4,6 +4,7 @@ import type {
   TeamDto,
   TeamMemberDto,
 } from "@shared/api-types";
+import { inviteEmailNote } from "@shared/email";
 import {
   isCoachingRole,
   STAFF_ROLE_LABELS,
@@ -504,7 +505,7 @@ export function InvitesCard({
           <EmptyState
             icon={<UserPlus aria-hidden className="size-5" />}
             title="No invites waiting"
-            body="Invite a coach, an admin, or front desk staff with a link you send them on Messenger, Viber, or by text. They sign in with the Google account you invite."
+            body="Invite a coach, an admin, or front desk staff. We email them a link, and you can share it on Messenger, Viber, or by text. They sign in with the Google account you invite."
             action={
               <Button variant="dark" isDisabled={!online} onPress={() => onInvite()}>
                 Invite someone
@@ -519,7 +520,8 @@ export function InvitesCard({
 
 /**
  * Invite a coach, front desk staff, or an admin: an email and a role make a single-use link. The
- * link is shown once (only its hash is stored), with Copy, Share, and a message ready to paste.
+ * server emails it to them; it's also shown once here (only its hash is stored), with Copy, Share,
+ * and a message ready to paste.
  */
 export function InviteSheet({
   isOpen,
@@ -577,7 +579,10 @@ export function InviteSheet({
         isOpen={isOpen}
         onOpenChange={onOpenChange}
         title="Invite link ready"
-        description={`Send it to ${created.invite.email} on Messenger, Viber, or by text.`}
+        description={
+          inviteEmailNote(created) ??
+          `Send it to ${created.invite.email} on Messenger, Viber, or by text.`
+        }
         footer={
           <>
             <Button variant="ghost" className="mr-auto" onPress={() => setCreated(null)}>
@@ -652,7 +657,7 @@ export function InviteSheet({
       isOpen={isOpen}
       onOpenChange={onOpenChange}
       title="Invite someone"
-      description="They sign in with Google, using the email address you enter here."
+      description="They sign in with Google, using the email address you enter here. We email them the link, and you can share it too."
       footer={
         <>
           <Button variant="light" onPress={() => onOpenChange(false)}>

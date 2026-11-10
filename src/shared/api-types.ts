@@ -233,8 +233,16 @@ export interface TeamDto {
   invites: StaffInviteDto[];
 }
 
+/** Whether a new invite link was emailed: where to, or why not. */
+export interface InviteEmailDto {
+  /** The address it was emailed to, or null (not asked for, or it failed). */
+  emailedTo: string | null;
+  /** Why the email didn't go, as a short sentence, or null. The link works either way. */
+  emailError: string | null;
+}
+
 /** POST /api/v1/team/invites: the link carries the only copy of the token; it is never shown again. */
-export interface StaffInviteCreatedDto {
+export interface StaffInviteCreatedDto extends InviteEmailDto {
   invite: StaffInviteDto;
   link: string;
 }
@@ -378,8 +386,11 @@ export interface FamilyAccessDto {
   rules: Record<FamilyRelation, FamilyRuleDto>;
 }
 
-/** POST /api/v1/clients/:id/family/invites: the link carries the only copy of the token. */
-export interface FamilyInviteCreatedDto {
+/**
+ * POST /api/v1/clients/:id/family/invites: the link carries the only copy of the token. Emailed
+ * when the request gave an address.
+ */
+export interface FamilyInviteCreatedDto extends InviteEmailDto {
   invite: FamilyInviteDto;
   link: string;
 }

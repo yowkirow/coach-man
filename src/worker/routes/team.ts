@@ -34,6 +34,7 @@ import { v } from "../lib/validate";
 import { ctxOf, requireCap } from "../middleware";
 import { coachName, type StaffRow, staffRows, toCoachSummary } from "../services/coaches";
 import { runBatch } from "../services/credits";
+import { emailStaffInvite } from "../services/email";
 import type { AppBindings, Ctx } from "../types";
 import { appOrigin } from "./academy";
 
@@ -216,9 +217,9 @@ function releaseCoachStatements(ctx: Ctx, userId: string, today: string) {
 
 /**
  * The team (staff API): members with their role, when they joined, and their coach profile; staff
- * invite links; role changes, removal, and ownership. Everyone on the team can see who's on it;
- * managing it takes `team`, and anything that touches an owner takes `ownership`. An academy
- * always keeps at least one owner.
+ * invite links (emailed to the invited address too); role changes, removal, and ownership.
+ * Everyone on the team can see who's on it; managing it takes `team`, and anything that touches
+ * an owner takes `ownership`. An academy always keeps at least one owner.
  */
 export const teamRoutes = new Hono<AppBindings>()
   .get("/team", async (c) => c.json(await loadTeam(ctxOf(c))))
@@ -270,9 +271,20 @@ export const teamRoutes = new Hono<AppBindings>()
     const row = await ctx.db.query.invite.findFirst({ where: eq(invite.id, id) });
     if (!row) throw notFound("Invite");
     const me = await ctx.db.query.user.findFirst({ where: eq(user.id, ctx.userId) });
+    const link = `${appOrigin(ctx.env)}/join/${token}`;
+    // Sent now, so the answer says whether it went; the link works either way.
+    const emailed = await emailStaffInvite(ctx.db, ctx.env, {
+      workspaceId: ctx.workspaceId,
+      inviter: me ? { name: me.name, email: me.email } : null,
+      to: email,
+      role,
+      link,
+      expiresAt: row.expiresAt,
+    });
     const body: StaffInviteCreatedDto = {
       invite: toInviteDto(row, me?.name ?? null, now),
-      link: `${appOrigin(ctx.env)}/join/${token}`,
+      link,
+      ...emailed,
     };
     return c.json(body, 201);
   })

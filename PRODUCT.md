@@ -43,7 +43,7 @@ Success means an academy can run a full week of lessons, clinics, and camps with
 - Lessons are private, semi-private, or group, plus clinics. Programs run a fixed weekly schedule at a venue. Packages hold a number of sessions and expire after a number of days or at the end of the month.
 - Seasonal programs include summer camps, academies, clinics, tournaments, and socials.
 - Payment happens outside the app (GCash, bank transfer, cash). Families upload a screenshot as proof and staff confirm it. Payment methods are configurable per academy.
-- Families are reached on Messenger, Viber, or SMS. There is no email service: invites are links that staff share.
+- Families are reached on Messenger, Viber, or SMS, and by email for invites, enrollment, and payments: CoachMan emails invite links, and staff can share them too.
 
 ## Capabilities and Constraints
 
@@ -56,6 +56,7 @@ Success means an academy can run a full week of lessons, clinics, and camps with
   - staff roles and invites, coach profiles, primary and assistant coaches per student, and attributed coach comments with a share toggle
   - the family portal, a public academy page with a printable rates sheet, enrollment requests that staff approve, and manual payment proofs
   - consents and waivers (including Data Privacy Act RA 10173 and parental consent), medical and emergency info, authorized pickup people, announcements, and family reminders
+  - transactional email through Cloudflare: invite links, enrollment and payment updates to families, and new requests and proofs to staff, never with amounts or health details
 - **Sport:** pickleball first. The model is sport-agnostic underneath, for other sports later.
 - **No assumed market:** currency, timezone, locale, and payment-method names are per-academy settings.
 - **Not in this release:** online checkout (PayMongo), booking private lessons from coach availability, coach pay reports, email or SMS reminders, calendar sync, video notes, round-robin generator, drill library.

@@ -7,6 +7,7 @@ import type {
   FamilyRuleDto,
 } from "@shared/api-types";
 import { FAMILY_RELATION_LABELS, type FamilyRelation } from "@shared/domain";
+import { inviteEmailNote } from "@shared/email";
 import { endsTeenLogins, familyInviteMessage } from "@shared/family";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { KeyRound, Link2, UserPlus, Users } from "lucide-react";
@@ -15,8 +16,9 @@ import { InviteLinkPanel } from "../../components/domain/invite-link";
 import { Button } from "../../components/ui/button";
 import { Avatar, Card, Pill } from "../../components/ui/display";
 import { ErrorState, InlineError, RowsSkeleton } from "../../components/ui/feedback";
+import { TextField } from "../../components/ui/field";
 import { ConfirmSheet, Sheet } from "../../components/ui/overlay";
-import { api, errorMessage } from "../../lib/api";
+import { api, errorMessage, fieldErrors } from "../../lib/api";
 import { useFormat } from "../../lib/format";
 import { useMe } from "../../lib/hooks";
 import { notify } from "../../lib/notify";
@@ -265,6 +267,7 @@ export function FamilyAccessCard({ detail }: { detail: ClientDetailDto }) {
         onClose={() => setInviting(null)}
         clientId={c.id}
         firstName={c.firstName}
+        emails={{ guardian: c.guardianEmail, self: c.email }}
         onCreated={refresh}
       />
       <ConfirmSheet
@@ -299,30 +302,35 @@ export function FamilyAccessCard({ detail }: { detail: ClientDetailDto }) {
 
 /**
  * Makes a family invite link: single use, seven days, shown once (only its hash is stored), with
- * Copy, Share, and a message ready to paste. No email is sent.
+ * Copy, Share, and a message ready to paste. With an address (the parent's or the student's email
+ * on file, to start with), CoachMan emails the link too.
  */
 function FamilyInviteSheet({
   relation,
   onClose,
   clientId,
   firstName,
+  emails,
   onCreated,
 }: {
   relation: FamilyRelation | null;
   onClose: () => void;
   clientId: string;
   firstName: string;
+  /** The addresses on file: the parent's for a parent invite, the student's for their own. */
+  emails: Record<FamilyRelation, string | null>;
   onCreated: () => void;
 }) {
   const fmt = useFormat();
   const me = useMe().data;
   const online = useOnline();
   const [shown, setShown] = useState<FamilyRelation>("guardian");
+  const [emailTo, setEmailTo] = useState("");
   const [created, setCreated] = useState<FamilyInviteCreatedDto | null>(null);
   const create = useMutation({
     meta: { silent: true },
-    mutationFn: (r: FamilyRelation) =>
-      api.post<FamilyInviteCreatedDto>(`/clients/${clientId}/family/invites`, { relation: r }),
+    mutationFn: (body: { relation: FamilyRelation; email: string }) =>
+      api.post<FamilyInviteCreatedDto>(`/clients/${clientId}/family/invites`, body),
     onSuccess: (res) => {
       setCreated(res);
       onCreated();
@@ -332,12 +340,17 @@ function FamilyInviteSheet({
   useEffect(() => {
     if (!relation) return;
     setShown(relation);
+    setEmailTo(emails[relation] ?? "");
     setCreated(null);
     create.reset();
   }, [relation]);
 
   const isOpen = relation !== null;
   const guardian = shown === "guardian";
+  const submit = () => {
+    if (online) create.mutate({ relation: shown, email: emailTo.trim() });
+  };
+  const emailError = fieldErrors(create.error).email;
   const expires = created ? fmt.day(fmt.dayOf(created.invite.expiresAt)) : "";
   const message = created
     ? familyInviteMessage({
@@ -356,9 +369,10 @@ function FamilyInviteSheet({
         onOpenChange={(o) => !o && onClose()}
         title="Invite link ready"
         description={
-          guardian
+          inviteEmailNote(created) ??
+          (guardian
             ? `Send it to ${firstName}'s parent or guardian on Messenger, Viber, or by text.`
-            : `Send it to ${firstName} on Messenger, Viber, or by text.`
+            : `Send it to ${firstName} on Messenger, Viber, or by text.`)
         }
         footer={
           <Button variant="dark" onPress={onClose}>
@@ -381,32 +395,47 @@ function FamilyInviteSheet({
       isOpen={isOpen}
       onOpenChange={(o) => !o && onClose()}
       title={guardian ? "Invite a parent or guardian" : `Invite ${firstName} to their own login`}
-      description="You get a link to send on Messenger, Viber, or by text. It works once, for seven days."
+      description="We can email the link, and you can share it on Messenger, Viber, or by text. It works once, for seven days."
       footer={
         <>
           <Button variant="light" onPress={onClose}>
             Cancel
           </Button>
-          <Button
-            variant="dark"
-            isDisabled={!online}
-            isPending={create.isPending}
-            onPress={() => create.mutate(shown)}
-          >
+          <Button variant="dark" isDisabled={!online} isPending={create.isPending} onPress={submit}>
             Create invite link
           </Button>
         </>
       }
     >
-      <div className="flex flex-col gap-4">
+      <form
+        className="flex flex-col gap-4"
+        onSubmit={(e) => {
+          e.preventDefault();
+          submit();
+        }}
+      >
         <p className="text-ink-2">
           {guardian
             ? `They sign in with Google or a passkey and follow ${firstName}'s sessions, progress, the comments coaches share, and payments.`
             : `${firstName} signs in with Google or a passkey and sees their own sessions, progress, the comments coaches share, and payments.`}
         </p>
-        {create.error ? <InlineError>{errorMessage(create.error)}</InlineError> : null}
+        <TextField
+          label="Email the link to"
+          type="email"
+          inputMode="email"
+          autoComplete="off"
+          value={emailTo}
+          onChange={setEmailTo}
+          placeholder="name@gmail.com"
+          description="Optional. Leave it empty to share the link yourself."
+          error={emailError}
+        />
+        {create.error && !emailError ? (
+          <InlineError>{errorMessage(create.error)}</InlineError>
+        ) : null}
         <OfflineHint>You're offline. Reconnect to make an invite link.</OfflineHint>
-      </div>
+        <button type="submit" hidden />
+      </form>
     </Sheet>
   );
 }

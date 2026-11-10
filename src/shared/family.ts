@@ -146,9 +146,21 @@ export function endsTeenLogins(input: {
   return input.guardiansLeft === 0 && isMinor(input);
 }
 
+/** What a family invite opens, as its message and its email say it. */
+export function familyInviteWhat(relation: FamilyRelation, firstName: string): string {
+  return relation === "guardian"
+    ? `to follow ${firstName}'s training on CoachMan: sessions, progress, coaches' comments, and payments.`
+    : "to see your own training on CoachMan: sessions, progress, coaches' comments, and payments.";
+}
+
+/** How someone with a family invite signs in. */
+export const FAMILY_SIGN_IN =
+  "Sign in with Google, or create a passkey on your phone. No password needed.";
+
 /**
  * The message staff (or a parent, for their teen) paste into Messenger, Viber, or a text: who is
- * invited to what, the link, how to sign in, and until when. No email is sent by CoachMan.
+ * invited to what, the link, how to sign in, and until when. Staff can also have CoachMan email
+ * the link (src/shared/email.ts).
  */
 export function familyInviteMessage(input: {
   academyName: string;
@@ -158,14 +170,10 @@ export function familyInviteMessage(input: {
   /** Already formatted for the reader, e.g. "Wed 12 Nov". */
   expires: string;
 }): string {
-  const what =
-    input.relation === "guardian"
-      ? `to follow ${input.firstName}'s training on CoachMan: sessions, progress, coaches' comments, and payments.`
-      : "to see your own training on CoachMan: sessions, progress, coaches' comments, and payments.";
   return [
-    `${input.academyName} invited you ${what}`,
+    `${input.academyName} invited you ${familyInviteWhat(input.relation, input.firstName)}`,
     `Open this link to accept: ${input.link}`,
-    "Sign in with Google, or create a passkey on your phone. No password needed.",
+    FAMILY_SIGN_IN,
     `The link works once, until ${input.expires}.`,
   ].join("\n");
 }

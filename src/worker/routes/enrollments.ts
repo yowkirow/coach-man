@@ -18,6 +18,7 @@ import { organization } from "../db/schema";
 import { afterResponse } from "../lib/defer";
 import { v } from "../lib/validate";
 import { ctxOf, requireCap } from "../middleware";
+import { emailEnrollmentDecision } from "../services/email";
 import {
   approveEnrollment,
   declineEnrollment,
@@ -94,13 +95,18 @@ export const enrollmentRoutes = new Hono<AppBindings>()
     return c.json<EnrollmentDetailDto>(detail);
   });
 
-/** The family hears about a decision after the response (a replay is deduped by the log). */
+/**
+ * The family hears about a decision after the response, by push and by email, each on its own (a
+ * replay is deduped by the log).
+ */
 function decided(ctx: Ctx, requestId: string) {
-  return afterResponse(ctx, "Enrollment decision push failed", () =>
-    notifyEnrollmentDecision(ctx.db, ctx.env, {
-      workspaceId: ctx.workspaceId,
-      requestId,
-      actorUserId: ctx.userId,
-    }),
-  );
+  const input = { workspaceId: ctx.workspaceId, requestId, actorUserId: ctx.userId };
+  return Promise.all([
+    afterResponse(ctx, "Enrollment decision push failed", () =>
+      notifyEnrollmentDecision(ctx.db, ctx.env, input),
+    ),
+    afterResponse(ctx, "Enrollment decision email failed", () =>
+      emailEnrollmentDecision(ctx.db, ctx.env, input),
+    ),
+  ]);
 }

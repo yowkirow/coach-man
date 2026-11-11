@@ -101,7 +101,7 @@ The stickers slap on. When the page opens, the hero's stickers land on the tarp 
   2. tarp hero;
   3. program panels, alternating Jersey Blue and Deep Green; a full program wears a "Full" sticker;
   4. on court: the academy's website photos as photo stickers (the panel is skipped when there are none);
-  5. coaches: a White field with up to three public coaches, then Meet the team;
+  5. coaches: a White field. An academy's only coach is featured the pubmat way; two or more ride a reel of coach cards (three in view from 1024px, one on phones with the next peeking; swipe or arrows, never autoplay; the owner's choice, 2026-11-11). Then Meet the team;
   6. packages: a Lime field with price sticker cards grouped by program, the featured one in Jersey Blue;
   7. how to enroll: Deep Green, 1-2-3;
   8. find us: Jersey Blue, with the academy's about, the venue, directions, and contact;

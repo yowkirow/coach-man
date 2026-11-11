@@ -335,10 +335,12 @@ Every page shares one frame (`site.tsx`), all phone-first because links get shar
   - the venue with **Directions**, who coaches it (to the team page), and the next session;
   - **Enroll now**, or **See packages** while enrollment is closed.
 - **On court:** the academy's website photos as photo stickers with their captions, a sideways row on phones and a scatter on laptops.
-- **The team:** up to three people, then **Meet the team**. Each one has:
-  - their photo stuck on, with their DUPR rating as a sticker, and their name huge;
-  - certifications as stickers, years and languages, highlights, and about;
-  - what they coach, with their specialties on a strip.
+- **The team:** an academy's only coach as a feature, or two and more on a sideways reel of cards: three in view on laptops, one on phones with the next peeking (two coaches share the row instead). Visitors swipe or press the arrows (a counter says "1–3 of 5"); nothing moves on its own. Then **Meet the team**. Each card has:
+  - their photo stuck on, with their DUPR rating as a sticker, and their name huge, which opens their space on the team page;
+  - their title, years and languages, certifications as stickers, and specialties;
+  - what they coach.
+
+  A lone coach's feature also has their highlights and about, with their specialties on a strip.
 - **Packages:** on lime, price-sticker cards grouped by program, then **Printable rates**. Each card has sessions, price per head, validity, inclusions, who it's for, and **Enroll**; the featured one is in blue.
 - **How to enroll:** three steps on deep green, true for every academy: choose, send your request, then pay and upload your receipt.
 - **Find us:** "See you at [venue]" on blue, with directions, the academy's about, its contact details, and its policies.

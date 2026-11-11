@@ -29,6 +29,7 @@ import {
 } from "../db/schema";
 import { auditEntry } from "../lib/audit";
 import { ApiError, conflict, notFound } from "../lib/errors";
+import { appOrigin } from "../lib/page-meta";
 import { INVITE_TTL_MS, inviteStatus, newToken } from "../lib/tokens";
 import { v } from "../lib/validate";
 import { ctxOf, requireCap } from "../middleware";
@@ -42,7 +43,6 @@ import {
 import { runBatch } from "../services/credits";
 import { emailStaffInvite } from "../services/email";
 import type { AppBindings, Ctx } from "../types";
-import { appOrigin } from "./academy";
 
 /** Expired invites stay listed (so they can be sent again) for this long. */
 const EXPIRED_INVITES_SHOWN_MS = 30 * 24 * 60 * 60 * 1000;

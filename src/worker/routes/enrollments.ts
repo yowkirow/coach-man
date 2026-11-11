@@ -16,6 +16,7 @@ import { todayIn } from "../../shared/time";
 import { addMonths, monthOf } from "../../shared/validity";
 import { organization } from "../db/schema";
 import { afterResponse } from "../lib/defer";
+import { appOrigin } from "../lib/page-meta";
 import { v } from "../lib/validate";
 import { ctxOf, requireCap } from "../middleware";
 import { emailEnrollmentDecision } from "../services/email";
@@ -32,7 +33,6 @@ import {
 } from "../services/enrollment-staff";
 import { notifyEnrollmentDecision } from "../services/family-push";
 import type { AppBindings, Ctx } from "../types";
-import { appOrigin } from "./academy";
 
 /**
  * The Enrollments inbox (/api/v1/enrollments): owners, admins, and the front desk (`enrollment`)

@@ -16,6 +16,7 @@ import {
   notificationPref,
   pushSink,
   rateLimit,
+  verification,
   workspaceSettings,
 } from "../db/schema";
 import { deleteAbandonedPasskeyAccounts } from "../lib/passkey-accounts";
@@ -230,12 +231,16 @@ export async function runMaintenance(
   await db
     .delete(notificationLog)
     .where(lt(notificationLog.sentAt, now.getTime() - 90 * 86_400_000));
-  // Rate-limit counters (ours in lib/rate-limit.ts, and Better Auth's sign-in limits) last a minute
-  // or an hour; a day-old one is clutter, and it holds an IP address (the privacy policy says so).
+  // Rate-limit counters (ours in lib/rate-limit.ts, and Better Auth's sign-in limits) last a minute,
+  // an hour, or a day; one whose window opened a day ago is clutter, and it holds an IP address (the
+  // privacy policy says so).
   await db.delete(rateLimit).where(lt(rateLimit.lastRequest, now.getTime() - 86_400_000));
   // A sign-in that ran out can't be used again, yet its row keeps the IP address and browser it
   // came from: delete it (signing out already deletes the row; the privacy policy says both).
   await db.delete(authSession).where(lt(authSession.expiresAt, now));
+  // Sign-in codes are deleted when used or tried too often; expired ones (and Google's expired
+  // sign-in states) go here, within a day (the privacy policy says so).
+  await db.delete(verification).where(lt(verification.expiresAt, now));
   // Family notifications held for quiet hours go out within a day; a week-old one is stale. The
   // test sinks keep a day of pushes and emails (tests read theirs within minutes).
   await db

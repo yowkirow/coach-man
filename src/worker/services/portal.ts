@@ -34,6 +34,7 @@ import {
   venue,
   workspaceSettings,
 } from "../db/schema";
+import { appOrigin } from "../lib/page-meta";
 import {
   type CoachProfileFacts,
   portalSessionTitle,
@@ -56,7 +57,6 @@ import {
 } from "../lib/portal-dto";
 import type { PortalLink } from "../lib/portal-scope";
 import { inList, unique } from "../lib/sql";
-import { appOrigin } from "../routes/academy";
 import { coachName, coachRefs, staffRows } from "./coaches";
 import { packagesForClients } from "./credits";
 import { familyInvites, familyLinks, toFamilyInviteDto } from "./family";

@@ -140,6 +140,10 @@ test.describe("accessibility", () => {
     await visit(outPage, path);
     await expect(outPage.getByRole("button", { name: "Continue with Google" })).toBeVisible();
     expect(await seriousViolations(outPage)).toEqual([]);
+    // The code form's first step.
+    await outPage.getByRole("button", { name: "Email me a code", exact: true }).click();
+    await expect(outPage.getByLabel("Your email")).toBeVisible();
+    expect(await seriousViolations(outPage)).toEqual([]);
     await signedOut.close();
 
     const { page } = await personas.open({ email, name: "Sam Rivera", persona: "none" });
@@ -164,7 +168,7 @@ test.describe("accessibility", () => {
     expect(await seriousViolations(page)).toEqual([]);
     // The link, and the line saying it was emailed.
     const invitee = testEmail("a11y-invitee", info);
-    await invite.getByLabel("Their Google email").fill(invitee);
+    await invite.getByLabel("Their email").fill(invitee);
     await invite.getByRole("button", { name: "Create invite link" }).click();
     const ready = page.getByRole("dialog", { name: "Invite link ready" });
     await expect(ready.getByText(`We emailed the link to ${invitee}.`)).toBeVisible();

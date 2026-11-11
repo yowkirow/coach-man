@@ -2,6 +2,7 @@ import type { PublicAcademyDto } from "@shared/api-types";
 import { ArrowLeft, KeyRound } from "lucide-react";
 import { useState } from "react";
 import { GoogleG } from "../../components/auth-layout";
+import { EmailCodeForm } from "../../components/email-code";
 import { Button } from "../../components/ui/button";
 import { InlineError } from "../../components/ui/feedback";
 import { TextField } from "../../components/ui/field";
@@ -27,7 +28,8 @@ function passkeyFailure(message: string | undefined): string {
 
 /**
  * The wizard's first step for someone signed out: Google (back to this page afterwards), a
- * passkey they already have, or a new passkey-only account with just a name.
+ * passkey they already have, a code by email to an account they already have, or a new
+ * passkey-only account with just a name.
  */
 export function EnrollSignIn({
   academy,
@@ -44,6 +46,7 @@ export function EnrollSignIn({
   onSignedIn: () => Promise<void>;
 }) {
   const [creating, setCreating] = useState(false);
+  const [emailing, setEmailing] = useState(false);
   const [pending, setPending] = useState<null | "google" | "passkey" | "create">(null);
   const [name, setName] = useState("");
   const [nameError, setNameError] = useState<string | null>(null);
@@ -51,7 +54,7 @@ export function EnrollSignIn({
     googleError
       ? /access_denied|cancel/i.test(googleError)
         ? "Google sign-in was cancelled. Try again whenever you're ready."
-        : "Google sign-in didn't finish. Try again, or use a passkey."
+        : "Google sign-in didn't finish. Try again, or use a passkey or an emailed code."
       : null,
   );
   const passkeys = passkeysSupported();
@@ -171,6 +174,18 @@ export function EnrollSignIn({
     );
   }
 
+  if (emailing) {
+    return (
+      <>
+        <StepHeading title="Sign in to enroll">
+          We'll email a code to the address of the CoachMan account you already have.
+        </StepHeading>
+        <EmailCodeForm onSignedIn={onSignedIn} onBack={() => setEmailing(false)} />
+        <AgreeNote className="mt-4" />
+      </>
+    );
+  }
+
   return (
     <>
       <StepHeading title="Sign in to enroll">
@@ -213,6 +228,17 @@ export function EnrollSignIn({
             </Button>
           </>
         ) : null}
+        <Button
+          variant="ghost"
+          size="lg"
+          isDisabled={pending !== null}
+          onPress={() => {
+            setError(null);
+            setEmailing(true);
+          }}
+        >
+          I have an account: email me a code
+        </Button>
         {error ? <InlineError>{error}</InlineError> : null}
       </div>
       {passkeys ? (

@@ -13,6 +13,7 @@ import {
   oneLine,
   proofDecisionEmail,
   renderEmail,
+  signInCodeEmail,
   staffEnrollmentRequestEmail,
   staffInviteEmail,
   staffProofEmail,
@@ -88,13 +89,13 @@ describe("renderEmail", () => {
       'mso-hide:all;">Ana Reyes invited you as a coach. The link works once, until Tue, Nov 17.&#847;&zwnj;&nbsp;',
     );
     const button = html.indexOf(">Join Riverside</a>");
-    expect(html.indexOf("Sign in with Google")).toBeLessThan(button);
+    expect(html.indexOf(">Sign in</td>")).toBeLessThan(button);
     expect(button).toBeLessThan(html.indexOf("You&#39;re on the team"));
     expect(text).toBe(
       `${[
         "Join Riverside on CoachMan",
         "1. Ana Reyes invited you\nTo join as a coach.",
-        `2. Sign in with Google\nUse the Google account for sam@gmail.com. The link works once, until Tue, Nov 17.\nJoin Riverside: ${LINK}`,
+        `2. Sign in\nAs sam@gmail.com, with Google or a code we email you. The link works once, until Tue, Nov 17.\nJoin Riverside: ${LINK}`,
         "3. You're on the team\nStudents, progress, the schedule, and check-in. No prices or payments.",
         "Sent with CoachMan for Riverside",
       ].join("\n\n")}\n`,
@@ -283,7 +284,7 @@ describe("staff invite email", () => {
     expires: "Tue, Nov 17",
   };
 
-  it("says who invited them, as what, which account to use and until when, then what the role does", () => {
+  it("says who invited them, as what, which address to sign in as and until when, then what the role does", () => {
     const d = staffInviteEmail({ ...base, role: "front_desk" });
     expect(d.subject).toBe("Join Riverside Pickleball on CoachMan");
     expect(d.preheader).toBe(
@@ -294,8 +295,8 @@ describe("staff invite email", () => {
       ["done", "Ana Reyes invited you", "To join as front desk staff."],
       [
         "now",
-        "Sign in with Google",
-        "Use the Google account for sam@gmail.com. The link works once, until Tue, Nov 17.",
+        "Sign in",
+        "As sam@gmail.com, with Google or a code we email you. The link works once, until Tue, Nov 17.",
       ],
       [
         "next",
@@ -329,7 +330,7 @@ describe("family invite email", () => {
       [
         "now",
         "Accept the invite",
-        "Sign in with Google, or create a passkey on your phone. No password needed. The link works once, until Wed, Nov 18.",
+        "Sign in with Google, a code by email, or a passkey on your phone. No password needed. The link works once, until Wed, Nov 18.",
       ],
       ["next", "You're in", "Mia's sessions, progress, coaches' comments, and payments."],
     ]);
@@ -341,6 +342,124 @@ describe("family invite email", () => {
     expect(d.heading).toBe("See your own training");
     expect(d.steps[0]?.text).toBe("To see your own training on CoachMan.");
     expect(d.steps[2]?.text).toBe("Your sessions, progress, coaches' comments, and payments.");
+  });
+});
+
+describe("sign-in code email", () => {
+  const base = { code: "042917", email: "sam@outlook.com", minutes: 10 };
+
+  it("leads with the code, comes from CoachMan without an invite, and has no button", () => {
+    const d = signInCodeEmail({ ...base, academy: null, invite: null });
+    expect(d.subject).toBe("042917 is your CoachMan code");
+    expect(d.preheader).toBe("Enter it on CoachMan within 10 minutes.");
+    expect(d.heading).toBe("Your sign-in code");
+    expect([d.academy, d.brand]).toEqual(["CoachMan", "coachman"]);
+    expect(stepsOf(d)).toEqual([
+      ["done", "You asked for a code", "To sign in to CoachMan as sam@outlook.com."],
+      ["now", "Enter this code", "It works once, for the next 10 minutes."],
+      ["next", "You're signed in", null],
+    ]);
+    expect(d.code).toBe("042917");
+    expect(d.action).toBeUndefined();
+    expect(d.footer).toBe(
+      "Didn't ask for a code? Ignore this email: nobody can sign in without it.",
+    );
+  });
+
+  it("with an invite, is the academy's and says what signing in leads to", () => {
+    const staff = signInCodeEmail({ ...base, academy: "Riverside", invite: "staff" });
+    expect([staff.academy, staff.brand]).toEqual(["Riverside", undefined]);
+    expect(stepsOf(staff)).toEqual([
+      ["done", "You asked for a code", "To join Riverside on CoachMan as sam@outlook.com."],
+      ["now", "Enter this code", "It works once, for the next 10 minutes."],
+      ["next", "You're signed in", "Then join Riverside."],
+    ]);
+    const family = signInCodeEmail({ ...base, academy: "Riverside", invite: "family" });
+    expect(stepsOf(family)).toEqual([
+      ["done", "You asked for a code", "To accept Riverside's invite as sam@outlook.com."],
+      ["now", "Enter this code", "It works once, for the next 10 minutes."],
+      ["next", "You're signed in", "Then accept the invite."],
+    ]);
+    expect(signInCodeEmail({ ...base, academy: " ", invite: "staff" }).academy).toBe(
+      "Your academy",
+    );
+  });
+});
+
+describe("a code in an email", () => {
+  const draft = signInCodeEmail({
+    code: "042917",
+    email: "sam@outlook.com",
+    minutes: 10,
+    academy: null,
+    invite: null,
+  });
+  const ICON = `${ORIGIN}/icons/icon-192.png`;
+
+  it("sits once in a well in the step that's now, and on its own line in the text", () => {
+    const { html, text } = renderEmail({ ...draft, logoUrl: ICON });
+    const body = bodyOf(html);
+    // Not in the title or the preview: only in the well.
+    expect(html.split("042917")).toHaveLength(2);
+    expect(body).toMatch(
+      /<td class="cm-code" style="[^"]*background-color:#f3f3f4;[^"]*font-size:32px;[^"]*font-weight:300;letter-spacing:0\.12em;font-variant-numeric:tabular-nums;[^"]*">042917<\/td>/,
+    );
+    expect(body.indexOf(">Enter this code</td>")).toBeLessThan(body.indexOf(">042917<"));
+    expect(body.indexOf(">042917<")).toBeLessThan(
+      body.indexOf("It works once, for the next 10 minutes."),
+    );
+    expect(html).not.toContain("href");
+    expect(html).not.toContain("Or open this link");
+    expect(html).toContain(".cm-code{background-color:#1c1c1e!important;color:#ffffff!important}");
+    expect(text).toBe(
+      `${[
+        "Your sign-in code",
+        "1. You asked for a code\nTo sign in to CoachMan as sam@outlook.com.",
+        "2. Enter this code\n042917\nIt works once, for the next 10 minutes.",
+        "3. You're signed in",
+        "Didn't ask for a code? Ignore this email: nobody can sign in without it.",
+      ].join("\n\n")}\n`,
+    );
+  });
+
+  it("is escaped, and a footer of its own replaces the usual line", () => {
+    const { html, text } = renderEmail({
+      academy: "Riverside",
+      heading: "Hi",
+      steps: [{ state: "now", title: "Enter this code" }],
+      code: "<b>1&2</b>",
+      footer: "Didn't <ask>?",
+    });
+    expect(html).toContain(">&lt;b&gt;1&amp;2&lt;/b&gt;</td>");
+    expect(html).not.toContain("<b>1&2</b>");
+    expect(html).toContain(">Didn&#39;t &lt;ask&gt;?</td>");
+    expect(html).not.toContain("Sent with CoachMan for");
+    expect(text).toBe("Hi\n\n1. Enter this code\n<b>1&2</b>\n\nDidn't <ask>?\n");
+  });
+
+  it("shows CoachMan's own header: the app icon as the tile, its name, and no byline", () => {
+    const own = bodyOf(renderEmail({ ...draft, logoUrl: ICON }).html);
+    expect(own).toContain(
+      `<img src="${ICON}" alt="" width="44" height="44" style="display:block;width:44px;height:44px;border:0;border-radius:14px;">`,
+    );
+    expect(own).toContain(">CoachMan</div>");
+    expect(own).not.toContain("via CoachMan");
+    expect(own).not.toContain('class="cm-logo"');
+    // With an invite, the academy's tile, its name, and "via CoachMan".
+    const academy = bodyOf(
+      renderEmail(
+        signInCodeEmail({
+          code: "042917",
+          email: "sam@outlook.com",
+          minutes: 10,
+          academy: "Riverside",
+          invite: "family",
+        }),
+      ).html,
+    );
+    expect(academy).toContain(">R</td>");
+    expect(academy).toContain(">Riverside</div>");
+    expect(academy).toContain(">via CoachMan</div>");
   });
 });
 

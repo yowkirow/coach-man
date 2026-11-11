@@ -20,6 +20,7 @@ export const EMAIL_KINDS = [
   "proof_rejected",
   "staff_enrollment_request",
   "staff_proof",
+  "sign_in_code",
 ] as const;
 export type EmailKind = (typeof EMAIL_KINDS)[number];
 
@@ -57,14 +58,14 @@ export interface EmailAction {
 
 /**
  * Where a step stands on an email's progress line: done (an ink circle), now (a lime circle, and
- * the step that holds the button), or next (an outlined circle).
+ * the step that holds the button or the code), or next (an outlined circle).
  */
 export type EmailStepState = "done" | "now" | "next";
 
 /**
  * One step on the progress line. Its title says where it stands in words, so the email reads
  * without its colors: done steps in the past ("Ana invited you"), the step that's now as where
- * things stand or what to do ("Sign in with Google"), next steps as what follows.
+ * things stand or what to do ("Accept the invite"), next steps as what follows.
  */
 export interface EmailStep {
   state: EmailStepState;
@@ -74,10 +75,15 @@ export interface EmailStep {
 
 /** What an email says, before it's rendered. */
 export interface EmailContent {
-  /** The academy's name, in the header and the footer. */
+  /** The academy's name, in the header and the footer ("CoachMan" for CoachMan's own emails). */
   academy: string;
   /** The academy's logo as an absolute public link, or null: its initials stand in. */
   logoUrl?: string | null;
+  /**
+   * Whose email it is: an academy's (default; its tile, its name, and "via CoachMan"), or
+   * CoachMan's own (the app icon is the tile, and there's no byline).
+   */
+  brand?: "academy" | "coachman";
   /** The inbox's preview line (hidden in the email itself). */
   preheader?: string;
   heading: string;
@@ -85,6 +91,10 @@ export interface EmailContent {
   steps: EmailStep[];
   /** The one button, inside the step that's now, with its link written out under the steps. */
   action?: EmailAction;
+  /** A sign-in code, in a well inside the step that's now (an email with a code has no button). */
+  code?: string;
+  /** The small print, in place of "Sent with CoachMan for <Academy>". */
+  footer?: string;
 }
 
 /** An email of one kind, ready to render: what the builders below return. */
@@ -123,6 +133,7 @@ const STYLE = [
   `.cm-ink{color:${WHITE}!important}`,
   `.cm-slate{color:${MIST}!important}`,
   `.cm-tile{background-color:${CHARCOAL}!important;color:${WHITE}!important}`,
+  `.cm-code{background-color:${CHARCOAL}!important;color:${WHITE}!important}`,
   `.cm-logo{border-color:${WHITE}!important}`,
   `.cm-done{background-color:${WHITE}!important;border-color:${WHITE}!important;color:${NIGHT}!important}`,
   `.cm-next{background-color:${NIGHT}!important;border-color:${DARK_OUTLINE}!important;color:${MIST}!important}`,
@@ -178,13 +189,22 @@ const table = (content: string, width = "") =>
 /**
  * The academy's logo on a white tile, else its initials on a soft one, beside its name. The logo's
  * white is also an image fill, which apps that invert colors leave alone, so a logo drawn on
- * transparency never sinks into a darkened tile there.
+ * transparency never sinks into a darkened tile there. CoachMan's own emails show its app icon as
+ * the tile itself (the icon is its own dark square) and no "via CoachMan" under the name.
  */
-function header(academy: string, logoUrl: string | null | undefined): string {
-  const tile = logoUrl
-    ? `<td width="42" height="42" align="center" valign="middle" class="cm-logo" style="width:42px;height:42px;border:1px solid ${HAIRLINE};border-radius:14px;background-color:${WHITE};background-image:linear-gradient(${WHITE},${WHITE});"><img src="${escapeHtml(logoUrl)}" alt="" width="34" style="display:block;width:auto;height:auto;max-width:34px;max-height:34px;margin:0 auto;border:0;"></td>`
-    : `<td width="44" height="44" align="center" valign="middle" class="cm-tile" style="width:44px;height:44px;border-radius:14px;background-color:${FOLDER};${FONT}font-size:14px;line-height:44px;font-weight:600;color:${INK};mso-line-height-rule:exactly;">${escapeHtml(initialsOf(academy))}</td>`;
-  const name = `<div class="cm-ink" style="${FONT}font-size:16px;line-height:20px;font-weight:500;color:${INK};">${escapeHtml(academy)}</div><div class="cm-slate" style="${FONT}font-size:13px;line-height:18px;color:${SLATE};">via CoachMan</div>`;
+function header(input: EmailContent): string {
+  const { academy, logoUrl } = input;
+  const coachman = input.brand === "coachman";
+  const tile =
+    logoUrl && coachman
+      ? `<td width="44" height="44" valign="middle" style="width:44px;height:44px;"><img src="${escapeHtml(logoUrl)}" alt="" width="44" height="44" style="display:block;width:44px;height:44px;border:0;border-radius:14px;"></td>`
+      : logoUrl
+        ? `<td width="42" height="42" align="center" valign="middle" class="cm-logo" style="width:42px;height:42px;border:1px solid ${HAIRLINE};border-radius:14px;background-color:${WHITE};background-image:linear-gradient(${WHITE},${WHITE});"><img src="${escapeHtml(logoUrl)}" alt="" width="34" style="display:block;width:auto;height:auto;max-width:34px;max-height:34px;margin:0 auto;border:0;"></td>`
+        : `<td width="44" height="44" align="center" valign="middle" class="cm-tile" style="width:44px;height:44px;border-radius:14px;background-color:${FOLDER};${FONT}font-size:14px;line-height:44px;font-weight:600;color:${INK};mso-line-height-rule:exactly;">${escapeHtml(initialsOf(academy))}</td>`;
+  const byline = coachman
+    ? ""
+    : `<div class="cm-slate" style="${FONT}font-size:13px;line-height:18px;color:${SLATE};">via CoachMan</div>`;
+  const name = `<div class="cm-ink" style="${FONT}font-size:16px;line-height:20px;font-weight:500;color:${INK};">${escapeHtml(academy)}</div>${byline}`;
   return table(`<tr>${tile}<td style="padding-left:12px;">${name}</td></tr>`);
 }
 
@@ -213,32 +233,53 @@ function button(action: EmailAction): string {
 }
 
 /**
- * The progress line: each step is a row with its circle and title, then a row with the line down
- * to the next step beside its text (and, in the step that's now, the button). The line is a 2px
- * border, ink below a done step and Outline Gray after that.
+ * A sign-in code in a Folder Gray well: one unbroken run of digits, so copying it or a phone's
+ * code autofill takes all of it (the space between digits is only letter-spacing, whose trailing
+ * bit the right padding gives back).
  */
-function progressLine(steps: readonly EmailStep[], action: EmailAction | undefined): string {
+function codeWell(code: string): string {
+  return table(
+    `<tr><td class="cm-code" style="padding:14px 16px 14px 20px;border-radius:22px;background-color:${FOLDER};${FONT}font-size:32px;line-height:36px;font-weight:300;letter-spacing:0.12em;font-variant-numeric:tabular-nums;white-space:nowrap;color:${INK};mso-line-height-rule:exactly;">${escapeHtml(code)}</td></tr>`,
+  );
+}
+
+/**
+ * The progress line: each step is a row with its circle and title, then a row with the line down
+ * to the next step beside its text (and, in the step that's now, the button, or a code above the
+ * text). The line is a 2px border, ink below a done step and Outline Gray after that.
+ */
+function progressLine(
+  steps: readonly EmailStep[],
+  action: EmailAction | undefined,
+  code: string | undefined,
+): string {
   const nowAt = steps.findIndex((s) => s.state === "now");
   const rows = steps.map((step, i) => {
     const last = i === steps.length - 1;
     const next = step.state === "next";
     const title = `<tr><td colspan="3" width="32" valign="top" style="width:32px;">${stepCircle(i + 1, step.state)}</td><td width="16" style="width:16px;${SPACER}">&nbsp;</td><td valign="top" class="${next ? "cm-slate" : "cm-ink"}" style="padding:5px 0 0;${FONT}font-size:16px;line-height:22px;font-weight:500;color:${next ? SLATE : INK};">${escapeHtml(step.title)}</td></tr>`;
+    const well =
+      code && i === nowAt ? `<div style="padding:8px 0 12px;">${codeWell(code)}</div>` : "";
     const text = step.text
       ? `<div class="cm-slate" style="${FONT}font-size:15px;line-height:22px;color:${SLATE};">${escapeHtml(step.text)}</div>`
       : "";
     const cta =
       action && i === nowAt ? `<div style="padding-top:16px;">${button(action)}</div>` : "";
-    if (last && !text && !cta) return title;
+    if (last && !well && !text && !cta) return title;
     const line = last
       ? `<td style="width:0;${SPACER}"></td>`
       : `<td class="cm-line-${step.state === "done" ? "done" : "next"}" style="width:0;border-left:2px solid ${step.state === "done" ? INK : OUTLINE};${SPACER}">&nbsp;</td>`;
-    const body = `<tr><td width="15" style="width:15px;${SPACER}">&nbsp;</td>${line}<td width="15" style="width:15px;${SPACER}">&nbsp;</td><td width="16" style="width:16px;${SPACER}">&nbsp;</td><td valign="top" style="padding:4px 0 ${last ? 0 : 32}px;word-break:break-word;">${text}${cta}</td></tr>`;
+    const body = `<tr><td width="15" style="width:15px;${SPACER}">&nbsp;</td>${line}<td width="15" style="width:15px;${SPACER}">&nbsp;</td><td width="16" style="width:16px;${SPACER}">&nbsp;</td><td valign="top" style="padding:4px 0 ${last ? 0 : 32}px;word-break:break-word;">${well}${text}${cta}</td></tr>`;
     return title + body;
   });
-  // An email that only reports (no step is now) still gets its button, under the line.
-  if (action && nowAt === -1) {
+  // An email that only reports (no step is now) still gets its code and its button, under the line.
+  if (nowAt === -1 && (code || action)) {
+    const cta = action ? button(action) : "";
+    const under = code
+      ? `${codeWell(code)}${cta ? `<div style="padding-top:16px;">${cta}</div>` : ""}`
+      : cta;
     rows.push(
-      `<tr><td colspan="4" style="${SPACER}">&nbsp;</td><td style="padding:24px 0 0;">${button(action)}</td></tr>`,
+      `<tr><td colspan="4" style="${SPACER}">&nbsp;</td><td style="padding:24px 0 0;">${under}</td></tr>`,
     );
   }
   return table(rows.join(""), "100%");
@@ -246,12 +287,12 @@ function progressLine(steps: readonly EmailStep[], action: EmailAction | undefin
 
 function renderHtml(input: EmailContent): string {
   const rows = [
-    row("padding:0 0 40px;", header(input.academy, input.logoUrl)),
+    row("padding:0 0 40px;", header(input)),
     row(
       "padding:0 0 32px;",
       `<h1 class="cm-ink cm-h1" style="margin:0;${FONT}font-size:32px;line-height:36px;font-weight:300;letter-spacing:-0.02em;color:${INK};text-wrap:balance;">${escapeHtml(withoutWidow(input.heading))}</h1>`,
     ),
-    row("padding:0;", progressLine(input.steps, input.action)),
+    row("padding:0;", progressLine(input.steps, input.action, input.code)),
   ];
   if (input.action) {
     const url = escapeHtml(input.action.url);
@@ -269,7 +310,7 @@ function renderHtml(input: EmailContent): string {
       table(
         row(
           `${FONT}font-size:13px;line-height:20px;color:${SLATE};padding:20px 0 0;border-top:1px solid ${HAIRLINE};`,
-          escapeHtml(emailFooterLine(input.academy)),
+          escapeHtml(input.footer ?? emailFooterLine(input.academy)),
           "cm-slate cm-rule",
         ),
         "100%",
@@ -316,21 +357,26 @@ function renderText(input: EmailContent): string {
   const blocks = [input.heading];
   input.steps.forEach((step, i) => {
     const lines = [`${i + 1}. ${step.title}`];
+    if (input.code && i === nowAt) lines.push(input.code);
     if (step.text) lines.push(step.text);
     if (actionLine && i === nowAt) lines.push(actionLine);
     blocks.push(lines.join("\n"));
   });
-  if (actionLine && nowAt === -1) blocks.push(actionLine);
-  blocks.push(emailFooterLine(input.academy));
+  if (nowAt === -1) {
+    if (input.code) blocks.push(input.code);
+    if (actionLine) blocks.push(actionLine);
+  }
+  blocks.push(input.footer ?? emailFooterLine(input.academy));
   return `${blocks.join("\n\n")}\n`;
 }
 
 /**
  * The email's HTML and its plain text, every value escaped in the HTML. The HTML is a 520px
  * column of inline-styled tables: the academy's tile and name, a light heading, the progress line
- * (the button inside the step that's now), the button's link written out, and one footer line,
- * with a dark color scheme for apps that ask for one. Its only image is the academy's logo, the
- * public one its website shows, the same for every reader.
+ * (the button, or a sign-in code, inside the step that's now), the button's link written out, and
+ * one footer line, with a dark color scheme for apps that ask for one. Its only image is the
+ * academy's logo, the public one its website shows, the same for every reader (or CoachMan's app
+ * icon, in CoachMan's own emails).
  */
 export function renderEmail(input: EmailContent): { html: string; text: string } {
   return { html: renderHtml(input), text: renderText(input) };
@@ -356,13 +402,13 @@ const packageLine = (tierName: string, starts: string | null) =>
 
 const PROOF_SENT: EmailStep = { state: "done", title: "Payment proof sent" };
 
-/** A staff invite: who invited them, as what, which Google account to use, until when, and the role. */
+/** A staff invite: who invited them, as what, which address to sign in as, until when, and the role. */
 export function staffInviteEmail(input: {
   academy: string;
   /** The inviter's name, as the team knows them (their coach profile's name). */
   inviter: string;
   role: StaffRole;
-  /** The invited address: the Google account to sign in with. */
+  /** The invited address: the one to sign in as, with Google or a code. */
   email: string;
   link: string;
   /** When the link stops working, already formatted ("Tue, Nov 17"). */
@@ -380,8 +426,8 @@ export function staffInviteEmail(input: {
       { state: "done", title: `${inviter} invited you`, text: `To join as ${noun}.` },
       {
         state: "now",
-        title: "Sign in with Google",
-        text: `Use the Google account for ${input.email}. The link works once, until ${input.expires}.`,
+        title: "Sign in",
+        text: `As ${input.email}, with Google or a code we email you. The link works once, until ${input.expires}.`,
       },
       { state: "next", title: "You're on the team", text: STAFF_ROLE_DESCRIPTIONS[input.role] },
     ],
@@ -428,6 +474,54 @@ export function familyInviteEmail(input: {
       },
     ],
     action: { label: "Open the invite", url: input.link },
+  };
+}
+
+/**
+ * A sign-in code, to the address that asked for one. The code leads the subject, where inbox
+ * previews and a phone's code autofill read it; the email has no button and no link. With an
+ * invite it's the academy's, and says what signing in leads to; without one it's CoachMan's own.
+ */
+export function signInCodeEmail(input: {
+  /** The code itself, digits only. */
+  code: string;
+  /** The address signing in. */
+  email: string;
+  /** How long the code works. */
+  minutes: number;
+  /** The inviting academy's name; null without an invite. */
+  academy: string | null;
+  invite: "staff" | "family" | null;
+}): EmailDraft {
+  const academy = input.invite && input.academy !== null ? academyName(input.academy) : null;
+  const staff = academy !== null && input.invite === "staff";
+  const family = academy !== null && input.invite === "family";
+  const then = staff ? `Then join ${academy}.` : family ? "Then accept the invite." : null;
+  return {
+    subject: `${input.code} is your CoachMan code`,
+    preheader: `Enter it on CoachMan within ${input.minutes} minutes.`,
+    academy: academy ?? "CoachMan",
+    ...(academy === null ? { brand: "coachman" as const } : {}),
+    heading: "Your sign-in code",
+    steps: [
+      {
+        state: "done",
+        title: "You asked for a code",
+        text: staff
+          ? `To join ${academy} on CoachMan as ${input.email}.`
+          : family
+            ? `To accept ${academy}'s invite as ${input.email}.`
+            : `To sign in to CoachMan as ${input.email}.`,
+      },
+      {
+        state: "now",
+        title: "Enter this code",
+        text: `It works once, for the next ${input.minutes} minutes.`,
+      },
+      { state: "next", title: "You're signed in", ...(then ? { text: then } : {}) },
+    ],
+    code: input.code,
+    footer: "Didn't ask for a code? Ignore this email: nobody can sign in without it.",
   };
 }
 

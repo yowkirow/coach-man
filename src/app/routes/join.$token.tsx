@@ -3,9 +3,10 @@ import { FAMILY_RELATION_LABELS } from "@shared/domain";
 import { STAFF_ROLE_DESCRIPTIONS, STAFF_ROLE_NOUNS } from "@shared/roles";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, KeyRound } from "lucide-react";
+import { ArrowLeft, KeyRound, Mail } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { AuthLayout, GoogleG } from "../components/auth-layout";
+import { EmailCodeForm } from "../components/email-code";
 import { Button, buttonClass } from "../components/ui/button";
 import { InlineError, Skeleton } from "../components/ui/feedback";
 import { TextField } from "../components/ui/field";
@@ -117,10 +118,10 @@ function passkeyFailure(message: string | undefined): string {
 }
 
 /**
- * Invite acceptance (/join/<token>). Staff invites: sign in with the invited Google account (or a
- * passkey) and join. Family invites: sign in with Google, create a passkey-only account (just a
- * name, no Google needed), or sign in with a passkey, then accept and land in the family portal.
- * Works signed out; Google brings people back here.
+ * Invite acceptance (/join/<token>). Staff invites: sign in as the invited address, with Google or
+ * a code by email (or a passkey), and join. Family invites: sign in with Google or a code by email,
+ * create a passkey-only account (just a name, no Google needed), or sign in with a passkey, then
+ * accept and land in the family portal. Works signed out; Google brings people back here.
  */
 function JoinPage() {
   const { token } = Route.useParams();
@@ -128,13 +129,14 @@ function JoinPage() {
   const pending = usePendingChanges();
   const [signingIn, setSigningIn] = useState<null | "google" | "passkey" | "out" | "create">(null);
   const [creating, setCreating] = useState(false);
+  const [emailing, setEmailing] = useState(false);
   const [name, setName] = useState("");
   const [nameError, setNameError] = useState<string | null>(null);
   const [signInError, setSignInError] = useState<string | null>(
     googleError
       ? /access_denied|cancel/i.test(googleError)
         ? "Google sign-in was cancelled. Try again whenever you're ready."
-        : "Google sign-in didn't finish. Try again, or use a passkey if you've added one."
+        : "Google sign-in didn't finish. Try again, or use a passkey or an emailed code."
       : null,
   );
 
@@ -434,6 +436,23 @@ function JoinPage() {
         </p>
       </State>
     );
+  } else if (!me && emailing) {
+    // Signed in, the page shows its accept button: joining stays a choice they make.
+    body = (
+      <State title={family ? familyTitle(p) : `Join ${academy}`}>
+        <EmailCodeForm
+          inviteToken={token}
+          askName
+          known
+          emailHint={family ? undefined : "The address the invite was sent to."}
+          onSignedIn={async () => {
+            await refresh();
+            setEmailing(false);
+          }}
+          onBack={() => setEmailing(false)}
+        />
+      </State>
+    );
   } else if (!me) {
     body = (
       <State
@@ -449,6 +468,18 @@ function JoinPage() {
               onPress={() => void google()}
             >
               Continue with Google
+            </Button>
+            <Button
+              variant="light"
+              size="lg"
+              icon={<Mail aria-hidden className="size-5" />}
+              isDisabled={signingIn !== null}
+              onPress={() => {
+                setSignInError(null);
+                setEmailing(true);
+              }}
+            >
+              Email me a code
             </Button>
             {family && passkeysSupported() ? (
               <Button
@@ -482,12 +513,13 @@ function JoinPage() {
         <p>
           {family
             ? familyOffer(p, academy)
-            : `${academy} invited you to CoachMan as ${inviteRole(p)}. Sign in with the Google account the invite was sent to.`}
+            : `${academy} invited you to CoachMan as ${inviteRole(p)}. Sign in with Google or a code by email, using the address the invite was sent to.`}
         </p>
-        {family && passkeysSupported() ? (
+        {family ? (
           <p className="text-[0.875rem]">
-            No Google account? Create a passkey account: just your name and your phone's screen
-            lock, no password.
+            {passkeysSupported()
+              ? "No Google account? Get a code by email, or create a passkey account: just your name and your phone's screen lock, no password."
+              : "No Google account? Get a code by email."}
           </p>
         ) : null}
         {p.kind === "staff" && p.role ? (
@@ -524,7 +556,7 @@ function JoinPage() {
             {me.emailIsPlaceholder ? me.user.name : me.user.email}
           </span>
           , but {academy} sent this invite to another email address. Sign out, then sign in with the
-          Google account it was sent to.
+          address it was sent to, with Google or a code by email.
         </p>
       </State>
     );
@@ -643,7 +675,7 @@ function JoinPage() {
               <p className="mt-4 hidden max-w-[46ch] text-[0.9375rem] text-night-ink-2 sm:block">
                 Your academy uses CoachMan. The invite opens what it shares with you: the schedule,
                 skills and goals, the comments coaches share, packages, and what's due. Sign in with
-                Google or a passkey; there's no password.
+                Google, a code by email, or a passkey; there's no password.
               </p>
             </>
           ) : (

@@ -8,6 +8,7 @@ import type { Db } from "../db/client";
 import { academyProfile, organization } from "../db/schema";
 import { auditEntry } from "../lib/audit";
 import { conflict, notFound } from "../lib/errors";
+import { appOrigin } from "../lib/page-meta";
 import { publicKey, readImage } from "../lib/uploads";
 import { v } from "../lib/validate";
 import { ctxOf, requireCap } from "../middleware";
@@ -28,8 +29,6 @@ export async function ensureAcademyProfile(db: Db, workspaceId: string): Promise
   if (!row) throw notFound("Academy");
   return row;
 }
-
-export const appOrigin = (env: Env) => env.APP_URL.replace(/\/+$/, "");
 
 export function toAcademyDto(
   org: { id: string; name: string; slug: string },

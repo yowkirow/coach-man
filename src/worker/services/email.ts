@@ -1,12 +1,12 @@
 // Email: one message to one person through Cloudflare Email Sending (the `EMAIL` binding), or into
 // the test sink, and who gets which email. What an email says lives in src/shared/email.ts.
-// Invites send in the request, so the answer can say whether the email went; enrollment and
-// payment updates to families and staff alerts run after the response (lib/defer.ts), apart from
-// the pushes (email never waits on push being set up, or on anyone having a device), each once
-// per person and thing (notification_log, as `email_<kind>`).
+// Invites and sign-in codes send in the request, so the answer can say whether the email went (a
+// code's answer never does); enrollment and payment updates to families and staff alerts run after
+// the response (lib/defer.ts), apart from the pushes (email never waits on push being set up, or on
+// anyone having a device), each once per person and thing (notification_log, as `email_<kind>`).
 
 import { and, eq } from "drizzle-orm";
-import type { FamilyRelation } from "../../shared/domain";
+import { type FamilyRelation, type InviteKind, SIGN_IN_CODE_MINUTES } from "../../shared/domain";
 import {
   type EmailDraft,
   type EmailKind,
@@ -19,6 +19,7 @@ import {
   oneLine,
   proofDecisionEmail,
   renderEmail,
+  signInCodeEmail,
   staffEnrollmentRequestEmail,
   staffInviteEmail,
   staffProofEmail,
@@ -37,9 +38,8 @@ import {
   workspaceSettings,
 } from "../db/schema";
 import { isEmailSinkEnabled } from "../lib/email-sink";
-import { publicImageUrl } from "../lib/page-meta";
+import { appOrigin, publicImageUrl } from "../lib/page-meta";
 import { inList, unique } from "../lib/sql";
-import { appOrigin } from "../routes/academy";
 import { isRenewal } from "./enrollment-core";
 import {
   decidedRequest,
@@ -326,6 +326,53 @@ export function emailFamilyInvite(
     });
     return sendEmail(db, env, compose(academy, "family_invite", input.to, replyTo, draft));
   });
+}
+
+// --- Sign-in codes (in the request) ------------------------------------------------------------
+
+/**
+ * A sign-in code, to the address that asked for one. With an invite it comes from the academy
+ * ("<Academy> via CoachMan", its logo, and what signing in leads to); without one it's CoachMan's
+ * own, under the app icon. No Reply-To: nobody reads replies to a code. Never throws, and never
+ * logs the code or the address: the person can always ask for another.
+ */
+export async function sendSignInCode(
+  db: Db,
+  env: Env,
+  input: {
+    email: string;
+    code: string;
+    invite: { workspaceId: string; kind: InviteKind } | null;
+  },
+): Promise<EmailResult> {
+  try {
+    const academy = input.invite ? await academyMail(db, env, input.invite.workspaceId) : null;
+    const draft = signInCodeEmail({
+      code: input.code,
+      email: normalize(input.email),
+      minutes: SIGN_IN_CODE_MINUTES,
+      academy: academy?.name ?? null,
+      invite: input.invite?.kind ?? null,
+    });
+    const { html, text } = renderEmail({
+      ...draft,
+      logoUrl: academy ? academy.logoUrl : `${appOrigin(env)}/icons/icon-192.png`,
+    });
+    return await sendEmail(db, env, {
+      to: input.email,
+      kind: "sign_in_code",
+      workspaceId: input.invite?.workspaceId ?? null,
+      fromName: academy ? fromNameOf(academy.name) : "CoachMan",
+      replyTo: null,
+      subject: draft.subject,
+      text,
+      html,
+    });
+  } catch (err) {
+    const code = codeOf(err);
+    console.error(`Email not sent (sign_in_code): ${code}`);
+    return { ok: false, code };
+  }
 }
 
 // --- Family updates (after the response) -------------------------------------------------------

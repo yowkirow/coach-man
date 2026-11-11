@@ -1,9 +1,10 @@
 import type { AccountDto } from "@shared/api-types";
 import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, redirect, useRouter } from "@tanstack/react-router";
-import { KeyRound } from "lucide-react";
+import { KeyRound, Mail } from "lucide-react";
 import { useState } from "react";
 import { AuthLayout, GoogleG } from "../components/auth-layout";
+import { EmailCodeForm } from "../components/email-code";
 import { Button } from "../components/ui/button";
 import { AvatarStack, KpiTile, Pill } from "../components/ui/display";
 import { InlineError } from "../components/ui/feedback";
@@ -36,10 +37,10 @@ export const Route = createFileRoute("/sign-in")({
 function errorText(code: string) {
   if (/access_denied|cancel/i.test(code))
     return "Google sign-in was cancelled. Try again whenever you're ready.";
-  return "Google sign-in didn't finish. Try again, or use a passkey if you've added one.";
+  return "Google sign-in didn't finish. Try again, or use a passkey or an emailed code.";
 }
 
-/** Where a passkey sign-in lands: parents and students go straight to their family portal. */
+/** Where a passkey or code sign-in lands: parents and students go straight to their family portal. */
 async function landingAfterSignIn(): Promise<string> {
   try {
     const account = await accountApi.get<AccountDto>();
@@ -55,7 +56,13 @@ function SignIn() {
   const qc = useQueryClient();
   const [pending, setPending] = useState<null | "passkey" | "google">(null);
   const [message, setMessage] = useState<string | null>(error ? errorText(error) : null);
+  const [emailing, setEmailing] = useState(false);
   const canPasskey = passkeysSupported();
+
+  const land = async () => {
+    await qc.invalidateQueries({ queryKey: keys.me });
+    router.history.push(next ?? (await landingAfterSignIn()));
+  };
 
   const passkey = async () => {
     setPending("passkey");
@@ -70,8 +77,7 @@ function SignIn() {
       );
       return;
     }
-    await qc.invalidateQueries({ queryKey: keys.me });
-    router.history.push(next ?? (await landingAfterSignIn()));
+    await land();
   };
 
   const google = async () => {
@@ -141,35 +147,55 @@ function SignIn() {
           <InlineError>{message}</InlineError>
         </div>
       ) : null}
-      <div className="mt-6 flex flex-col gap-3">
-        {canPasskey ? (
-          <Button
-            variant="dark"
-            size="lg"
-            icon={<KeyRound aria-hidden className="size-5" />}
-            isPending={pending === "passkey"}
-            isDisabled={pending === "google"}
-            onPress={() => void passkey()}
-          >
-            Sign in with a passkey
-          </Button>
-        ) : null}
-        <Button
-          variant="light"
-          size="lg"
-          icon={<GoogleG />}
-          isPending={pending === "google"}
-          isDisabled={pending === "passkey"}
-          onPress={() => void google()}
-        >
-          Continue with Google
-        </Button>
-      </div>
-      <p className="mt-6 text-[0.875rem] text-ink-2">
-        New to CoachMan? Coaches: continue with Google to set up your coaching or academy, then add
-        a passkey so signing in on court takes one tap. Students and parents: start from the invite
-        link your academy sent you.
-      </p>
+      {emailing ? (
+        <div className="mt-6">
+          <EmailCodeForm onSignedIn={land} onBack={() => setEmailing(false)} />
+        </div>
+      ) : (
+        <>
+          <div className="mt-6 flex flex-col gap-3">
+            {canPasskey ? (
+              <Button
+                variant="dark"
+                size="lg"
+                icon={<KeyRound aria-hidden className="size-5" />}
+                isPending={pending === "passkey"}
+                isDisabled={pending === "google"}
+                onPress={() => void passkey()}
+              >
+                Sign in with a passkey
+              </Button>
+            ) : null}
+            <Button
+              variant="light"
+              size="lg"
+              icon={<GoogleG />}
+              isPending={pending === "google"}
+              isDisabled={pending === "passkey"}
+              onPress={() => void google()}
+            >
+              Continue with Google
+            </Button>
+            <Button
+              variant="light"
+              size="lg"
+              icon={<Mail aria-hidden className="size-5" />}
+              isDisabled={pending !== null}
+              onPress={() => {
+                setMessage(null);
+                setEmailing(true);
+              }}
+            >
+              Email me a code
+            </Button>
+          </div>
+          <p className="mt-6 text-[0.875rem] text-ink-2">
+            New to CoachMan? Coaches: continue with Google to set up your coaching or academy, then
+            add a passkey so signing in on court takes one tap. Staff, students, and parents: start
+            from the invite link your academy sent you.
+          </p>
+        </>
+      )}
     </AuthLayout>
   );
 }

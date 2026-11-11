@@ -9,15 +9,15 @@ related_targets: ["src/worker/services/email.ts"]
 
 Scope: every transactional email (src/shared/email.ts renders them; src/worker/services/email.ts sends them). Mode: read. A short message opened on a phone between sessions, often in a dark-mode mail app that darkens it on its own.
 
-Audience and job: invited staff and families, people who sent an enrollment request or a payment proof, and staff with alerts on. They need to know who it's from, what happened, where things stand, and the one thing to do now, then open CoachMan.
+Audience and job: invited staff and families, people signing in with a code, people who sent an enrollment request or a payment proof, and staff with alerts on. They need to know who it's from, what happened, where things stand, and the one thing to do now, then open CoachMan.
 
-Constraints: no web fonts, scripts, or tracking; the academy's logo is the only image (the public one its website shows, the same URL for every reader). Never amounts, the academy's reasons, or health details. One small footer line. Reply-To headers carry who replies reach.
+Constraints: no web fonts, scripts, or tracking; the academy's logo is the only image (the public one its website shows, the same URL for every reader), or CoachMan's app icon in its own sign-in codes. Never amounts, the academy's reasons, or health details. One small footer line. Reply-To headers carry who replies reach.
 
 ## Direction contract
 
 THESIS: An email is a short progress line: what already happened (ink), where things stand now (the lime step, which holds the one button), and what follows (outlined). It refuses the generic transactional template: a logo bar, a wall of paragraphs, a centered button, a legal footer.
 
-OWN-WORLD: CoachMan's calm register on white. The academy's tile (logo on white, else initials on Folder Gray) beside its name and "via CoachMan"; a 32px light heading; 32px numbered circles (Ink done, Signal Lime now, an Outline Gray ring next) joined by a 2px line, Ink below done steps and Outline Gray after; an Ink pill inside the now step; Slate text; one 13px footer line. In a dark color scheme: Command Black, white done circles, Dark Outline, a lime button.
+OWN-WORLD: CoachMan's calm register on white. The academy's tile (logo on white, else initials on Folder Gray) beside its name and "via CoachMan"; a 32px light heading; 32px numbered circles (Ink done, Signal Lime now, an Outline Gray ring next) joined by a 2px line, Ink below done steps and Outline Gray after; an Ink pill inside the now step (a sign-in code instead sits there in a Folder Gray well, 32px light tabular digits); Slate text; one 13px footer line. In a dark color scheme: Command Black, white done circles, Dark Outline, a lime button.
 
 STORY: The reader sees who sent it, the heading names what it is, the line shows how far things have come, the lime step says what to do, the button does it.
 

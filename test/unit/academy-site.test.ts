@@ -12,6 +12,8 @@ import {
   lowestPriceMinor,
   nextSession,
   programVenue,
+  reelPlace,
+  reelView,
   scheduleLineParts,
   tierInclusions,
 } from "../../src/app/features/public/site-data";
@@ -226,6 +228,56 @@ describe("the hero's words", () => {
     expect(scheduleLineParts("Saturdays, 8 to 11")).toEqual({
       lead: "Saturdays, 8 to 11",
       time: "",
+    });
+  });
+});
+
+describe("the coaches reel", () => {
+  // Measured on the landing page: five cards, 64px inset and 40px gaps on a 1440px laptop.
+  const laptop = {
+    count: 5,
+    clientWidth: 1440,
+    scrollWidth: 2341.33,
+    inset: 64,
+    itemWidth: 410.67,
+    gap: 40,
+  };
+
+  it("pages three cards at a time on a laptop, ending on the last three", () => {
+    const start = reelView({ ...laptop, scrollLeft: 0 });
+    expect(start).toEqual({ first: 0, last: 2, perView: 3, canPrev: false, canNext: true });
+    expect(reelPlace(start, 5)).toBe("1–3 of 5");
+    // A page of three overshoots the end, so the browser stops at the end and the view says so.
+    const end = reelView({ ...laptop, scrollLeft: 901 });
+    expect(end).toEqual({ first: 2, last: 4, perView: 3, canPrev: true, canNext: false });
+    expect(reelPlace(end, 5)).toBe("3–5 of 5");
+  });
+
+  it("counts one card at a time on a phone, the next one peeking", () => {
+    const phone = {
+      count: 5,
+      clientWidth: 412,
+      scrollWidth: 1726.8,
+      inset: 20,
+      itemWidth: 321.36,
+      gap: 20,
+    };
+    const second = reelView({ ...phone, scrollLeft: 341 });
+    expect(second).toMatchObject({ first: 1, perView: 1, canPrev: true, canNext: true });
+    expect(reelPlace(second, 5)).toBe("2 of 5");
+  });
+
+  it("counts a card cut off by under a pixel as in view", () => {
+    const tight = reelView({ ...laptop, clientWidth: 1375.5, scrollLeft: 0 });
+    expect(tight.perView).toBe(3);
+  });
+
+  it("can't move when every card fits, or when there are none", () => {
+    const two = reelView({ ...laptop, count: 2, scrollWidth: 989.33, scrollLeft: 0 });
+    expect(two).toEqual({ first: 0, last: 1, perView: 2, canPrev: false, canNext: false });
+    expect(reelView({ ...laptop, count: 0, scrollWidth: 128, scrollLeft: 0 })).toMatchObject({
+      canPrev: false,
+      canNext: false,
     });
   });
 });

@@ -7,6 +7,7 @@ import type {
   PackageTemplateDto,
   PublicAcademyDto,
   PublicConsentDocumentDto,
+  TeamPersonDto,
 } from "../src/shared/api-types";
 import {
   expect,
@@ -251,6 +252,53 @@ test.describe("the public academy page", () => {
     await page.getByRole("main").getByRole("link", { name: "Printable rates" }).click();
     await expect(page).toHaveURL(new RegExp(`/a/${slug}/rates$`));
     await expect(page.getByRole("heading", { name: "Rates and packages" })).toBeVisible();
+    expect(errors).toEqual([]);
+    await visitor.close();
+  });
+
+  test("the coaches page sideways: three at a time on laptops, one on phones", async ({
+    browser,
+    seeded,
+  }, info) => {
+    const { api } = seeded;
+    const me = await api.get<MeDto>("/me");
+    await api.patch(`/coaches/${me.user.id}`, { isPublic: true });
+    const people: TeamPersonDto[] = [];
+    for (const name of ["Ana Cruz", "Ben Santos", "Carla Reyes", "Dino Lim"]) {
+      people.push(await api.post<TeamPersonDto>("/team-page/people", { name }));
+    }
+    const slug = await listAcademy(api, info, PROFILE);
+    const desktop = info.project.name === "desktop";
+
+    const visitor = await browser.newContext({ serviceWorkers: "block" });
+    const page = await visitor.newPage();
+    const errors = watchErrors(page);
+    await visit(page, `/a/${slug}`);
+    const team = page.getByRole("region", { name: "The team" });
+    await expect(team.getByRole("article")).toHaveCount(5);
+    for (const person of people) {
+      await expect(team.getByRole("link", { name: person.name })).toHaveAttribute(
+        "href",
+        `/a/${slug}/team#coach-${person.id}`,
+      );
+    }
+
+    // The arrows page by what fits in view and stop at the ends; the counter says where it is,
+    // and screen readers hear it once the move settles.
+    const place = team.locator("p.num").filter({ visible: true });
+    const said = team.locator('[aria-live="polite"]');
+    const prev = team.getByRole("button", { name: "Previous coaches" });
+    const next = team.getByRole("button", { name: "Next coaches" });
+    await expect(place).toHaveText(desktop ? "1–3 of 5" : "1 of 5");
+    await expect(prev).toHaveAttribute("aria-disabled", "true");
+    await next.click();
+    await expect(place).toHaveText(desktop ? "3–5 of 5" : "2 of 5");
+    await expect(said).toHaveText(desktop ? "Coaches 3 to 5 of 5" : "Coach 2 of 5");
+    await expect(prev).toHaveAttribute("aria-disabled", "false");
+    await expect(next).toHaveAttribute("aria-disabled", desktop ? "true" : "false");
+    await prev.click();
+    await expect(place).toHaveText(desktop ? "1–3 of 5" : "1 of 5");
+    await expect(prev).toHaveAttribute("aria-disabled", "true");
     expect(errors).toEqual([]);
     await visitor.close();
   });

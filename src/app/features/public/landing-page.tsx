@@ -2,7 +2,8 @@ import type { PublicAcademyDto, PublicCoachDto } from "@shared/api-types";
 import { ACADEMY_SOCIAL_LABELS, ACADEMY_SOCIALS } from "@shared/domain";
 import { framingOr, SCENE_FRAMING } from "@shared/framing";
 import { Link } from "@tanstack/react-router";
-import { ArrowDown, ArrowRight, ArrowUpRight, Medal, Printer } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUpRight, Medal, Printer } from "lucide-react";
+import { type CSSProperties, useLayoutEffect, useRef, useState } from "react";
 import { publicFileUrl } from "../../lib/api";
 import type { Format } from "../../lib/format";
 import { TeamPortrait } from "./people";
@@ -27,10 +28,14 @@ import { CONTACT_ICON, canEnroll, contactLabel, Policies, previewSearch, SiteFra
 import { PackageEnroll, PackageGroups, ProgramPanel, programWhen, StepsPanel } from "./site-blocks";
 import {
   academyVenues,
+  displayEm,
   firstSentence,
   heroPhoto,
   lowestPriceMinor,
   nextSession,
+  type ReelView,
+  reelPlace,
+  reelView,
 } from "./site-data";
 import { programsOf, programTeams } from "./team";
 import { contactActions, directionsUrl } from "./text";
@@ -422,42 +427,52 @@ function OnCourt({ academy }: { academy: PublicAcademyDto }) {
 // Coaches
 // ---------------------------------------------------------------------------------------------
 
-/**
- * A coach as the pubmat features one: the photo stuck on with their DUPR as a sticker, the name
- * huge, their certifications as stickers, highlights, and what they coach; their specialties run
- * on a strip under them.
- */
-function CoachFeature({
-  person,
-  programs,
-  flip,
-  slug,
-  preview,
-  level,
-}: {
-  person: PublicCoachDto;
-  programs: string[];
-  flip: boolean;
-  slug: string;
-  preview: boolean;
-  level: 2 | 3;
-}) {
-  const Name = `h${level}` as "h2" | "h3";
-  const { name, title } = coachHeading(person);
+/** What a parent weighs at a glance: years coaching and languages, as one line. */
+function coachFacts(person: PublicCoachDto): string | null {
   const years = person.yearsCoaching;
   const facts = [
     years ? `${years} ${years === 1 ? "year" : "years"} coaching` : null,
     person.languages.length ? person.languages.join(", ") : null,
   ].filter((f): f is string => Boolean(f));
+  return facts.length ? facts.join(" · ") : null;
+}
+
+/** "Coaches the Evening program.", or a list of the programs they coach. */
+function coachesLine(programs: string[]): string | null {
+  if (!programs.length) return null;
+  const list =
+    programs.length === 1
+      ? programs[0]
+      : `${programs.slice(0, -1).join(", ")} and ${programs.at(-1)}`;
+  return `Coaches the ${list}.`;
+}
+
+/**
+ * An academy's only coach, as the pubmat features one: the photo stuck on with their DUPR as a
+ * sticker, the name huge, their certifications as stickers, highlights, and what they coach; their
+ * specialties run on a strip under them.
+ */
+function CoachFeature({
+  person,
+  programs,
+  slug,
+  preview,
+}: {
+  person: PublicCoachDto;
+  programs: string[];
+  slug: string;
+  preview: boolean;
+}) {
+  const { name, title } = coachHeading(person);
+  const facts = coachFacts(person);
+  const coaches = coachesLine(programs);
   const nameId = `coach-${person.id}-name`;
   return (
     <article aria-labelledby={nameId}>
       <div
-        className={`${WRAP} grid gap-[30px] lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:items-center lg:gap-x-20 ${flip ? "lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]" : ""}`}
+        className={`${WRAP} grid gap-[30px] lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:items-center lg:gap-x-20`}
       >
-        <div
-          className={`relative ml-2.5 w-[min(100%,280px)] lg:mx-auto lg:w-[min(100%,430px)] ${flip ? "lg:order-2" : ""}`}
-        >
+        <div className="relative ml-2.5 w-[min(100%,280px)] lg:mx-auto lg:w-[min(100%,430px)]">
           <Link
             to="/a/$slug/team"
             params={{ slug }}
@@ -482,9 +497,9 @@ function CoachFeature({
           ) : null}
         </div>
         <div className="min-w-0">
-          <Name id={nameId} className="pm-d1 text-[4.25rem] break-words lg:text-[6rem]">
+          <h2 id={nameId} className="pm-d1 text-[4.25rem] break-words lg:text-[6rem]">
             {name}
-          </Name>
+          </h2>
           {title ? <p className="pm-d2 mt-2 text-[1.5rem] lg:text-[1.875rem]">{title}</p> : null}
           {person.certifications.length ? (
             <div className="mt-5 flex flex-wrap items-center gap-x-3.5 gap-y-2.5">
@@ -506,9 +521,9 @@ function CoachFeature({
               </ul>
             </div>
           ) : null}
-          {facts.length ? (
+          {facts ? (
             <p className="mt-[18px] text-[1.25rem] leading-snug font-semibold lg:text-[1.375rem]">
-              {facts.join(" · ")}
+              {facts}
             </p>
           ) : null}
           {person.highlights.length ? (
@@ -526,21 +541,15 @@ function CoachFeature({
               {firstSentence(person.bio, 280) ?? person.bio}
             </p>
           ) : null}
-          {programs.length ? (
-            <p className="mt-2 max-w-[46ch] text-[1.0625rem] text-pretty">
-              Coaches the{" "}
-              {programs.length === 1
-                ? programs[0]
-                : `${programs.slice(0, -1).join(", ")} and ${programs.at(-1)}`}
-              .
-            </p>
+          {coaches ? (
+            <p className="mt-2 max-w-[46ch] text-[1.0625rem] text-pretty">{coaches}</p>
           ) : null}
         </div>
       </div>
       {person.specialties.length ? (
         <Strip className="mt-[34px] mb-[46px] lg:mt-14 lg:mb-[84px]">
           <p
-            className={`${WRAP} pm-d1 text-[1.625rem] leading-[1.06] tracking-[0.01em] lg:text-[2.75rem] ${flip ? "lg:text-left" : "lg:text-right"}`}
+            className={`${WRAP} pm-d1 text-[1.625rem] leading-[1.06] tracking-[0.01em] lg:text-right lg:text-[2.75rem]`}
           >
             <span className="sr-only">Specialties: </span>
             {person.specialties.join(" · ")}
@@ -553,7 +562,327 @@ function CoachFeature({
   );
 }
 
-/** The coaches on a white field: up to three featured, then the rest of the team on its page. */
+/** Neighbors turn opposite ways, a degree or two off true (the Slapped-On Rule). */
+const cardTurn = (i: number) => (i % 2 ? 1 : -1) * [2, 1.5, 1][i % 3]!;
+
+/**
+ * One coach on the reel: their portrait stuck on (at most 416px wide), with their DUPR as a
+ * sticker over its corner, the name in display caps (shrunk only when its longest word can't fit
+ * the card), the title, years and languages, certifications as stickers, specialties, and what
+ * they coach. The name opens their space on the team page, and the whole card answers a tap;
+ * highlights and their about wait there.
+ */
+function CoachCard({
+  person,
+  programs,
+  index,
+  slug,
+  preview,
+}: {
+  person: PublicCoachDto;
+  programs: string[];
+  index: number;
+  slug: string;
+  preview: boolean;
+}) {
+  const { name, title } = coachHeading(person);
+  const facts = coachFacts(person);
+  const coaches = coachesLine(programs);
+  const nameId = `coach-${person.id}-name`;
+  const fit = {
+    "--name-em": Math.max(0.5, ...name.split(/\s+/).map(displayEm)).toFixed(3),
+  } as CSSProperties;
+  return (
+    <article aria-labelledby={nameId} className="group relative">
+      <div className="relative mx-1.5 max-w-[26rem]">
+        <span
+          className="block overflow-hidden rounded-[18px] border-8 border-white bg-white ring-2 ring-club-mist"
+          style={{ rotate: `${cardTurn(index)}deg` }}
+        >
+          <TeamPortrait person={person} size="lg" />
+        </span>
+        {person.duprRating != null ? (
+          <RoundSticker
+            label={`DUPR rating ${person.duprRating.toFixed(2)}`}
+            top="DUPR"
+            figure={person.duprRating.toFixed(2)}
+            tone="lime"
+            rot={index % 2 ? 7 : -8}
+            className="absolute -top-6 -left-3 z-[2] w-[100px] text-[0.8125rem] lg:-top-7 lg:-left-4 lg:w-[116px] lg:text-[0.9375rem]"
+          />
+        ) : null}
+      </div>
+      <h3
+        id={nameId}
+        style={fit}
+        className="pm-d1 mt-7 text-[min(3.25rem,calc(100cqi*0.96/var(--name-em)))] break-words lg:text-[min(3.5rem,calc(100cqi*0.96/var(--name-em)))]"
+      >
+        <Link
+          to="/a/$slug/team"
+          params={{ slug }}
+          search={previewSearch(preview)}
+          hash={`coach-${person.id}`}
+          className="decoration-[3px] underline-offset-[5px] group-hover:underline focus-visible:outline-none after:absolute after:-inset-3 after:z-[3] after:rounded-[26px] focus-visible:after:outline-[3px] focus-visible:after:outline-[color:var(--focus)] focus-visible:after:outline-solid"
+        >
+          {name}
+        </Link>
+      </h3>
+      {title ? <p className="pm-d2 mt-2 text-[1.375rem]">{title}</p> : null}
+      {facts ? <p className="mt-3 text-[1.0625rem] leading-snug font-semibold">{facts}</p> : null}
+      {person.certifications.length ? (
+        <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2.5">
+          <span aria-hidden className="text-[0.9375rem] font-semibold">
+            Certifications
+          </span>
+          <ul aria-label="Certifications" className="flex flex-wrap gap-2.5">
+            {person.certifications.map((c, i) => (
+              <li key={c}>
+                <Sticker
+                  tone="blue"
+                  rot={i % 2 ? 2.5 : -2.5}
+                  className="text-[1rem] whitespace-normal normal-case"
+                >
+                  {c}
+                </Sticker>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      {person.specialties.length ? (
+        <ul aria-label="Specialties" className="mt-4 flex flex-wrap gap-2">
+          {person.specialties.map((s) => (
+            <li
+              key={s}
+              className="rounded-md border-[1.5px] border-club-ink/70 px-2.5 pt-[5px] pb-1.5 text-[0.9375rem] leading-tight font-bold"
+            >
+              {s}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {coaches ? <p className="mt-3 text-[1rem] text-pretty">{coaches}</p> : null}
+    </article>
+  );
+}
+
+const REEL_ID = "coach-reel";
+
+/** A card's width on the reel: 78% of a phone (at most 352px), three to the column from 1024px. */
+const REEL_ITEM = "w-[78vw] max-w-[22rem] lg:w-[calc((min(100cqw,90rem)-13rem)/3)] lg:max-w-none";
+/** Two coaches split the column from 640px instead, so the row never ends a card short. */
+const PAIR_ITEM =
+  "w-[78vw] max-w-[22rem] sm:w-[calc((100cqw-3.75rem)/2)] sm:max-w-none lg:w-[calc((min(100cqw,90rem)-10.5rem)/2)]";
+
+/**
+ * A sideways reel's place, measured as it scrolls and as it resizes: what's in view, and whether
+ * it moves each way. `go` pages by what fits in view (one card on phones, three on laptops), and
+ * `said` is the place in words for screen readers, once a move settles.
+ */
+function useReel(count: number) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [view, setView] = useState<ReelView>({
+    first: 0,
+    last: count - 1,
+    perView: count,
+    canPrev: false,
+    canNext: false,
+  });
+  const [said, setSaid] = useState("");
+  // Before paint, so the arrows never flash in or out.
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const read = () => {
+      const list = el.firstElementChild;
+      const item = list?.firstElementChild;
+      if (!list || !item) return null;
+      const box = item.getBoundingClientRect();
+      return reelView({
+        count,
+        scrollLeft: el.scrollLeft,
+        clientWidth: el.clientWidth,
+        scrollWidth: el.scrollWidth,
+        inset: box.left - el.getBoundingClientRect().left + el.scrollLeft,
+        itemWidth: box.width,
+        gap: Number.parseFloat(getComputedStyle(list).columnGap) || 0,
+      });
+    };
+    const update = () => {
+      const next = read();
+      if (!next) return;
+      setView((old) =>
+        old.first === next.first &&
+        old.last === next.last &&
+        old.perView === next.perView &&
+        old.canPrev === next.canPrev &&
+        old.canNext === next.canNext
+          ? old
+          : next,
+      );
+    };
+    let quiet: ReturnType<typeof setTimeout> | undefined;
+    const onScroll = () => {
+      update();
+      clearTimeout(quiet);
+      quiet = setTimeout(() => {
+        const now = read();
+        if (!now) return;
+        setSaid(
+          now.first === now.last
+            ? `Coach ${now.first + 1} of ${count}`
+            : `Coaches ${now.first + 1} to ${now.last + 1} of ${count}`,
+        );
+      }, 250);
+    };
+    update();
+    el.addEventListener("scroll", onScroll, { passive: true });
+    const resize = new ResizeObserver(update);
+    resize.observe(el);
+    return () => {
+      clearTimeout(quiet);
+      el.removeEventListener("scroll", onScroll);
+      resize.disconnect();
+    };
+  }, [count]);
+  const go = (dir: -1 | 1) => {
+    const el = ref.current;
+    const list = el?.firstElementChild;
+    const item = list?.firstElementChild;
+    if (!el || !list || !item || !(dir < 0 ? view.canPrev : view.canNext)) return;
+    const step =
+      item.getBoundingClientRect().width +
+      (Number.parseFloat(getComputedStyle(list).columnGap) || 0);
+    const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    el.scrollBy({ left: dir * view.perView * step, behavior: still ? "auto" : "smooth" });
+  };
+  return { ref, view, said, go };
+}
+
+const ARROW =
+  "inline-flex size-[52px] shrink-0 items-center justify-center rounded-full text-club-ink ring-2 ring-club-ink ring-inset transition-colors duration-150 hover:bg-club-ink hover:text-white focus-visible:outline-[3px] focus-visible:outline-offset-[3px] aria-disabled:cursor-default aria-disabled:opacity-30 aria-disabled:hover:bg-transparent aria-disabled:hover:text-club-ink";
+
+/** Where the reel stands ("1–3 of 5") and its two arrows, which page it by what fits in view. */
+function ReelControls({
+  reel,
+  count,
+  className,
+}: {
+  reel: ReturnType<typeof useReel>;
+  count: number;
+  className: string;
+}) {
+  return (
+    <div className={`items-center gap-3 ${className}`}>
+      <p aria-hidden className="pm-d2 num mr-1 text-[1.375rem] whitespace-nowrap">
+        {reelPlace(reel.view, count)}
+      </p>
+      <button
+        type="button"
+        aria-controls={REEL_ID}
+        aria-disabled={!reel.view.canPrev}
+        onClick={() => reel.go(-1)}
+        className={ARROW}
+      >
+        <ArrowLeft aria-hidden className="size-5" />
+        <span className="sr-only">Previous coaches</span>
+      </button>
+      <button
+        type="button"
+        aria-controls={REEL_ID}
+        aria-disabled={!reel.view.canNext}
+        onClick={() => reel.go(1)}
+        className={ARROW}
+      >
+        <ArrowRight aria-hidden className="size-5" />
+        <span className="sr-only">Next coaches</span>
+      </button>
+    </div>
+  );
+}
+
+/**
+ * Every public coach on a sideways reel of cards: three in view on laptops (the next one peeking
+ * past the column on wide screens), one on phones with the next peeking. Visitors swipe or use the
+ * arrows; nothing moves on its own. The cards snap to the column's edge. Two coaches split the
+ * column from 640px, so neither the row nor the arrows show a gap.
+ */
+function CoachReel({
+  academy,
+  slug,
+  preview,
+}: {
+  academy: PublicAcademyDto;
+  slug: string;
+  preview: boolean;
+}) {
+  const coaches = academy.coaches;
+  const teams = programTeams(academy);
+  const reel = useReel(coaches.length);
+  const moves = reel.view.perView < coaches.length;
+  const pair = coaches.length === 2;
+  return (
+    <Panel
+      field="white"
+      id="coaches"
+      labelledBy="coaches-title"
+      className="pt-[60px] pb-14 lg:pt-[100px] lg:pb-24"
+    >
+      <div className={`${WRAP} flex items-end justify-between gap-8`}>
+        <h2 id="coaches-title" className="pm-d1 text-[4.5rem] lg:text-[6rem]">
+          The team
+        </h2>
+        {moves ? (
+          <ReelControls reel={reel} count={coaches.length} className="hidden lg:flex" />
+        ) : null}
+      </div>
+      <div
+        ref={reel.ref}
+        id={REEL_ID}
+        className="@container mt-3 snap-x snap-mandatory scroll-pl-5 overflow-x-auto overscroll-x-contain [scrollbar-width:none] lg:mt-5 lg:scroll-pl-[max(4rem,calc((100%-82rem)/2))]"
+      >
+        <ul className="flex w-max gap-5 px-5 pt-9 pb-8 lg:gap-10 lg:px-[max(4rem,calc((100%-82rem)/2))]">
+          {coaches.map((p, i) => (
+            <li
+              key={p.id}
+              className={`@container shrink-0 snap-start ${pair ? PAIR_ITEM : REEL_ITEM}`}
+            >
+              <CoachCard
+                person={p}
+                programs={programsOf(teams, p.id).map((x) => x.name)}
+                index={i}
+                slug={slug}
+                preview={preview}
+              />
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div className={`${WRAP} flex flex-wrap items-center gap-x-6 gap-y-5`}>
+        {moves ? (
+          <ReelControls reel={reel} count={coaches.length} className="flex lg:hidden" />
+        ) : null}
+        <Link
+          to="/a/$slug/team"
+          params={{ slug }}
+          search={previewSearch(preview)}
+          className={pillClass("outlineInk")}
+        >
+          Meet the team
+          <ArrowRight aria-hidden className="size-5" />
+        </Link>
+      </div>
+      <p aria-live="polite" className="sr-only">
+        {reel.said}
+      </p>
+    </Panel>
+  );
+}
+
+/**
+ * The coaches on a white field: an academy's only coach featured as the pubmat would, two or more
+ * on the reel, then the whole team on its page.
+ */
 function Coaches({
   academy,
   slug,
@@ -563,38 +892,17 @@ function Coaches({
   slug: string;
   preview: boolean;
 }) {
-  if (!academy.coaches.length) return null;
-  const teams = programTeams(academy);
-  const shown = academy.coaches.slice(0, 3);
-  const several = academy.coaches.length > 1;
+  const [only, ...rest] = academy.coaches;
+  if (!only) return null;
+  if (rest.length) return <CoachReel academy={academy} slug={slug} preview={preview} />;
   return (
-    <Panel
-      field="white"
-      id="coaches"
-      labelledBy={several ? "coaches-title" : undefined}
-      label="The team"
-      className="pt-[60px] lg:pt-[100px]"
-    >
-      {several ? (
-        <div className={`${WRAP} mb-12 lg:mb-16`}>
-          <h2 id="coaches-title" className="pm-d1 text-[4.5rem] lg:text-[6rem]">
-            The team
-          </h2>
-        </div>
-      ) : null}
-      <div className="flex flex-col">
-        {shown.map((p, i) => (
-          <CoachFeature
-            key={p.id}
-            person={p}
-            programs={programsOf(teams, p.id).map((x) => x.name)}
-            flip={i % 2 === 1}
-            slug={slug}
-            preview={preview}
-            level={several ? 3 : 2}
-          />
-        ))}
-      </div>
+    <Panel field="white" id="coaches" label="The team" className="pt-[60px] lg:pt-[100px]">
+      <CoachFeature
+        person={only}
+        programs={programsOf(programTeams(academy), only.id).map((x) => x.name)}
+        slug={slug}
+        preview={preview}
+      />
       <div className={`${WRAP} -mt-4 pb-14 lg:-mt-8 lg:pb-20`}>
         <Link
           to="/a/$slug/team"
@@ -602,9 +910,7 @@ function Coaches({
           search={previewSearch(preview)}
           className={pillClass("outlineInk")}
         >
-          {academy.coaches.length > shown.length
-            ? `Meet all ${academy.coaches.length} on the team`
-            : "Meet the team"}
+          Meet the team
           <ArrowRight aria-hidden className="size-5" />
         </Link>
       </div>

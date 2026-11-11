@@ -253,3 +253,55 @@ export function fitLines(
   const { lines, em, slot } = found;
   return slot ? { lines, em, slot } : { lines, em };
 }
+
+// ---------------------------------------------------------------------------------------------
+// Reels: the landing page's coaches, a sideways row that pages with its arrows
+// ---------------------------------------------------------------------------------------------
+
+/** Where a sideways reel stands: the items in view, and whether it can move each way. */
+export interface ReelView {
+  /** The first item in view, and the last one wholly in view (indexes). */
+  first: number;
+  last: number;
+  /** How many items fit in view at once: what an arrow moves by. */
+  perView: number;
+  canPrev: boolean;
+  canNext: boolean;
+}
+
+/**
+ * A reel's view from its measurements: its scroll position and size, where its first item starts
+ * (the reel's own inset, which the items snap to), one item's width, and the gap between items.
+ * At the end, the last items are the ones in view, however far the final page reaches.
+ */
+export function reelView(m: {
+  count: number;
+  scrollLeft: number;
+  clientWidth: number;
+  scrollWidth: number;
+  inset: number;
+  itemWidth: number;
+  gap: number;
+}): ReelView {
+  const step = m.itemWidth + m.gap;
+  if (m.count < 1 || step <= 0) {
+    return { first: 0, last: 0, perView: 1, canPrev: false, canNext: false };
+  }
+  // A pixel of slack: sizes come in fractions, and a whole item shouldn't count as cut off.
+  const fits = Math.floor((m.clientWidth - m.inset + m.gap + 1) / step);
+  const perView = Math.min(m.count, Math.max(1, fits));
+  const end = Math.max(0, m.scrollWidth - m.clientWidth);
+  const canPrev = m.scrollLeft > 1;
+  const canNext = m.scrollLeft < end - 1;
+  const first = canNext
+    ? Math.min(m.count - 1, Math.max(0, Math.round(m.scrollLeft / step)))
+    : Math.max(0, m.count - perView);
+  return { first, last: Math.min(m.count - 1, first + perView - 1), perView, canPrev, canNext };
+}
+
+/** What a reel's counter shows: "2 of 5" one at a time, "1–3 of 5" a page at a time. */
+export function reelPlace(view: ReelView, count: number): string {
+  return view.perView === 1 || view.first === view.last
+    ? `${view.first + 1} of ${count}`
+    : `${view.first + 1}–${view.last + 1} of ${count}`;
+}

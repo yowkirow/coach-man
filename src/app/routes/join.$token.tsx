@@ -1,6 +1,6 @@
 import type { AccountDto, InviteAcceptedDto, InvitePreviewDto } from "@shared/api-types";
 import { FAMILY_RELATION_LABELS } from "@shared/domain";
-import { STAFF_ROLE_NOUNS } from "@shared/roles";
+import { STAFF_ROLE_DESCRIPTIONS, STAFF_ROLE_NOUNS } from "@shared/roles";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, KeyRound } from "lucide-react";
@@ -9,7 +9,6 @@ import { AuthLayout, GoogleG } from "../components/auth-layout";
 import { Button, buttonClass } from "../components/ui/button";
 import { InlineError, Skeleton } from "../components/ui/feedback";
 import { TextField } from "../components/ui/field";
-import { ROLE_DESCRIPTIONS } from "../features/team/team";
 import {
   ApiRequestError,
   accountApi,
@@ -492,7 +491,7 @@ function JoinPage() {
           </p>
         ) : null}
         {p.kind === "staff" && p.role ? (
-          <p className="text-[0.875rem]">{ROLE_DESCRIPTIONS[p.role]}</p>
+          <p className="text-[0.875rem]">{STAFF_ROLE_DESCRIPTIONS[p.role]}</p>
         ) : null}
         {signInError ? <InlineError>{signInError}</InlineError> : null}
       </State>
@@ -606,7 +605,7 @@ function JoinPage() {
           {family ? familyAcceptLine(p) : `You'll join as ${inviteRole(p)}.`}
         </p>
         {p.kind === "staff" && p.role ? (
-          <p className="text-[0.875rem]">{ROLE_DESCRIPTIONS[p.role]}</p>
+          <p className="text-[0.875rem]">{STAFF_ROLE_DESCRIPTIONS[p.role]}</p>
         ) : null}
         {blocked ? (
           <p className="rounded-2xl bg-amber-soft px-4 py-3 text-[0.875rem] text-ink">

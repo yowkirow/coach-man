@@ -7,6 +7,7 @@ import type {
 import { inviteEmailNote } from "@shared/email";
 import {
   isCoachingRole,
+  STAFF_ROLE_DESCRIPTIONS,
   STAFF_ROLE_LABELS,
   STAFF_ROLE_NOUNS,
   STAFF_ROLES,
@@ -31,14 +32,6 @@ import { clearLocalData, useOnline } from "../../lib/offline";
 import { keys } from "../../lib/query";
 import { SectionHead } from "../clients/bits";
 import { OfflineNote } from "../settings/offline";
-
-export const ROLE_DESCRIPTIONS: Record<StaffRole, string> = {
-  owner: "Everything an admin does, plus owners and the academy itself.",
-  admin: "Runs the academy: the team, money, rates and programs, and settings.",
-  front_desk:
-    "Payments, enrollments, check-in, the schedule, and family invites. Doesn't coach; no prices, settings, or team.",
-  coach: "Students, progress, the schedule, and check-in. No prices or payments.",
-};
 
 const ROLE_TONES: Record<StaffRole, PillTone> = {
   owner: "lavender",
@@ -116,7 +109,7 @@ function RoleOptions({
           </span>
           <span className="min-w-0">
             <span className="block font-medium">{STAFF_ROLE_LABELS[r]}</span>
-            <span className="block text-[0.8125rem] text-ink-2">{ROLE_DESCRIPTIONS[r]}</span>
+            <span className="block text-[0.8125rem] text-ink-2">{STAFF_ROLE_DESCRIPTIONS[r]}</span>
           </span>
         </Radio>
       ))}
@@ -750,7 +743,7 @@ export function TeamPanel({ team }: { team?: TeamDto }) {
         {STAFF_ROLES.map((r) => (
           <div key={r} className="rounded-[24px] bg-night-2 p-4">
             <p className="text-[1rem]">{STAFF_ROLE_LABELS[r]}</p>
-            <p className="mt-1 text-[0.8125rem] text-night-ink-2">{ROLE_DESCRIPTIONS[r]}</p>
+            <p className="mt-1 text-[0.8125rem] text-night-ink-2">{STAFF_ROLE_DESCRIPTIONS[r]}</p>
           </div>
         ))}
       </section>

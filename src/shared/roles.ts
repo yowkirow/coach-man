@@ -19,6 +19,15 @@ export const STAFF_ROLE_NOUNS: Record<StaffRole, string> = {
   coach: "a coach",
 };
 
+/** What each role does, in a line: the team's role pickers, the join page, and the invite email. */
+export const STAFF_ROLE_DESCRIPTIONS: Record<StaffRole, string> = {
+  owner: "Everything an admin does, plus owners and the academy itself.",
+  admin: "Runs the academy: the team, money, rates and programs, and settings.",
+  front_desk:
+    "Payments, enrollments, check-in, the schedule, and family invites. Doesn't coach; no prices, settings, or team.",
+  coach: "Students, progress, the schedule, and check-in. No prices or payments.",
+};
+
 export const CAPABILITIES = {
   /** Prices, payments, charges, balances, revenue, selling packages, statements. */
   money: ["owner", "admin", "front_desk"],

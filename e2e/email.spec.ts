@@ -41,6 +41,8 @@ test.describe("invite emails", () => {
     const email = testEmail("email-desk", info);
     const owner = await seeded.api.get<MeDto>("/me");
     const academy = owner.workspace.name;
+    // The email names the inviter as the team knows them: their coach profile's name.
+    await seeded.api.patch(`/coaches/${owner.user.id}`, { displayName: "Coach Casey" });
     const errors = watchErrors(page);
 
     await visit(page, "/team");
@@ -67,12 +69,13 @@ test.describe("invite emails", () => {
     expect(sent.subject).toBe(`Join ${academy} on CoachMan`);
     expect(sent.fromName).toBe(`${academy} via CoachMan`);
     expect(sent.replyTo).toBe(seeded.email);
-    expect(sent.text).toContain(
-      `${owner.user.name} invited you to join ${academy} on CoachMan as front desk staff.`,
-    );
-    expect(sent.text).toContain(`Sign in with Google as ${email}.`);
+    expect(sent.text).toContain("1. Coach Casey invited you\nTo join as front desk staff.");
+    expect(sent.text).not.toContain(owner.user.name);
+    expect(sent.text).toContain(`2. Sign in with Google\nUse the Google account for ${email}.`);
     expect(sent.text).toContain("The link works once, until ");
-    expect(sent.text).toContain(`Reply to this email to reach ${owner.user.name}.`);
+    // The small print is one line.
+    expect(sent.text.trimEnd().endsWith(`\n\nSent with CoachMan for ${academy}`)).toBe(true);
+    expect(sent.text).not.toContain("Reply to this email");
     expect(actionLink(sent)).toBe(link);
     expect(sent.html).toContain(`href="${link}"`);
     expect(errors).toEqual([]);
@@ -94,7 +97,7 @@ test.describe("invite emails", () => {
     });
     expect([first.emailedTo, first.emailError]).toEqual([coach, null]);
     const toCoach = await firstEmailTo(seeded.request, coach, "staff_invite");
-    expect(toCoach.text).toContain(`join ${academy} on CoachMan as a coach.`);
+    expect(toCoach.text).toContain("To join as a coach.");
     expect(actionLink(toCoach)).toBe(first.link);
     const again = await seeded.api.post<StaffInviteCreatedDto>("/team/invites", {
       email: coach,
@@ -136,12 +139,11 @@ test.describe("invite emails", () => {
     const sent = await firstEmailTo(seeded.request, guardianEmail, "family_invite");
     expect(sent.subject).toBe(`${academy} invited you to its family portal`);
     expect(sent.fromName).toBe(`${academy} via CoachMan`);
-    expect(sent.text).toContain(`${academy} invited you to follow Mia's training on CoachMan`);
+    expect(sent.text).toContain(`1. ${academy} invited you\nTo follow Mia's training on CoachMan.`);
     expect(sent.text).toContain("Sign in with Google, or create a passkey on your phone.");
     expect(sent.text).toContain(`Open the invite: ${link}`);
-    // The academy has no contact email yet: nobody reads replies.
+    // The academy has no contact email yet: replies reach nobody.
     expect(sent.replyTo).toBeNull();
-    expect(sent.text).toContain("Replies to this address aren't read.");
 
     // Cleared: a link to share, and no email.
     await card.getByRole("button", { name: "Invite parent / guardian" }).click();
@@ -172,7 +174,6 @@ test.describe("invite emails", () => {
     expect(withReplies.emailedTo).toBe(other);
     const replied = await firstEmailTo(seeded.request, other, "family_invite");
     expect(replied.replyTo).toBe(CONTACT);
-    expect(replied.text).toContain(`Reply to this email to reach ${academy}.`);
   });
 });
 
@@ -221,17 +222,14 @@ test.describe("enrollment and payment emails", () => {
     expect(received.text).toContain(`${ACADEMY} will review it and let you know.`);
     expect(pathOf(actionLink(received))).toBe(`/my/${sent.clientId}/payments`);
     expect(received.replyTo).toBe(CONTACT);
-    expect(received.text).toContain(`Reply to this email to reach ${ACADEMY}.`);
 
     for (const address of [seeded.email, desk]) {
       const alert = await firstEmailTo(seeded.request, address, "staff_enrollment_request");
       expect(alert.subject).toBe("New enrollment request for Mia");
-      expect(alert.text).toContain("Student: Mia");
-      expect(alert.text).toContain("Package: Monthly");
+      expect(alert.text).toContain("1. Request sent\nFor Mia: Monthly.");
       expect(alert.text).not.toContain("Santos");
       expect(pathOf(actionLink(alert))).toBe(`/enrollments/${sent.request.id}`);
       expect(alert.replyTo).toBeNull();
-      expect(alert.text).toContain("Replies to this address aren't read.");
     }
 
     // Nobody else: not the coach, not the admin who turned alerts off, and each once.
@@ -329,7 +327,8 @@ test.describe("enrollment and payment emails", () => {
     for (const address of [seeded.email, desk]) {
       const alert = await firstEmailTo(seeded.request, address, "staff_proof");
       expect(alert.subject).toBe("Payment proof to review for Mia");
-      expect(alert.text).toContain("For Mia. Review it in Money.");
+      expect(alert.text).toContain("1. Payment proof sent\nFor Mia.");
+      expect(alert.text).toContain("Confirm it in Money, or mark it not accepted.");
       expect(pathOf(actionLink(alert))).toBe("/money");
       expect(`${alert.subject}\n${alert.text}\n${alert.html}`).not.toMatch(/3,000|3000|₱/);
     }

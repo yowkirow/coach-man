@@ -7,9 +7,9 @@
 // links to CoachMan for the rest.
 
 import { type FamilyRelation, isPlaceholderEmail } from "./domain";
-import { FAMILY_SIGN_IN, familyInviteWhat } from "./family";
+import { FAMILY_SIGN_IN } from "./family";
 import { firstNameOf } from "./notifications";
-import { STAFF_ROLE_NOUNS, type StaffRole } from "./roles";
+import { STAFF_ROLE_DESCRIPTIONS, STAFF_ROLE_NOUNS, type StaffRole } from "./roles";
 
 export const EMAIL_KINDS = [
   "staff_invite",
@@ -55,18 +55,36 @@ export interface EmailAction {
   url: string;
 }
 
+/**
+ * Where a step stands on an email's progress line: done (an ink circle), now (a lime circle, and
+ * the step that holds the button), or next (an outlined circle).
+ */
+export type EmailStepState = "done" | "now" | "next";
+
+/**
+ * One step on the progress line. Its title says where it stands in words, so the email reads
+ * without its colors: done steps in the past ("Ana invited you"), the step that's now as where
+ * things stand or what to do ("Sign in with Google"), next steps as what follows.
+ */
+export interface EmailStep {
+  state: EmailStepState;
+  title: string;
+  text?: string;
+}
+
 /** What an email says, before it's rendered. */
 export interface EmailContent {
+  /** The academy's name, in the header and the footer. */
+  academy: string;
+  /** The academy's logo as an absolute public link, or null: its initials stand in. */
+  logoUrl?: string | null;
   /** The inbox's preview line (hidden in the email itself). */
   preheader?: string;
   heading: string;
-  paragraphs: string[];
-  /** The one button, with its link written out underneath. */
+  /** The progress line, first to last: what's done, the one step that's now, what's next. */
+  steps: EmailStep[];
+  /** The one button, inside the step that's now, with its link written out under the steps. */
   action?: EmailAction;
-  /** Label and value rows, e.g. ["Package", "Monthly"]. */
-  details?: [string, string][];
-  /** Small print: who sent it, why this person got it, and whether replies are read. */
-  footer: string[];
 }
 
 /** An email of one kind, ready to render: what the builders below return. */
@@ -74,12 +92,47 @@ export interface EmailDraft extends EmailContent {
   subject: string;
 }
 
+// DESIGN.md's colors. Inline styles carry the light email; the <style> block only adapts it, for
+// phones and for apps that honor a dark color scheme (Apple Mail). Apps that darken an email on
+// their own (Gmail's and Outlook's) keep dark fills as they are but lighten dark borders, so each
+// dark fill also wears a border of its own color: the done circles, the ink line, and the button
+// keep an edge there.
 const INK = "#111111";
-const INK_2 = "#5f6066";
-const LINE = "#e4e4e7";
+const SLATE = "#5f6066";
+const HAIRLINE = "#e4e4e7";
+const OUTLINE = "#cfcfd4";
+const FOLDER = "#f3f3f4";
 const LIME = "#daee63";
+const WHITE = "#ffffff";
+// The dark color scheme: Command Black, Tile Charcoal, Dark Outline, Panel Seam, Night Mist.
+const NIGHT = "#0e0e0f";
+const CHARCOAL = "#1c1c1e";
+const DARK_OUTLINE = "#38383c";
+const SEAM = "#2e2e32";
+const MIST = "#a3a3a9";
 // DESIGN.md's type stack without its web font, which email apps don't load.
 const FONT = "font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;";
+// A cell that only holds space, at any app's smallest line.
+const SPACER = "font-size:1px;line-height:1px;mso-line-height-rule:exactly;";
+
+const STYLE = [
+  ":root{color-scheme:light dark;supported-color-schemes:light dark}",
+  "@media (max-width:480px){.cm-col{padding:32px 20px!important}.cm-h1{font-size:28px!important;line-height:32px!important}}",
+  "@media (prefers-color-scheme:dark){",
+  `.cm-page{background-color:${NIGHT}!important}`,
+  `.cm-ink{color:${WHITE}!important}`,
+  `.cm-slate{color:${MIST}!important}`,
+  `.cm-tile{background-color:${CHARCOAL}!important;color:${WHITE}!important}`,
+  `.cm-logo{border-color:${WHITE}!important}`,
+  `.cm-done{background-color:${WHITE}!important;border-color:${WHITE}!important;color:${NIGHT}!important}`,
+  `.cm-next{background-color:${NIGHT}!important;border-color:${DARK_OUTLINE}!important;color:${MIST}!important}`,
+  `.cm-line-done{border-color:${WHITE}!important}`,
+  `.cm-line-next{border-color:${DARK_OUTLINE}!important}`,
+  `.cm-btn,.cm-btn a{background-color:${LIME}!important;border-color:${LIME}!important;color:${INK}!important}`,
+  `.cm-link{color:${WHITE}!important}`,
+  `.cm-rule{border-color:${SEAM}!important}`,
+  "}",
+].join("\n");
 
 const ESCAPES: Record<string, string> = {
   "&": "&amp;",
@@ -92,74 +145,161 @@ const ESCAPES: Record<string, string> = {
 /** Text made safe for HTML, attribute values included. */
 export const escapeHtml = (text: string) => text.replace(/[&<>"']/g, (ch) => ESCAPES[ch] ?? ch);
 
-const row = (style: string, content: string) => `<tr><td style="${style}">${content}</td></tr>`;
+/** The small print under every email: one line. */
+export const emailFooterLine = (academy: string) => `Sent with CoachMan for ${academy}`;
 
-function detailsTable(details: readonly [string, string][]): string {
-  const cell = `padding:10px 0;border-top:1px solid ${LINE};vertical-align:top;${FONT}`;
-  const rows = details
-    .map(
-      ([label, value]) =>
-        `<tr><td width="38%" style="${cell}padding-right:16px;font-size:14px;line-height:22px;color:${INK_2};">${escapeHtml(label)}</td><td style="${cell}font-size:16px;line-height:22px;color:${INK};">${escapeHtml(value)}</td></tr>`,
-    )
-    .join("");
-  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-bottom:1px solid ${LINE};">${rows}</table>`;
+/** An academy's initials for its tile, as the family portal shows them: "The Pickle Spot" is TP. */
+function initialsOf(name: string): string {
+  const [first = "", second = ""] = name.trim().split(/\s+/);
+  return `${[...first][0] ?? ""}${[...second][0] ?? ""}`.toUpperCase();
 }
 
-/** The Ball Lime button: padding on the cell, so Outlook draws it as well as Gmail does. */
+/** A heading's last two words bound together, so a long one never leaves one word on its last line. */
+function withoutWidow(text: string): string {
+  return text.trim().split(/\s+/).length < 3 ? text : text.replace(/\s+(\S+)\s*$/, "\u00a0$1");
+}
+
+/**
+ * The inbox's preview line: the preheader, else the step that's now. Hidden in the email, and
+ * padded with invisible characters so the inbox doesn't run on into the email's own words.
+ */
+function previewOf(input: EmailContent): string {
+  const now = input.steps.find((s) => s.state === "now");
+  const line = input.preheader ?? now?.text ?? now?.title ?? input.heading;
+  return `<div style="display:none;max-height:0;max-width:0;overflow:hidden;opacity:0;mso-hide:all;">${escapeHtml(line)}${"&#847;&zwnj;&nbsp;".repeat(80)}</div>`;
+}
+
+const row = (style: string, content: string, cls = "") =>
+  `<tr><td${cls ? ` class="${cls}"` : ""} style="${style}">${content}</td></tr>`;
+
+const table = (content: string, width = "") =>
+  `<table role="presentation"${width ? ` width="${width}"` : ""} cellpadding="0" cellspacing="0" border="0">${content}</table>`;
+
+/**
+ * The academy's logo on a white tile, else its initials on a soft one, beside its name. The logo's
+ * white is also an image fill, which apps that invert colors leave alone, so a logo drawn on
+ * transparency never sinks into a darkened tile there.
+ */
+function header(academy: string, logoUrl: string | null | undefined): string {
+  const tile = logoUrl
+    ? `<td width="42" height="42" align="center" valign="middle" class="cm-logo" style="width:42px;height:42px;border:1px solid ${HAIRLINE};border-radius:14px;background-color:${WHITE};background-image:linear-gradient(${WHITE},${WHITE});"><img src="${escapeHtml(logoUrl)}" alt="" width="34" style="display:block;width:auto;height:auto;max-width:34px;max-height:34px;margin:0 auto;border:0;"></td>`
+    : `<td width="44" height="44" align="center" valign="middle" class="cm-tile" style="width:44px;height:44px;border-radius:14px;background-color:${FOLDER};${FONT}font-size:14px;line-height:44px;font-weight:600;color:${INK};mso-line-height-rule:exactly;">${escapeHtml(initialsOf(academy))}</td>`;
+  const name = `<div class="cm-ink" style="${FONT}font-size:16px;line-height:20px;font-weight:500;color:${INK};">${escapeHtml(academy)}</div><div class="cm-slate" style="${FONT}font-size:13px;line-height:18px;color:${SLATE};">via CoachMan</div>`;
+  return table(`<tr>${tile}<td style="padding-left:12px;">${name}</td></tr>`);
+}
+
+/** A step's 32px circle with its number: ink when done, lime when now, outlined when next. */
+function stepCircle(n: number, state: EmailStepState): string {
+  const look =
+    state === "done"
+      ? `width:28px;height:28px;line-height:28px;border:2px solid ${INK};background-color:${INK};color:${WHITE};`
+      : state === "now"
+        ? `width:28px;height:28px;line-height:28px;border:2px solid ${LIME};background-color:${LIME};color:${INK};`
+        : `width:30px;height:30px;line-height:30px;border:1px solid ${OUTLINE};background-color:${WHITE};color:${SLATE};`;
+  const cls = state === "now" ? "" : ` class="cm-${state}"`;
+  return table(
+    `<tr><td align="center" valign="middle"${cls} style="${look}border-radius:16px;${FONT}font-size:13px;font-weight:600;text-align:center;mso-line-height-rule:exactly;">${n}</td></tr>`,
+  );
+}
+
+/**
+ * The ink pill (lime in a dark color scheme). The link carries the padding, so all of the pill
+ * opens it; Outlook pads the cell instead (`mso-padding-alt`).
+ */
 function button(action: EmailAction): string {
-  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" bgcolor="${LIME}" style="background-color:${LIME};border-radius:999px;padding:14px 28px;"><a href="${escapeHtml(action.url)}" target="_blank" style="${FONT}font-size:16px;line-height:20px;font-weight:500;color:${INK};text-decoration:none;display:inline-block;">${escapeHtml(action.label)}</a></td></tr></table>`;
+  return table(
+    `<tr><td align="center" bgcolor="${INK}" class="cm-btn" style="background-color:${INK};border-radius:999px;mso-padding-alt:15px 26px;"><a href="${escapeHtml(action.url)}" target="_blank" style="display:inline-block;padding:15px 25px;border:1px solid ${INK};border-radius:999px;background-color:${INK};${FONT}font-size:16px;line-height:20px;font-weight:500;color:${WHITE};text-decoration:none;">${escapeHtml(action.label)}</a></td></tr>`,
+  );
+}
+
+/**
+ * The progress line: each step is a row with its circle and title, then a row with the line down
+ * to the next step beside its text (and, in the step that's now, the button). The line is a 2px
+ * border, ink below a done step and Outline Gray after that.
+ */
+function progressLine(steps: readonly EmailStep[], action: EmailAction | undefined): string {
+  const nowAt = steps.findIndex((s) => s.state === "now");
+  const rows = steps.map((step, i) => {
+    const last = i === steps.length - 1;
+    const next = step.state === "next";
+    const title = `<tr><td colspan="3" width="32" valign="top" style="width:32px;">${stepCircle(i + 1, step.state)}</td><td width="16" style="width:16px;${SPACER}">&nbsp;</td><td valign="top" class="${next ? "cm-slate" : "cm-ink"}" style="padding:5px 0 0;${FONT}font-size:16px;line-height:22px;font-weight:500;color:${next ? SLATE : INK};">${escapeHtml(step.title)}</td></tr>`;
+    const text = step.text
+      ? `<div class="cm-slate" style="${FONT}font-size:15px;line-height:22px;color:${SLATE};">${escapeHtml(step.text)}</div>`
+      : "";
+    const cta =
+      action && i === nowAt ? `<div style="padding-top:16px;">${button(action)}</div>` : "";
+    if (last && !text && !cta) return title;
+    const line = last
+      ? `<td style="width:0;${SPACER}"></td>`
+      : `<td class="cm-line-${step.state === "done" ? "done" : "next"}" style="width:0;border-left:2px solid ${step.state === "done" ? INK : OUTLINE};${SPACER}">&nbsp;</td>`;
+    const body = `<tr><td width="15" style="width:15px;${SPACER}">&nbsp;</td>${line}<td width="15" style="width:15px;${SPACER}">&nbsp;</td><td width="16" style="width:16px;${SPACER}">&nbsp;</td><td valign="top" style="padding:4px 0 ${last ? 0 : 32}px;word-break:break-word;">${text}${cta}</td></tr>`;
+    return title + body;
+  });
+  // An email that only reports (no step is now) still gets its button, under the line.
+  if (action && nowAt === -1) {
+    rows.push(
+      `<tr><td colspan="4" style="${SPACER}">&nbsp;</td><td style="padding:24px 0 0;">${button(action)}</td></tr>`,
+    );
+  }
+  return table(rows.join(""), "100%");
 }
 
 function renderHtml(input: EmailContent): string {
-  const text = `${FONT}font-size:16px;line-height:24px;color:${INK};`;
   const rows = [
+    row("padding:0 0 40px;", header(input.academy, input.logoUrl)),
     row(
-      `${FONT}font-size:15px;line-height:20px;font-weight:700;color:${INK};padding:0 0 28px;`,
-      "CoachMan",
+      "padding:0 0 32px;",
+      `<h1 class="cm-ink cm-h1" style="margin:0;${FONT}font-size:32px;line-height:36px;font-weight:300;letter-spacing:-0.02em;color:${INK};text-wrap:balance;">${escapeHtml(withoutWidow(input.heading))}</h1>`,
     ),
-    row(
-      `${FONT}font-size:24px;line-height:29px;font-weight:300;letter-spacing:-0.01em;color:${INK};padding:0 0 16px;`,
-      escapeHtml(input.heading),
-    ),
-    ...input.paragraphs.map((p) => row(`${text}padding:0 0 16px;`, escapeHtml(p))),
+    row("padding:0;", progressLine(input.steps, input.action)),
   ];
-  if (input.details?.length) rows.push(row("padding:8px 0 24px;", detailsTable(input.details)));
   if (input.action) {
     const url = escapeHtml(input.action.url);
     rows.push(
-      row("padding:8px 0 16px;", button(input.action)),
       row(
-        `${FONT}font-size:14px;line-height:20px;color:${INK_2};padding:0 0 32px;word-break:break-all;`,
-        `Or open this link: <a href="${url}" target="_blank" style="color:${INK};text-decoration:underline;">${url}</a>`,
+        `${FONT}font-size:13px;line-height:20px;color:${SLATE};padding:36px 0 0;overflow-wrap:anywhere;word-break:break-word;`,
+        `Or open this link: <a href="${url}" target="_blank" class="cm-link" style="color:${INK};text-decoration:underline;">${url}</a>`,
+        "cm-slate",
       ),
     );
   }
   rows.push(
     row(
-      `${FONT}font-size:13px;line-height:20px;color:${INK_2};padding:20px 0 0;border-top:1px solid ${LINE};`,
-      input.footer.map(escapeHtml).join("<br>"),
+      "padding:28px 0 0;",
+      table(
+        row(
+          `${FONT}font-size:13px;line-height:20px;color:${SLATE};padding:20px 0 0;border-top:1px solid ${HAIRLINE};`,
+          escapeHtml(emailFooterLine(input.academy)),
+          "cm-slate cm-rule",
+        ),
+        "100%",
+      ),
     ),
   );
-  const preheader = input.preheader
-    ? `<div style="display:none;max-height:0;max-width:0;overflow:hidden;opacity:0;mso-hide:all;">${escapeHtml(input.preheader)}</div>`
-    : "";
   return [
     "<!doctype html>",
     '<html lang="en">',
     "<head>",
     '<meta charset="utf-8">',
     '<meta name="viewport" content="width=device-width, initial-scale=1">',
-    '<meta name="color-scheme" content="light">',
-    '<meta name="supported-color-schemes" content="light">',
+    '<meta name="x-apple-disable-message-reformatting">',
+    // Dates, times, and addresses stay as written, not turned into links in the app's own colors.
+    '<meta name="format-detection" content="telephone=no, date=no, address=no, email=no, url=no">',
+    '<meta name="color-scheme" content="light dark">',
+    '<meta name="supported-color-schemes" content="light dark">',
     `<title>${escapeHtml(input.heading)}</title>`,
+    `<style>\n${STYLE}\n</style>`,
+    // Outlook on Windows takes only the first font it's given, and no light weight: give it the
+    // system's own, and its light cut for the heading.
+    "<!--[if mso]><style>td,div,a{font-family:'Segoe UI',sans-serif!important}.cm-h1{font-family:'Segoe UI Light','Segoe UI',sans-serif!important}</style><![endif]-->",
     "</head>",
-    '<body style="margin:0;padding:0;background-color:#ffffff;">',
-    preheader,
-    '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#ffffff;">',
-    '<tr><td align="center" style="padding:32px 16px;">',
+    `<body class="cm-page" style="margin:0;padding:0;background-color:${WHITE};">`,
+    previewOf(input),
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="cm-page" style="background-color:${WHITE};">`,
+    '<tr><td align="center" class="cm-col" style="padding:40px 24px 36px;">',
     // Outlook ignores max-width: a fixed-width table holds the column there.
-    '<!--[if mso]><table role="presentation" width="560" align="center" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->',
-    '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:560px;">',
+    '<!--[if mso]><table role="presentation" width="520" align="center" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->',
+    '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:520px;">',
     rows.join(""),
     "</table>",
     "<!--[if mso]></td></tr></table><![endif]-->",
@@ -171,18 +311,26 @@ function renderHtml(input: EmailContent): string {
 }
 
 function renderText(input: EmailContent): string {
-  const blocks = [input.heading, ...input.paragraphs];
-  if (input.details?.length) {
-    blocks.push(input.details.map(([label, value]) => `${label}: ${value}`).join("\n"));
-  }
-  if (input.action) blocks.push(`${input.action.label}: ${input.action.url}`);
-  blocks.push(input.footer.join("\n"));
+  const nowAt = input.steps.findIndex((s) => s.state === "now");
+  const actionLine = input.action ? `${input.action.label}: ${input.action.url}` : null;
+  const blocks = [input.heading];
+  input.steps.forEach((step, i) => {
+    const lines = [`${i + 1}. ${step.title}`];
+    if (step.text) lines.push(step.text);
+    if (actionLine && i === nowAt) lines.push(actionLine);
+    blocks.push(lines.join("\n"));
+  });
+  if (actionLine && nowAt === -1) blocks.push(actionLine);
+  blocks.push(emailFooterLine(input.academy));
   return `${blocks.join("\n\n")}\n`;
 }
 
 /**
- * The email's HTML (a 560px column of inline-styled tables, white with ink text, one lime button,
- * no images or tracking) and its plain text, every value escaped in the HTML.
+ * The email's HTML and its plain text, every value escaped in the HTML. The HTML is a 520px
+ * column of inline-styled tables: the academy's tile and name, a light heading, the progress line
+ * (the button inside the step that's now), the button's link written out, and one footer line,
+ * with a dark color scheme for apps that ask for one. Its only image is the academy's logo, the
+ * public one its website shows, the same for every reader.
  */
 export function renderEmail(input: EmailContent): { html: string; text: string } {
   return { html: renderHtml(input), text: renderText(input) };
@@ -199,35 +347,19 @@ export interface EmailStudent {
 
 const academyName = (name: string) => oneLine(name) || "Your academy";
 
-/** The footer's last line: who a reply reaches, or that replies aren't read. */
-export function replyLine(replyName: string | null): string {
-  return replyName
-    ? `Reply to this email to reach ${replyName}.`
-    : "Replies to this address aren't read.";
-}
-
-const footerOf = (academy: string, why: string, replyName: string | null) => [
-  `Sent by CoachMan for ${academy}.`,
-  why,
-  replyLine(replyName),
-];
-
-/** Why a family member got an update about a student. */
-const linkedWhy = (academy: string, s: EmailStudent) =>
-  s.self
-    ? `You have your own login to ${academy}'s family portal.`
-    : `You're linked to ${s.firstName} in ${academy}'s family portal.`;
-
-const staffWhy = (academy: string) =>
-  `You're on ${academy}'s team. To stop these, turn off Enrollments & payments in Settings, Notifications.`;
-
 const studentUrl = (origin: string, clientId: string, section: string) =>
   `${origin}/my/${encodeURIComponent(clientId)}/${section}`;
 
-/** A staff invite: who invited them, as what, which Google account to use, and until when. */
+/** A request or renewal's package, and from when ("Monthly from December 2026."). */
+const packageLine = (tierName: string, starts: string | null) =>
+  `${tierName}${starts ? ` from ${starts}` : ""}.`;
+
+const PROOF_SENT: EmailStep = { state: "done", title: "Payment proof sent" };
+
+/** A staff invite: who invited them, as what, which Google account to use, until when, and the role. */
 export function staffInviteEmail(input: {
   academy: string;
-  /** The inviter's name. */
+  /** The inviter's name, as the team knows them (their coach profile's name). */
   inviter: string;
   role: StaffRole;
   /** The invited address: the Google account to sign in with. */
@@ -235,8 +367,6 @@ export function staffInviteEmail(input: {
   link: string;
   /** When the link stops working, already formatted ("Tue, Nov 17"). */
   expires: string;
-  /** Replies reach the inviter (their address is the Reply-To). */
-  replies: boolean;
 }): EmailDraft {
   const academy = academyName(input.academy);
   const inviter = oneLine(input.inviter) || "Someone";
@@ -244,18 +374,18 @@ export function staffInviteEmail(input: {
   return {
     subject: `Join ${academy} on CoachMan`,
     preheader: `${inviter} invited you as ${noun}. The link works once, until ${input.expires}.`,
+    academy,
     heading: `Join ${academy} on CoachMan`,
-    paragraphs: [
-      `${inviter} invited you to join ${academy} on CoachMan as ${noun}.`,
-      `Sign in with Google as ${input.email}.`,
-      `The link works once, until ${input.expires}.`,
+    steps: [
+      { state: "done", title: `${inviter} invited you`, text: `To join as ${noun}.` },
+      {
+        state: "now",
+        title: "Sign in with Google",
+        text: `Use the Google account for ${input.email}. The link works once, until ${input.expires}.`,
+      },
+      { state: "next", title: "You're on the team", text: STAFF_ROLE_DESCRIPTIONS[input.role] },
     ],
     action: { label: `Join ${academy}`, url: input.link },
-    footer: footerOf(
-      academy,
-      `${inviter} invited this address to ${academy}'s team.`,
-      input.replies ? inviter : null,
-    ),
   };
 }
 
@@ -268,8 +398,6 @@ export function familyInviteEmail(input: {
   link: string;
   /** When the link stops working, already formatted ("Tue, Nov 17"). */
   expires: string;
-  /** Replies reach the academy (its contact address is the Reply-To). */
-  replies: boolean;
 }): EmailDraft {
   const academy = academyName(input.academy);
   const guardian = input.relation === "guardian";
@@ -278,18 +406,28 @@ export function familyInviteEmail(input: {
     preheader: guardian
       ? `Follow ${input.firstName}'s training. The link works once, until ${input.expires}.`
       : `See your own training. The link works once, until ${input.expires}.`,
+    academy,
     heading: guardian ? `Follow ${input.firstName}'s training` : "See your own training",
-    paragraphs: [
-      `${academy} invited you ${familyInviteWhat(input.relation, input.firstName)}`,
-      FAMILY_SIGN_IN,
-      `The link works once, until ${input.expires}.`,
+    steps: [
+      {
+        state: "done",
+        title: `${academy} invited you`,
+        text: guardian
+          ? `To follow ${input.firstName}'s training on CoachMan.`
+          : "To see your own training on CoachMan.",
+      },
+      {
+        state: "now",
+        title: "Accept the invite",
+        text: `${FAMILY_SIGN_IN} The link works once, until ${input.expires}.`,
+      },
+      {
+        state: "next",
+        title: "You're in",
+        text: `${guardian ? `${input.firstName}'s` : "Your"} sessions, progress, coaches' comments, and payments.`,
+      },
     ],
     action: { label: "Open the invite", url: input.link },
-    footer: footerOf(
-      academy,
-      `${academy} invited this address to its family portal.`,
-      input.replies ? academy : null,
-    ),
   };
 }
 
@@ -303,8 +441,6 @@ export function enrollmentReceivedEmail(input: {
   /** When it starts, already formatted ("December 2026"), or null (a trial session). */
   starts: string | null;
   renewal: boolean;
-  /** Replies reach the academy. */
-  replies: boolean;
 }): EmailDraft {
   const academy = academyName(input.academy);
   const { firstName, self } = input.student;
@@ -315,17 +451,16 @@ export function enrollmentReceivedEmail(input: {
   return {
     subject,
     preheader: `${academy} will review it and let you know.`,
+    academy,
     heading: subject,
-    paragraphs: [asked, `${academy} will review it and let you know.`],
+    steps: [
+      { state: "done", title: "Request sent", text: asked },
+      { state: "now", title: "Under review", text: `${academy} will review it and let you know.` },
+    ],
     action: {
       label: "See your request",
       url: studentUrl(input.origin, input.clientId, "payments"),
     },
-    footer: footerOf(
-      academy,
-      self ? `You sent ${academy} an enrollment request.` : `You asked to enroll ${firstName}.`,
-      input.replies ? academy : null,
-    ),
   };
 }
 
@@ -345,45 +480,67 @@ export function enrollmentDecisionEmail(input: {
   starts: string | null;
   /** Something is owed for it (never how much). */
   amountDue: boolean;
-  /** Replies reach the academy. */
-  replies: boolean;
 }): EmailDraft {
   const academy = academyName(input.academy);
   const { firstName, self } = input.student;
   const isWord = self ? "You're" : `${firstName} is`;
   const portal = { label: "Open CoachMan", url: `${input.origin}/my` };
-  const footer = footerOf(
-    academy,
-    linkedWhy(academy, input.student),
-    input.replies ? academy : null,
-  );
+  const sent: EmailStep = {
+    state: "done",
+    title: "Request sent",
+    text: packageLine(input.tierName, input.starts),
+  };
   if (input.status === "approved") {
     const line = `${isWord} in: ${input.tierName}${input.starts ? ` from ${input.starts}` : ""}`;
+    if (input.amountDue) {
+      return {
+        subject: line,
+        preheader: "Pay from the portal.",
+        academy,
+        heading: "Enrollment approved",
+        steps: [
+          sent,
+          { state: "done", title: "Approved", text: `${isWord} in.` },
+          {
+            state: "now",
+            title: "Pay what's due",
+            text: "The portal shows how much and how to pay.",
+          },
+        ],
+        action: {
+          label: "Pay from the portal",
+          url: `${studentUrl(input.origin, input.clientId, "pay")}?request=${encodeURIComponent(input.requestId)}`,
+        },
+      };
+    }
     return {
       subject: line,
-      preheader: input.amountDue ? "Pay from the portal." : `${line}.`,
+      preheader: `${line}.`,
+      academy,
       heading: "Enrollment approved",
-      paragraphs: [
-        `${line}.`,
-        ...(input.amountDue ? ["Pay from the portal: it shows what's due and how to pay."] : []),
-      ],
-      action: input.amountDue
-        ? {
-            label: "Pay from the portal",
-            url: `${studentUrl(input.origin, input.clientId, "pay")}?request=${encodeURIComponent(input.requestId)}`,
-          }
-        : portal,
-      footer,
+      steps: [sent, { state: "now", title: "Approved", text: `${isWord} in.` }],
+      action: portal,
     };
   }
   if (input.status === "waitlisted") {
-    const line = `${isWord} on the waitlist for ${input.tierName}`;
     return {
-      subject: line,
+      subject: `${isWord} on the waitlist for ${input.tierName}`,
+      academy,
       heading: "Enrollment update",
-      paragraphs: [`${line}.`, `Open CoachMan for any note from ${academy}.`],
+      steps: [
+        sent,
+        {
+          state: "now",
+          title: "On the waitlist",
+          text: `${isWord} on the waitlist. Open CoachMan for any note from ${academy}.`,
+        },
+        {
+          state: "next",
+          title: "If a place opens",
+          text: "You'll get an email when they approve it.",
+        },
+      ],
       action: portal,
-      footer,
     };
   }
   // Declined: the academy's reason stays inside the app.
@@ -391,12 +548,17 @@ export function enrollmentDecisionEmail(input: {
     subject: self
       ? "Your enrollment request was updated"
       : `Your request for ${firstName} was updated`,
+    academy,
     heading: "Enrollment update",
-    paragraphs: [
-      `Open CoachMan to see ${academy}'s reply about ${self ? "your" : `${firstName}'s`} request.`,
+    steps: [
+      sent,
+      {
+        state: "now",
+        title: "Read their reply",
+        text: `Open CoachMan to see ${academy}'s reply about ${self ? "your" : `${firstName}'s`} request.`,
+      },
     ],
     action: portal,
-    footer,
   };
 }
 
@@ -412,36 +574,42 @@ export function proofDecisionEmail(input: {
   confirmed: boolean;
   /** The proof was a screenshot (not cash at the court). */
   screenshot: boolean;
-  /** Replies reach the academy. */
-  replies: boolean;
 }): EmailDraft {
   const academy = academyName(input.academy);
   const { firstName, self } = input.student;
   const forWho = self ? "you" : firstName;
   const url = studentUrl(input.origin, input.clientId, "payments");
-  const footer = footerOf(
-    academy,
-    linkedWhy(academy, input.student),
-    input.replies ? academy : null,
-  );
   if (input.confirmed) {
     return {
       subject: self ? "Payment received" : `Payment received for ${firstName}`,
+      academy,
       heading: "Payment confirmed",
-      paragraphs: [`${academy} confirmed the payment for ${forWho}.`],
+      steps: [
+        PROOF_SENT,
+        {
+          state: "now",
+          title: "Confirmed",
+          text: `${academy} confirmed the payment for ${forWho}.`,
+        },
+      ],
       action: { label: "See payments", url },
-      footer,
     };
   }
   // Why it wasn't accepted stays inside the app.
   return {
     subject: self ? "Payment proof not accepted" : `Payment proof not accepted for ${firstName}`,
+    academy,
     heading: "Payment proof not accepted",
-    paragraphs: [
-      `${academy} couldn't accept the payment ${input.screenshot ? "screenshot" : "proof"} for ${forWho}. Open the portal to see why and send another.`,
+    steps: [
+      PROOF_SENT,
+      {
+        state: "now",
+        title: "Send another",
+        text: `${academy} couldn't accept the payment ${input.screenshot ? "screenshot" : "proof"} for ${forWho}. Open the portal to see why and send another.`,
+      },
+      { state: "next", title: "Confirmed", text: `Once ${academy} accepts it.` },
     ],
     action: { label: "See why", url },
-    footer,
   };
 }
 
@@ -459,17 +627,25 @@ export function staffEnrollmentRequestEmail(input: {
   return {
     subject: input.renewal ? `Renewal request for ${first}` : `New enrollment request for ${first}`,
     preheader: `${first} · ${input.tierName}`,
+    academy,
     heading: input.renewal ? "Renewal request" : "New enrollment request",
-    paragraphs: ["Review it in Enrollments."],
-    details: [
-      ["Student", first],
-      ["Package", input.tierName],
+    steps: [
+      { state: "done", title: "Request sent", text: `For ${first}: ${input.tierName}.` },
+      {
+        state: "now",
+        title: "Review it",
+        text: "Approve, waitlist, or decline it in Enrollments.",
+      },
+      {
+        state: "next",
+        title: "The family hears back",
+        text: "CoachMan lets them know what you decide.",
+      },
     ],
     action: {
       label: "Review the request",
       url: `${input.origin}/enrollments/${encodeURIComponent(input.requestId)}`,
     },
-    footer: footerOf(academy, staffWhy(academy), null),
   };
 }
 
@@ -483,10 +659,22 @@ export function staffProofEmail(input: {
   const first = firstNameOf(input.studentFirstName);
   return {
     subject: `Payment proof to review for ${first}`,
+    academy,
     heading: "Payment proof to review",
-    paragraphs: [`For ${first}. Review it in Money.`],
+    steps: [
+      { ...PROOF_SENT, text: `For ${first}.` },
+      {
+        state: "now",
+        title: "Review it",
+        text: "Confirm it in Money, or mark it not accepted.",
+      },
+      {
+        state: "next",
+        title: "The family hears back",
+        text: "CoachMan lets them know either way.",
+      },
+    ],
     action: { label: "Open Money", url: `${input.origin}/money` },
-    footer: footerOf(academy, staffWhy(academy), null),
   };
 }
 

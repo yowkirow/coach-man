@@ -37,6 +37,7 @@ import {
   workspaceSettings,
 } from "../db/schema";
 import { isEmailSinkEnabled } from "../lib/email-sink";
+import { publicImageUrl } from "../lib/page-meta";
 import { inList, unique } from "../lib/sql";
 import { appOrigin } from "../routes/academy";
 import { isRenewal } from "./enrollment-core";
@@ -120,7 +121,9 @@ export async function sendEmail(db: Db, env: Env, message: OutgoingEmail): Promi
   }
 }
 
-/** What an academy's emails need: its name, its time zone and locale, and where replies go. */
+/**
+ * What an academy's emails need: its name and logo, its time zone and locale, and where replies go.
+ */
 interface AcademyMail {
   workspaceId: string;
   name: string;
@@ -128,15 +131,18 @@ interface AcademyMail {
   locale: string;
   /** The contact email on its profile, when set: family emails' Reply-To. */
   contactEmail: string | null;
+  /** Its logo (the public image its website shows) as an absolute link, or null. */
+  logoUrl: string | null;
 }
 
-async function academyMail(db: Db, workspaceId: string): Promise<AcademyMail> {
+async function academyMail(db: Db, env: Env, workspaceId: string): Promise<AcademyMail> {
   const [row] = await db
     .select({
       name: organization.name,
       timezone: workspaceSettings.timezone,
       locale: workspaceSettings.locale,
       contactEmail: academyProfile.contactEmail,
+      logoKey: academyProfile.logoKey,
     })
     .from(organization)
     .leftJoin(workspaceSettings, eq(workspaceSettings.workspaceId, organization.id))
@@ -150,6 +156,7 @@ async function academyMail(db: Db, workspaceId: string): Promise<AcademyMail> {
     timezone: row?.timezone ?? "UTC",
     locale: row?.locale ?? "en-US",
     contactEmail: isDeliverableEmail(contact) ? normalize(contact) : null,
+    logoUrl: row?.logoKey ? publicImageUrl(appOrigin(env), row.logoKey) : null,
   };
 }
 
@@ -160,7 +167,7 @@ function compose(
   replyTo: string | null,
   draft: EmailDraft,
 ): OutgoingEmail {
-  const { html, text } = renderEmail(draft);
+  const { html, text } = renderEmail({ ...draft, logoUrl: academy.logoUrl });
   return {
     to,
     kind,
@@ -201,7 +208,7 @@ async function emailOnce(
     refKey: string;
     userIds: readonly string[];
     replyToAcademy: boolean;
-    draft: (userId: string, replies: boolean) => EmailDraft | null;
+    draft: (userId: string) => EmailDraft | null;
   },
 ): Promise<number> {
   const addresses = await addressesOf(db, input.userIds);
@@ -217,7 +224,7 @@ async function emailOnce(
   let sent = 0;
   for (const entry of entries) {
     if (!claimed.has(logKey(entry))) continue;
-    const draft = input.draft(entry.userId, Boolean(replyTo));
+    const draft = input.draft(entry.userId);
     const to = addresses.get(entry.userId);
     if (!draft || !to) continue;
     const result = await sendEmail(db, env, compose(input.academy, input.kind, to, replyTo, draft));
@@ -268,6 +275,7 @@ export function emailStaffInvite(
   env: Env,
   input: {
     workspaceId: string;
+    /** Who invited them: their name as the team knows it, and the address replies reach. */
     inviter: { name: string; email: string } | null;
     to: string;
     role: StaffRole;
@@ -276,7 +284,7 @@ export function emailStaffInvite(
   },
 ): Promise<InviteEmailOutcome> {
   return inviteEmail("staff_invite", input.to, async () => {
-    const academy = await academyMail(db, input.workspaceId);
+    const academy = await academyMail(db, env, input.workspaceId);
     const replyTo =
       input.inviter && isDeliverableEmail(input.inviter.email)
         ? normalize(input.inviter.email)
@@ -288,7 +296,6 @@ export function emailStaffInvite(
       email: input.to,
       link: input.link,
       expires: expiresText(academy, input.expiresAt),
-      replies: Boolean(replyTo),
     });
     return sendEmail(db, env, compose(academy, "staff_invite", input.to, replyTo, draft));
   });
@@ -308,7 +315,7 @@ export function emailFamilyInvite(
   },
 ): Promise<InviteEmailOutcome> {
   return inviteEmail("family_invite", input.to, async () => {
-    const academy = await academyMail(db, input.workspaceId);
+    const academy = await academyMail(db, env, input.workspaceId);
     const replyTo = academy.contactEmail;
     const draft = familyInviteEmail({
       academy: academy.name,
@@ -316,7 +323,6 @@ export function emailFamilyInvite(
       relation: input.relation,
       link: input.link,
       expires: expiresText(academy, input.expiresAt),
-      replies: Boolean(replyTo),
     });
     return sendEmail(db, env, compose(academy, "family_invite", input.to, replyTo, draft));
   });
@@ -337,7 +343,7 @@ export async function emailEnrollmentReceived(
 ): Promise<void> {
   const req = await openRequest(db, input.workspaceId, input.requestId);
   if (!req) return;
-  const academy = await academyMail(db, input.workspaceId);
+  const academy = await academyMail(db, env, input.workspaceId);
   const { startMonth, answers } = req.r;
   const starts = startMonth
     ? monthLabel(startMonth, academy.locale)
@@ -350,7 +356,7 @@ export async function emailEnrollmentReceived(
     refKey: req.r.id,
     userIds: [req.r.requestedBy],
     replyToAcademy: true,
-    draft: (_userId, replies) =>
+    draft: () =>
       enrollmentReceivedEmail({
         academy: academy.name,
         origin: appOrigin(env),
@@ -359,7 +365,6 @@ export async function emailEnrollmentReceived(
         tierName: req.tierName ?? "a package",
         starts,
         renewal: isRenewal(req.r),
-        replies,
       }),
   });
 }
@@ -375,7 +380,7 @@ export async function emailEnrollmentDecision(
   if (!decided) return;
   const { request, status, amountDue } = decided;
   const [academy, all] = await Promise.all([
-    academyMail(db, input.workspaceId),
+    academyMail(db, env, input.workspaceId),
     studentLinks(db, [request.clientId], now),
   ]);
   const links = all.filter((l) => l.workspaceId === input.workspaceId);
@@ -388,7 +393,7 @@ export async function emailEnrollmentDecision(
       except: [input.actorUserId],
     }),
     replyToAcademy: true,
-    draft: (userId, replies) => {
+    draft: (userId) => {
       const link = links.find((l) => l.userId === userId);
       if (!link) return null;
       return enrollmentDecisionEmail({
@@ -401,7 +406,6 @@ export async function emailEnrollmentDecision(
         tierName: decided.tierName ?? "the package",
         starts: request.startMonth ? monthLabel(request.startMonth, academy.locale) : null,
         amountDue,
-        replies,
       });
     },
   });
@@ -424,7 +428,7 @@ export async function emailProofDecision(
   const confirmed = proof.status === "confirmed";
   const kind = confirmed ? "proof_confirmed" : "proof_rejected";
   const [academy, all] = await Promise.all([
-    academyMail(db, input.workspaceId),
+    academyMail(db, env, input.workspaceId),
     studentLinks(db, [proof.clientId], now),
   ]);
   const links = all.filter((l) => l.workspaceId === input.workspaceId);
@@ -439,7 +443,7 @@ export async function emailProofDecision(
       except: [input.actorUserId],
     }),
     replyToAcademy: true,
-    draft: (userId, replies) => {
+    draft: (userId) => {
       const link = links.find((l) => l.userId === userId);
       if (!link) return null;
       return proofDecisionEmail({
@@ -449,7 +453,6 @@ export async function emailProofDecision(
         student: studentOf(link),
         confirmed,
         screenshot: Boolean(proof.proofKey),
-        replies,
       });
     },
   });
@@ -466,7 +469,7 @@ export async function emailStaffEnrollmentRequest(
   const req = await openRequest(db, input.workspaceId, input.requestId);
   if (!req) return;
   const [academy, users] = await Promise.all([
-    academyMail(db, input.workspaceId),
+    academyMail(db, env, input.workspaceId),
     staffAlertUsers(db, input.workspaceId, ["enrollment"], input.actorUserId),
   ]);
   await emailOnce(db, env, {
@@ -496,7 +499,7 @@ export async function emailStaffProof(
   const proof = await pendingProof(db, input.workspaceId, input.proofId);
   if (!proof) return;
   const [academy, users] = await Promise.all([
-    academyMail(db, input.workspaceId),
+    academyMail(db, env, input.workspaceId),
     staffAlertUsers(db, input.workspaceId, ["enrollment", "money"], input.actorUserId),
   ]);
   await emailOnce(db, env, {

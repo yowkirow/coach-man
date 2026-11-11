@@ -3,6 +3,7 @@ import { placeholderEmail } from "../../src/shared/domain";
 import {
   type EmailDraft,
   emailFailureReason,
+  emailFooterLine,
   enrollmentDecisionEmail,
   enrollmentReceivedEmail,
   familyInviteEmail,
@@ -12,7 +13,6 @@ import {
   oneLine,
   proofDecisionEmail,
   renderEmail,
-  replyLine,
   staffEnrollmentRequestEmail,
   staffInviteEmail,
   staffProofEmail,
@@ -31,12 +31,17 @@ const wordsOf = (d: EmailDraft) =>
   [
     d.subject,
     d.preheader ?? "",
+    d.academy,
     d.heading,
-    ...d.paragraphs,
-    ...(d.details ?? []).flat(),
+    ...d.steps.flatMap((s) => [s.title, s.text ?? ""]),
     d.action?.label ?? "",
-    ...d.footer,
   ].join("\n");
+
+/** A draft's progress line as [state, title, text] rows. */
+const stepsOf = (d: EmailDraft) => d.steps.map((s) => [s.state, s.title, s.text ?? null]);
+
+/** The rendered HTML from <body> on: what the light email draws with its inline styles. */
+const bodyOf = (html: string) => html.slice(html.indexOf("<body"));
 
 describe("renderEmail", () => {
   const evil = `<b onclick="x()">Ana & 'Ben'</b>`;
@@ -44,21 +49,27 @@ describe("renderEmail", () => {
 
   it("escapes every value in the HTML", () => {
     const { html } = renderEmail({
+      academy: evil,
+      logoUrl: `${ORIGIN}/logo.png?a=1&b="<x>"`,
       preheader: evil,
       heading: evil,
-      paragraphs: [evil, evil],
+      steps: [
+        { state: "done", title: evil, text: evil },
+        { state: "now", title: evil, text: evil },
+      ],
       action: { label: evil, url: `${ORIGIN}/my?a=1&b="<x>"` },
-      details: [[evil, evil]],
-      footer: [evil, evil],
     });
     expect(html).not.toContain("<b onclick");
-    // Preheader, heading, title, two paragraphs, the button, two detail cells, two footer lines.
-    expect(html.split(escaped).length - 1).toBe(10);
+    // The header's name, the preheader, the title, two step titles, two step texts, the button,
+    // and the footer; the heading binds its last two words.
+    expect(html.split(escaped).length - 1).toBe(9);
+    expect(html).toContain(`>${escaped.replace("&amp; &#39;", "&amp;\u00a0&#39;")}</h1>`);
     expect(html).toContain(`href="${ORIGIN}/my?a=1&amp;b=&quot;&lt;x&gt;&quot;"`);
+    expect(html).toContain(`src="${ORIGIN}/logo.png?a=1&amp;b=&quot;&lt;x&gt;&quot;"`);
     expect(html).not.toContain('b="<x>"');
   });
 
-  it("puts the action's link in both parts, and the text has no markup", () => {
+  it("puts the button in the step that's now, its link in both parts, and the text has no markup", () => {
     const draft = staffInviteEmail({
       academy: "Riverside",
       inviter: "Ana Reyes",
@@ -66,41 +77,200 @@ describe("renderEmail", () => {
       email: "sam@gmail.com",
       link: LINK,
       expires: "Tue, Nov 17",
-      replies: true,
     });
     const { html, text } = renderEmail(draft);
     expect(html).toContain(`href="${LINK}"`);
     expect(html).toContain(`Or open this link: <a href="${LINK}"`);
-    expect(text).toContain(`Join Riverside: ${LINK}`);
+    // A real heading, never leaving one word on its last line.
+    expect(html).toContain(">Join Riverside on\u00a0CoachMan</h1>");
+    // The inbox previews the preheader, padded so it stops there.
+    expect(html).toContain(
+      'mso-hide:all;">Ana Reyes invited you as a coach. The link works once, until Tue, Nov 17.&#847;&zwnj;&nbsp;',
+    );
+    const button = html.indexOf(">Join Riverside</a>");
+    expect(html.indexOf("Sign in with Google")).toBeLessThan(button);
+    expect(button).toBeLessThan(html.indexOf("You&#39;re on the team"));
+    expect(text).toBe(
+      `${[
+        "Join Riverside on CoachMan",
+        "1. Ana Reyes invited you\nTo join as a coach.",
+        `2. Sign in with Google\nUse the Google account for sam@gmail.com. The link works once, until Tue, Nov 17.\nJoin Riverside: ${LINK}`,
+        "3. You're on the team\nStudents, progress, the schedule, and check-in. No prices or payments.",
+        "Sent with CoachMan for Riverside",
+      ].join("\n\n")}\n`,
+    );
     expect(text).not.toMatch(/[<>]/);
-    expect(text).toContain("Sign in with Google as sam@gmail.com.");
-    expect(text.endsWith("Reply to this email to reach Ana Reyes.\n")).toBe(true);
   });
 
-  it("is a quiet 560px column: inline styles, one lime button, no images or tracking", () => {
+  it("draws the line ink below done steps and Outline Gray after, and spends lime on the step that's now", () => {
     const { html } = renderEmail({
-      heading: "Payment proof to review",
-      paragraphs: ["For Mia. Review it in Money."],
-      action: { label: "Open Money", url: `${ORIGIN}/money` },
-      footer: ["Sent by CoachMan for Riverside."],
+      academy: "Riverside",
+      heading: "Enrollment approved",
+      steps: [
+        { state: "done", title: "Request sent" },
+        { state: "done", title: "Approved" },
+        { state: "now", title: "Pay what's due" },
+        { state: "next", title: "Paid" },
+      ],
+      action: { label: "Pay", url: `${ORIGIN}/my` },
     });
-    expect(html).toContain("max-width:560px");
-    expect(html).toContain('<!--[if mso]><table role="presentation" width="560"');
-    expect(html.match(/#daee63/g)).toHaveLength(2);
-    expect(html).toContain("color:#111111");
-    expect(html).not.toMatch(/<img|<style|<link|<script|class=/i);
-    expect(html).toContain('<html lang="en">');
+    const body = bodyOf(html);
+    expect(body.match(/class="cm-done"/g)).toHaveLength(2);
+    expect(body.match(/class="cm-next"/g)).toHaveLength(1);
+    // The last step has no line below it.
+    expect(
+      body.match(/class="cm-line-done" style="width:0;border-left:2px solid #111111;/g),
+    ).toHaveLength(2);
+    expect(
+      body.match(/class="cm-line-next" style="width:0;border-left:2px solid #cfcfd4;/g),
+    ).toHaveLength(1);
+    // Lime is the circle of the step that's now (its fill and its border), nothing else.
+    expect(body.match(/#daee63/g)).toHaveLength(2);
+    // Dark fills wear a border of their own color, for apps that darken emails on their own.
+    expect(body).toContain("border:2px solid #111111;background-color:#111111;");
+    expect(body).toContain(
+      "border:1px solid #111111;border-radius:999px;background-color:#111111;",
+    );
   });
 
-  it("leaves out the button, details, and preheader when there are none", () => {
-    const { html, text } = renderEmail({
+  it("is a 520px column with a dark scheme, and its only image is the academy's logo", () => {
+    const plain = renderEmail({
+      academy: "The Pickle Spot Academy",
       heading: "Hi",
-      paragraphs: ["One line."],
-      footer: ["Sent by CoachMan."],
+      steps: [{ state: "now", title: "One" }],
+    }).html;
+    expect(plain).toContain("max-width:520px");
+    expect(plain).toContain('<!--[if mso]><table role="presentation" width="520"');
+    expect(plain).toContain('<meta name="color-scheme" content="light dark">');
+    expect(plain).toContain("@media (prefers-color-scheme:dark)");
+    expect(plain).toContain('<html lang="en">');
+    // Without a logo, the academy's initials, and nothing to load.
+    expect(plain).toContain(">TP</td>");
+    expect(plain).not.toMatch(/<img|<link|<script|https?:/i);
+    const logo = `${ORIGIN}/api/public/files/ws/w-1/public/logo.png`;
+    const withLogo = renderEmail({
+      academy: "The Pickle Spot Academy",
+      logoUrl: logo,
+      heading: "Hi",
+      steps: [{ state: "now", title: "One" }],
+    }).html;
+    expect(withLogo.match(/<img /g)).toHaveLength(1);
+    expect(withLogo).toContain(`<img src="${logo}" alt=""`);
+    expect(withLogo).not.toContain(">TP</td>");
+  });
+
+  it("ends with one footer line, and puts the button under the line when no step is now", () => {
+    const { html, text } = renderEmail({
+      academy: "Riverside",
+      heading: "Hi",
+      steps: [{ state: "done", title: "Sent" }],
+      action: { label: "Open", url: `${ORIGIN}/my` },
+    });
+    expect(text).toBe(`Hi\n\n1. Sent\n\nOpen: ${ORIGIN}/my\n\nSent with CoachMan for Riverside\n`);
+    expect(html).toContain(">Sent with CoachMan for Riverside</td>");
+    expect(html).toContain(">Open</a>");
+    expect(html).not.toMatch(/Reply to this email|Replies to this address/);
+  });
+
+  it("leaves out the button and its link when there's none, and previews the step that's now", () => {
+    const { html, text } = renderEmail({
+      academy: "Riverside",
+      heading: "Hi",
+      steps: [
+        { state: "done", title: "Sent" },
+        { state: "now", title: "Confirmed", text: "Riverside confirmed it." },
+      ],
     });
     expect(html).not.toContain("Or open this link");
-    expect(html).not.toContain("display:none");
-    expect(text).toBe("Hi\n\nOne line.\n\nSent by CoachMan.\n");
+    expect(html).toContain('mso-hide:all;">Riverside confirmed it.&#847;');
+    expect(text).toBe(
+      "Hi\n\n1. Sent\n\n2. Confirmed\nRiverside confirmed it.\n\nSent with CoachMan for Riverside\n",
+    );
+  });
+});
+
+describe("every email", () => {
+  const drafts: EmailDraft[] = [
+    staffInviteEmail({
+      academy: "Riverside",
+      inviter: "Ana",
+      role: "coach",
+      email: "sam@gmail.com",
+      link: LINK,
+      expires: "Tue, Nov 17",
+    }),
+    familyInviteEmail({
+      academy: "Riverside",
+      firstName: "Mia",
+      relation: "self",
+      link: LINK,
+      expires: "Tue, Nov 17",
+    }),
+    enrollmentReceivedEmail({
+      academy: "Riverside",
+      origin: ORIGIN,
+      clientId: "c-1",
+      student: MIA,
+      tierName: "Monthly",
+      starts: null,
+      renewal: true,
+    }),
+    ...(["approved", "waitlisted", "declined"] as const).flatMap((status) =>
+      [true, false].map((amountDue) =>
+        enrollmentDecisionEmail({
+          academy: "Riverside",
+          origin: ORIGIN,
+          requestId: "r-1",
+          clientId: "c-1",
+          student: MIA,
+          status,
+          tierName: "Monthly",
+          starts: null,
+          amountDue,
+        }),
+      ),
+    ),
+    ...[true, false].map((confirmed) =>
+      proofDecisionEmail({
+        academy: "Riverside",
+        origin: ORIGIN,
+        clientId: "c-1",
+        student: SELF,
+        confirmed,
+        screenshot: false,
+      }),
+    ),
+    staffEnrollmentRequestEmail({
+      academy: "Riverside",
+      origin: ORIGIN,
+      requestId: "r-1",
+      studentFirstName: "Mia",
+      tierName: "Monthly",
+      renewal: false,
+    }),
+    staffProofEmail({ academy: "Riverside", origin: ORIGIN, studentFirstName: "Mia" }),
+  ];
+
+  it("runs done steps, then one step that's now, then next steps, with its button in it", () => {
+    const order = { done: 0, now: 1, next: 2 } as const;
+    for (const d of drafts) {
+      const states = d.steps.map((s) => order[s.state]);
+      expect(states, d.subject).toEqual([...states].sort());
+      expect(
+        d.steps.filter((s) => s.state === "now"),
+        d.subject,
+      ).toHaveLength(1);
+      expect(d.action?.url, d.subject).toMatch(/^https:\/\//);
+    }
+  });
+
+  it("signs off with one line naming the academy", () => {
+    for (const d of drafts) {
+      expect(renderEmail(d).text.trimEnd().split("\n\n").at(-1), d.subject).toBe(
+        emailFooterLine("Riverside"),
+      );
+    }
+    expect(emailFooterLine("Riverside")).toBe("Sent with CoachMan for Riverside");
   });
 });
 
@@ -111,62 +281,66 @@ describe("staff invite email", () => {
     email: "sam@gmail.com",
     link: LINK,
     expires: "Tue, Nov 17",
-    replies: true,
   };
 
-  it("says who invited them, as what, which account to use, and until when", () => {
+  it("says who invited them, as what, which account to use and until when, then what the role does", () => {
     const d = staffInviteEmail({ ...base, role: "front_desk" });
     expect(d.subject).toBe("Join Riverside Pickleball on CoachMan");
-    expect(d.paragraphs).toEqual([
-      "Ana Reyes invited you to join Riverside Pickleball on CoachMan as front desk staff.",
-      "Sign in with Google as sam@gmail.com.",
-      "The link works once, until Tue, Nov 17.",
+    expect(d.preheader).toBe(
+      "Ana Reyes invited you as front desk staff. The link works once, until Tue, Nov 17.",
+    );
+    expect(d.academy).toBe("Riverside Pickleball");
+    expect(stepsOf(d)).toEqual([
+      ["done", "Ana Reyes invited you", "To join as front desk staff."],
+      [
+        "now",
+        "Sign in with Google",
+        "Use the Google account for sam@gmail.com. The link works once, until Tue, Nov 17.",
+      ],
+      [
+        "next",
+        "You're on the team",
+        "Payments, enrollments, check-in, the schedule, and family invites. Doesn't coach; no prices, settings, or team.",
+      ],
     ]);
     expect(d.action).toEqual({ label: "Join Riverside Pickleball", url: LINK });
-    expect(d.footer).toEqual([
-      "Sent by CoachMan for Riverside Pickleball.",
-      "Ana Reyes invited this address to Riverside Pickleball's team.",
-      "Reply to this email to reach Ana Reyes.",
-    ]);
   });
 
-  it("names each role as a sentence does", () => {
-    expect(staffInviteEmail({ ...base, role: "coach" }).paragraphs[0]).toContain("as a coach.");
-    expect(staffInviteEmail({ ...base, role: "admin" }).paragraphs[0]).toContain("as an admin.");
-  });
-
-  it("says replies aren't read when the inviter has no address to reply to", () => {
-    const d = staffInviteEmail({ ...base, role: "coach", replies: false });
-    expect(d.footer.at(-1)).toBe("Replies to this address aren't read.");
+  it("names each role as a sentence does, and someone when the inviter has no name", () => {
+    expect(staffInviteEmail({ ...base, role: "coach" }).steps[0]?.text).toBe("To join as a coach.");
+    expect(staffInviteEmail({ ...base, role: "admin" }).steps[0]?.text).toBe(
+      "To join as an admin.",
+    );
+    expect(staffInviteEmail({ ...base, role: "coach", inviter: "  " }).steps[0]?.title).toBe(
+      "Someone invited you",
+    );
   });
 });
 
 describe("family invite email", () => {
-  const base = { academy: "Riverside", link: LINK, expires: "Wed, Nov 18", replies: false };
+  const base = { academy: "Riverside", link: LINK, expires: "Wed, Nov 18" };
 
   it("invites a parent to follow the student, with how to sign in and until when", () => {
     const d = familyInviteEmail({ ...base, firstName: "Mia", relation: "guardian" });
     expect(d.subject).toBe("Riverside invited you to its family portal");
     expect(d.heading).toBe("Follow Mia's training");
-    expect(d.paragraphs).toEqual([
-      "Riverside invited you to follow Mia's training on CoachMan: sessions, progress, coaches' comments, and payments.",
-      "Sign in with Google, or create a passkey on your phone. No password needed.",
-      "The link works once, until Wed, Nov 18.",
+    expect(stepsOf(d)).toEqual([
+      ["done", "Riverside invited you", "To follow Mia's training on CoachMan."],
+      [
+        "now",
+        "Accept the invite",
+        "Sign in with Google, or create a passkey on your phone. No password needed. The link works once, until Wed, Nov 18.",
+      ],
+      ["next", "You're in", "Mia's sessions, progress, coaches' comments, and payments."],
     ]);
     expect(d.action).toEqual({ label: "Open the invite", url: LINK });
-    expect(d.footer).toEqual([
-      "Sent by CoachMan for Riverside.",
-      "Riverside invited this address to its family portal.",
-      "Replies to this address aren't read.",
-    ]);
   });
 
-  it("invites a student to their own login, and replies reach the academy when it has an address", () => {
-    const d = familyInviteEmail({ ...base, firstName: "Ana", relation: "self", replies: true });
-    expect(d.paragraphs[0]).toBe(
-      "Riverside invited you to see your own training on CoachMan: sessions, progress, coaches' comments, and payments.",
-    );
-    expect(d.footer.at(-1)).toBe("Reply to this email to reach Riverside.");
+  it("invites a student to their own login", () => {
+    const d = familyInviteEmail({ ...base, firstName: "Ana", relation: "self" });
+    expect(d.heading).toBe("See your own training");
+    expect(d.steps[0]?.text).toBe("To see your own training on CoachMan.");
+    expect(d.steps[2]?.text).toBe("Your sessions, progress, coaches' comments, and payments.");
   });
 });
 
@@ -178,34 +352,29 @@ describe("enrollment received email", () => {
     tierName: "Monthly",
     starts: "December 2026",
     renewal: false,
-    replies: true,
   };
 
   it("tells whoever sent a request that the academy will review it", () => {
     const d = enrollmentReceivedEmail({ ...base, student: MIA });
     expect(d.subject).toBe("We got your request for Mia");
-    expect(d.paragraphs).toEqual([
-      "You asked to enroll Mia in Monthly from December 2026.",
-      "Riverside will review it and let you know.",
+    expect(stepsOf(d)).toEqual([
+      ["done", "Request sent", "You asked to enroll Mia in Monthly from December 2026."],
+      ["now", "Under review", "Riverside will review it and let you know."],
     ]);
     expect(d.action).toEqual({ label: "See your request", url: `${ORIGIN}/my/c-1/payments` });
-    expect(d.footer.slice(1)).toEqual([
-      "You asked to enroll Mia.",
-      "Reply to this email to reach Riverside.",
-    ]);
   });
 
   it("words a renewal, an adult's own request, and a trial without a month", () => {
     expect(
       enrollmentReceivedEmail({ ...base, student: MIA, renewal: true, starts: "January 2027" })
-        .paragraphs[0],
+        .steps[0]?.text,
     ).toBe("You asked to renew Mia's Monthly for January 2027.");
     const self = enrollmentReceivedEmail({ ...base, student: SELF });
     expect(self.subject).toBe("We got your enrollment request");
-    expect(self.paragraphs[0]).toBe("You asked to enroll in Monthly from December 2026.");
+    expect(self.steps[0]?.text).toBe("You asked to enroll in Monthly from December 2026.");
     expect(
-      enrollmentReceivedEmail({ ...base, student: MIA, tierName: "Trial", starts: null })
-        .paragraphs[0],
+      enrollmentReceivedEmail({ ...base, student: MIA, tierName: "Trial", starts: null }).steps[0]
+        ?.text,
     ).toBe("You asked to enroll Mia in Trial.");
   });
 });
@@ -219,7 +388,6 @@ describe("enrollment decision email", () => {
     tierName: "Monthly",
     starts: "December 2026",
     amountDue: false,
-    replies: false,
   };
 
   it("approved: who's in, from when, and to pay from the portal when something is owed", () => {
@@ -231,22 +399,25 @@ describe("enrollment decision email", () => {
     });
     expect(d.subject).toBe("Mia is in: Monthly from December 2026");
     expect(d.heading).toBe("Enrollment approved");
-    expect(d.paragraphs).toEqual([
-      "Mia is in: Monthly from December 2026.",
-      "Pay from the portal: it shows what's due and how to pay.",
+    expect(stepsOf(d)).toEqual([
+      ["done", "Request sent", "Monthly from December 2026."],
+      ["done", "Approved", "Mia is in."],
+      ["now", "Pay what's due", "The portal shows how much and how to pay."],
     ]);
     expect(d.action).toEqual({
       label: "Pay from the portal",
       url: `${ORIGIN}/my/c-1/pay?request=r-1`,
     });
-    expect(d.footer[1]).toBe("You're linked to Mia in Riverside's family portal.");
     // Never an amount.
     expect(wordsOf(d)).not.toMatch(/₱|PHP|\$|\d+,\d{3}|\d+\.\d{2}/);
   });
 
   it("approved with nothing owed opens the portal; the student's own login reads it as theirs", () => {
     const paid = enrollmentDecisionEmail({ ...base, student: MIA, status: "approved" });
-    expect(paid.paragraphs).toEqual(["Mia is in: Monthly from December 2026."]);
+    expect(stepsOf(paid)).toEqual([
+      ["done", "Request sent", "Monthly from December 2026."],
+      ["now", "Approved", "Mia is in."],
+    ]);
     expect(paid.action).toEqual({ label: "Open CoachMan", url: `${ORIGIN}/my` });
     const self = enrollmentDecisionEmail({
       ...base,
@@ -255,22 +426,33 @@ describe("enrollment decision email", () => {
       starts: null,
     });
     expect(self.subject).toBe("You're in: Monthly");
-    expect(self.footer[1]).toBe("You have your own login to Riverside's family portal.");
+    expect(stepsOf(self)).toEqual([
+      ["done", "Request sent", "Monthly."],
+      ["now", "Approved", "You're in."],
+    ]);
   });
 
   it("waitlisted and declined, never with the academy's reason", () => {
     const waitlisted = enrollmentDecisionEmail({ ...base, student: MIA, status: "waitlisted" });
     expect(waitlisted.subject).toBe("Mia is on the waitlist for Monthly");
-    expect(waitlisted.paragraphs[0]).toBe("Mia is on the waitlist for Monthly.");
+    expect(stepsOf(waitlisted).slice(1)).toEqual([
+      [
+        "now",
+        "On the waitlist",
+        "Mia is on the waitlist. Open CoachMan for any note from Riverside.",
+      ],
+      ["next", "If a place opens", "You'll get an email when they approve it."],
+    ]);
     expect(waitlisted.action?.url).toBe(`${ORIGIN}/my`);
     const declined = enrollmentDecisionEmail({ ...base, student: MIA, status: "declined" });
     expect(declined.subject).toBe("Your request for Mia was updated");
-    expect(declined.paragraphs).toEqual([
-      "Open CoachMan to see Riverside's reply about Mia's request.",
+    expect(stepsOf(declined)).toEqual([
+      ["done", "Request sent", "Monthly from December 2026."],
+      ["now", "Read their reply", "Open CoachMan to see Riverside's reply about Mia's request."],
     ]);
     expect(declined.action?.url).toBe(`${ORIGIN}/my`);
     expect(
-      enrollmentDecisionEmail({ ...base, student: SELF, status: "declined" }).paragraphs[0],
+      enrollmentDecisionEmail({ ...base, student: SELF, status: "declined" }).steps[1]?.text,
     ).toBe("Open CoachMan to see Riverside's reply about your request.");
   });
 });
@@ -281,13 +463,16 @@ describe("payment proof decision email", () => {
     origin: ORIGIN,
     clientId: "c-1",
     screenshot: true,
-    replies: true,
   };
 
   it("confirmed: payment received, linking to Payments", () => {
     const d = proofDecisionEmail({ ...base, student: MIA, confirmed: true });
     expect(d.subject).toBe("Payment received for Mia");
-    expect(d.paragraphs).toEqual(["Riverside confirmed the payment for Mia."]);
+    expect(d.heading).toBe("Payment confirmed");
+    expect(stepsOf(d)).toEqual([
+      ["done", "Payment proof sent", null],
+      ["now", "Confirmed", "Riverside confirmed the payment for Mia."],
+    ]);
     expect(d.action).toEqual({ label: "See payments", url: `${ORIGIN}/my/c-1/payments` });
     expect(wordsOf(d)).not.toMatch(/\d/);
   });
@@ -295,17 +480,23 @@ describe("payment proof decision email", () => {
   it("not accepted: says so without the reason, and asks for another", () => {
     const d = proofDecisionEmail({ ...base, student: MIA, confirmed: false });
     expect(d.subject).toBe("Payment proof not accepted for Mia");
-    expect(d.paragraphs).toEqual([
-      "Riverside couldn't accept the payment screenshot for Mia. Open the portal to see why and send another.",
+    expect(stepsOf(d)).toEqual([
+      ["done", "Payment proof sent", null],
+      [
+        "now",
+        "Send another",
+        "Riverside couldn't accept the payment screenshot for Mia. Open the portal to see why and send another.",
+      ],
+      ["next", "Confirmed", "Once Riverside accepts it."],
     ]);
-    expect(d.action?.url).toBe(`${ORIGIN}/my/c-1/payments`);
+    expect(d.action).toEqual({ label: "See why", url: `${ORIGIN}/my/c-1/payments` });
     const cash = proofDecisionEmail({
       ...base,
       student: SELF,
       confirmed: false,
       screenshot: false,
     });
-    expect(cash.paragraphs[0]).toBe(
+    expect(cash.steps[1]?.text).toBe(
       "Riverside couldn't accept the payment proof for you. Open the portal to see why and send another.",
     );
   });
@@ -322,16 +513,12 @@ describe("staff alert emails", () => {
       renewal: false,
     });
     expect(d.subject).toBe("New enrollment request for Mia");
-    expect(d.details).toEqual([
-      ["Student", "Mia"],
-      ["Package", "Monthly"],
+    expect(stepsOf(d)).toEqual([
+      ["done", "Request sent", "For Mia: Monthly."],
+      ["now", "Review it", "Approve, waitlist, or decline it in Enrollments."],
+      ["next", "The family hears back", "CoachMan lets them know what you decide."],
     ]);
     expect(d.action).toEqual({ label: "Review the request", url: `${ORIGIN}/enrollments/r-1` });
-    expect(d.footer).toEqual([
-      "Sent by CoachMan for Riverside.",
-      "You're on Riverside's team. To stop these, turn off Enrollments & payments in Settings, Notifications.",
-      "Replies to this address aren't read.",
-    ]);
     expect(wordsOf(d)).not.toContain("Santos");
     const renewal = staffEnrollmentRequestEmail({
       academy: "Riverside",
@@ -348,7 +535,11 @@ describe("staff alert emails", () => {
   it("a payment proof to review never says how much", () => {
     const d = staffProofEmail({ academy: "Riverside", origin: ORIGIN, studentFirstName: "Mia" });
     expect(d.subject).toBe("Payment proof to review for Mia");
-    expect(d.paragraphs).toEqual(["For Mia. Review it in Money."]);
+    expect(stepsOf(d)).toEqual([
+      ["done", "Payment proof sent", "For Mia."],
+      ["now", "Review it", "Confirm it in Money, or mark it not accepted."],
+      ["next", "The family hears back", "CoachMan lets them know either way."],
+    ]);
     expect(d.action).toEqual({ label: "Open Money", url: `${ORIGIN}/money` });
     expect(wordsOf(d)).not.toMatch(/\d/);
   });
@@ -447,11 +638,6 @@ describe("when an invite's email didn't go", () => {
     }
     expect(emailFailureReason("undeliverable")).toBe("That address can't receive email.");
     expect(emailFailureReason("E_SOMETHING_NEW")).toBe("The email service didn't take it.");
-  });
-
-  it("the footer says whether replies are read", () => {
-    expect(replyLine("Riverside")).toBe("Reply to this email to reach Riverside.");
-    expect(replyLine(null)).toBe("Replies to this address aren't read.");
   });
 });
 

@@ -32,7 +32,13 @@ import { ApiError, conflict, notFound } from "../lib/errors";
 import { INVITE_TTL_MS, inviteStatus, newToken } from "../lib/tokens";
 import { v } from "../lib/validate";
 import { ctxOf, requireCap } from "../middleware";
-import { coachName, type StaffRow, staffRows, toCoachSummary } from "../services/coaches";
+import {
+  coachName,
+  coachRefs,
+  type StaffRow,
+  staffRows,
+  toCoachSummary,
+} from "../services/coaches";
 import { runBatch } from "../services/credits";
 import { emailStaffInvite } from "../services/email";
 import type { AppBindings, Ctx } from "../types";
@@ -271,11 +277,15 @@ export const teamRoutes = new Hono<AppBindings>()
     const row = await ctx.db.query.invite.findFirst({ where: eq(invite.id, id) });
     if (!row) throw notFound("Invite");
     const me = await ctx.db.query.user.findFirst({ where: eq(user.id, ctx.userId) });
+    // The email names the inviter as the team knows them: their coach profile's name.
+    const inviterName = (await coachRefs(ctx.db, ctx.workspaceId, [ctx.userId])).get(
+      ctx.userId,
+    )?.name;
     const link = `${appOrigin(ctx.env)}/join/${token}`;
     // Sent now, so the answer says whether it went; the link works either way.
     const emailed = await emailStaffInvite(ctx.db, ctx.env, {
       workspaceId: ctx.workspaceId,
-      inviter: me ? { name: me.name, email: me.email } : null,
+      inviter: me ? { name: inviterName ?? me.name, email: me.email } : null,
       to: email,
       role,
       link,

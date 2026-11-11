@@ -41,6 +41,9 @@ export function summarize(text: string, max = 160): string {
 
 const origin = (appUrl: string) => appUrl.replace(/\/+$/, "");
 
+/** The app's own origin (APP_URL without a trailing slash), for absolute links. */
+export const appOrigin = (env: { APP_URL: string }) => origin(env.APP_URL);
+
 /** An absolute link to a public R2 image (each path segment encoded, as the app does). */
 export function publicImageUrl(appUrl: string, key: string): string {
   return `${origin(appUrl)}/api/public/files/${key.split("/").map(encodeURIComponent).join("/")}`;

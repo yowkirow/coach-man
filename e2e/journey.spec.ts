@@ -203,7 +203,7 @@ test(
           await visit(o, "/team");
           await o.getByRole("button", { name: "Invite someone" }).first().click();
           const form = o.getByRole("dialog", { name: "Invite someone" });
-          await form.getByLabel("Their Google email").fill(coachEmail);
+          await form.getByLabel("Their email").fill(coachEmail);
           await expect(form.getByRole("radio", { name: /^Coach/ })).toBeChecked();
           await form.getByRole("button", { name: "Create invite link" }).click();
           const ready = o.getByRole("dialog", { name: "Invite link ready" });

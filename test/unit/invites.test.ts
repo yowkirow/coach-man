@@ -9,7 +9,7 @@ const valid = {
 };
 
 describe("accepting a staff invite", () => {
-  it("accepts the invited Google address, whatever its letter case", () => {
+  it("accepts the invited address, whatever its letter case", () => {
     expect(checkStaffAcceptance(valid)).toEqual({ ok: true });
     expect(
       checkStaffAcceptance({ ...valid, user: { ...coach, email: " SAM.RIVERA@example.COM " } }),
@@ -22,7 +22,11 @@ describe("accepting a staff invite", () => {
       user: { ...coach, email: "sam.rivera@gmail.com" },
     });
     expect(res).toMatchObject({ ok: false, status: 403, code: "wrong_email" });
-    if (!res.ok) expect(res.message).toMatch(/Google account it was sent to/);
+    if (!res.ok) {
+      expect(res.message).toBe(
+        "This invite is for a different email address. Sign in with the address it was sent to.",
+      );
+    }
   });
 
   it("refuses an invite without an address (a staff invite always has one)", () => {
@@ -33,9 +37,13 @@ describe("accepting a staff invite", () => {
   });
 
   it("needs the address to be verified", () => {
-    expect(
-      checkStaffAcceptance({ ...valid, user: { ...coach, emailVerified: false } }),
-    ).toMatchObject({ ok: false, status: 403, code: "unverified_email" });
+    const res = checkStaffAcceptance({ ...valid, user: { ...coach, emailVerified: false } });
+    expect(res).toMatchObject({ ok: false, status: 403, code: "unverified_email" });
+    if (!res.ok) {
+      expect(res.message).toBe(
+        "Sign in with Google or a code by email so we can confirm this address, then accept the invite.",
+      );
+    }
   });
 
   it("refuses expired, used, and withdrawn invites with 410s, before checking the address", () => {

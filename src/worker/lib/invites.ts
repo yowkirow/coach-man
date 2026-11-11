@@ -8,9 +8,10 @@ import {
 
 /**
  * Whether a signed-in person may accept a staff invite. The invite's state is checked first (a new
- * link is the fix for all of those), then that the account is the Google address it was sent to.
- * A link works once: accepting it again is refused as used, even by the person who used it (the
- * Worker tells them they're already on the team, without running anything again).
+ * link is the fix for all of those), then that the account is the verified address it was sent to
+ * (signed in with Google or with a code sent there). A link works once: accepting it again is
+ * refused as used, even by the person who used it (the Worker tells them they're already on the
+ * team, without running anything again).
  */
 export type StaffAcceptance =
   | { ok: true }
@@ -45,7 +46,7 @@ export function checkStaffAcceptance(input: {
       status: 403,
       code: "wrong_email",
       message:
-        "This invite is for a different email address. Sign in with the Google account it was sent to.",
+        "This invite is for a different email address. Sign in with the address it was sent to.",
     };
   }
   if (!user.emailVerified) {
@@ -53,7 +54,8 @@ export function checkStaffAcceptance(input: {
       ok: false,
       status: 403,
       code: "unverified_email",
-      message: "Sign in with Google so we can confirm this email address, then accept the invite.",
+      message:
+        "Sign in with Google or a code by email so we can confirm this address, then accept the invite.",
     };
   }
   return { ok: true };

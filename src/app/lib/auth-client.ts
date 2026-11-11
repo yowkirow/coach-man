@@ -1,4 +1,5 @@
 import { passkeyClient } from "@better-auth/passkey/client";
+import { INVITE_HEADER } from "@shared/domain";
 import { createAuthClient } from "better-auth/react";
 
 // Academies (Better Auth organizations) are managed through /api/account and /api/v1, never the
@@ -27,13 +28,17 @@ export class AuthRequestError extends Error {
   }
 }
 
-async function authPost<T>(path: string, body: unknown): Promise<T> {
+async function authPost<T>(
+  path: string,
+  body: unknown,
+  headers: Record<string, string> = {},
+): Promise<T> {
   let res: Response;
   try {
     res = await fetch(`/api/auth${path}`, {
       method: "POST",
       credentials: "same-origin",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      headers: { "Content-Type": "application/json", Accept: "application/json", ...headers },
       body: JSON.stringify(body),
     });
   } catch {
@@ -77,6 +82,78 @@ export function abandonPasskeyAccount() {
   return authPost<{ deleted: boolean }>("/passkey-account/abandon", {}).catch(() => ({
     deleted: false,
   }));
+}
+
+/** Better Auth's refusals of a code, in CoachMan's words. */
+const CODE_ERRORS: Record<string, string> = {
+  INVALID_OTP: "That code isn't right. Check the newest email from CoachMan.",
+  OTP_EXPIRED: "That code has expired. Send a new one.",
+  TOO_MANY_ATTEMPTS: "That code was tried too many times. Send a new one.",
+  INVALID_EMAIL: "Enter one email address, like name@example.com.",
+};
+
+/** Refusals of our own (auth.ts), already in CoachMan's words. */
+const OWN_REFUSAL = /^(invalid_email|wrong_email|name_required|rate_limited|invite_[a-z]+)$/;
+
+function codeError(err: unknown): AuthRequestError {
+  if (!(err instanceof AuthRequestError)) {
+    return new AuthRequestError(0, "error", "Something went wrong. Try again.");
+  }
+  // Offline already says so.
+  if (err.status === 0) return err;
+  const mapped = CODE_ERRORS[err.code];
+  if (mapped) return new AuthRequestError(err.status, err.code, mapped);
+  if (OWN_REFUSAL.test(err.code)) return err;
+  // Better Auth's own limit, which answers in its words.
+  if (err.status === 429) {
+    return new AuthRequestError(
+      429,
+      "rate_limited",
+      "Too many tries. Wait a minute, then try again.",
+    );
+  }
+  return new AuthRequestError(err.status, err.code, "Something went wrong. Try again.");
+}
+
+const inviteHeaders = (inviteToken: string | undefined): Record<string, string> =>
+  inviteToken ? { [INVITE_HEADER]: inviteToken } : {};
+
+/**
+ * Asks for a 6-digit sign-in code by email. Without an invite the answer is the same whether or not
+ * the address has an account (only an account's address gets one); with an invite link's token (the
+ * join page), the invite decides, and a refusal says why.
+ */
+export async function sendSignInCode(email: string, inviteToken?: string): Promise<void> {
+  try {
+    await authPost(
+      "/email-otp/send-verification-otp",
+      { email, type: "sign-in" },
+      inviteHeaders(inviteToken),
+    );
+  } catch (err) {
+    throw codeError(err);
+  }
+}
+
+/**
+ * Signs in with an emailed code. A new account (only with an invite that lets its address in) takes
+ * `name`; an existing one keeps its own.
+ */
+export async function signInWithCode(
+  email: string,
+  code: string,
+  options: { name?: string; inviteToken?: string } = {},
+): Promise<void> {
+  try {
+    await authPost(
+      "/sign-in/email-otp",
+      { email, otp: code, ...(options.name ? { name: options.name } : {}) },
+      inviteHeaders(options.inviteToken),
+    );
+  } catch (err) {
+    throw codeError(err);
+  }
+  await refreshSession();
 }
 
 /**

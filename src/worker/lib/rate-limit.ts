@@ -144,3 +144,14 @@ export const PASSKEY_ACCOUNT_RULE: RateRule = { windowMs: 60 * 60_000, max: 5 };
 export const PASSKEY_ENROLL_RULE: RateRule = { windowMs: 60 * 60_000, max: 5 };
 /** Passkey-only accounts started to enroll at one academy, from everywhere. */
 export const PASSKEY_ENROLL_ACADEMY_RULE: RateRule = { windowMs: 60 * 60_000, max: 100 };
+/**
+ * Sign-in codes asked for one address. Every request counts, whether a code goes or not, so the
+ * limits never say whether an address has an account.
+ */
+export const EMAIL_CODE_ADDRESS_RULE: RateRule = { windowMs: 15 * 60_000, max: 3 };
+/** Sign-in codes asked for one address in a day. */
+export const EMAIL_CODE_DAY_RULE: RateRule = { windowMs: 24 * 60 * 60_000, max: 10 };
+/** Sign-in codes asked for from one connection: generous, as many share a school's or a carrier's. */
+export const EMAIL_CODE_IP_RULE: RateRule = { windowMs: 10 * 60_000, max: 30 };
+/** Sign-in codes asked for through one invite link. */
+export const EMAIL_CODE_INVITE_RULE: RateRule = { windowMs: 60 * 60_000, max: 10 };

@@ -167,7 +167,7 @@ describe("removing people and transferring ownership", () => {
 });
 
 describe("the invite message", () => {
-  it("names the academy, the role, the Google address, the link, and the expiry", () => {
+  it("names the academy, the role, the address to sign in as, the link, and the expiry", () => {
     const text = staffInviteMessage({
       academyName: "Riverside Academy",
       role: "admin",
@@ -177,7 +177,7 @@ describe("the invite message", () => {
     });
     expect(text).toContain("join Riverside Academy on CoachMan as an admin");
     expect(text).toContain(
-      "sign in with Google as alex@example.com: https://coachman.cloud/join/abc",
+      "Open this link and sign in as alex@example.com, with Google or a code by email: https://coachman.cloud/join/abc",
     );
     expect(text).toContain("until Mon 10 Nov");
     expect(text).not.toContain("!");

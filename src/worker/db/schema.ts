@@ -1001,7 +1001,7 @@ export const invite = sqliteTable(
     workspaceId: workspaceId(),
     kind: text().$type<InviteKind>().notNull(),
     tokenHash: text().notNull().unique(),
-    /** Staff invites: the Google email that may accept, lowercased. */
+    /** Staff invites: the email that may accept, lowercased. */
     email: text(),
     role: text().$type<StaffRole>(),
     clientId: text().references(() => client.id, { onDelete: "cascade" }),

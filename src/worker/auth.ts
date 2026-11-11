@@ -6,13 +6,20 @@ import {
   createAuthEndpoint,
   createAuthMiddleware,
   getSessionFromCtx,
+  isAPIError,
   sessionMiddleware,
 } from "better-auth/api";
 import { deleteSessionCookie, setSessionCookie } from "better-auth/cookies";
-import { organization } from "better-auth/plugins";
+import { emailOTP, organization } from "better-auth/plugins";
 import { and, count, eq, ne, sql } from "drizzle-orm";
 import { z } from "zod";
-import { isPlaceholderEmail, placeholderEmail } from "../shared/domain";
+import {
+  INVITE_HEADER,
+  isPlaceholderEmail,
+  placeholderEmail,
+  SIGN_IN_CODE_MINUTES,
+} from "../shared/domain";
+import { isDeliverableEmail } from "../shared/email";
 import { uuidv7 } from "../shared/ids";
 import { type Db, getDb } from "./db/client";
 import {
@@ -26,10 +33,26 @@ import {
   user as userTable,
 } from "./db/schema";
 import { E2E_HEADER, isBypassEnabled, isBypassRequestAllowed } from "./lib/bypass";
+import {
+  CODE_ATTEMPTS,
+  type CodeRefusal,
+  codeAttempts,
+  codeIdentifier,
+  decideCodeRequest,
+  decideCodeSignIn,
+  hmacHex,
+  isBlockedCodePath,
+  SEND_CODE_PATH,
+  SIGN_IN_CODE_PATH,
+} from "./lib/email-code";
 import { normalizeEmail } from "./lib/invites";
 import { checkGoogleLink, idTokenClaims } from "./lib/passkey-accounts";
 import {
   clientIp,
+  EMAIL_CODE_ADDRESS_RULE,
+  EMAIL_CODE_DAY_RULE,
+  EMAIL_CODE_INVITE_RULE,
+  EMAIL_CODE_IP_RULE,
   hit,
   INVITE_MISS_RULE,
   PASSKEY_ACCOUNT_RULE,
@@ -39,6 +62,7 @@ import {
 } from "./lib/rate-limit";
 import { hashToken, inviteStatus, isTokenShaped } from "./lib/tokens";
 import { firstWorkspaceForUser, provisionWorkspace } from "./lib/workspace";
+import { sendSignInCode } from "./services/email";
 import { findListedAcademy } from "./services/public-academy";
 
 /**
@@ -156,6 +180,8 @@ function buildAuth(env: Env) {
         "/link-social": { window: 60, max: 10 },
         "/passkey/*": { window: 60, max: 30 },
         "/passkey-account/*": { window: 60, max: 10 },
+        "/email-otp/*": { window: 60, max: 5 },
+        "/sign-in/email-otp": { window: 60, max: 10 },
         "/e2e/*": { window: 60, max: 120 },
       },
     },
@@ -168,6 +194,12 @@ function buildAuth(env: Env) {
       before: createAuthMiddleware(async (ctx) => {
         if (ctx.path === "/link-social") await guardLinkSocial(db, ctx);
         if (ctx.path === "/passkey/delete-passkey") await guardLastPasskey(db, ctx);
+        if (isBlockedCodePath(ctx.path)) throw noSuchEndpoint();
+        if (ctx.path === SEND_CODE_PATH) return guardCodeRequest(env, db, ctx);
+        if (ctx.path === SIGN_IN_CODE_PATH) return guardCodeSignIn(db, ctx);
+      }),
+      after: createAuthMiddleware(async (ctx) => {
+        if (ctx.path === SIGN_IN_CODE_PATH) return reportSpentCode(ctx, ctx.context.returned);
       }),
     },
     databaseHooks: {
@@ -204,6 +236,25 @@ function buildAuth(env: Env) {
       organization({ allowUserToCreateOrganization: false }),
       passkey({ rpID: env.PASSKEY_RP_ID, rpName: env.PASSKEY_RP_NAME, origin: env.APP_URL }),
       passkeyAccounts(env),
+      emailOTP({
+        otpLength: 6,
+        expiresIn: SIGN_IN_CODE_MINUTES * 60,
+        allowedAttempts: CODE_ATTEMPTS,
+        // Never open sign-up: the before hook lets a new account in only with an invite for it.
+        disableSignUp: false,
+        storeOTP: { hash: (otp) => hmacHex(env.BETTER_AUTH_SECRET, otp) },
+        sendVerificationOTP: async ({ email, otp, type }, ctx) => {
+          if (type !== "sign-in") return;
+          const token = inviteTokenOf(ctx?.headers);
+          // The before hook checked the invite; without it now, the code still goes, as CoachMan's.
+          const found = token ? await findCodeInvite(db, token).catch(() => null) : null;
+          await sendSignInCode(db, env, {
+            email,
+            code: otp,
+            invite: found && { workspaceId: found.workspaceId, kind: found.kind },
+          });
+        },
+      }),
       ...(isBypassEnabled(env) ? [e2eSignIn(env)] : []),
     ],
   });
@@ -293,6 +344,160 @@ async function guardLastPasskey(db: Db, ctx: GenericEndpointContext) {
         "This passkey is the only way into your account. Add another passkey or link Google first.",
     });
   }
+}
+
+const noSuchEndpoint = () =>
+  new APIError("NOT_FOUND", { message: "No such endpoint.", code: "not_found" });
+
+const STATUS_NAMES = {
+  400: "BAD_REQUEST",
+  403: "FORBIDDEN",
+  404: "NOT_FOUND",
+  410: "GONE",
+} as const;
+
+/** A refusal shaped as Better Auth shapes its own errors, so ours and its read the same. */
+const refusalError = (r: CodeRefusal) =>
+  new APIError(STATUS_NAMES[r.status], { message: r.message, code: r.code });
+
+/** The invite link token a request carries (only the join page sends it), or null. */
+const inviteTokenOf = (headers: Headers | undefined) => headers?.get(INVITE_HEADER)?.trim() || null;
+
+/** The invite behind a token, as sign-in codes need it, or null when it matches none. */
+async function findCodeInvite(db: Db, token: string) {
+  if (!isTokenShaped(token)) return null;
+  const row = await db.query.invite.findFirst({
+    where: eq(invite.tokenHash, await hashToken(token)),
+  });
+  return row
+    ? {
+        id: row.id,
+        workspaceId: row.workspaceId,
+        kind: row.kind,
+        email: row.email,
+        status: inviteStatus(row),
+      }
+    : null;
+}
+
+/**
+ * Before /email-otp/send-verification-otp, which makes and stores a code before it looks at the
+ * address: only sign-in codes, to one deliverable address, within the limits (every request counts,
+ * sent or not), and only to an account's address or one an invite lets in. Any other address is
+ * answered as if a code went, after about as long as sending one takes, with nothing stored or sent.
+ */
+async function guardCodeRequest(env: Env, db: Db, ctx: GenericEndpointContext) {
+  const body = (ctx.body ?? {}) as { email?: unknown; type?: unknown };
+  if (body.type !== "sign-in") throw noSuchEndpoint();
+  const email = normalizeEmail(typeof body.email === "string" ? body.email : "");
+  if (!isDeliverableEmail(email)) {
+    throw refusalError({
+      status: 400,
+      code: "invalid_email",
+      message: "Enter one email address, like name@example.com.",
+    });
+  }
+  const ip = clientIp(ctx.headers ?? new Headers());
+  // Counters hold a keyed hash of the address, never the address.
+  const address = await hmacHex(env.BETTER_AUTH_SECRET, `email-code:${email}`);
+  const counts = await Promise.all([
+    hit(db, `email-code:to:${address}`, EMAIL_CODE_ADDRESS_RULE),
+    hit(db, `email-code:day:${address}`, EMAIL_CODE_DAY_RULE),
+    hit(db, `email-code:ip:${ip}`, EMAIL_CODE_IP_RULE),
+  ]);
+  const token = inviteTokenOf(ctx.headers);
+  let found: Awaited<ReturnType<typeof findCodeInvite>> | undefined;
+  if (token) {
+    // Made-up tokens are counted per connection, as on the invite pages.
+    const missKey = `invite-miss:ip:${ip}`;
+    if (await spent(db, missKey, INVITE_MISS_RULE)) {
+      throw new APIError("TOO_MANY_REQUESTS", {
+        message: "Too many tries. Wait a few minutes, then try again.",
+        code: "rate_limited",
+      });
+    }
+    found = await findCodeInvite(db, token);
+    if (found) counts.push(await hit(db, `email-code:invite:${found.id}`, EMAIL_CODE_INVITE_RULE));
+    else await hit(db, missKey, INVITE_MISS_RULE);
+  }
+  const over = counts.filter((c) => !c.allowed);
+  if (over.length) {
+    throw new APIError(
+      "TOO_MANY_REQUESTS",
+      {
+        message: "Too many codes were asked for. Wait a few minutes, then try again.",
+        code: "rate_limited",
+      },
+      { "Retry-After": String(Math.max(...over.map((c) => c.retryAfterSeconds))) },
+    );
+  }
+  const decision = decideCodeRequest({
+    email,
+    invite: found,
+    hasAccount:
+      found === undefined && Boolean(await ctx.context.internalAdapter.findUserByEmail(email)),
+  });
+  if (decision.kind === "refuse") throw refusalError(decision.refusal);
+  if (decision.kind === "silent") {
+    await new Promise((resolve) => setTimeout(resolve, 250 + Math.random() * 450));
+    return ctx.json({ success: true });
+  }
+  return { context: { body: { email, type: "sign-in" } } };
+}
+
+/**
+ * Before /sign-in/email-otp: an account goes straight on (Better Auth checks its code). A sign-up
+ * needs an invite that lets its address in and a name, which goes on trimmed (decideCodeSignIn).
+ * The address goes on normalized, and a sign-up can't set a picture.
+ */
+async function guardCodeSignIn(db: Db, ctx: GenericEndpointContext) {
+  const body = (ctx.body ?? {}) as { email?: unknown; name?: unknown; image?: unknown };
+  if (body.image !== undefined) {
+    throw refusalError({
+      status: 400,
+      code: "bad_request",
+      message: "Sign in with an email address and its code.",
+    });
+  }
+  const email = normalizeEmail(typeof body.email === "string" ? body.email : "");
+  const hasAccount = Boolean(await ctx.context.internalAdapter.findUserByEmail(email));
+  let liveCode = false;
+  let found: Awaited<ReturnType<typeof findCodeInvite>> | undefined;
+  if (!hasAccount) {
+    const stored = await ctx.context.internalAdapter.findVerificationValue(codeIdentifier(email));
+    liveCode = Boolean(stored && stored.expiresAt > new Date());
+    const token = inviteTokenOf(ctx.headers);
+    if (liveCode && token) found = await findCodeInvite(db, token);
+  }
+  const decision = decideCodeSignIn({
+    email,
+    hasAccount,
+    liveCode,
+    invite: found,
+    name: body.name,
+  });
+  if (decision.kind === "refuse") throw refusalError(decision.refusal);
+  return { context: { body: { email, ...(decision.name ? { name: decision.name } : {}) } } };
+}
+
+/**
+ * After /sign-in/email-otp: the third wrong code spends the code (Better Auth would refuse the next
+ * try anyway), so that answer says so at once, as Better Auth's own does, and the code is deleted.
+ * It's a Response, not a thrown APIError, which would keep the wrong code's 400.
+ */
+async function reportSpentCode(ctx: GenericEndpointContext, returned: unknown) {
+  if (!isAPIError(returned) || returned.body?.code !== "INVALID_OTP") return;
+  const body = (ctx.body ?? {}) as { email?: unknown };
+  const identifier = codeIdentifier(
+    normalizeEmail(typeof body.email === "string" ? body.email : ""),
+  );
+  const stored = await ctx.context.internalAdapter.findVerificationValue(identifier);
+  if (!stored || codeAttempts(stored.value) < CODE_ATTEMPTS) return;
+  await ctx.context.internalAdapter.deleteVerificationByIdentifier(identifier);
+  return Response.json(
+    { message: "Too many attempts", code: "TOO_MANY_ATTEMPTS" },
+    { status: 403 },
+  );
 }
 
 /**

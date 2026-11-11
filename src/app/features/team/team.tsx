@@ -498,7 +498,7 @@ export function InvitesCard({
           <EmptyState
             icon={<UserPlus aria-hidden className="size-5" />}
             title="No invites waiting"
-            body="Invite a coach, an admin, or front desk staff. We email them a link, and you can share it on Messenger, Viber, or by text. They sign in with the Google account you invite."
+            body="Invite a coach, an admin, or front desk staff. We email them a link, and you can share it on Messenger, Viber, or by text. They sign in as the address you invite, with Google or a code we email them."
             action={
               <Button variant="dark" isDisabled={!online} onPress={() => onInvite()}>
                 Invite someone
@@ -650,7 +650,7 @@ export function InviteSheet({
       isOpen={isOpen}
       onOpenChange={onOpenChange}
       title="Invite someone"
-      description="They sign in with Google, using the email address you enter here. We email them the link, and you can share it too."
+      description="They sign in as this address, with Google or a code we email them. We email them the link, and you can share it too."
       footer={
         <>
           <Button variant="light" onPress={() => onOpenChange(false)}>
@@ -675,7 +675,7 @@ export function InviteSheet({
         }}
       >
         <TextField
-          label="Their Google email"
+          label="Their email"
           type="email"
           inputMode="email"
           autoComplete="off"

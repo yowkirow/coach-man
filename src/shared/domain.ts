@@ -264,5 +264,12 @@ export const PLACEHOLDER_EMAIL_DOMAIN = "passkey.coachman.invalid";
 export const isPlaceholderEmail = (email: string | null | undefined) =>
   Boolean(email?.toLowerCase().endsWith(`@${PLACEHOLDER_EMAIL_DOMAIN}`));
 
+/**
+ * Codes by email ("Email me a code"): the join page sends its invite link's token in this header,
+ * so the Worker knows which invite a code is for. A code works this many minutes.
+ */
+export const INVITE_HEADER = "x-coachman-invite";
+export const SIGN_IN_CODE_MINUTES = 10;
+
 /** A passkey-only account's address: `u-<uuid>@passkey.coachman.invalid` (never deliverable). */
 export const placeholderEmail = (uuid: string) => `u-${uuid}@${PLACEHOLDER_EMAIL_DOMAIN}`;

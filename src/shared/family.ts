@@ -155,7 +155,7 @@ export function familyInviteWhat(relation: FamilyRelation, firstName: string): s
 
 /** How someone with a family invite signs in. */
 export const FAMILY_SIGN_IN =
-  "Sign in with Google, or create a passkey on your phone. No password needed.";
+  "Sign in with Google, a code by email, or a passkey on your phone. No password needed.";
 
 /**
  * The message staff (or a parent, for their teen) paste into Messenger, Viber, or a text: who is

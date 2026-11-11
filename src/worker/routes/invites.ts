@@ -131,7 +131,7 @@ async function isTeamMember(c: Context<AppBindings>, userId: string, workspaceId
 
 /**
  * Staff: the invite must still work (not used, withdrawn, or expired) and the account must be the
- * verified Google address it was sent to; then they join with the invite's role. A link works
+ * verified address it was sent to; then they join with the invite's role. A link works
  * once. Opening it again, even as the person who used it, is refused as used (with
  * `details.alreadyMember` so the page can say they're on the team) and changes nothing.
  */

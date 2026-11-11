@@ -1,6 +1,6 @@
 import { currencyDigits, minorToInput, parseMoney } from "@shared/money";
 import { Check, ChevronDown, Search, X } from "lucide-react";
-import { type ReactNode, useEffect, useState } from "react";
+import { type ClipboardEvent, type ReactNode, type Ref, useEffect, useState } from "react";
 import {
   Input,
   type Key,
@@ -70,7 +70,12 @@ export interface TextFieldProps extends BaseFieldProps {
   min?: string;
   max?: string;
   step?: string;
+  maxLength?: number;
   prefix?: ReactNode;
+  /** The input itself: to focus or select it, read its paste, or set its type larger. */
+  inputRef?: Ref<HTMLInputElement>;
+  onPaste?: (e: ClipboardEvent<HTMLInputElement>) => void;
+  inputClassName?: string;
 }
 
 export function TextField({
@@ -88,7 +93,11 @@ export function TextField({
   min,
   max,
   step,
+  maxLength,
   prefix,
+  inputRef,
+  onPaste,
+  inputClassName = "",
   ...rest
 }: TextFieldProps) {
   return (
@@ -109,13 +118,16 @@ export function TextField({
           </span>
         ) : null}
         <Input
+          ref={inputRef}
           placeholder={placeholder}
           autoComplete={autoComplete}
           inputMode={inputMode}
           min={min}
           max={max}
           step={step}
-          className={`${fieldClass} ${prefix ? "pl-9" : ""} ${type === "date" || type === "time" || type === "number" ? "num" : ""}`}
+          maxLength={maxLength}
+          onPaste={onPaste}
+          className={`${fieldClass} ${prefix ? "pl-9" : ""} ${type === "date" || type === "time" || type === "number" ? "num" : ""} ${inputClassName}`}
         />
       </div>
       <Help description={description} error={error} />

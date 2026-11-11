@@ -1,4 +1,4 @@
-// Reviewed for accuracy against the code on 2026-11-10 (what's collected, who sees it, how long
+// Reviewed for accuracy against the code on 2026-11-11 (what's collected, who sees it, how long
 // it's kept, what's public): every statement here should stay true of the code, so change them
 // together. Written in plain language as a starting point; it is not legal advice. A lawyer's
 // review under the Data Privacy Act of 2012 (RA 10173) and the NPC's rules is still recommended,
@@ -12,7 +12,7 @@ import { Bullets, type DocSection, DocumentPage, Sub } from "./shell";
 const link =
   "rounded-sm font-medium underline decoration-line-strong underline-offset-4 outline-none hover:decoration-ink focus-visible:outline-2 focus-visible:outline-ink";
 
-export const PRIVACY_UPDATED = "November 10, 2026";
+export const PRIVACY_UPDATED = "November 11, 2026";
 
 const SECTIONS: DocSection[] = [
   {
@@ -66,6 +66,11 @@ const SECTIONS: DocSection[] = [
             Passkey-only accounts get a placeholder address instead of an email.
           </li>
           <li>
+            If you sign in with a code by email: the code, kept only in a scrambled (hashed) form
+            with the address it was sent to, and deleted once it's used, or within a day of
+            expiring.
+          </li>
+          <li>
             Staff: your role at each academy and the coach profile you fill in (name shown, title,
             bio, photos, certifications, highlights, rating, specialties, languages, years
             coaching).
@@ -116,8 +121,9 @@ const SECTIONS: DocSection[] = [
             The IP address and browser of each sign-in session, kept with the session for security.
           </li>
           <li>
-            IP addresses in short-lived counters that limit how often sign-in, invite, and public
-            pages can be tried (to stop guessing and abuse).
+            IP addresses, and a scrambled (hashed) form of the email addresses codes are asked for,
+            in short-lived counters that limit how often sign-in, invite, and public pages can be
+            tried (to stop guessing and abuse).
           </li>
           <li>
             If you turn on notifications: your browser's push address and keys, which browser it is,
@@ -160,8 +166,8 @@ const SECTIONS: DocSection[] = [
           </li>
           <li>to send the reminders and notifications you turn on (your consent);</li>
           <li>
-            to email invite links, updates on enrollment requests and payments, and alerts for staff
-            (what's needed to provide the service);
+            to email invite links, codes to sign in, updates on enrollment requests and payments,
+            and alerts for staff (what's needed to provide the service);
           </li>
           <li>to keep the records the academy needs, such as signed consents and payments.</li>
         </Bullets>
@@ -244,12 +250,13 @@ const SECTIONS: DocSection[] = [
           </li>
         </Bullets>
         <p>
-          CoachMan sends a few emails: invite links, to the address staff give; updates on
-          enrollment requests and payment proofs, to the family members linked to the student; and
-          alerts about new requests and proofs, to the academy's staff who review them. Emails carry
-          no amounts or health details: they say what happened and link to CoachMan for the rest.
-          Replies to a staff invite reach whoever sent it, and replies to families' emails reach the
-          academy when it has set a contact email. Otherwise, replies aren't read.
+          CoachMan sends a few emails: invite links, to the address staff give; codes to sign in, to
+          the address someone asked one for; updates on enrollment requests and payment proofs, to
+          the family members linked to the student; and alerts about new requests and proofs, to the
+          academy's staff who review them. Emails carry no amounts or health details: they say what
+          happened and link to CoachMan for the rest. Replies to a staff invite reach whoever sent
+          it, and replies to families' emails reach the academy when it has set a contact email.
+          Otherwise, replies aren't read.
         </p>
         <p>
           CoachMan doesn't process payments, so no payment company receives your information from
@@ -276,6 +283,10 @@ const SECTIONS: DocSection[] = [
             within a day of ending;
           </li>
           <li>our rate-limit counters are cleared within two days;</li>
+          <li>
+            sign-in codes are deleted once they're used or tried too often, and within a day of
+            expiring;
+          </li>
           <li>request logs are deleted after 7 days at most;</li>
           <li>passkey-only accounts that never got a passkey are deleted within two days;</li>
           <li>the record of which notifications and emails were sent is deleted after 90 days;</li>
@@ -300,9 +311,9 @@ const SECTIONS: DocSection[] = [
           Everything travels over HTTPS, and Cloudflare stores the database and files encrypted.
         </li>
         <li>
-          There are no passwords to steal: you sign in with Google or a passkey. Invite links are
-          single-use and expire after 7 days, and our database keeps them only in a scrambled
-          (hashed) form.
+          There are no passwords to steal: you sign in with Google, a passkey, or a code we email
+          you, which works once, for 10 minutes. Invite links are single-use and expire after 7
+          days, and our database keeps them, and sign-in codes, only in a scrambled (hashed) form.
         </li>
         <li>
           Every request is checked against your role and your links: coaches never get money

@@ -5,8 +5,8 @@ import { checkFamilyAccess, endsTeenLogins } from "../../shared/family";
 import { uuidv7 } from "../../shared/ids";
 import type { Db } from "../db/client";
 import { account, auditLog, type client, clientAccess, invite, user } from "../db/schema";
+import { appOrigin } from "../lib/page-meta";
 import { INVITE_TTL_MS, inviteStatus, newToken } from "../lib/tokens";
-import { appOrigin } from "../routes/academy";
 import { runBatch } from "./credits";
 
 type ClientRow = typeof client.$inferSelect;

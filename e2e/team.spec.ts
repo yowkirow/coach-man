@@ -51,7 +51,7 @@ test.describe("staff invites", () => {
     await expect(page.getByRole("heading", { name: "Team", exact: true }).first()).toBeVisible();
     await page.getByRole("button", { name: "Invite someone" }).first().click();
     const form = page.getByRole("dialog", { name: "Invite someone" });
-    await form.getByLabel("Their Google email").fill(email.toUpperCase());
+    await form.getByLabel("Their email").fill(email.toUpperCase());
     await expect(form.getByRole("radio", { name: /^Coach/ })).toBeChecked();
     await form.getByRole("button", { name: "Create invite link" }).click();
 

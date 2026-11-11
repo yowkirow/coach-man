@@ -576,7 +576,7 @@ test.describe("the front desk, in the app", () => {
     await visit(page, "/team");
     await page.getByRole("button", { name: "Invite someone" }).first().click();
     const form = page.getByRole("dialog", { name: "Invite someone" });
-    await form.getByLabel("Their Google email").fill(email);
+    await form.getByLabel("Their email").fill(email);
     await expect(form.getByText(DESCRIPTION)).toBeVisible();
     const option = form.getByRole("radio", { name: /^Front desk/ });
     await toggle(option);

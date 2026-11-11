@@ -201,7 +201,9 @@ describe("family invite messages", () => {
     expect(parent).toContain("Riverside Pickleball Academy invited you to follow Mia's training");
     expect(parent).toContain("https://coachman.cloud/join/abc");
     expect(parent).toContain("until Wed 12 Nov");
-    expect(parent).toContain("passkey");
+    expect(parent).toContain(
+      "Sign in with Google, a code by email, or a passkey on your phone. No password needed.",
+    );
     const own = familyInviteMessage({
       academyName: "Riverside",
       firstName: "Leo",

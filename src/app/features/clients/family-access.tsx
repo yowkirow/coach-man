@@ -416,8 +416,8 @@ function FamilyInviteSheet({
       >
         <p className="text-ink-2">
           {guardian
-            ? `They sign in with Google or a passkey and follow ${firstName}'s sessions, progress, the comments coaches share, and payments.`
-            : `${firstName} signs in with Google or a passkey and sees their own sessions, progress, the comments coaches share, and payments.`}
+            ? `They sign in with Google, a code by email, or a passkey and follow ${firstName}'s sessions, progress, the comments coaches share, and payments.`
+            : `${firstName} signs in with Google, a code by email, or a passkey and sees their own sessions, progress, the comments coaches share, and payments.`}
         </p>
         <TextField
           label="Email the link to"

@@ -94,7 +94,7 @@ export function assignableRoles(
 
 /**
  * The message staff paste into Messenger, Viber, or a text: who is invited, as what, the link, and
- * which Google account to use. CoachMan also emails the link (src/shared/email.ts).
+ * which address to sign in as. CoachMan also emails the link (src/shared/email.ts).
  */
 export function staffInviteMessage(input: {
   academyName: string;
@@ -106,7 +106,7 @@ export function staffInviteMessage(input: {
 }): string {
   return [
     `You're invited to join ${input.academyName} on CoachMan as ${STAFF_ROLE_NOUNS[input.role]}.`,
-    `Open this link and sign in with Google as ${input.email}: ${input.link}`,
+    `Open this link and sign in as ${input.email}, with Google or a code by email: ${input.link}`,
     `The link works once, until ${input.expires}.`,
   ].join("\n");
 }

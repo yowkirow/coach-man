@@ -50,10 +50,10 @@ test.describe("invite emails", () => {
     const form = page.getByRole("dialog", { name: "Invite someone" });
     await expect(
       form.getByText(
-        "They sign in with Google, using the email address you enter here. We email them the link, and you can share it too.",
+        "They sign in as this address, with Google or a code we email them. We email them the link, and you can share it too.",
       ),
     ).toBeVisible();
-    await form.getByLabel("Their Google email").fill(email);
+    await form.getByLabel("Their email").fill(email);
     const option = form.getByRole("radio", { name: /^Front desk/ });
     await toggle(option);
     await expect(option).toBeChecked();
@@ -71,7 +71,7 @@ test.describe("invite emails", () => {
     expect(sent.replyTo).toBe(seeded.email);
     expect(sent.text).toContain("1. Coach Casey invited you\nTo join as front desk staff.");
     expect(sent.text).not.toContain(owner.user.name);
-    expect(sent.text).toContain(`2. Sign in with Google\nUse the Google account for ${email}.`);
+    expect(sent.text).toContain(`2. Sign in\nAs ${email}, with Google or a code we email you.`);
     expect(sent.text).toContain("The link works once, until ");
     // The small print is one line.
     expect(sent.text.trimEnd().endsWith(`\n\nSent with CoachMan for ${academy}`)).toBe(true);
@@ -140,7 +140,9 @@ test.describe("invite emails", () => {
     expect(sent.subject).toBe(`${academy} invited you to its family portal`);
     expect(sent.fromName).toBe(`${academy} via CoachMan`);
     expect(sent.text).toContain(`1. ${academy} invited you\nTo follow Mia's training on CoachMan.`);
-    expect(sent.text).toContain("Sign in with Google, or create a passkey on your phone.");
+    expect(sent.text).toContain(
+      "Sign in with Google, a code by email, or a passkey on your phone.",
+    );
     expect(sent.text).toContain(`Open the invite: ${link}`);
     // The academy has no contact email yet: replies reach nobody.
     expect(sent.replyTo).toBeNull();

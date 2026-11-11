@@ -1,4 +1,4 @@
-// Reviewed for accuracy against the code on 2026-11-06: every statement here should stay true of
+// Reviewed for accuracy against the code on 2026-11-11: every statement here should stay true of
 // how CoachMan works, so change them together. Written in plain language as a starting point; it
 // is not legal advice. A lawyer's review under Philippine law is still recommended (who provides
 // CoachMan, support, termination, liability). The contact address comes from
@@ -11,7 +11,7 @@ import { Bullets, type DocSection, DocumentPage } from "./shell";
 const link =
   "rounded-sm font-medium underline decoration-line-strong underline-offset-4 outline-none hover:decoration-ink focus-visible:outline-2 focus-visible:outline-ink";
 
-export const TERMS_UPDATED = "November 6, 2026";
+export const TERMS_UPDATED = "November 11, 2026";
 
 const SECTIONS: DocSection[] = [
   {
@@ -43,8 +43,9 @@ const SECTIONS: DocSection[] = [
     body: (
       <Bullets>
         <li>
-          You sign in with Google or with a passkey on your device. Keep your devices and your
-          Google account secure; you're responsible for what's done with your account.
+          You sign in with Google, with a passkey on your device, or with a code we email you. Keep
+          your devices, your Google account, and your email secure; you're responsible for what's
+          done with your account.
         </li>
         <li>One account per person. Use your own name and keep your details accurate.</li>
         <li>

@@ -74,6 +74,21 @@ export function actionLink(email: SinkEmail): string {
   return match[1];
 }
 
+/**
+ * The newest sign-in code emailed to an address, read from its subject ("123456 is your CoachMan
+ * code"), once the address has `count` of them.
+ */
+export async function signInCodeTo(
+  request: APIRequestContext,
+  address: string,
+  count = 1,
+): Promise<{ code: string; email: SinkEmail }> {
+  const email = (await emailsTo(request, address, "sign_in_code", count)).at(-1);
+  const code = email?.subject.match(/^(\d{6}) is your CoachMan code$/)?.[1];
+  if (!email || !code) throw new Error(`No sign-in code reached ${address}`);
+  return { code, email };
+}
+
 /** A link's path and query, for comparing with the app's own routes. */
 export const pathOf = (link: string) => {
   const url = new URL(link);

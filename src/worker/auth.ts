@@ -400,10 +400,12 @@ async function guardCodeRequest(env: Env, db: Db, ctx: GenericEndpointContext) {
   const ip = clientIp(ctx.headers ?? new Headers());
   // Counters hold a keyed hash of the address, never the address.
   const address = await hmacHex(env.BETTER_AUTH_SECRET, `email-code:${email}`);
+  // Test runs send every code from one connection; production never has the bypass on.
+  const ipRule = isBypassEnabled(env) ? { ...EMAIL_CODE_IP_RULE, max: 1000 } : EMAIL_CODE_IP_RULE;
   const counts = await Promise.all([
     hit(db, `email-code:to:${address}`, EMAIL_CODE_ADDRESS_RULE),
     hit(db, `email-code:day:${address}`, EMAIL_CODE_DAY_RULE),
-    hit(db, `email-code:ip:${ip}`, EMAIL_CODE_IP_RULE),
+    hit(db, `email-code:ip:${ip}`, ipRule),
   ]);
   const token = inviteTokenOf(ctx.headers);
   let found: Awaited<ReturnType<typeof findCodeInvite>> | undefined;

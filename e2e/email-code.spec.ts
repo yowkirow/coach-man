@@ -26,8 +26,9 @@ import {
 
 // Codes by email ("Email me a code"): 6-digit codes, only to addresses CoachMan already knows (an
 // account's, or one an invite lets in). The Worker records every email in its test sink (see
-// email.spec.ts), and these specs read the codes there. Codes are counted per connection (30 in
-// 10 minutes), so the flows that only need one browser run on desktop.
+// email.spec.ts), and these specs read the codes there. With the test bypass on, the limit per
+// connection is lifted (every test sends from one), so the flows that only need one browser run on
+// desktop to keep the run short.
 test.use({ serviceWorkers: "block" });
 
 /** What a signed-out visitor's pages may ask and be refused: who's signed in. */
@@ -182,7 +183,7 @@ test.describe("codes by email", () => {
   });
 
   test("an unknown address gets the same answer, and nothing is sent", async ({ page }, info) => {
-    test.skip(info.project.name !== "desktop", "Codes count per connection: one browser is enough");
+    test.skip(info.project.name !== "desktop", "One browser is enough");
     const nobody = testEmail("code-nobody", info);
     const errors = watchErrors(page);
     await visit(page, "/sign-in");
@@ -281,7 +282,7 @@ test.describe("codes by email", () => {
     browser,
     seeded,
   }, info) => {
-    test.skip(info.project.name !== "desktop", "Codes count per connection: one browser is enough");
+    test.skip(info.project.name !== "desktop", "One browser is enough");
     const invited = testEmail("code-invited", info);
     const created = await seeded.api.post<StaffInviteCreatedDto>("/team/invites", {
       email: invited,
@@ -362,7 +363,7 @@ test.describe("codes by email", () => {
     browser,
     seeded,
   }, info) => {
-    test.skip(info.project.name !== "desktop", "Codes count per connection: one browser is enough");
+    test.skip(info.project.name !== "desktop", "One browser is enough");
     const setup = await openEnrollment(seeded, info);
     // Someone who already has an account (made here as a Google sign-in would).
     const parent = testEmail("code-enroll", info);
